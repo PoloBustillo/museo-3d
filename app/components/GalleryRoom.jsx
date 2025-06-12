@@ -56,17 +56,18 @@ const artworks = getHallwayArtworks(artworkImages);
 
 function Picture({ src, position, rotation = [0, 0, 0], onClick }) {
   const texture = useTexture(src)
-  // El marco será un poco más grande y estará justo detrás de la imagen
+  // Dimensiones del cuadro y marco
+  const w = 3, h = 2, marco = 0.18
   return (
     <group position={position} rotation={rotation}>
-      {/* Marco */}
-      <mesh position={[0, 0, -0.06]}>
-        <planeGeometry args={[3.2, 2.2]} />
+      {/* Marco negro alrededor de la imagen */}
+      <mesh position={[0, 0, -0.01]}>
+        <planeGeometry args={[w + marco, h + marco]} />
         <meshStandardMaterial color="#222" />
       </mesh>
       {/* Imagen */}
-      <mesh onClick={(e) => { e.stopPropagation(); onClick(src); }}>
-        <planeGeometry args={[3, 2]} />
+      <mesh position={[0, 0, -0.02]} onClick={(e) => { e.stopPropagation(); onClick(src); }}>
+        <planeGeometry args={[w, h]} />
         <meshStandardMaterial map={texture} side={THREE.DoubleSide} />
       </mesh>
     </group>
@@ -173,6 +174,18 @@ function Room() {
         <meshStandardMaterial color="#f5f5f5" side={THREE.DoubleSide} />
       </mesh>
 
+      {/* Molduras rosa pálido a lo largo del pasillo, pegadas al techo y paredes laterales */}
+      {/* Lado derecho */}
+      <mesh position={[0, CEILING_HEIGHT-0.02, HALL_WIDTH/2 - 0.13]}>
+        <boxGeometry args={[HALL_LENGTH, 0.09, 0.09]} />
+        <meshStandardMaterial color="#FFF" />
+      </mesh>
+      {/* Lado izquierdo */}
+      <mesh position={[0, CEILING_HEIGHT-0.02, -HALL_WIDTH/2 + 0.13]}>
+        <boxGeometry args={[HALL_LENGTH, 0.09, 0.09]} />
+        <meshStandardMaterial color="#FFF" />
+      </mesh>
+
       {/* Lámparas en el techo */}
       {Array.from({ length: Math.floor(HALL_LENGTH / 8) }).map((_, i) => (
         <>
@@ -181,6 +194,10 @@ function Room() {
             <meshStandardMaterial color="#FFF" />
           </mesh>
           <pointLight key={`lamp-light-${i}`} position={[-HALL_LENGTH/2 + 4 + i*8, CEILING_HEIGHT-0.5, 0]} intensity={1.2} distance={6} color="#fffbe6" />
+          <mesh key={`lamp-ring-${i}`} position={[-HALL_LENGTH/2 + 4 + i*8, CEILING_HEIGHT-0.19, 0]} rotation={[-Math.PI/2, 0, 0]}>
+            <torusGeometry args={[0.45, 0.035, 16, 32]} />
+            <meshStandardMaterial color="#f8bbd0" />
+          </mesh>
         </>
       ))}
 
