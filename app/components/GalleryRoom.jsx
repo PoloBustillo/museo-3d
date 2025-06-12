@@ -56,17 +56,33 @@ const artworks = getHallwayArtworks(artworkImages);
 
 function Picture({ src, position, rotation = [0, 0, 0], onClick }) {
   const texture = useTexture(src)
-  // Dimensiones del cuadro y marco
-  const w = 3, h = 2, marco = 0.18
+  // Dimensiones
+  const w = 3, h = 2, thickness = 0.15, depth = 0.07
   return (
     <group position={position} rotation={rotation}>
-      {/* Marco negro alrededor de la imagen */}
-      <mesh position={[0, 0, -0.01]}>
-        <planeGeometry args={[w + marco, h + marco]} />
-        <meshStandardMaterial color="#222" />
+      {/* Marco negro 3D alrededor de la imagen */}
+      {/* Superior */}
+      <mesh position={[0, h/2 + thickness/2, depth]}>
+        <boxGeometry args={[w + thickness*2, thickness, thickness]} />
+        <meshStandardMaterial color="#111" />
+      </mesh>
+      {/* Inferior */}
+      <mesh position={[0, -h/2 - thickness/2, depth]}>
+        <boxGeometry args={[w + thickness*2, thickness, thickness]} />
+        <meshStandardMaterial color="#111" />
+      </mesh>
+      {/* Izquierda */}
+      <mesh position={[-w/2 - thickness/2, 0, depth]}>
+        <boxGeometry args={[thickness, h + thickness*2, thickness]} />
+        <meshStandardMaterial color="#111" />
+      </mesh>
+      {/* Derecha */}
+      <mesh position={[w/2 + thickness/2, 0, depth]}>
+        <boxGeometry args={[thickness, h + thickness*2, thickness]} />
+        <meshStandardMaterial color="#111" />
       </mesh>
       {/* Imagen */}
-      <mesh position={[0, 0, -0.02]} onClick={(e) => { e.stopPropagation(); onClick(src); }}>
+      <mesh position={[0, 0, 0]} onClick={(e) => { e.stopPropagation(); onClick(src); }}>
         <planeGeometry args={[w, h]} />
         <meshStandardMaterial map={texture} side={THREE.DoubleSide} />
       </mesh>
