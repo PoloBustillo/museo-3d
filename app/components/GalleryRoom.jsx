@@ -1,7 +1,7 @@
 'use client'
 
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { PointerLockControls, useTexture } from '@react-three/drei'
+import { PointerLockControls, useTexture, Html } from '@react-three/drei'
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import BackGroundSound from './BackGroundSound.jsx'
@@ -110,7 +110,7 @@ function Bench({ position }) {
   )
 }
 
-function PlayerControls({ moveTo, onArrive }) {
+function PlayerControls({ moveTo, onArrive, mobileDir }) {
   const { camera } = useThree()
   const velocity = useRef(new THREE.Vector3())
   const direction = useRef(new THREE.Vector3())
@@ -162,9 +162,35 @@ function PlayerControls({ moveTo, onArrive }) {
     camera.position.add(velocity.current)
     // Limitar solo la posición Z (ancho)
     camera.position.z = Math.max(minZ, Math.min(maxZ, camera.position.z))
+
+    // Mobile controls
+    if (mobileDir && mobileDir !== 'stop') {
+      switch(mobileDir) {
+        case 'forward': direction.current.z -= 1; break;
+        case 'back': direction.current.z += 1; break;
+        case 'left': direction.current.x -= 1; break;
+        case 'right': direction.current.x += 1; break;
+      }
+      direction.current.normalize()
+      velocity.current.copy(direction.current).multiplyScalar(5 * delta)
+      camera.position.add(velocity.current)
+      camera.position.z = Math.max(minZ, Math.min(maxZ, camera.position.z))
+    }
   })
   return null
 }
+
+// --- Cálculo de largo dinámico para techo y paredes ---
+const PICTURE_WIDTH = 3; // igual que en Picture
+const WALL_MARGIN = 2; // margen visual al inicio y final
+const PAIRS = Math.ceil(artworkImages.length / 2);
+const FIRST_X = -HALL_LENGTH / 2 + PICTURE_SPACING;
+const LAST_X = FIRST_X + (PAIRS - 1) * PICTURE_SPACING;
+const CENTER_X = (FIRST_X + LAST_X) / 2;
+const DYNAMIC_LENGTH = (LAST_X - FIRST_X) + PICTURE_WIDTH + WALL_MARGIN * 2;
+
+// Define WALL_MARGIN_INITIAL si no existe
+const WALL_MARGIN_INITIAL = 2;
 
 function Room() {
   return (
@@ -173,53 +199,52 @@ function Room() {
       <ambientLight intensity={0.4} />
       <directionalLight position={[5, 10, 5]} intensity={0.7} castShadow />
 
-      {/* Piso */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[HALL_LENGTH + FLOOR_EXTRA +50, HALL_WIDTH + FLOOR_EXTRA]} />
+      {/* Piso ajustado dinámicamente */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[CENTER_X, 0, 0]}>
+        <planeGeometry args={[DYNAMIC_LENGTH, HALL_WIDTH]} />
         <meshStandardMaterial color="#888" />
       </mesh>
 
-      {/* Techo */}
-      <mesh position={[0, CEILING_HEIGHT, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[HALL_LENGTH + FLOOR_EXTRA +50, HALL_WIDTH + FLOOR_EXTRA]} />
+      {/* Techo ajustado dinámicamente */}
+      <mesh position={[CENTER_X, CEILING_HEIGHT, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[DYNAMIC_LENGTH, HALL_WIDTH + FLOOR_EXTRA]} />
         <meshStandardMaterial color="#f5f5f5" side={THREE.DoubleSide} />
       </mesh>
 
-      {/* Molduras rosa pálido a lo largo del pasillo, pegadas al techo y paredes laterales */}
-      {/* Lado derecho */}
-      <mesh position={[0, CEILING_HEIGHT-0.02, HALL_WIDTH/2 - 0.13]}>
-        <boxGeometry args={[HALL_LENGTH, 0.09, 0.09]} />
+      {/* Molduras a lo largo del pasillo (ajustadas al largo dinámico) */}
+      <mesh position={[CENTER_X, CEILING_HEIGHT-0.02, HALL_WIDTH/2 - 0.13]}>
+        <boxGeometry args={[DYNAMIC_LENGTH, 0.09, 0.09]} />
         <meshStandardMaterial color="#FFF" />
       </mesh>
-      {/* Lado izquierdo */}
-      <mesh position={[0, CEILING_HEIGHT-0.02, -HALL_WIDTH/2 + 0.13]}>
-        <boxGeometry args={[HALL_LENGTH, 0.09, 0.09]} />
+      <mesh position={[CENTER_X, CEILING_HEIGHT-0.02, -HALL_WIDTH/2 + 0.13]}>
+        <boxGeometry args={[DYNAMIC_LENGTH, 0.09, 0.09]} />
         <meshStandardMaterial color="#FFF" />
       </mesh>
 
-      {/* Lámparas en el techo */}
-      {Array.from({ length: Math.floor(HALL_LENGTH / 8) }).map((_, i) => (
+      {/* Lámparas (opcional: puedes alinearlas a DYNAMIC_LENGTH si lo deseas) */}
+      {Array.from({ length: Math.floor(DYNAMIC_LENGTH / 8) }).map((_, i) => (
         <>
-          <mesh key={`lamp-mesh-${i}`} position={[-HALL_LENGTH/2 + 4 + i*8, CEILING_HEIGHT-0.2, 0]}>
+          <mesh key={`lamp-mesh-${i}`} position={[CENTER_X - DYNAMIC_LENGTH/2 + 4 + i*8, CEILING_HEIGHT-0.2, 0]}>
             <cylinderGeometry args={[0.25, 0.25, 0.1, 24]} />
             <meshStandardMaterial color="#FFF" />
           </mesh>
-          <pointLight key={`lamp-light-${i}`} position={[-HALL_LENGTH/2 + 4 + i*8, CEILING_HEIGHT-0.5, 0]} intensity={1.2} distance={6} color="#fffbe6" />
-          <mesh key={`lamp-ring-${i}`} position={[-HALL_LENGTH/2 + 4 + i*8, CEILING_HEIGHT-0.19, 0]} rotation={[-Math.PI/2, 0, 0]}>
+          <pointLight key={`lamp-light-${i}`} position={[CENTER_X - DYNAMIC_LENGTH/2 + 4 + i*8, CEILING_HEIGHT-0.5, 0]} intensity={1.2} distance={6} color="#fffbe6" />
+          <mesh key={`lamp-ring-${i}`} position={[CENTER_X - DYNAMIC_LENGTH/2 + 4 + i*8, CEILING_HEIGHT-0.19, 0]} rotation={[-Math.PI/2, 0, 0]}>
             <torusGeometry args={[0.45, 0.035, 16, 32]} />
             <meshStandardMaterial color="#f8bbd0" />
           </mesh>
         </>
       ))}
 
-      {/* Paredes laterales del pasillo */}
-      {[[-HALL_LENGTH / 2, 2.5,  HALL_WIDTH / 2], [HALL_LENGTH / 2, 2.5,  HALL_WIDTH / 2],
-        [-HALL_LENGTH / 2, 2.5, -HALL_WIDTH / 2], [HALL_LENGTH / 2, 2.5, -HALL_WIDTH / 2]].map(([x, y, z], i) => (
-        <mesh key={i} position={[x, y, z]} rotation={[0, 0, 0]}>
-          <boxGeometry args={[HALL_LENGTH, 5, 0.1]} />
-          <meshStandardMaterial color="#f5f5f5" />
-        </mesh>
-      ))}
+      {/* Paredes laterales ajustadas dinámicamente */}
+      <mesh position={[CENTER_X, 2.5, HALL_WIDTH/2]}>
+        <boxGeometry args={[DYNAMIC_LENGTH, 5, 0.1]} />
+        <meshStandardMaterial color="#f5f5f5" />
+      </mesh>
+      <mesh position={[CENTER_X, 2.5, -HALL_WIDTH/2]}>
+        <boxGeometry args={[DYNAMIC_LENGTH, 5, 0.1]} />
+        <meshStandardMaterial color="#f5f5f5" />
+      </mesh>
 
       {/* Cuadros */}
       {artworks.map((art, i) => (
@@ -233,6 +258,25 @@ function Room() {
       <Bench position={[-HALL_LENGTH/2 + 6, 0, -HALL_WIDTH/2 + 1.2]} />
       <Bench position={[0, 0, -HALL_WIDTH/2 + 1.2]} />
       <Bench position={[HALL_LENGTH/2 - 6, 0, -HALL_WIDTH/2 + 1.2]} />
+
+      {/* Pared de bienvenida cubriendo toda la pantalla */}
+      <mesh position={[FIRST_X - WALL_MARGIN_INITIAL - 2, 2.5, 0]}>
+        <boxGeometry args={[0.1, 10, 30]} />
+        <meshStandardMaterial color="#cce6ff" opacity={0.98} transparent />
+      </mesh>
+      {/* Instrucciones centradas en la parte baja de la pantalla, área más ancha */}
+      <Html position={[FIRST_X - WALL_MARGIN_INITIAL - 1.6, 1.2, 0]} center style={{width:'700px', textAlign:'center'}}>
+        <div style={{background:'rgba(255,255,255,0.98)', borderRadius:18, padding:'2.2em', boxShadow:'0 2px 32px #0003', fontSize:'1.5em', color:'#222', fontWeight:'bold', border:'2px solid #90caf9'}}>
+          <div style={{fontSize:'2.2em', marginBottom:'0.2em'}}>🎨🖼️</div>
+          <div><b>Bienvenido al museo virtual</b></div>
+          <div style={{fontWeight:'bold', fontSize:'1.1em', marginTop:'1.2em'}}>
+            Usa <b><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></b> o las flechas para moverte.<br/>
+            Haz click para activar la cámara y mirar con el mouse.<br/>
+            Avanza para atravesar esta pared e ingresar al pasillo de la galería.<br/>
+            <span style={{fontSize:'1.5em'}}>➡️🚶‍♂️</span>
+          </div>
+        </div>
+      </Html>
     </>
   )
 }
@@ -262,12 +306,40 @@ function ProximityTooltip({ artworks, threshold = 3, setTooltipIndex }) {
   return null
 }
 
+function MobileControls({ onMove }) {
+  // Simple joystick y botones para mobile
+  useEffect(() => {
+    let interval = null;
+    const handleTouch = (dir) => {
+      if (interval) clearInterval(interval);
+      onMove(dir);
+      interval = setInterval(() => onMove(dir), 60);
+    };
+    const stop = () => { if (interval) clearInterval(interval); };
+    // Limpieza
+    return () => { if (interval) clearInterval(interval); };
+  }, [onMove]);
+  return (
+    <div style={{position:'fixed', bottom:30, left:0, right:0, zIndex:100, display:'flex', justifyContent:'center', gap:24, pointerEvents:'auto'}}>
+      <button style={btnStyle} onTouchStart={()=>onMove('left')} onTouchEnd={()=>onMove('stop')}>⬅️</button>
+      <button style={btnStyle} onTouchStart={()=>onMove('forward')} onTouchEnd={()=>onMove('stop')}>⬆️</button>
+      <button style={btnStyle} onTouchStart={()=>onMove('back')} onTouchEnd={()=>onMove('stop')}>⬇️</button>
+      <button style={btnStyle} onTouchStart={()=>onMove('right')} onTouchEnd={()=>onMove('stop')}>➡️</button>
+    </div>
+  );
+}
+const btnStyle = { fontSize:'2em', padding:'0.7em 1.2em', borderRadius:12, border:'none', background:'#1976d2', color:'#fff', boxShadow:'0 2px 8px #0003', fontWeight:'bold' };
+
 export default function GalleryRoom() {
   const [soundEnabled, setSoundEnabled] = useState(false)
   const [showList, setShowList] = useState(false)
   const [moveTo, setMoveTo] = useState(null)
   const [menuValue, setMenuValue] = useState("")
   const [tooltipIndex, setTooltipIndex] = useState(null)
+  const [mobileDir, setMobileDir] = useState('stop');
+
+  // Detectar mobile
+  const isMobile = typeof window !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent);
 
   return (
     <>
@@ -315,13 +387,14 @@ export default function GalleryRoom() {
           </button>
         )}
       </div>
-      <Canvas shadows camera={{ fov: 75, position: [-HALL_LENGTH/2 + 2, 2, 0], near: 0.1, far: 1000 }}>
+      <Canvas shadows camera={{ fov: 75, position: [FIRST_X - WALL_MARGIN_INITIAL - 4, 2, 0], near: 0.1, far: 1000 }}>
         {soundEnabled && <BackGroundSound url="/assets/audio.mp3" />}
         <Room />
-        <PlayerControls moveTo={moveTo !== null ? artworks[moveTo].position : null} onArrive={() => setMoveTo(null)} />
+        <PlayerControls moveTo={moveTo !== null ? artworks[moveTo].position : null} onArrive={() => setMoveTo(null)} mobileDir={mobileDir} />
         <PointerLockControls />
         <ProximityTooltip artworks={artworks} threshold={3} setTooltipIndex={setTooltipIndex} />
       </Canvas>
+      {isMobile && <MobileControls onMove={setMobileDir} />}
     </>
   )
 }
