@@ -37,14 +37,15 @@ function getHallwayArtworks(images) {
   const positions = [];
   const n = images.length;
   for (let i = 0; i < n; i++) {
-    // Alterna entre derecha (side=1) e izquierda (side=-1)
+    // Alterna entre izquierda y derecha
     const side = i % 2 === 0 ? 1 : -1;
     const index = Math.floor(i / 2);
     const x = -HALL_LENGTH / 2 + PICTURE_SPACING + index * PICTURE_SPACING;
-    // Sobresalen de la pared
+    // Pegados a la pared (ajustar para que el marco quede justo al ras)
+    const cuadroProfundidad = 0.15; // grosor del marco 3D
     const z = side === 1
-      ? (HALL_WIDTH / 2 - 0.55 - 0.32)
-      : -(HALL_WIDTH / 2 - 0.55 - 0.32);
+      ? (HALL_WIDTH / 2 - cuadroProfundidad / 2)
+      : -(HALL_WIDTH / 2 - cuadroProfundidad / 2);
     // Rotación: lado derecho 0, lado izquierdo Math.PI
     const rot = [0, side === 1 ? 0 : Math.PI, 0];
     positions.push({ src: images[i], position: [x, WALL_HEIGHT, z], rotation: rot });
@@ -131,43 +132,37 @@ function PlayerControls({ moveTo, onArrive }) {
   }, [])
 
   useFrame((_, delta) => {
+    // Solo restricción en el ancho (Z)
+    const minZ = -HALL_WIDTH/2 + 0.7
+    const maxZ = HALL_WIDTH/2 - 0.7
+
     if (moveTo) {
-      // Movimiento suave hacia la obra seleccionada
       const target = new THREE.Vector3(...moveTo)
-      // Determinar de qué lado está la obra
       const isRight = target.z > 0
-      // Colocar la cámara centrada frente a la obra, a suficiente distancia para ver el cuadro completo
       const zOffset = isRight ? 2.5 : -2.5
       let zTarget = target.z + zOffset
-      // Limitar para que no salga del pasillo
-      const maxZ = HALL_WIDTH/2 - 1.2
       if (zTarget > maxZ) zTarget = maxZ
-      if (zTarget < -maxZ) zTarget = -maxZ
+      if (zTarget < minZ) zTarget = minZ
       target.setZ(zTarget)
-      // Altura de la cámara centrada con la obra
       target.y = moveTo[1]
       camera.position.lerp(target, 0.08)
-      // Apuntar al centro de la obra
       camera.lookAt(moveTo[0], moveTo[1], moveTo[2])
       if (camera.position.distanceTo(target) < 0.2 && onArrive) onArrive()
       return
     }
     direction.current.set(0, 0, 0)
-
     if (keys.current.w) direction.current.z -= 1
     if (keys.current.s) direction.current.z += 1
     if (keys.current.a) direction.current.x -= 1
     if (keys.current.d) direction.current.x += 1
-
     direction.current.normalize()
     direction.current.applyEuler(camera.rotation)
-    direction.current.y = 0 // evita volar
-
-    velocity.current.copy(direction.current).multiplyScalar(5 * delta) // velocidad
-
+    direction.current.y = 0
+    velocity.current.copy(direction.current).multiplyScalar(5 * delta)
     camera.position.add(velocity.current)
+    // Limitar solo la posición Z (ancho)
+    camera.position.z = Math.max(minZ, Math.min(maxZ, camera.position.z))
   })
-
   return null
 }
 
