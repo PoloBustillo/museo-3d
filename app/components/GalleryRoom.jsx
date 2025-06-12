@@ -308,27 +308,46 @@ function ProximityTooltip({ artworks, threshold = 3, setTooltipIndex }) {
 
 function MobileControls({ onMove }) {
   // Simple joystick y botones para mobile
-  useEffect(() => {
-    let interval = null;
-    const handleTouch = (dir) => {
-      if (interval) clearInterval(interval);
-      onMove(dir);
-      interval = setInterval(() => onMove(dir), 60);
-    };
-    const stop = () => { if (interval) clearInterval(interval); };
-    // Limpieza
-    return () => { if (interval) clearInterval(interval); };
-  }, [onMove]);
   return (
-    <div style={{position:'fixed', bottom:30, left:0, right:0, zIndex:100, display:'flex', justifyContent:'center', gap:24, pointerEvents:'auto'}}>
-      <button style={btnStyle} onTouchStart={()=>onMove('left')} onTouchEnd={()=>onMove('stop')}>⬅️</button>
-      <button style={btnStyle} onTouchStart={()=>onMove('forward')} onTouchEnd={()=>onMove('stop')}>⬆️</button>
-      <button style={btnStyle} onTouchStart={()=>onMove('back')} onTouchEnd={()=>onMove('stop')}>⬇️</button>
-      <button style={btnStyle} onTouchStart={()=>onMove('right')} onTouchEnd={()=>onMove('stop')}>➡️</button>
+    <div style={{
+      position: 'fixed',
+      bottom: 40,
+      left: 0,
+      right: 0,
+      zIndex: 1000,
+      display: 'flex',
+      justifyContent: 'center',
+      gap: 32,
+      pointerEvents: 'auto',
+      padding: '0 1em',
+      width: '100vw',
+      maxWidth: '100vw',
+      userSelect: 'none',
+    }}>
+      <button style={{ ...btnStyle, fontSize: '2.8em', width: 70, height: 70 }} onTouchStart={()=>onMove('left')} onTouchEnd={()=>onMove('stop')} aria-label="Izquierda">⬅️</button>
+      <div style={{display:'flex', flexDirection:'column', gap:16}}>
+        <button style={{ ...btnStyle, fontSize: '2.8em', width: 70, height: 70 }} onTouchStart={()=>onMove('forward')} onTouchEnd={()=>onMove('stop')} aria-label="Arriba">⬆️</button>
+        <button style={{ ...btnStyle, fontSize: '2.8em', width: 70, height: 70 }} onTouchStart={()=>onMove('back')} onTouchEnd={()=>onMove('stop')} aria-label="Abajo">⬇️</button>
+      </div>
+      <button style={{ ...btnStyle, fontSize: '2.8em', width: 70, height: 70 }} onTouchStart={()=>onMove('right')} onTouchEnd={()=>onMove('stop')} aria-label="Derecha">➡️</button>
     </div>
   );
 }
-const btnStyle = { fontSize:'2em', padding:'0.7em 1.2em', borderRadius:12, border:'none', background:'#1976d2', color:'#fff', boxShadow:'0 2px 8px #0003', fontWeight:'bold' };
+const btnStyle = {
+  borderRadius: 18,
+  border: 'none',
+  background: '#1976d2',
+  color: '#fff',
+  boxShadow: '0 2px 12px #0004',
+  fontWeight: 'bold',
+  margin: 0,
+  padding: 0,
+  outline: 'none',
+  touchAction: 'none',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+};
 
 export default function GalleryRoom() {
   const [soundEnabled, setSoundEnabled] = useState(false)
