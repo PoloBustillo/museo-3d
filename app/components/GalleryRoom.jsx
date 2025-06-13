@@ -1,19 +1,13 @@
 'use client'
 
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { PointerLockControls, useTexture, Html } from '@react-three/drei'
-import { useEffect, useRef, useState } from 'react'
-import * as THREE from 'three'
-import BackGroundSound from './BackGroundSound.jsx'
+// --- Limpieza de imports y organización ---
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { PointerLockControls, useTexture, Html } from '@react-three/drei';
+import { useEffect, useRef, useState } from 'react';
+import * as THREE from 'three';
+import BackGroundSound from './BackGroundSound.jsx';
 
-// Configuración del pasillo
-const HALL_LENGTH = 40; // largo del pasillo
-const HALL_WIDTH = 6; // ancho del pasillo
-const WALL_HEIGHT = 2; // altura de los cuadros
-const PICTURE_SPACING = 6; // separación entre cuadros
-const FLOOR_EXTRA = 10; // margen extra para el piso, más grande
-const CEILING_HEIGHT = 5.5; // altura del techo
-
+// --- Configuración y utilidades ---
 const artworkImages = [
   '/assets/artworks/cuadro1.jpg',
   '/assets/artworks/cuadro2.jpg',
@@ -32,6 +26,26 @@ const artworkImages = [
   '/assets/artworks/cuadro5.jpg',
   // Agrega más imágenes aquí
 ];
+
+const HALL_LENGTH = 40;
+const HALL_WIDTH = 6;
+const WALL_HEIGHT = 2;
+const PICTURE_SPACING = 6;
+const FLOOR_EXTRA = 10;
+const CEILING_HEIGHT = 5.5;
+const PICTURE_WIDTH = 3;
+const WALL_MARGIN_INITIAL = 4;
+const WALL_MARGIN_FINAL = 2;
+const PAIRS = Math.ceil(artworkImages.length / 2);
+const FIRST_X = -HALL_LENGTH / 2 + PICTURE_SPACING;
+const LAST_X = FIRST_X + (PAIRS - 1) * PICTURE_SPACING;
+const DYNAMIC_LENGTH = (LAST_X - FIRST_X) + PICTURE_WIDTH + WALL_MARGIN_INITIAL + WALL_MARGIN_FINAL;
+const DYNAMIC_CENTER_X = (FIRST_X + LAST_X) / 2 - (WALL_MARGIN_FINAL - WALL_MARGIN_INITIAL) / 2;
+
+// --- Texturas ---
+const floorTextureUrl = '/assets/textures/floor.jpg';
+const wallTextureUrl = '/assets/textures/wall.jpg';
+const benchTextureUrl = '/assets/textures/bench.jpg';
 
 function getHallwayArtworks(images) {
   const positions = [];
@@ -112,104 +126,100 @@ function Bench({ position }) {
 
 function PlayerControls({ moveTo, onArrive, mobileDir, onPassInitialWall, setCameraX }) {
   const passedWallRef = useRef(false);
-  const { camera } = useThree()
-  const velocity = useRef(new THREE.Vector3())
-  const direction = useRef(new THREE.Vector3())
-  const keys = useRef({ w: false, a: false, s: false, d: false })
+  const { camera } = useThree();
+  const velocity = useRef(new THREE.Vector3());
+  const direction = useRef(new THREE.Vector3());
+  const keys = useRef({ w: false, a: false, s: false, d: false });
 
   useEffect(() => {
-    const onKeyDown = (e) => {
-      keys.current[e.key.toLowerCase()] = true
-    }
-    const onKeyUp = (e) => {
-      keys.current[e.key.toLowerCase()] = false
-    }
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('keyup', onKeyUp)
+    const onKeyDown = (e) => { keys.current[e.key.toLowerCase()] = true; };
+    const onKeyUp = (e) => { keys.current[e.key.toLowerCase()] = false; };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
     return () => {
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('keyup', onKeyUp)
-    }
-  }, [])
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, []);
 
   useFrame((_, delta) => {
-    // Solo restricción en el ancho (Z)
-    const minZ = -HALL_WIDTH/2 + 0.7
-    const maxZ = HALL_WIDTH/2 - 0.7
-
-    if (moveTo) {
-      const target = new THREE.Vector3(...moveTo)
-      const isRight = target.z > 0
-      const zOffset = isRight ? 2.5 : -2.5
-      let zTarget = target.z + zOffset
-      if (zTarget > maxZ) zTarget = maxZ
-      if (zTarget < minZ) zTarget = minZ
-      target.setZ(zTarget)
-      target.y = moveTo[1]
-      camera.position.lerp(target, 0.08)
-      camera.lookAt(moveTo[0], moveTo[1], moveTo[2])
-      if (camera.position.distanceTo(target) < 0.2 && onArrive) onArrive()
-      return
-    }
-    direction.current.set(0, 0, 0)
-    if (keys.current.w) direction.current.z -= 1
-    if (keys.current.s) direction.current.z += 1
-    if (keys.current.a) direction.current.x -= 1
-    if (keys.current.d) direction.current.x += 1
-    direction.current.normalize()
-    direction.current.applyEuler(camera.rotation)
-    direction.current.y = 0
-    velocity.current.copy(direction.current).multiplyScalar(5 * delta)
-    camera.position.add(velocity.current)
-    // Limitar solo la posición Z (ancho)
-    camera.position.z = Math.max(minZ, Math.min(maxZ, camera.position.z))
-
+    // Restricción en el ancho (Z)
+    const minZ = -HALL_WIDTH/2 + 0.7;
+    const maxZ = HALL_WIDTH/2 - 0.7;
+    direction.current.set(0, 0, 0);
+    if (keys.current.w || mobileDir === 'forward') direction.current.z -= 1;
+    if (keys.current.s || mobileDir === 'back') direction.current.z += 1;
+    if (keys.current.a || mobileDir === 'left') direction.current.x -= 1;
+    if (keys.current.d || mobileDir === 'right') direction.current.x += 1;
+    direction.current.normalize();
+    direction.current.applyEuler(camera.rotation);
+    direction.current.y = 0;
+    velocity.current.copy(direction.current).multiplyScalar(5 * delta);
+    camera.position.add(velocity.current);
+    camera.position.z = Math.max(minZ, Math.min(maxZ, camera.position.z));
     if (typeof setCameraX === 'function') setCameraX(camera.position.x);
     if (!passedWallRef.current && onPassInitialWall && camera.position.x > FIRST_X - WALL_MARGIN_INITIAL + 0.5) {
       onPassInitialWall();
       passedWallRef.current = true;
     }
-  })
+  });
   return null
 }
 
 // --- Cálculo de largo dinámico para techo y paredes ---
-const PICTURE_WIDTH = 3; // igual que en Picture
 const WALL_MARGIN = 2; // margen visual al inicio y final
-const PAIRS = Math.ceil(artworkImages.length / 2);
-const FIRST_X = -HALL_LENGTH / 2 + PICTURE_SPACING;
-const LAST_X = FIRST_X + (PAIRS - 1) * PICTURE_SPACING;
-const CENTER_X = (FIRST_X + LAST_X) / 2;
-const DYNAMIC_LENGTH = (LAST_X - FIRST_X) + PICTURE_WIDTH + WALL_MARGIN * 2;
-
-// Define WALL_MARGIN_INITIAL si no existe
-const WALL_MARGIN_INITIAL = 2;
 
 function Room() {
+  // Cargar texturas
+  const floorTexture = useTexture(floorTextureUrl);
+  // Textura para paredes con repetición y anisotropía
+  const wallTexture = useTexture('/assets/textures/wall.jpg');
+  if (wallTexture) {
+    wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
+    wallTexture.repeat.set(Math.ceil(DYNAMIC_LENGTH / 4), 2);
+    wallTexture.anisotropy = 16;
+  }
+
+  // Piso con textura clara y repetición para mayor detalle
+  if (floorTexture) {
+    floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
+    floorTexture.repeat.set(Math.ceil(DYNAMIC_LENGTH / 4), Math.ceil(HALL_WIDTH / 2));
+    floorTexture.anisotropy = 16;
+  }
+
+  // Elimina objetos decorativos añadidos y corrige materiales
   return (
     <>
-      {/* Luces generales */}
-      <ambientLight intensity={0.4} />
-      <directionalLight position={[5, 10, 5]} intensity={0.7} castShadow />
-
-      {/* Piso ajustado dinámicamente */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[CENTER_X, 0, 0]}>
+      {/* Iluminación mejorada */}
+      <ambientLight intensity={1.1} />
+      <directionalLight position={[10, 12, 10]} intensity={1.2} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
+      {/* Luces puntuales cálidas a lo largo del pasillo */}
+      {Array.from({ length: Math.max(2, Math.floor(DYNAMIC_LENGTH / 6)) }).map((_, i) => (
+        <pointLight
+          key={`plight-${i}`}
+          position={[DYNAMIC_CENTER_X - DYNAMIC_LENGTH/2 + 3 + i*6, CEILING_HEIGHT-0.7, 0]}
+          intensity={1.5}
+          distance={8}
+          color="#ffe6b2"
+          castShadow
+        />
+      ))}
+      {/* Piso con textura clara y repetición para mayor detalle */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[DYNAMIC_CENTER_X, 0, 0]}>
         <planeGeometry args={[DYNAMIC_LENGTH, HALL_WIDTH]} />
-        <meshStandardMaterial color="#888" />
+        <meshStandardMaterial map={floorTexture} />
       </mesh>
-
-      {/* Techo ajustado dinámicamente */}
-      <mesh position={[CENTER_X, CEILING_HEIGHT, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      {/* Techo */}
+      <mesh position={[DYNAMIC_CENTER_X, CEILING_HEIGHT, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[DYNAMIC_LENGTH, HALL_WIDTH + FLOOR_EXTRA]} />
         <meshStandardMaterial color="#f5f5f5" side={THREE.DoubleSide} />
       </mesh>
-
       {/* Molduras a lo largo del pasillo (ajustadas al largo dinámico) */}
-      <mesh position={[CENTER_X, CEILING_HEIGHT-0.02, HALL_WIDTH/2 - 0.13]}>
+      <mesh position={[DYNAMIC_CENTER_X, CEILING_HEIGHT-0.02, HALL_WIDTH/2 - 0.13]}>
         <boxGeometry args={[DYNAMIC_LENGTH, 0.09, 0.09]} />
         <meshStandardMaterial color="#FFF" />
       </mesh>
-      <mesh position={[CENTER_X, CEILING_HEIGHT-0.02, -HALL_WIDTH/2 + 0.13]}>
+      <mesh position={[DYNAMIC_CENTER_X, CEILING_HEIGHT-0.02, -HALL_WIDTH/2 + 0.13]}>
         <boxGeometry args={[DYNAMIC_LENGTH, 0.09, 0.09]} />
         <meshStandardMaterial color="#FFF" />
       </mesh>
@@ -217,26 +227,26 @@ function Room() {
       {/* Lámparas (opcional: puedes alinearlas a DYNAMIC_LENGTH si lo deseas) */}
       {Array.from({ length: Math.floor(DYNAMIC_LENGTH / 8) }).map((_, i) => (
         <>
-          <mesh key={`lamp-mesh-${i}`} position={[CENTER_X - DYNAMIC_LENGTH/2 + 4 + i*8, CEILING_HEIGHT-0.2, 0]}>
+          <mesh key={`lamp-mesh-${i}`} position={[DYNAMIC_CENTER_X - DYNAMIC_LENGTH/2 + 4 + i*8, CEILING_HEIGHT-0.2, 0]}>
             <cylinderGeometry args={[0.25, 0.25, 0.1, 24]} />
             <meshStandardMaterial color="#FFF" />
           </mesh>
-          <pointLight key={`lamp-light-${i}`} position={[CENTER_X - DYNAMIC_LENGTH/2 + 4 + i*8, CEILING_HEIGHT-0.5, 0]} intensity={1.2} distance={6} color="#fffbe6" />
-          <mesh key={`lamp-ring-${i}`} position={[CENTER_X - DYNAMIC_LENGTH/2 + 4 + i*8, CEILING_HEIGHT-0.19, 0]} rotation={[-Math.PI/2, 0, 0]}>
+          <pointLight key={`lamp-light-${i}`} position={[DYNAMIC_CENTER_X - DYNAMIC_LENGTH/2 + 4 + i*8, CEILING_HEIGHT-0.5, 0]} intensity={1.2} distance={6} color="#fffbe6" />
+          <mesh key={`lamp-ring-${i}`} position={[DYNAMIC_CENTER_X - DYNAMIC_LENGTH/2 + 4 + i*8, CEILING_HEIGHT-0.19, 0]} rotation={[-Math.PI/2, 0, 0]}>
             <torusGeometry args={[0.45, 0.035, 16, 32]} />
             <meshStandardMaterial color="#f8bbd0" />
           </mesh>
         </>
       ))}
 
-      {/* Paredes laterales ajustadas dinámicamente */}
-      <mesh position={[CENTER_X, 2.5, HALL_WIDTH/2]}>
+      {/* Paredes laterales claras y con textura nítida */}
+      <mesh position={[DYNAMIC_CENTER_X, 2.5, HALL_WIDTH/2]}>
         <boxGeometry args={[DYNAMIC_LENGTH, 5, 0.1]} />
-        <meshStandardMaterial color="#f5f5f5" />
+        <meshStandardMaterial map={wallTexture} color="#ffffff" toneMapped={false} />
       </mesh>
-      <mesh position={[CENTER_X, 2.5, -HALL_WIDTH/2]}>
+      <mesh position={[DYNAMIC_CENTER_X, 2.5, -HALL_WIDTH/2]}>
         <boxGeometry args={[DYNAMIC_LENGTH, 5, 0.1]} />
-        <meshStandardMaterial color="#f5f5f5" />
+        <meshStandardMaterial map={wallTexture} color="#ffffff" toneMapped={false} />
       </mesh>
 
       {/* Cuadros */}
