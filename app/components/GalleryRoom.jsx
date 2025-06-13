@@ -253,7 +253,7 @@ function PlayerControls({ moveTo, onArrive, mobileDir, onPassInitialWall, setCam
 // --- Cálculo de largo dinámico para techo y paredes ---
 const WALL_MARGIN = 2; // margen visual al inicio y final
 
-function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork }) {
+function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork, showList }) {
   // Cargar texturas
   const floorTexture = useTexture(floorTextureUrl);
   // Textura para paredes con repetición y anisotropía
@@ -264,7 +264,7 @@ function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork }) {
     wallTexture.anisotropy = 16;
   }
 
-  // Piso con textura clara y repetición para mayor detalle
+  // Piso con textura optimizada
   if (floorTexture) {
     floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
     floorTexture.repeat.set(Math.ceil(DYNAMIC_LENGTH / 4), Math.ceil(HALL_WIDTH / 2));
@@ -288,7 +288,7 @@ function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork }) {
           castShadow
         />
       ))}
-      {/* Piso con textura clara y repetición para mayor detalle */}
+      {/* Piso con textura optimizada */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[DYNAMIC_CENTER_X, 0, 0]}>
         <planeGeometry args={[DYNAMIC_LENGTH, HALL_WIDTH]} />
         <meshStandardMaterial map={floorTexture} />
@@ -298,6 +298,16 @@ function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork }) {
         <planeGeometry args={[DYNAMIC_LENGTH, HALL_WIDTH + FLOOR_EXTRA]} />
         <meshStandardMaterial color="#f5f5f5" side={THREE.DoubleSide} />
       </mesh>
+      {/* Paredes laterales con textura optimizada */}
+      <mesh position={[DYNAMIC_CENTER_X, 2.5, HALL_WIDTH/2]}>
+        <boxGeometry args={[DYNAMIC_LENGTH, 5, 0.1]} />
+        <meshStandardMaterial map={wallTexture} color="#ffffff" />
+      </mesh>
+      <mesh position={[DYNAMIC_CENTER_X, 2.5, -HALL_WIDTH/2]}>
+        <boxGeometry args={[DYNAMIC_LENGTH, 5, 0.1]} />
+        <meshStandardMaterial map={wallTexture} color="#ffffff" />
+      </mesh>
+
       {/* Molduras a lo largo del pasillo (ajustadas al largo dinámico) */}
       <mesh position={[DYNAMIC_CENTER_X, CEILING_HEIGHT-0.02, HALL_WIDTH/2 - 0.13]}>
         <boxGeometry args={[DYNAMIC_LENGTH, 0.09, 0.09]} />
@@ -323,19 +333,9 @@ function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork }) {
         </>
       ))}
 
-      {/* Paredes laterales */}
-      <mesh position={[DYNAMIC_CENTER_X, 2.5, HALL_WIDTH/2]}>
-        <boxGeometry args={[DYNAMIC_LENGTH, 5, 0.1]} />
-        <meshStandardMaterial map={wallTexture} color="#ffffff" />
-      </mesh>
-      <mesh position={[DYNAMIC_CENTER_X, 2.5, -HALL_WIDTH/2]}>
-        <boxGeometry args={[DYNAMIC_LENGTH, 5, 0.1]} />
-        <meshStandardMaterial map={wallTexture} color="#ffffff" />
-      </mesh>
-
       {/* Cuadros */}
       {artworks.map((art, i) => (
-        <Picture key={i} {...art} onClick={setSelectedArtwork} showPlaque={passedInitialWall && !selectedArtwork} />
+        <Picture key={i} {...art} onClick={setSelectedArtwork} showPlaque={passedInitialWall && !selectedArtwork && !showList} />
       ))}
 
       {/* Bancas pegadas a las paredes */}
@@ -397,6 +397,25 @@ function CameraLerpController({ cameraRef, cameraTarget, setCameraTarget }) {
   return null;
 }
 
+// --- Checker procedural para el piso ---
+function createCheckerTexture(size = 512, squares = 16) {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const sq = size / squares;
+  for (let y = 0; y < squares; y++) {
+    for (let x = 0; x < squares; x++) {
+      ctx.fillStyle = (x + y) % 2 === 0 ? '#e0e0e0' : '#bdbdbd';
+      ctx.fillRect(x * sq, y * sq, sq, sq);
+    }
+  }
+  const texture = new THREE.Texture(canvas);
+  texture.needsUpdate = true;
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set(1, 1);
+  return texture;
+}
+
 export default function GalleryRoom() {
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [showList, setShowList] = useState(false);
@@ -410,6 +429,7 @@ export default function GalleryRoom() {
   const [isClient, setIsClient] = useState(false);
   const [cameraRef, setCameraRef] = useState(null);
   const [cameraTarget, setCameraTarget] = useState(null);
+  const [listIndex, setListIndex] = useState(0);
 
   // Hotkey para abrir/cerrar la lista de obras
   useEffect(() => {
@@ -444,6 +464,36 @@ export default function GalleryRoom() {
     }
   }, [moveTo]);
   // Elimina el useEffect que forzaba la posición inicial
+
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === 'Escape') {
+        if (selectedArtwork) setSelectedArtwork(null);
+        if (showList) setShowList(false);
+      }
+      if (showList && artworks.length > 0) {
+        if (e.key === 'ArrowDown') {
+          setListIndex((prev) => (prev + 1) % artworks.length);
+          e.preventDefault();
+        }
+        if (e.key === 'ArrowUp') {
+          setListIndex((prev) => (prev - 1 + artworks.length) % artworks.length);
+          e.preventDefault();
+        }
+        if (e.key === 'Enter') {
+          setMoveTo(listIndex);
+          setShowList(false);
+          setMenuValue("");
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [showList, selectedArtwork, listIndex, artworks.length]);
+
+  useEffect(() => {
+    if (!showList) setListIndex(0);
+  }, [showList]);
 
   if (!isClient) return null;
 
@@ -486,11 +536,12 @@ export default function GalleryRoom() {
                 alignItems:'center',
                 gap:12,
                 cursor:'pointer',
-                background: moveTo === i ? '#ffe082' : (selectedArtwork && selectedArtwork.title === art.title ? '#b3e5fc' : 'transparent'),
+                background: (moveTo === i) ? '#ffe082' : (selectedArtwork && selectedArtwork.title === art.title ? '#b3e5fc' : (listIndex === i ? '#fffde7' : 'transparent')),
                 borderRadius: 8,
-                boxShadow: moveTo === i ? '0 0 0 2px #ffd54f' : (selectedArtwork && selectedArtwork.title === art.title ? '0 0 0 2px #4fc3f7' : 'none'),
+                boxShadow: (moveTo === i) ? '0 0 0 2px #ffd54f' : (selectedArtwork && selectedArtwork.title === art.title ? '0 0 0 2px #4fc3f7' : (listIndex === i ? '0 0 0 2px #ffd54f' : 'none')),
                 transition: 'background 0.2s, box-shadow 0.2s',
-                fontWeight: moveTo === i ? 'bold' : 'normal'
+                fontWeight: (moveTo === i || listIndex === i) ? 'bold' : 'normal',
+                outline: (listIndex === i) ? '2px solid #ffd54f' : 'none'
               }}
               onClick={() => { setMoveTo(i); setShowList(false); setMenuValue(""); }}
               >
@@ -498,6 +549,7 @@ export default function GalleryRoom() {
                 <span style={{color:'#111', fontWeight:'bold'}}>{art.title}</span>
                 {moveTo === i && <span style={{marginLeft:8, color:'#ffb300', fontWeight:'bold'}}>&rarr;</span>}
                 {selectedArtwork && selectedArtwork.title === art.title && <span style={{marginLeft:8, color:'#0288d1', fontWeight:'bold'}}>●</span>}
+                {listIndex === i && !moveTo && <span style={{marginLeft:8, color:'#ffd54f', fontWeight:'bold'}}>⬅</span>}
               </li>
             ))}
           </ul>
@@ -586,11 +638,21 @@ export default function GalleryRoom() {
         <>
           <Canvas
             camera={{ position: [FIRST_X - WALL_MARGIN_INITIAL - 10, 2, 0], fov: 60 }}
-            onCreated={({ camera }) => setCameraRef(camera)}
+            onCreated={({ camera, gl, scene }) => {
+              setCameraRef(camera);
+              gl.shadowMap.enabled = true;
+              gl.shadowMap.type = THREE.PCFSoftShadowMap;
+              gl.setPixelRatio(window.devicePixelRatio);
+              gl.setClearColor('#eaf6ff');
+              scene.fog = new THREE.Fog('#eaf6ff', 18, 60);
+            }}
             style={{ width: '100vw', height: '100vh', background: '#eaf6ff' }}
+            dpr={[1, 2]}
+            shadows
+            antialias
           >
             {soundEnabled && <BackGroundSound url="/assets/audio.mp3" />}
-            <Room passedInitialWall={passedInitialWall} setSelectedArtwork={setSelectedArtwork} selectedArtwork={selectedArtwork} />
+            <Room passedInitialWall={passedInitialWall} setSelectedArtwork={setSelectedArtwork} selectedArtwork={selectedArtwork} showList={showList} />
             <PlayerControls moveTo={moveTo !== null ? artworks[moveTo].position : null} onArrive={() => setMoveTo(null)} onPassInitialWall={() => { setShowInstructions(false); setPassedInitialWall(true); }} setCameraX={setCameraX} />
             <PointerLockControls />
             <CameraLerpController cameraRef={cameraRef} cameraTarget={cameraTarget} setCameraTarget={setCameraTarget} />
