@@ -1,0 +1,200 @@
+{
+  "info": {
+    "_postman_id": "museo-3d-api-collection",
+    "name": "Museo 3D API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Crear Mural",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Mural Ejemplo\",\n  \"tecnica\": \"Acrílico\",\n  \"anio\": 2024,\n  \"ubicacion\": \"Sala 1\",\n  \"url_imagen\": \"https://res.cloudinary.com/demo/image/upload/sample.jpg\",\n  \"autor\": \"Autor Ejemplo\",\n  \"colaboradores\": \"Colaborador 1, Colaborador 2\",\n  \"medidas\": \"2x3m\"\n}"
+        },
+        "url": { "raw": "http://localhost:3000/api/murales", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["api", "murales"] }
+      }
+    },
+    {
+      "name": "Crear Sala",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"ownerId\": 1,\n  \"nombre\": \"Sala Ejemplo\",\n  \"colaboradores\": [2,3],\n  \"murales\": [1,2]\n}"
+        },
+        "url": { "raw": "http://localhost:3000/api/salas", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["api", "salas"] }
+      }
+    },
+    {
+      "name": "Obtener Murales por Sala",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "http://localhost:3000/api/salas/1/murales", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["api", "salas", "1", "murales"] }
+      }
+    },
+    {
+      "name": "Actualizar Sala",
+      "request": {
+        "method": "PUT",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Sala Actualizada\",\n  \"ownerId\": 1,\n  \"colaboradores\": [2],\n  \"murales\": [1]\n}"
+        },
+        "url": { "raw": "http://localhost:3000/api/salas/1", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["api", "salas", "1"] }
+      }
+    },
+    {
+      "name": "Eliminar Sala",
+      "request": {
+        "method": "DELETE",
+        "url": { "raw": "http://localhost:3000/api/salas/1", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["api", "salas", "1"] }
+      }
+    },
+    {
+      "name": "Actualizar Mural",
+      "request": {
+        "method": "PUT",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Mural Actualizado\",\n  \"tecnica\": \"Óleo\",\n  \"anio\": 2025,\n  \"ubicacion\": \"Sala 2\",\n  \"url_imagen\": \"https://res.cloudinary.com/demo/image/upload/sample2.jpg\",\n  \"autor\": \"Nuevo Autor\",\n  \"colaboradores\": \"Colaborador X\",\n  \"medidas\": \"3x4m\"\n}"
+        },
+        "url": { "raw": "http://localhost:3000/api/murales/1", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["api", "murales", "1"] }
+      }
+    },
+    {
+      "name": "Eliminar Mural",
+      "request": {
+        "method": "DELETE",
+        "url": { "raw": "http://localhost:3000/api/murales/1", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["api", "murales", "1"] }
+      }
+    },
+    {
+      "name": "Crear Usuario",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"usuario@ejemplo.com\",\n  \"password\": \"123456\",\n  \"role\": \"user\",\n  \"provider\": null\n}"
+        },
+        "url": { "raw": "http://localhost:3000/api/usuarios", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["api", "usuarios"] }
+      }
+    },
+    {
+      "name": "Modificar Usuario",
+      "request": {
+        "method": "PUT",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"nuevo@ejemplo.com\",\n  \"password\": \"nueva123\",\n  \"role\": \"admin\",\n  \"provider\": \"google\"\n}"
+        },
+        "url": { "raw": "http://localhost:3000/api/usuarios/1", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["api", "usuarios", "1"] }
+      }
+    },
+    {
+      "name": "Eliminar Usuario",
+      "request": {
+        "method": "DELETE",
+        "url": { "raw": "http://localhost:3000/api/usuarios/1", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["api", "usuarios", "1"] }
+      }
+    },
+    {
+      "name": "Añadir Colaboradores a Sala",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"colaboradores\": [2,3]\n}"
+        },
+        "url": { "raw": "http://localhost:3000/api/salas/1/colaboradores", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["api", "salas", "1", "colaboradores"] }
+      }
+    },
+    {
+      "name": "Añadir Murales a Sala",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"murales\": [1,2,3]\n}"
+        },
+        "url": { "raw": "http://localhost:3000/api/salas/1/murales", "protocol": "http", "host": ["localhost"], "port": "3000", "path": ["api", "salas", "1", "murales"] }
+      }
+    },
+    {
+      "name": "Crear Mural (con imagen)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "multipart/form-data" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "nombre", "value": "Mural con imagen", "type": "text" },
+            { "key": "tecnica", "value": "Óleo", "type": "text" },
+            { "key": "anio", "value": "2025", "type": "text" },
+            { "key": "ubicacion", "value": "Sala 2", "type": "text" },
+            { "key": "autor", "value": "Autor Demo", "type": "text" },
+            { "key": "colaboradores", "value": "Colaborador X", "type": "text" },
+            { "key": "medidas", "value": "3x4m", "type": "text" },
+            { "key": "salaId", "value": "1", "type": "text" },
+            { "key": "imagen", "type": "file" }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/murales",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "murales"]
+        }
+      }
+    },
+    {
+      "name": "Subir Imagen a Cloudinary",
+      "request": {
+        "method": "POST",
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "imagen", "type": "file" }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/upload",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "upload"]
+        }
+      }
+    },
+    {
+      "name": "Crear Mural (con URL de imagen)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nombre\": \"Mural Demo\",\n  \"tecnica\": \"Óleo\",\n  \"anio\": 2025,\n  \"ubicacion\": \"Sala 1\",\n  \"url_imagen\": \"https://res.cloudinary.com/tu_cloud/image/upload/ejemplo.jpg\",\n  \"autor\": \"Autor Demo\",\n  \"colaboradores\": \"Colaborador X\",\n  \"medidas\": \"2x3m\",\n  \"salaId\": 1\n}"
+        },
+        "url": {
+          "raw": "http://localhost:3000/api/murales",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "3000",
+          "path": ["api", "murales"]
+        }
+      }
+    }
+  ]
+}
