@@ -1,0 +1,45 @@
+// Prisma schema for Museo 3D
+// Adjust the datasource url as needed
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+// Example model
+model User {
+    id            Int      @id @default(autoincrement())
+    email         String   @unique
+    password      String
+    creadoEn      DateTime @default(now())
+    role          String   @default("user")
+    provider      String?
+    salasPropias  Sala[]   @relation("SalaOwner")
+    salasColabora Sala[]   @relation("SalaColaboradores")
+}
+
+model Mural {
+    id            Int     @id @default(autoincrement())
+    nombre        String
+    autor         String? // Puede ser nulo
+    colaboradores String? // Puede ser nulo
+    tecnica       String
+    medidas       String? // Puede ser nulo
+    anio          Int
+    ubicacion     String
+    url_imagen    String
+    salaId        Int?
+    sala          Sala?   @relation(fields: [salaId], references: [id])
+}
+
+model Sala {
+    id            Int     @id @default(autoincrement())
+    ownerId       Int
+    owner         User    @relation("SalaOwner", fields: [ownerId], references: [id])
+    colaboradores User[]  @relation("SalaColaboradores")
+    murales       Mural[]
+}
