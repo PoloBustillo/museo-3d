@@ -5,6 +5,11 @@ import AuthModal from "./components/AuthModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 
+<<<<<<< Updated upstream
+=======
+
+
+>>>>>>> Stashed changes
 export default function Home() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register'
@@ -31,6 +36,10 @@ export default function Home() {
 
   return (
     <>
+<<<<<<< Updated upstream
+=======
+   
+>>>>>>> Stashed changes
       <main
         style={{
           minHeight: "100vh",
