@@ -16,6 +16,8 @@ import {
   NavigationMenuViewport,
 } from "./components/ui/navigation-menu"; 
 
+import ParallaxTriangleSection from './components/ParallaxTriangleSection';
+
 
 export default function Home() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -50,9 +52,9 @@ export default function Home() {
             <NavigationMenuContent>
 
               <NavigationMenuLink asChild>
-        <Link href="/docs">Documentation</Link>
-      </NavigationMenuLink>
-      
+                <Link href="/docs">Documentation</Link>
+              </NavigationMenuLink>
+
             </NavigationMenuContent>
           </NavigationMenuItem>
         </NavigationMenuList>
@@ -138,6 +140,27 @@ export default function Home() {
           </Link>
         </nav>
       </main>
+
+    <div>
+      <ParallaxTriangleSection 
+        instructions="Bienvenido a nuestra web. Desplázate para conocer más."
+        imageUrl="/images/Origen.jpg"
+        reverse={false}
+      />
+      <ParallaxTriangleSection 
+        instructions="Navega por nuestras secciones y descubre contenido exclusivo."
+        imageUrl="/images/imagen2.jpg"
+        reverse={true}
+      />
+      <ParallaxTriangleSection 
+        instructions="Recuerda revisar nuestras ofertas y novedades."
+        imageUrl="/images/imagen3.jpg"
+        reverse={false}
+      />
+    </div>
+
+
+
       {authModal && (
         <AuthModal
           open={!!authModal}
