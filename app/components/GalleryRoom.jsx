@@ -6,6 +6,7 @@ import { PointerLockControls, useTexture, Html } from '@react-three/drei';
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import BackGroundSound from './BackGroundSound.jsx';
+import { motion, AnimatePresence } from "framer-motion";
 
 // --- Configuración y utilidades ---
 const artworkImages = [
@@ -141,13 +142,21 @@ function getHallwayArtworks(images) {
 
 const artworks = getHallwayArtworks(artworkImages);
 
-function Picture({ src, title, artist, year, description, technique, dimensions, position, rotation = [0, 0, 0], onClick, showPlaque }) {
+function Picture({ src, title, artist, year, description, technique, dimensions, position, rotation = [0, 0, 0], onClick, showPlaque, selected }) {
   const texture = useTexture(src);
   const [hovered, setHovered] = useState(false);
   // Dimensiones
   const w = 3, h = 2, thickness = 0.15, depth = 0.07;
   return (
-    <group position={position} rotation={rotation}>
+    <motion.group
+      position={position}
+      rotation={rotation}
+      initial={{ scale: 0.85, opacity: 0 }}
+      animate={{ scale: selected ? 1.15 : hovered ? 1.04 : 1, opacity: 1, z: selected ? 0.5 : 0 }}
+      transition={{ type: "spring", stiffness: 120, damping: 18 }}
+      onPointerOver={() => setHovered(true)}
+      onPointerOut={() => setHovered(false)}
+    >
       {/* Marco negro 3D alrededor de la imagen */}
       <mesh position={[0, h/2 + thickness/2, depth]}>
         <boxGeometry args={[w + thickness*2, thickness, thickness]} />
@@ -168,9 +177,7 @@ function Picture({ src, title, artist, year, description, technique, dimensions,
       {/* Imagen */}
       <mesh position={[0, 0, 0]}
         onClick={(e) => { e.stopPropagation(); onClick({ src, title, artist, year, description, technique, dimensions }); }}
-        onPointerOver={() => setHovered(true)}
-        onPointerOut={() => setHovered(false)}
-        scale={hovered ? [1.04, 1.04, 1] : [1, 1, 1]}
+        scale={1}
       >
         <planeGeometry args={[w, h]} />
         <meshStandardMaterial map={texture} side={THREE.DoubleSide} />
@@ -185,7 +192,7 @@ function Picture({ src, title, artist, year, description, technique, dimensions,
           <div style={{fontSize:'0.97em', color:'#e0e0e0', marginTop:6}}>{description}</div>
         </Html>
       )}
-    </group>
+    </motion.group>
   )
 }
 
@@ -335,7 +342,7 @@ function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork, showList
 
       {/* Cuadros */}
       {artworks.map((art, i) => (
-        <Picture key={i} {...art} onClick={setSelectedArtwork} showPlaque={passedInitialWall && !selectedArtwork && !showList} />
+        <Picture key={i} {...art} onClick={setSelectedArtwork} showPlaque={passedInitialWall && !selectedArtwork && !showList} selected={selectedArtwork && selectedArtwork.title === art.title} />
       ))}
 
       {/* Bancas pegadas a las paredes */}
@@ -557,26 +564,39 @@ export default function GalleryRoom() {
         </div>
       )}
       {/* Modal de detalle de obra */}
+      <AnimatePresence>
       {selectedArtwork && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.92)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 24
-        }}>
-          <div style={{
-            background: '#fff',
-            borderRadius: 18,
-            padding: 32,
-            maxWidth: 600,
-            width: '100%',
-            boxShadow: '0 8px 40px #0005',
-            position: 'relative'
-          }}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.35 }}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.92)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24
+          }}
+        >
+          <motion.div
+            initial={{ y: 40, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 40, opacity: 0 }}
+            transition={{ duration: 0.35 }}
+            style={{
+              background: '#fff',
+              borderRadius: 18,
+              padding: 32,
+              maxWidth: 600,
+              width: '100%',
+              boxShadow: '0 8px 40px #0005',
+              position: 'relative'
+            }}
+          >
             <button onClick={() => setSelectedArtwork(null)} style={{ position: 'absolute', top: 18, right: 18, fontSize: 28, background: 'none', border: 'none', color: '#333', cursor: 'pointer' }}>×</button>
             <img src={selectedArtwork.src} alt={selectedArtwork.title} style={{ width: '100%', maxHeight: 320, objectFit: 'contain', borderRadius: 12, marginBottom: 18, boxShadow: '0 2px 16px #0002' }} />
             <h2 style={{ margin: '0 0 8px 0', color: '#222' }}>{selectedArtwork.title}</h2>
@@ -584,9 +604,10 @@ export default function GalleryRoom() {
             <div style={{ color: '#444', marginBottom: 12 }}>{selectedArtwork.description}</div>
             <div style={{ color: '#555', fontSize: 15 }}><b>Técnica:</b> {selectedArtwork.technique}</div>
             <div style={{ color: '#555', fontSize: 15 }}><b>Dimensiones:</b> {selectedArtwork.dimensions}</div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
+      </AnimatePresence>
       {/* Botón de sonido con icono y hotkey visual */}
       <div style={{ position: 'absolute', zIndex: 10, top: 20, right: 20, display: 'flex', alignItems: 'center', gap: '1em' }}>
         <button
