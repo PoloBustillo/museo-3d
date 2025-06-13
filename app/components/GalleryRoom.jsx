@@ -507,7 +507,7 @@ export default function GalleryRoom() {
   return (
     <>
       {/* Botón de menú con ícono de pintura en vez de dropdown */}
-      <div style={{ position: 'absolute', zIndex: 30, top: 20, left: 20 }}>
+      <div style={{ position: 'absolute', zIndex: 30, top: 80, left: 20 }}>
         <button 
           onClick={() => setShowList(!showList)}
           style={{
@@ -609,7 +609,7 @@ export default function GalleryRoom() {
       )}
       </AnimatePresence>
       {/* Botón de sonido con icono y hotkey visual */}
-      <div style={{ position: 'absolute', zIndex: 10, top: 20, right: 20, display: 'flex', alignItems: 'center', gap: '1em' }}>
+      <div style={{ position: 'absolute', zIndex: 10, top: 80, right: 20, display: 'flex', alignItems: 'center', gap: '1em' }}>
         <button
           onClick={() => setSoundEnabled((v) => !v)}
           style={{

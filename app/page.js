@@ -2,12 +2,14 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import AuthModal from "./components/AuthModal";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register'
   const fileInputRef = useRef();
+  const router = useRouter();
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -19,105 +21,16 @@ export default function Home() {
     setUploadedFiles((prev) => [...prev, ...files]);
   };
   const handleDragOver = (e) => e.preventDefault();
+  const handleSubirArchivo = (e) => {
+    e.preventDefault();
+    setTransitioning(true);
+    setTimeout(() => {
+      router.push("/subir-archivo");
+    }, 900);
+  };
 
   return (
     <>
-      {/* Menú superior sticky */}
-      <nav
-        style={{
-          position: "sticky",
-          top: 0,
-          width: "100%",
-          background: "rgba(34, 34, 34, 0.97)",
-          color: "#fff",
-          zIndex: 100,
-          boxShadow: "0 2px 12px #0002",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0.7em 2.5em",
-          fontSize: 18,
-          fontWeight: "bold",
-          letterSpacing: 0.5,
-          backdropFilter: "blur(4px)",
-        }}
-      >
-        <span
-          style={{
-            fontSize: 22,
-            fontWeight: "bold",
-            letterSpacing: 1,
-            color: "#ffe082",
-          }}
-        >
-          Acervo 68
-        </span>
-        <div style={{ display: "flex", gap: 32, alignItems: "center" }}>
-          <button
-            onClick={() => setAuthModal("login")}
-            style={{
-              color: "#fff",
-              background: "none",
-              border: "none",
-              fontSize: 18,
-              cursor: "pointer",
-              fontWeight: "bold",
-            }}
-          >
-            Iniciar sesión
-          </button>
-          <button
-            onClick={() => setAuthModal("register")}
-            style={{
-              color: "#fff",
-              background: "none",
-              border: "none",
-              fontSize: 18,
-              cursor: "pointer",
-              fontWeight: "bold",
-            }}
-          >
-            Crear cuenta
-          </button>
-          <Link href="#about" style={{ color: "#fff", textDecoration: "none" }}>
-            Acerca de nosotros
-          </Link>
-          <Link
-            href="/subir-archivo"
-            style={{ color: "#fff", textDecoration: "none" }}
-          >
-            <button
-              style={{
-                background: "#3949ab",
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                padding: "0.5em 1.2em",
-                fontWeight: "bold",
-                cursor: "pointer",
-                fontSize: 16,
-                boxShadow: "0 2px 8px #0002",
-              }}
-            >
-              Subir tu archivo
-            </button>
-          </Link>
-          <Link
-            href="/museo"
-            style={{
-              color: "#fff",
-              textDecoration: "none",
-              background: "#222",
-              padding: "0.5em 1.2em",
-              borderRadius: 8,
-              fontWeight: "bold",
-              boxShadow: "0 2px 8px #0002",
-            }}
-          >
-            Museo 3D
-          </Link>
-        </div>
-      </nav>
       <main
         style={{
           minHeight: "100vh",
@@ -131,14 +44,15 @@ export default function Home() {
         }}
       >
         {/* Banner visual superior */}
-        <motion.div
-          initial={{ opacity: 0, y: -40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
+        <img
+          src="/assets/banner68.jpg"
+          alt="Banner Movimiento Estudiantil 68"
           style={{
             width: "100%",
+            objectFit: "cover",
+            opacity: 0.92,
+            minHeight: 180,
             maxHeight: 320,
-            overflow: "hidden",
             marginBottom: 32,
             boxShadow: "0 4px 32px #0002",
             borderRadius: "0 0 32px 32px",
@@ -147,23 +61,8 @@ export default function Home() {
             alignItems: "center",
             justifyContent: "center",
           }}
-        >
-          <img
-            src="/assets/banner68.jpg"
-            alt="Banner Movimiento Estudiantil 68"
-            style={{
-              width: "100%",
-              objectFit: "cover",
-              opacity: 0.92,
-              minHeight: 180,
-              maxHeight: 320,
-            }}
-          />
-        </motion.div>
-        <motion.h1
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.7 }}
+        />
+        <h1
           style={{
             fontSize: "2.5rem",
             marginBottom: 16,
@@ -173,11 +72,8 @@ export default function Home() {
           }}
         >
           Acervo Virtual del Movimiento Estudiantil de 1968
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.7 }}
+        </h1>
+        <p
           style={{
             maxWidth: 540,
             color: "#222",
@@ -194,13 +90,8 @@ export default function Home() {
           históricos del movimiento estudiantil del 68. Este espacio busca
           preservar la memoria colectiva y facilitar el acceso abierto al acervo
           digital.
-        </motion.p>
-        <motion.nav
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.6, duration: 0.5 }}
-          style={{ display: "flex", flexDirection: "column", gap: 24 }}
-        >
+        </p>
+        <nav style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <Link href="/museo">
             <button
               style={{
@@ -218,7 +109,7 @@ export default function Home() {
               Entrar al Museo 3D
             </button>
           </Link>
-        </motion.nav>
+        </nav>
       </main>
       {authModal && (
         <AuthModal
