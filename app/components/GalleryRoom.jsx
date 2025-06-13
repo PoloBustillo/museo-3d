@@ -637,7 +637,7 @@ export default function GalleryRoom() {
       {isClient && (
         <>
           <Canvas
-            camera={{ position: [FIRST_X - WALL_MARGIN_INITIAL - 10, 2, 0], fov: 60 }}
+            camera={{ position: [FIRST_X - WALL_MARGIN_INITIAL - 3, 2, 0], fov: 60 }}
             onCreated={({ camera, gl, scene }) => {
               setCameraRef(camera);
               gl.shadowMap.enabled = true;
@@ -661,16 +661,42 @@ export default function GalleryRoom() {
       )}
       {/* Instrucciones solo si showInstructions es true y la cámara está ANTES de la pared inicial */}
       {showInstructions && (typeof cameraX === 'undefined' || cameraX <= FIRST_X - WALL_MARGIN_INITIAL + 0.5) && (
-        <div style={{position:'fixed', bottom:120, left:0, right:0, zIndex:200, display:'flex', justifyContent:'center', pointerEvents:'none'}}>
-          <div style={{background:'rgba(255,255,255,0.98)', borderRadius:18, padding:'1.5em 2em', boxShadow:'0 2px 32px #0003', fontSize:'1.3em', color:'#222', fontWeight:'bold', maxWidth:600, margin:'0 auto'}}>
-            <div style={{fontSize:'2.2em', marginBottom:'0.2em'}}>🎨🖼️</div>
-            <div><b>Bienvenido al museo virtual</b></div>
-            <div style={{fontWeight:'bold', fontSize:'1.1em', marginTop:'1.2em'}}>
-              Usa <b><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></b> o las flechas para moverte.<br/>
-              Haz click para activar la cámara y mirar con el mouse.<br/>
-              Avanza para atravesar esta pared e ingresar al pasillo.<br/>
-              <span style={{fontSize:'1.5em'}}>➡️🚶‍♂️</span>
-            </div>
+        <div style={{
+          position:'fixed',
+          bottom:120,
+          left:0,
+          right:0,
+          zIndex:200,
+          display:'flex',
+          justifyContent:'center',
+          pointerEvents:'none',
+        }}>
+          <div style={{
+            background:'rgba(255,255,255,0.98)',
+            borderRadius:18,
+            padding:'2.2em 2.5em',
+            boxShadow:'0 4px 32px #0002',
+            fontSize:'1.25em',
+            color:'#1a237e',
+            fontWeight:'bold',
+            maxWidth:540,
+            margin:'0 auto',
+            border:'1.5px solid #e3eafc',
+            textAlign:'center',
+            letterSpacing:0.2,
+            lineHeight:1.6
+          }}>
+            <div style={{fontSize:'2.5em', marginBottom:'0.3em'}}>🎓 Museo Virtual 3D</div>
+            <div style={{fontWeight:700, fontSize:'1.15em', marginBottom:'0.7em', color:'#3949ab'}}>Bienvenido/a al recorrido interactivo</div>
+            <ul style={{textAlign:'left', color:'#222', fontWeight:400, fontSize:'1em', margin:'0 auto 0.7em auto', maxWidth:420, paddingLeft:24, lineHeight:1.7}}>
+              <li><b>WASD</b> o <b>Flechas</b>: Moverse por el espacio</li>
+              <li><b>Click</b>: Activar cámara libre y mirar con el mouse</li>
+              <li><b>L</b>: Abrir/cerrar lista de obras</li>
+              <li><b>Esc</b>: Cerrar modales</li>
+              <li><b>🔊</b>: Activar/desactivar sonido</li>
+              <li>Avanza para atravesar la pared e ingresar al pasillo principal</li>
+            </ul>
+            <div style={{fontSize:'1.7em', color:'#3949ab'}}>➡️🚶‍♂️</div>
           </div>
         </div>
       )}
