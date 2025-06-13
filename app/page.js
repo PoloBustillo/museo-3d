@@ -5,6 +5,18 @@ import AuthModal from "./components/AuthModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuIndicator,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  NavigationMenuViewport,
+} from "./components/ui/navigation-menu"; 
+
+
 export default function Home() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register'
@@ -31,6 +43,21 @@ export default function Home() {
 
   return (
     <>
+      <NavigationMenu>
+        <NavigationMenuList>
+          <NavigationMenuItem>
+            <NavigationMenuTrigger>Item One</NavigationMenuTrigger>
+            <NavigationMenuContent>
+
+              <NavigationMenuLink asChild>
+        <Link href="/docs">Documentation</Link>
+      </NavigationMenuLink>
+      
+            </NavigationMenuContent>
+          </NavigationMenuItem>
+        </NavigationMenuList>
+      </NavigationMenu>
+
       <main
         style={{
           minHeight: "100vh",
