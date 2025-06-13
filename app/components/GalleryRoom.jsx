@@ -110,7 +110,7 @@ function Bench({ position }) {
   )
 }
 
-function PlayerControls({ moveTo, onArrive, mobileDir }) {
+function PlayerControls({ moveTo, onArrive, mobileDir, onPassInitialWall, setCameraX }) {
   const { camera } = useThree()
   const velocity = useRef(new THREE.Vector3())
   const direction = useRef(new THREE.Vector3())
@@ -175,6 +175,12 @@ function PlayerControls({ moveTo, onArrive, mobileDir }) {
       velocity.current.copy(direction.current).multiplyScalar(5 * delta)
       camera.position.add(velocity.current)
       camera.position.z = Math.max(minZ, Math.min(maxZ, camera.position.z))
+    }
+
+    setCameraX(camera.position.x);
+    // Solo oculta instrucciones la primera vez que pasa la pared
+    if (onPassInitialWall && camera.position.x > FIRST_X - WALL_MARGIN_INITIAL + 0.5) {
+      onPassInitialWall();
     }
   })
   return null
@@ -264,19 +270,6 @@ function Room() {
         <boxGeometry args={[0.1, 10, 30]} />
         <meshStandardMaterial color="#cce6ff" opacity={0.98} transparent />
       </mesh>
-      {/* Instrucciones centradas en la parte baja de la pantalla, área más ancha */}
-      <Html position={[FIRST_X - WALL_MARGIN_INITIAL - 1.6, 1.2, 0]} center style={{width:'700px', textAlign:'center'}}>
-        <div style={{background:'rgba(255,255,255,0.98)', borderRadius:18, padding:'2.2em', boxShadow:'0 2px 32px #0003', fontSize:'1.5em', color:'#222', fontWeight:'bold', border:'2px solid #90caf9'}}>
-          <div style={{fontSize:'2.2em', marginBottom:'0.2em'}}>🎨🖼️</div>
-          <div><b>Bienvenido al museo virtual</b></div>
-          <div style={{fontWeight:'bold', fontSize:'1.1em', marginTop:'1.2em'}}>
-            Usa <b><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></b> o las flechas para moverte.<br/>
-            Haz click para activar la cámara y mirar con el mouse.<br/>
-            Avanza para atravesar esta pared e ingresar al pasillo de la galería.<br/>
-            <span style={{fontSize:'1.5em'}}>➡️🚶‍♂️</span>
-          </div>
-        </div>
-      </Html>
     </>
   )
 }
@@ -349,6 +342,47 @@ const btnStyle = {
   justifyContent: 'center',
 };
 
+function MobileLookControls() {
+  const { camera } = useThree();
+  const lastTouch = useRef(null);
+
+  useEffect(() => {
+    function onTouchStart(e) {
+      if (e.touches.length === 1) {
+        lastTouch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+    }
+    function onTouchMove(e) {
+      if (e.touches.length === 1 && lastTouch.current) {
+        const dx = e.touches[0].clientX - lastTouch.current.x;
+        const dy = e.touches[0].clientY - lastTouch.current.y;
+        // Sensibilidad ajustable
+        camera.rotation.y -= dx * 0.005;
+        camera.rotation.x -= dy * 0.003;
+        camera.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, camera.rotation.x));
+        lastTouch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+    }
+    function onTouchEnd() {
+      lastTouch.current = null;
+    }
+    const area = document.getElementById('mobile-look-area');
+    if (area) {
+      area.addEventListener('touchstart', onTouchStart, { passive: false });
+      area.addEventListener('touchmove', onTouchMove, { passive: false });
+      area.addEventListener('touchend', onTouchEnd, { passive: false });
+    }
+    return () => {
+      if (area) {
+        area.removeEventListener('touchstart', onTouchStart);
+        area.removeEventListener('touchmove', onTouchMove);
+        area.removeEventListener('touchend', onTouchEnd);
+      }
+    };
+  }, [camera]);
+  return null;
+}
+
 export default function GalleryRoom() {
   const [soundEnabled, setSoundEnabled] = useState(false)
   const [showList, setShowList] = useState(false)
@@ -356,6 +390,9 @@ export default function GalleryRoom() {
   const [menuValue, setMenuValue] = useState("")
   const [tooltipIndex, setTooltipIndex] = useState(null)
   const [mobileDir, setMobileDir] = useState('stop');
+  // Estado para ocultar instrucciones tras pasar la pared inicial
+  const [showInstructions, setShowInstructions] = useState(true);
+  const [cameraX, setCameraX] = useState(0);
 
   // Detectar mobile
   const isMobile = typeof window !== 'undefined' && /Mobi|Android/i.test(navigator.userAgent);
@@ -409,11 +446,30 @@ export default function GalleryRoom() {
       <Canvas shadows camera={{ fov: 75, position: [FIRST_X - WALL_MARGIN_INITIAL - 4, 2, 0], near: 0.1, far: 1000 }}>
         {soundEnabled && <BackGroundSound url="/assets/audio.mp3" />}
         <Room />
-        <PlayerControls moveTo={moveTo !== null ? artworks[moveTo].position : null} onArrive={() => setMoveTo(null)} mobileDir={mobileDir} />
+        <PlayerControls moveTo={null} onArrive={() => {}} mobileDir={mobileDir} onPassInitialWall={() => setShowInstructions(false)} setCameraX={setCameraX} />
         <PointerLockControls />
         <ProximityTooltip artworks={artworks} threshold={3} setTooltipIndex={setTooltipIndex} />
       </Canvas>
       {isMobile && <MobileControls onMove={setMobileDir} />}
+      {isMobile && (
+        <div id="mobile-look-area" style={{position:'fixed', inset:0, zIndex:50, touchAction:'none'}} />
+      )}
+      {isMobile && <MobileLookControls />}
+      {/* Instrucciones solo si showInstructions es true y la cámara está antes de la pared inicial */}
+      {!isMobile && showInstructions && cameraX <= FIRST_X - WALL_MARGIN_INITIAL + 0.5 && (
+        <div style={{position:'fixed', bottom:120, left:0, right:0, zIndex:200, display:'flex', justifyContent:'center', pointerEvents:'none'}}>
+          <div style={{background:'rgba(255,255,255,0.98)', borderRadius:18, padding:'1.5em 2em', boxShadow:'0 2px 32px #0003', fontSize:'1.3em', color:'#222', fontWeight:'bold', maxWidth:600, margin:'0 auto'}}>
+            <div style={{fontSize:'2.2em', marginBottom:'0.2em'}}>🎨🖼️</div>
+            <div><b>Bienvenido al museo virtual</b></div>
+            <div style={{fontWeight:'bold', fontSize:'1.1em', marginTop:'1.2em'}}>
+              Usa <b><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd></b> o las flechas para moverte.<br/>
+              Haz click para activar la cámara y mirar con el mouse.<br/>
+              Avanza para atravesar esta pared e ingresar al pasillo.<br/>
+              <span style={{fontSize:'1.5em'}}>➡️🚶‍♂️</span>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }
