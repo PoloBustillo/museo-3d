@@ -54,6 +54,51 @@ const artworkImages = [
     technique: 'Arte digital',
     dimensions: '90 x 90 cm'
   },
+  {
+    src: '/assets/artworks/cuadro1.jpg',
+    title: 'Abstract Composition I',
+    artist: 'Maria Rodriguez',
+    year: '2023',
+    description: 'Composición abstracta con formas geométricas y colores vibrantes.',
+    technique: 'Óleo sobre lienzo',
+    dimensions: '120 x 90 cm'
+  },
+  {
+    src: '/assets/artworks/cuadro2.jpg',
+    title: 'Urban Landscape',
+    artist: 'John Smith',
+    year: '2022',
+    description: 'Paisaje urbano contemporáneo con perspectiva dinámica.',
+    technique: 'Acrílico sobre madera',
+    dimensions: '100 x 80 cm'
+  },
+  {
+    src: '/assets/artworks/cuadro3.jpg',
+    title: 'Portrait in Blue',
+    artist: 'Anna Chen',
+    year: '2024',
+    description: 'Retrato expresivo en tonos azules.',
+    technique: 'Mixta sobre papel',
+    dimensions: '70 x 100 cm'
+  },
+  {
+    src: '/assets/artworks/cuadro4.jpg',
+    title: 'Nature Study',
+    artist: 'Carlos Rivera',
+    year: '2023',
+    description: 'Estudio detallado de elementos naturales.',
+    technique: 'Acuarela sobre papel',
+    dimensions: '60 x 80 cm'
+  },
+  {
+    src: '/assets/artworks/cuadro5.jpg',
+    title: 'Digital Dreams',
+    artist: 'Sarah Johnson',
+    year: '2024',
+    description: 'Obra digital que explora el subconsciente.',
+    technique: 'Arte digital',
+    dimensions: '90 x 90 cm'
+  },
   // Puedes agregar más obras siguiendo este formato
 ];
 
@@ -310,43 +355,149 @@ function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork }) {
   )
 }
 
+function CameraLerpTo({ target, cameraRef, onArrive }) {
+  const arrivedRef = useRef(false);
+  useFrame(() => {
+    if (!target || !cameraRef) return;
+    const cam = cameraRef;
+    const { position, lookAt } = target;
+    // Lerp posición
+    cam.position.lerp(new THREE.Vector3(...position), 0.08);
+    // Lerp lookAt
+    const currentLook = new THREE.Vector3();
+    cam.getWorldDirection(currentLook);
+    const lookTarget = new THREE.Vector3(...lookAt).sub(cam.position).normalize();
+    cam.lookAt(...lookAt);
+    // Considerar "llegada" si está suficientemente cerca
+    if (!arrivedRef.current && cam.position.distanceTo(new THREE.Vector3(...position)) < 0.1) {
+      arrivedRef.current = true;
+      if (onArrive) onArrive();
+    }
+    if (arrivedRef.current && cam.position.distanceTo(new THREE.Vector3(...position)) > 0.2) {
+      arrivedRef.current = false;
+    }
+  });
+  return null;
+}
+
+// Componente para animar la cámara suavemente usando useFrame
+function CameraLerpController({ cameraRef, cameraTarget, setCameraTarget }) {
+  const { camera } = useThree();
+  useFrame(() => {
+    if (cameraTarget) {
+      const [tx, ty, tz] = cameraTarget.position;
+      camera.position.lerp(new THREE.Vector3(tx, ty, tz), 0.08);
+      camera.lookAt(...cameraTarget.lookAt);
+      if (camera.position.distanceTo(new THREE.Vector3(tx, ty, tz)) < 0.05) {
+        camera.position.set(tx, ty, tz);
+        setCameraTarget(null);
+      }
+    }
+  });
+  return null;
+}
+
 export default function GalleryRoom() {
-  const [soundEnabled, setSoundEnabled] = useState(false)
-  const [showList, setShowList] = useState(false)
-  const [moveTo, setMoveTo] = useState(null)
-  const [menuValue, setMenuValue] = useState("")
-  const [tooltipIndex, setTooltipIndex] = useState(null)
-  const [showInstructions, setShowInstructions] = useState(true) // Nuevo estado para instrucciones
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [showList, setShowList] = useState(false);
+  const [moveTo, setMoveTo] = useState(null);
+  const [menuValue, setMenuValue] = useState("");
+  const [tooltipIndex, setTooltipIndex] = useState(null);
+  const [showInstructions, setShowInstructions] = useState(true);
   const [cameraX, setCameraX] = useState();
   const [selectedArtwork, setSelectedArtwork] = useState(null);
   const [passedInitialWall, setPassedInitialWall] = useState(false);
   const [isClient, setIsClient] = useState(false);
-  useEffect(() => { setIsClient(true); }, []);
-  // Referencia a la cámara para overlays
   const [cameraRef, setCameraRef] = useState(null);
+  const [cameraTarget, setCameraTarget] = useState(null);
+
+  // Hotkey para abrir/cerrar la lista de obras
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key.toLowerCase() === 'l') {
+        setShowList((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, []);
+  // Activar audio automáticamente al pasar la pared de inicio
+  useEffect(() => {
+    if (passedInitialWall) setSoundEnabled(true);
+  }, [passedInitialWall]);
+  useEffect(() => { setIsClient(true); }, []);
+  // Efecto para iniciar el movimiento suave al seleccionar una pintura
+  useEffect(() => {
+    if (moveTo !== null && artworks[moveTo]) {
+      const { position, rotation } = artworks[moveTo];
+      const offset = 4;
+      let [x, y, z] = position;
+      let lookAt = [x, y, z];
+      if (rotation[1] === 0) {
+        z = z - offset;
+      } else {
+        z = z + offset;
+      }
+      y = 2;
+      setCameraTarget({ position: [x, y, z], lookAt });
+      setMoveTo(null);
+    }
+  }, [moveTo]);
+  // Elimina el useEffect que forzaba la posición inicial
+
   if (!isClient) return null;
 
   return (
     <>
-      {/* Menú desplegable */}
+      {/* Botón de menú con ícono de pintura en vez de dropdown */}
       <div style={{ position: 'absolute', zIndex: 30, top: 20, left: 20 }}>
-        <select value={menuValue} onChange={e => {
-          setMenuValue(e.target.value)
-          setShowList(e.target.value === 'list')
-        }} style={{ padding: '0.5em 1em', fontSize: '1em', borderRadius: 6, background:'#222', color:'#fff', fontWeight:'bold', boxShadow:'0 2px 8px #0002' }}>
-          <option value="">Menú</option>
-          <option value="list">Lista de obras</option>
-        </select>
+        <button 
+          onClick={() => setShowList(!showList)}
+          style={{
+            background: showList ? '#ffe082' : '#fff',
+            border: '2px solid #222',
+            borderRadius: '50%',
+            width: 54,
+            height: 54,
+            fontSize: 32,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: showList ? '0 0 0 3px #ffd54f' : '0 2px 8px #0002',
+            cursor: 'pointer',
+            transition: 'background 0.2s, box-shadow 0.2s',
+            outline: 'none',
+            padding: 0
+          }}
+          aria-label="Mostrar lista de obras"
+        >
+          🎨
+        </button>
       </div>
-      {/* Overlay de lista de obras */}
+      {/* Overlay de lista de obras con navegación rápida e indicador visual */}
       {showList && (
         <div style={{ position: 'absolute', zIndex: 40, top: 60, left: 0, right: 0, background: 'rgba(255,255,255,0.97)', maxWidth: 400, margin: '0 auto', borderRadius: 12, boxShadow: '0 4px 24px #0002', padding: 24, color:'#222', fontWeight:'bold' }}>
           <h3 style={{marginTop:0, color:'#111'}}>Lista de obras</h3>
           <ul style={{listStyle:'none', padding:0, margin:0}}>
             {artworks.map((art, i) => (
-              <li key={i} style={{marginBottom:12, display:'flex', alignItems:'center', gap:12, cursor:'pointer'}} onClick={() => { setMoveTo(i); setShowList(false); setMenuValue(""); }}>
+              <li key={i} style={{
+                marginBottom:12,
+                display:'flex',
+                alignItems:'center',
+                gap:12,
+                cursor:'pointer',
+                background: moveTo === i ? '#ffe082' : (selectedArtwork && selectedArtwork.title === art.title ? '#b3e5fc' : 'transparent'),
+                borderRadius: 8,
+                boxShadow: moveTo === i ? '0 0 0 2px #ffd54f' : (selectedArtwork && selectedArtwork.title === art.title ? '0 0 0 2px #4fc3f7' : 'none'),
+                transition: 'background 0.2s, box-shadow 0.2s',
+                fontWeight: moveTo === i ? 'bold' : 'normal'
+              }}
+              onClick={() => { setMoveTo(i); setShowList(false); setMenuValue(""); }}
+              >
                 <img src={art.src} alt={art.title} style={{width:48, height:32, objectFit:'cover', borderRadius:4, border:'1px solid #ccc'}} />
                 <span style={{color:'#111', fontWeight:'bold'}}>{art.title}</span>
+                {moveTo === i && <span style={{marginLeft:8, color:'#ffb300', fontWeight:'bold'}}>&rarr;</span>}
+                {selectedArtwork && selectedArtwork.title === art.title && <span style={{marginLeft:8, color:'#0288d1', fontWeight:'bold'}}>●</span>}
               </li>
             ))}
           </ul>
@@ -384,26 +535,65 @@ export default function GalleryRoom() {
           </div>
         </div>
       )}
-      {/* Botón de sonido */}
-      <div style={{ position: 'absolute', zIndex: 10, top: 20, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '1em' }}>
-        {!soundEnabled && (
-          <button onClick={() => setSoundEnabled(true)} style={{ padding: '1em 2em', fontSize: '1.2em', borderRadius: '8px', background: '#222', color: '#fff', border: 'none', cursor: 'pointer' }}>
-            Activar sonido
-          </button>
-        )}
-        {soundEnabled && (
-          <button onClick={() => setSoundEnabled(false)} style={{ padding: '1em 2em', fontSize: '1.2em', borderRadius: '8px', background: '#900', color: '#fff', border: 'none', cursor: 'pointer' }}>
-            Desactivar sonido
-          </button>
-        )}
+      {/* Botón de sonido con icono y hotkey visual */}
+      <div style={{ position: 'absolute', zIndex: 10, top: 20, right: 20, display: 'flex', alignItems: 'center', gap: '1em' }}>
+        <button
+          onClick={() => setSoundEnabled((v) => !v)}
+          style={{
+            background: soundEnabled ? '#ffe082' : '#fff',
+            border: '2px solid #222',
+            borderRadius: '50%',
+            width: 54,
+            height: 54,
+            fontSize: 32,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: soundEnabled ? '0 0 0 3px #ffd54f' : '0 2px 8px #0002',
+            cursor: 'pointer',
+            transition: 'background 0.2s, box-shadow 0.2s',
+            outline: 'none',
+            padding: 0
+          }}
+          aria-label={soundEnabled ? "Desactivar sonido" : "Activar sonido"}
+        >
+          {soundEnabled ? '🔊' : '🔇'}
+        </button>
+      </div>
+      {/* Hotkeys visuales en la esquina inferior izquierda */}
+      <div style={{
+        position: 'fixed',
+        left: 24,
+        bottom: 24,
+        zIndex: 100,
+        background: 'rgba(30,30,30,0.45)',
+        color: '#fff',
+        borderRadius: 12,
+        padding: '10px 18px',
+        fontSize: 15,
+        opacity: 0.7,
+        pointerEvents: 'none',
+        userSelect: 'none',
+        boxShadow: '0 2px 8px #0002',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 4
+      }}>
+        <div><span style={{background:'#222', borderRadius:4, padding:'2px 8px', marginRight:6, fontWeight:'bold'}}>L</span> Lista de obras</div>
+        <div><span style={{background:'#222', borderRadius:4, padding:'2px 8px', marginRight:6, fontWeight:'bold'}}>🔊</span> Activar/desactivar sonido</div>
       </div>
       {isClient && (
         <>
-          <Canvas shadows camera={{ fov: 75, position: [FIRST_X - WALL_MARGIN_INITIAL - 4, 2, 0], near: 0.1, far: 1000 }} onCreated={({ camera }) => setCameraRef(camera)}>
+          <Canvas
+            camera={{ position: [FIRST_X - WALL_MARGIN_INITIAL - 10, 2, 0], fov: 60 }}
+            onCreated={({ camera }) => setCameraRef(camera)}
+            style={{ width: '100vw', height: '100vh', background: '#eaf6ff' }}
+          >
             {soundEnabled && <BackGroundSound url="/assets/audio.mp3" />}
             <Room passedInitialWall={passedInitialWall} setSelectedArtwork={setSelectedArtwork} selectedArtwork={selectedArtwork} />
             <PlayerControls moveTo={moveTo !== null ? artworks[moveTo].position : null} onArrive={() => setMoveTo(null)} onPassInitialWall={() => { setShowInstructions(false); setPassedInitialWall(true); }} setCameraX={setCameraX} />
             <PointerLockControls />
+            <CameraLerpController cameraRef={cameraRef} cameraTarget={cameraTarget} setCameraTarget={setCameraTarget} />
           </Canvas>
         </>
       )}
