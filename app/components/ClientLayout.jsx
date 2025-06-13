@@ -64,7 +64,11 @@ export default function ClientLayout({ children }) {
               position: "fixed",
               inset: 0,
               zIndex: 3000,
-              background: "#000",
+              background: "rgba(10, 10, 15, 0.88)",
+              backdropFilter: "blur(12px) saturate(120%)",
+              WebkitBackdropFilter: "blur(12px) saturate(120%)",
+              border: "none",
+              boxShadow: "0 8px 32px 0 rgba(0,0,0,0.55)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -78,21 +82,25 @@ export default function ClientLayout({ children }) {
               style={{
                 color: "#fff",
                 fontSize: 28,
-                fontWeight: 500,
+                fontWeight: 600,
                 letterSpacing: 1.1,
                 textAlign: "center",
                 padding: "2.5em 2em 2em 2em",
                 borderRadius: 18,
-                background: "none",
+                background: "rgba(20,20,25,0.82)",
+                boxShadow: "0 4px 32px #0008",
                 maxWidth: 600,
-                margin: "0 auto"
+                margin: "0 auto",
+                border: "1.5px solid rgba(255,255,255,0.08)",
+                backdropFilter: "blur(6px) saturate(110%)",
+                WebkitBackdropFilter: "blur(6px) saturate(110%)"
               }}
             >
-              <span style={{ fontStyle: "italic", fontWeight: 400, fontSize: 22, color: "#fff", display: "block", marginBottom: 18 }}>
+              <span style={{ fontStyle: "normal", fontWeight: 600, fontSize: 24, color: "#fff", display: "block", marginBottom: 18, letterSpacing: 0.5 }}>
                 {frase}
               </span>
-              <span style={{ fontSize: 16, color: "#fff", fontWeight: 300 }}>
-                Transición a la siguiente página...
+              <span style={{ fontSize: 15, color: "#e0e0e0", fontWeight: 400, letterSpacing: 0.2 }}>
+                Transición a la siguiente página
               </span>
             </motion.div>
           </motion.div>
