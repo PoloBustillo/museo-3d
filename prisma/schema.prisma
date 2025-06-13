@@ -38,6 +38,7 @@ model Mural {
 
 model Sala {
     id            Int     @id @default(autoincrement())
+    nombre        String
     ownerId       Int
     owner         User    @relation("SalaOwner", fields: [ownerId], references: [id])
     colaboradores User[]  @relation("SalaColaboradores")
