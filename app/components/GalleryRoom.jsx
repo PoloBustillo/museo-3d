@@ -9,26 +9,56 @@ import BackGroundSound from './BackGroundSound.jsx';
 
 // --- Configuración y utilidades ---
 const artworkImages = [
-  '/assets/artworks/cuadro1.jpg',
-  '/assets/artworks/cuadro2.jpg',
-  '/assets/artworks/cuadro3.jpg',
-  '/assets/artworks/cuadro4.jpg',
-  '/assets/artworks/cuadro5.jpg',
-  '/assets/artworks/cuadro1.jpg',
-  '/assets/artworks/cuadro2.jpg',
-  '/assets/artworks/cuadro3.jpg',
-  '/assets/artworks/cuadro4.jpg',
-  '/assets/artworks/cuadro5.jpg',
-  '/assets/artworks/cuadro1.jpg',
-  '/assets/artworks/cuadro2.jpg',
-  '/assets/artworks/cuadro3.jpg',
-  '/assets/artworks/cuadro4.jpg',
-  '/assets/artworks/cuadro5.jpg',
-  // Agrega más imágenes aquí
+  {
+    src: '/assets/artworks/cuadro1.jpg',
+    title: 'Abstract Composition I',
+    artist: 'Maria Rodriguez',
+    year: '2023',
+    description: 'Composición abstracta con formas geométricas y colores vibrantes.',
+    technique: 'Óleo sobre lienzo',
+    dimensions: '120 x 90 cm'
+  },
+  {
+    src: '/assets/artworks/cuadro2.jpg',
+    title: 'Urban Landscape',
+    artist: 'John Smith',
+    year: '2022',
+    description: 'Paisaje urbano contemporáneo con perspectiva dinámica.',
+    technique: 'Acrílico sobre madera',
+    dimensions: '100 x 80 cm'
+  },
+  {
+    src: '/assets/artworks/cuadro3.jpg',
+    title: 'Portrait in Blue',
+    artist: 'Anna Chen',
+    year: '2024',
+    description: 'Retrato expresivo en tonos azules.',
+    technique: 'Mixta sobre papel',
+    dimensions: '70 x 100 cm'
+  },
+  {
+    src: '/assets/artworks/cuadro4.jpg',
+    title: 'Nature Study',
+    artist: 'Carlos Rivera',
+    year: '2023',
+    description: 'Estudio detallado de elementos naturales.',
+    technique: 'Acuarela sobre papel',
+    dimensions: '60 x 80 cm'
+  },
+  {
+    src: '/assets/artworks/cuadro5.jpg',
+    title: 'Digital Dreams',
+    artist: 'Sarah Johnson',
+    year: '2024',
+    description: 'Obra digital que explora el subconsciente.',
+    technique: 'Arte digital',
+    dimensions: '90 x 90 cm'
+  },
+  // Puedes agregar más obras siguiendo este formato
 ];
 
 const HALL_LENGTH = 40;
-const HALL_WIDTH = 6;
+const HALL_WIDTH = 14; // ancho del pasillo aumentado
 const WALL_HEIGHT = 2;
 const PICTURE_SPACING = 6;
 const FLOOR_EXTRA = 10;
@@ -51,56 +81,65 @@ function getHallwayArtworks(images) {
   const positions = [];
   const n = images.length;
   for (let i = 0; i < n; i++) {
-    // Alterna entre izquierda y derecha
     const side = i % 2 === 0 ? 1 : -1;
     const index = Math.floor(i / 2);
     const x = -HALL_LENGTH / 2 + PICTURE_SPACING + index * PICTURE_SPACING;
-    // Pegados a la pared (ajustar para que el marco quede justo al ras)
-    const cuadroProfundidad = 0.15; // grosor del marco 3D
+    const cuadroProfundidad = 0.15;
     const z = side === 1
       ? (HALL_WIDTH / 2 - cuadroProfundidad / 2)
       : -(HALL_WIDTH / 2 - cuadroProfundidad / 2);
-    // Rotación: lado derecho 0, lado izquierdo Math.PI
     const rot = [0, side === 1 ? 0 : Math.PI, 0];
-    positions.push({ src: images[i], position: [x, WALL_HEIGHT, z], rotation: rot });
+    positions.push({ ...images[i], position: [x, WALL_HEIGHT, z], rotation: rot });
   }
   return positions;
 }
 
 const artworks = getHallwayArtworks(artworkImages);
 
-function Picture({ src, position, rotation = [0, 0, 0], onClick }) {
-  const texture = useTexture(src)
+function Picture({ src, title, artist, year, description, technique, dimensions, position, rotation = [0, 0, 0], onClick, showPlaque }) {
+  const texture = useTexture(src);
+  const [hovered, setHovered] = useState(false);
   // Dimensiones
-  const w = 3, h = 2, thickness = 0.15, depth = 0.07
+  const w = 3, h = 2, thickness = 0.15, depth = 0.07;
   return (
     <group position={position} rotation={rotation}>
       {/* Marco negro 3D alrededor de la imagen */}
-      {/* Superior */}
       <mesh position={[0, h/2 + thickness/2, depth]}>
         <boxGeometry args={[w + thickness*2, thickness, thickness]} />
-        <meshStandardMaterial color="#111" />
+        <meshStandardMaterial color={hovered ? '#d4af37' : '#111'} metalness={0.5} roughness={0.3} />
       </mesh>
-      {/* Inferior */}
       <mesh position={[0, -h/2 - thickness/2, depth]}>
         <boxGeometry args={[w + thickness*2, thickness, thickness]} />
-        <meshStandardMaterial color="#111" />
+        <meshStandardMaterial color={hovered ? '#d4af37' : '#111'} metalness={0.5} roughness={0.3} />
       </mesh>
-      {/* Izquierda */}
       <mesh position={[-w/2 - thickness/2, 0, depth]}>
         <boxGeometry args={[thickness, h + thickness*2, thickness]} />
-        <meshStandardMaterial color="#111" />
+        <meshStandardMaterial color={hovered ? '#d4af37' : '#111'} metalness={0.5} roughness={0.3} />
       </mesh>
-      {/* Derecha */}
       <mesh position={[w/2 + thickness/2, 0, depth]}>
         <boxGeometry args={[thickness, h + thickness*2, thickness]} />
-        <meshStandardMaterial color="#111" />
+        <meshStandardMaterial color={hovered ? '#d4af37' : '#111'} metalness={0.5} roughness={0.3} />
       </mesh>
       {/* Imagen */}
-      <mesh position={[0, 0, 0]} onClick={(e) => { e.stopPropagation(); onClick(src); }}>
+      <mesh position={[0, 0, 0]}
+        onClick={(e) => { e.stopPropagation(); onClick({ src, title, artist, year, description, technique, dimensions }); }}
+        onPointerOver={() => setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+        scale={hovered ? [1.04, 1.04, 1] : [1, 1, 1]}
+      >
         <planeGeometry args={[w, h]} />
         <meshStandardMaterial map={texture} side={THREE.DoubleSide} />
       </mesh>
+      {/* Placa informativa solo si showPlaque es true */}
+      {showPlaque && (
+        <Html position={[0, -h/2 - 0.25, depth]} center style={{ pointerEvents: 'none', textAlign: 'left', background: 'rgba(30,30,30,0.97)', color: '#fff', borderRadius: 12, padding: '18px 28px', fontSize: 15, minWidth: 340, maxWidth: 480, boxShadow: hovered ? '0 0 16px #d4af37' : '0 2px 16px #000a', border: hovered ? '2px solid #d4af37' : 'none', transition: 'all 0.2s', lineHeight: 1.5 }}>
+          <div style={{fontSize:'1.2em', fontWeight:'bold', marginBottom:4}}>{title}</div>
+          <div style={{fontWeight:'bold', color:'#ffe082', marginBottom:2}}>{artist} ({year})</div>
+          <div style={{fontSize:'0.98em', color:'#bdbdbd', marginBottom:2}}><b>Técnica:</b> {technique}</div>
+          <div style={{fontSize:'0.98em', color:'#bdbdbd', marginBottom:2}}><b>Dimensiones:</b> {dimensions}</div>
+          <div style={{fontSize:'0.97em', color:'#e0e0e0', marginTop:6}}>{description}</div>
+        </Html>
+      )}
     </group>
   )
 }
@@ -169,7 +208,7 @@ function PlayerControls({ moveTo, onArrive, mobileDir, onPassInitialWall, setCam
 // --- Cálculo de largo dinámico para techo y paredes ---
 const WALL_MARGIN = 2; // margen visual al inicio y final
 
-function Room() {
+function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork }) {
   // Cargar texturas
   const floorTexture = useTexture(floorTextureUrl);
   // Textura para paredes con repetición y anisotropía
@@ -239,19 +278,19 @@ function Room() {
         </>
       ))}
 
-      {/* Paredes laterales claras y con textura nítida */}
+      {/* Paredes laterales */}
       <mesh position={[DYNAMIC_CENTER_X, 2.5, HALL_WIDTH/2]}>
         <boxGeometry args={[DYNAMIC_LENGTH, 5, 0.1]} />
-        <meshStandardMaterial map={wallTexture} color="#ffffff" toneMapped={false} />
+        <meshStandardMaterial map={wallTexture} color="#ffffff" />
       </mesh>
       <mesh position={[DYNAMIC_CENTER_X, 2.5, -HALL_WIDTH/2]}>
         <boxGeometry args={[DYNAMIC_LENGTH, 5, 0.1]} />
-        <meshStandardMaterial map={wallTexture} color="#ffffff" toneMapped={false} />
+        <meshStandardMaterial map={wallTexture} color="#ffffff" />
       </mesh>
 
       {/* Cuadros */}
       {artworks.map((art, i) => (
-        <Picture key={i} {...art} />
+        <Picture key={i} {...art} onClick={setSelectedArtwork} showPlaque={passedInitialWall && !selectedArtwork} />
       ))}
 
       {/* Bancas pegadas a las paredes */}
@@ -271,31 +310,6 @@ function Room() {
   )
 }
 
-function ProximityTooltip({ artworks, threshold = 3, setTooltipIndex }) {
-  const { camera } = useThree()
-  useFrame(() => {
-    let found = null
-    let minAngle = 0.26 // ~15 grados en radianes
-    let minDist = threshold
-    artworks.forEach((art, i) => {
-      const artPos = new THREE.Vector3(...art.position)
-      const toArt = artPos.clone().sub(camera.position)
-      const dist = toArt.length()
-      if (dist > threshold) return
-      toArt.normalize()
-      const camDir = new THREE.Vector3()
-      camera.getWorldDirection(camDir)
-      const angle = camDir.angleTo(toArt)
-      if (angle < minAngle && dist < minDist) {
-        found = i
-        minDist = dist
-      }
-    })
-    setTooltipIndex(found)
-  })
-  return null
-}
-
 export default function GalleryRoom() {
   const [soundEnabled, setSoundEnabled] = useState(false)
   const [showList, setShowList] = useState(false)
@@ -304,6 +318,13 @@ export default function GalleryRoom() {
   const [tooltipIndex, setTooltipIndex] = useState(null)
   const [showInstructions, setShowInstructions] = useState(true) // Nuevo estado para instrucciones
   const [cameraX, setCameraX] = useState();
+  const [selectedArtwork, setSelectedArtwork] = useState(null);
+  const [passedInitialWall, setPassedInitialWall] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => { setIsClient(true); }, []);
+  // Referencia a la cámara para overlays
+  const [cameraRef, setCameraRef] = useState(null);
+  if (!isClient) return null;
 
   return (
     <>
@@ -324,21 +345,46 @@ export default function GalleryRoom() {
           <ul style={{listStyle:'none', padding:0, margin:0}}>
             {artworks.map((art, i) => (
               <li key={i} style={{marginBottom:12, display:'flex', alignItems:'center', gap:12, cursor:'pointer'}} onClick={() => { setMoveTo(i); setShowList(false); setMenuValue(""); }}>
-                <img src={art.src} alt={art.info || art.src} style={{width:48, height:32, objectFit:'cover', borderRadius:4, border:'1px solid #ccc'}} />
-                <span style={{color:'#111', fontWeight:'bold'}}>{art.info || art.src}</span>
+                <img src={art.src} alt={art.title} style={{width:48, height:32, objectFit:'cover', borderRadius:4, border:'1px solid #ccc'}} />
+                <span style={{color:'#111', fontWeight:'bold'}}>{art.title}</span>
               </li>
             ))}
           </ul>
           <button onClick={() => { setShowList(false); setMenuValue(""); }} style={{marginTop:16, padding:'0.5em 1.5em', borderRadius:6, background:'#222', color:'#fff', border:'none', cursor:'pointer'}}>Cerrar</button>
         </div>
       )}
-      {tooltipIndex !== null && (
-        <div style={{position:'absolute', bottom:80, left:0, right:0, textAlign:'center', zIndex:20}}>
-          <span style={{background:'#222', color:'#fff', padding:'0.7em 1.5em', borderRadius:8, fontSize:'1.1em', boxShadow:'0 2px 8px #0008'}}>
-            {artworks[tooltipIndex].info || artworks[tooltipIndex].src}
-          </span>
+      {/* Modal de detalle de obra */}
+      {selectedArtwork && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.92)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 24
+        }}>
+          <div style={{
+            background: '#fff',
+            borderRadius: 18,
+            padding: 32,
+            maxWidth: 600,
+            width: '100%',
+            boxShadow: '0 8px 40px #0005',
+            position: 'relative'
+          }}>
+            <button onClick={() => setSelectedArtwork(null)} style={{ position: 'absolute', top: 18, right: 18, fontSize: 28, background: 'none', border: 'none', color: '#333', cursor: 'pointer' }}>×</button>
+            <img src={selectedArtwork.src} alt={selectedArtwork.title} style={{ width: '100%', maxHeight: 320, objectFit: 'contain', borderRadius: 12, marginBottom: 18, boxShadow: '0 2px 16px #0002' }} />
+            <h2 style={{ margin: '0 0 8px 0', color: '#222' }}>{selectedArtwork.title}</h2>
+            <div style={{ color: '#666', fontWeight: 'bold', marginBottom: 8 }}>{selectedArtwork.artist} ({selectedArtwork.year})</div>
+            <div style={{ color: '#444', marginBottom: 12 }}>{selectedArtwork.description}</div>
+            <div style={{ color: '#555', fontSize: 15 }}><b>Técnica:</b> {selectedArtwork.technique}</div>
+            <div style={{ color: '#555', fontSize: 15 }}><b>Dimensiones:</b> {selectedArtwork.dimensions}</div>
+          </div>
         </div>
       )}
+      {/* Botón de sonido */}
       <div style={{ position: 'absolute', zIndex: 10, top: 20, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: '1em' }}>
         {!soundEnabled && (
           <button onClick={() => setSoundEnabled(true)} style={{ padding: '1em 2em', fontSize: '1.2em', borderRadius: '8px', background: '#222', color: '#fff', border: 'none', cursor: 'pointer' }}>
@@ -351,17 +397,17 @@ export default function GalleryRoom() {
           </button>
         )}
       </div>
-      <Canvas shadows camera={{ fov: 75, position: [FIRST_X - WALL_MARGIN_INITIAL - 4, 2, 0], near: 0.1, far: 1000 }}>
-        {soundEnabled && <BackGroundSound url="/assets/audio.mp3" />}
-        <Room />
-        <PlayerControls moveTo={moveTo !== null ? artworks[moveTo].position : null} onArrive={() => setMoveTo(null)} onPassInitialWall={() => setShowInstructions(false)} setCameraX={setCameraX} />
-        <PointerLockControls />
-        <ProximityTooltip artworks={artworks} threshold={3} setTooltipIndex={setTooltipIndex} />
-      </Canvas>
-
+      {isClient && (
+        <>
+          <Canvas shadows camera={{ fov: 75, position: [FIRST_X - WALL_MARGIN_INITIAL - 4, 2, 0], near: 0.1, far: 1000 }} onCreated={({ camera }) => setCameraRef(camera)}>
+            {soundEnabled && <BackGroundSound url="/assets/audio.mp3" />}
+            <Room passedInitialWall={passedInitialWall} setSelectedArtwork={setSelectedArtwork} selectedArtwork={selectedArtwork} />
+            <PlayerControls moveTo={moveTo !== null ? artworks[moveTo].position : null} onArrive={() => setMoveTo(null)} onPassInitialWall={() => { setShowInstructions(false); setPassedInitialWall(true); }} setCameraX={setCameraX} />
+            <PointerLockControls />
+          </Canvas>
+        </>
+      )}
       {/* Instrucciones solo si showInstructions es true y la cámara está ANTES de la pared inicial */}
-      {/* Cuando la cámara cruza la pared, setShowInstructions(false) y nunca más se muestra */}
-      {/* En PlayerControls, solo llama onPassInitialWall la primera vez */}
       {showInstructions && (typeof cameraX === 'undefined' || cameraX <= FIRST_X - WALL_MARGIN_INITIAL + 0.5) && (
         <div style={{position:'fixed', bottom:120, left:0, right:0, zIndex:200, display:'flex', justifyContent:'center', pointerEvents:'none'}}>
           <div style={{background:'rgba(255,255,255,0.98)', borderRadius:18, padding:'1.5em 2em', boxShadow:'0 2px 32px #0003', fontSize:'1.3em', color:'#222', fontWeight:'bold', maxWidth:600, margin:'0 auto'}}>
