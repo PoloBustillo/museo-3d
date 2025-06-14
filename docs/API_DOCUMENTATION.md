@@ -211,3 +211,205 @@ Cada respuesta GET incluye estadísticas automáticas:
 ### Relaciones
 - Un mural puede pertenecer a una sala (`sala`)
 - Una sala puede tener múltiples murales (`murales`)
+- Una sala pertenece a un usuario propietario (`owner`)
+- Una sala puede tener múltiples colaboradores (`colaboradores`)
+
+---
+
+## 🏛️ API de Salas
+
+### 📋 GET /api/salas
+Obtiene todas las salas con estadísticas y filtros opcionales.
+
+#### Parámetros de consulta (Query Parameters)
+- `ownerId` (opcional): ID del propietario para filtrar salas
+
+#### Ejemplo de respuesta
+```json
+{
+  "salas": [
+    {
+      "id": 2,
+      "nombre": "Sala ARPA",
+      "ownerId": 2,
+      "owner": {
+        "id": 2,
+        "email": "admin@museo.com",
+        "role": "admin"
+      },
+      "colaboradores": [],
+      "murales": [
+        {
+          "id": 15,
+          "nombre": "ARPA OG (Original Grafitti)",
+          "autor": "Diego Iván Martínez Marín",
+          "tecnica": "Pintura en aerosol sobre muro",
+          "anio": 2025,
+          "url_imagen": "https://res.cloudinary.com/ejemplo/imagen.jpg"
+        }
+      ],
+      "_count": {
+        "murales": 3,
+        "colaboradores": 0
+      }
+    }
+  ],
+  "estadisticas": {
+    "total": 2,
+    "totalMurales": 5,
+    "totalColaboradores": 3,
+    "salasConMurales": 1
+  },
+  "filtros": {
+    "ownerId": null
+  }
+}
+```
+
+### 🆕 POST /api/salas
+Crea una nueva sala en el museo.
+
+#### Cuerpo de la solicitud
+```json
+{
+  "nombre": "Sala de Prueba",
+  "ownerId": 2,
+  "murales": [15, 16, 17],
+  "colaboradores": [3, 4]
+}
+```
+
+#### Campos requeridos
+- `nombre`: Nombre de la sala (no puede estar vacío)
+- `ownerId`: ID del usuario propietario
+
+#### Campos opcionales
+- `murales`: Array de IDs de murales a asignar
+- `colaboradores`: Array de IDs de usuarios colaboradores
+
+#### Respuesta exitosa (201)
+```json
+{
+  "id": 2,
+  "nombre": "Sala de Prueba",
+  "ownerId": 2,
+  "owner": {
+    "id": 2,
+    "email": "test@example.com",
+    "role": "admin"
+  },
+  "colaboradores": [],
+  "murales": [
+    {
+      "id": 15,
+      "nombre": "ARPA OG (Original Grafitti)",
+      "autor": "Diego Iván Martínez Marín",
+      "tecnica": "Pintura en aerosol sobre muro",
+      "anio": 2025,
+      "url_imagen": "https://res.cloudinary.com/ejemplo/imagen.jpg"
+    }
+  ],
+  "_count": {
+    "murales": 3,
+    "colaboradores": 0
+  }
+}
+```
+
+### 🔍 GET /api/salas/{id}
+Obtiene una sala específica por su ID.
+
+#### Parámetros de ruta
+- `id`: ID numérico de la sala
+
+#### Respuesta exitosa (200)
+```json
+{
+  "id": 2,
+  "nombre": "Sala ARPA",
+  "ownerId": 2,
+  "owner": {
+    "id": 2,
+    "email": "test@example.com",
+    "role": "admin"
+  },
+  "colaboradores": [],
+  "murales": [
+    {
+      "id": 15,
+      "nombre": "ARPA OG (Original Grafitti)",
+      "autor": "Diego Iván Martínez Marín",
+      "colaboradores": null,
+      "tecnica": "Pintura en aerosol sobre muro",
+      "medidas": "2.80 x 2.60 m",
+      "anio": 2025,
+      "ubicacion": "Exterior Aula 204 ARPA 3",
+      "url_imagen": "https://res.cloudinary.com/ejemplo/imagen.jpg"
+    }
+  ],
+  "_count": {
+    "murales": 3,
+    "colaboradores": 0
+  }
+}
+```
+
+### ✏️ PUT /api/salas/{id}
+Actualiza una sala existente.
+
+#### Parámetros de ruta
+- `id`: ID numérico de la sala
+
+#### Cuerpo de la solicitud
+```json
+{
+  "nombre": "Sala ARPA Actualizada",
+  "murales": [15, 16, 17, 18],
+  "colaboradores": [3, 4, 5]
+}
+```
+
+#### Campos opcionales
+- `nombre`: Nuevo nombre de la sala
+- `ownerId`: Nuevo propietario (ID de usuario)
+- `murales`: Array de IDs de murales (reemplaza la lista actual)
+- `colaboradores`: Array de IDs de colaboradores (reemplaza la lista actual)
+
+### 🗑️ DELETE /api/salas/{id}
+Elimina una sala del museo.
+
+#### Parámetros de ruta
+- `id`: ID numérico de la sala
+
+#### Respuesta exitosa (204)
+Sin contenido en el cuerpo de la respuesta.
+
+## Códigos de Estado para Salas
+
+### Códigos de éxito
+- `200 OK`: Operación exitosa (GET, PUT)
+- `201 Created`: Sala creada exitosamente (POST)
+- `204 No Content`: Sala eliminada exitosamente (DELETE)
+
+### Códigos de error
+- `400 Bad Request`: Datos de entrada inválidos
+- `404 Not Found`: Sala o usuario no encontrado
+- `409 Conflict`: Conflicto de datos (nombre duplicado)
+- `500 Internal Server Error`: Error interno del servidor
+
+## Modelo de Datos - Sala
+
+### Campos principales
+- `id`: Identificador único (autoincremental)
+- `nombre`: Nombre de la sala
+- `ownerId`: ID del usuario propietario
+- `owner`: Información del propietario
+- `colaboradores`: Lista de usuarios colaboradores
+- `murales`: Lista de murales asociados
+- `_count`: Contadores de murales y colaboradores
+
+### Relaciones
+- Una sala pertenece a un usuario propietario (`owner`)
+- Una sala puede tener múltiples colaboradores (`colaboradores`)
+- Una sala puede tener múltiples murales (`murales`)
+- Un mural puede pertenecer a una sala (`salaId`)

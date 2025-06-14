@@ -3,7 +3,7 @@
 // --- Limpieza de imports y organización ---
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PointerLockControls, useTexture, Html } from '@react-three/drei';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 import BackGroundSound from './BackGroundSound.jsx';
 import { motion, AnimatePresence } from "framer-motion";
@@ -219,8 +219,38 @@ function getHallwayArtworks(images, firstX, pictureSpacing) {
 function Picture({ src, title, artist, year, description, technique, dimensions, position, rotation = [0, 0, 0], onClick, showPlaque, selected }) {
   const texture = useTexture(src);
   const [hovered, setHovered] = useState(false);
-  // Dimensiones
-  const w = 3, h = 2, thickness = 0.15, depth = 0.07;
+  const [imageDimensions, setImageDimensions] = useState({ width: 3, height: 2 });
+  const [imageLoaded, setImageLoaded] = useState(false);
+  
+  // Cargar dimensiones reales de la imagen
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      const aspectRatio = img.width / img.height;
+      const maxWidth = 4; // Ancho máximo para cuadros
+      const maxHeight = 3; // Alto máximo para cuadros
+      
+      let width = maxWidth;
+      let height = maxWidth / aspectRatio;
+      
+      // Si la altura excede el máximo, ajustar por altura
+      if (height > maxHeight) {
+        height = maxHeight;
+        width = maxHeight * aspectRatio;
+      }
+      
+      setImageDimensions({ width, height });
+      setImageLoaded(true);
+    };
+    img.crossOrigin = "anonymous";
+    img.src = src;
+  }, [src]);
+  
+  // Usar dimensiones calculadas o por defecto
+  const w = imageDimensions.width;
+  const h = imageDimensions.height;
+  const thickness = 0.15;
+  const depth = 0.07;
   return (
     <motion.group
       position={position}
@@ -511,9 +541,362 @@ function createCheckerTexture(size = 512, squares = 16) {
   return texture;
 }
 
-export default function GalleryRoom({ salaId = 1 }) {
-  // Obtener las obras de la sala específica
-  const artworkImages = artworkSalas[salaId] || artworkSalas[1];
+// Componente para modal con zoom avanzado
+function ZoomModal({ artwork, onClose }) {
+  const [scale, setScale] = useState(1);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0, startX: 0, startY: 0 });
+  const imageRef = useRef(null);
+
+  const handleWheel = useCallback((e) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? 0.9 : 1.1;
+    setScale(prev => Math.max(0.5, Math.min(5, prev * delta)));
+  }, []);
+
+  const handleMouseDown = useCallback((e) => {
+    if (scale > 1) {
+      setIsDragging(true);
+      setDragStart({
+        x: e.clientX,
+        y: e.clientY,
+        startX: position.x,
+        startY: position.y
+      });
+    }
+  }, [scale, position]);
+
+  const handleMouseMove = useCallback((e) => {
+    if (isDragging && scale > 1) {
+      const deltaX = e.clientX - dragStart.x;
+      const deltaY = e.clientY - dragStart.y;
+      setPosition({
+        x: dragStart.startX + deltaX,
+        y: dragStart.startY + deltaY
+      });
+    }
+  }, [isDragging, dragStart, scale]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const resetZoom = () => {
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+  };
+
+  const zoomIn = () => setScale(prev => Math.min(5, prev * 1.2));
+  const zoomOut = () => setScale(prev => Math.max(0.5, prev * 0.8));
+
+  // Función mejorada para cerrar el modal
+  const handleClose = useCallback(() => {
+    console.log('Cerrando modal y reactivando controles de cámara...');
+    
+    // Limpiar todo el estado del modal
+    setScale(1);
+    setPosition({ x: 0, y: 0 });
+    setIsDragging(false);
+    
+    // Forzar liberación del pointer lock si está activo
+    if (document.pointerLockElement) {
+      document.exitPointerLock();
+      console.log('Pointer lock liberado');
+    }
+    
+    // Restaurar cursor y estilos del body
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    
+    // Cerrar el modal inmediatamente
+    onClose();
+    
+    // Pequeño delay adicional para forzar reactivación de controles
+    setTimeout(() => {
+      console.log('Forzando reactivación de controles de cámara');
+      // Disparar un evento personalizado para forzar reconexión
+      window.dispatchEvent(new CustomEvent('reactivateCamera'));
+    }, 100);
+  }, [onClose]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' || e.key.toLowerCase() === 'c') {
+        handleClose();
+      } else if (e.key === '+' || e.key === '=') {
+        zoomIn();
+      } else if (e.key === '-') {
+        zoomOut();
+      } else if (e.key === '0') {
+        resetZoom();
+      }
+    };
+
+    // Prevenir el click derecho y otros eventos que puedan interferir
+    const handleContextMenu = (e) => {
+      e.preventDefault();
+    };
+
+    // Prevenir el arrastre de imágenes
+    const handleDragStart = (e) => {
+      e.preventDefault();
+    };
+
+    // Prevenir cualquier intento de pointer lock mientras el modal está abierto
+    const handlePointerLockChange = () => {
+      if (document.pointerLockElement) {
+        document.exitPointerLock();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('dragstart', handleDragStart);
+    document.addEventListener('pointerlockchange', handlePointerLockChange);
+    
+    // Forzar la liberación del pointer lock si está activo
+    if (document.pointerLockElement) {
+      document.exitPointerLock();
+    }
+    
+    // Asegurar que el cursor esté visible
+    document.body.style.cursor = 'auto';
+    
+    // Desactivar selección de texto mientras el modal está abierto
+    document.body.style.userSelect = 'none';
+    
+    // NO desactivar pointerEvents del body para mantener la funcionalidad del modal
+    // document.body.style.pointerEvents = 'none';
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('dragstart', handleDragStart);
+      document.removeEventListener('pointerlockchange', handlePointerLockChange);
+      
+      // Restaurar selección de texto y cursor
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      // document.body.style.pointerEvents = '';
+    };
+  }, [handleClose, handleMouseMove, handleMouseUp]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.35 }}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.95)',
+        zIndex: 1000,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+        pointerEvents: 'auto', // Asegurar que el modal capture eventos
+        userSelect: 'none' // Prevenir selección de texto
+      }}
+      onClick={handleClose}
+      onContextMenu={(e) => e.preventDefault()} // Prevenir menú contextual
+    >
+      {/* Controles de zoom */}
+      <div style={{
+        position: 'fixed',
+        top: 20,
+        right: 20,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '10px',
+        zIndex: 1001
+      }}>
+        <button
+          onClick={(e) => { e.stopPropagation(); zoomIn(); }}
+          style={{
+            width: 50,
+            height: 50,
+            borderRadius: '50%',
+            border: '2px solid white',
+            background: 'rgba(255,255,255,0.1)',
+            color: 'white',
+            fontSize: '20px',
+            cursor: 'pointer',
+            backdropFilter: 'blur(10px)'
+          }}
+        >
+          +
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); zoomOut(); }}
+          style={{
+            width: 50,
+            height: 50,
+            borderRadius: '50%',
+            border: '2px solid white',
+            background: 'rgba(255,255,255,0.1)',
+            color: 'white',
+            fontSize: '20px',
+            cursor: 'pointer',
+            backdropFilter: 'blur(10px)'
+          }}
+        >
+          -
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); resetZoom(); }}
+          style={{
+            width: 50,
+            height: 50,
+            borderRadius: '50%',
+            border: '2px solid white',
+            background: 'rgba(255,255,255,0.1)',
+            color: 'white',
+            fontSize: '12px',
+            cursor: 'pointer',
+            backdropFilter: 'blur(10px)'
+          }}
+        >
+          1:1
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); handleClose(); }}
+          style={{
+            width: 50,
+            height: 50,
+            borderRadius: '50%',
+            border: '2px solid white',
+            background: 'rgba(255,255,255,0.1)',
+            color: 'white',
+            fontSize: '20px',
+            cursor: 'pointer',
+            backdropFilter: 'blur(10px)'
+          }}
+        >
+          ×
+        </button>
+      </div>
+
+      {/* Información de controles */}
+      <div style={{
+        position: 'fixed',
+        top: 20,
+        left: 20,
+        color: 'rgba(255,255,255,0.9)',
+        fontSize: '14px',
+        background: 'rgba(0,0,0,0.7)',
+        padding: '15px 20px',
+        borderRadius: '12px',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255,255,255,0.2)',
+        maxWidth: '250px'
+      }}>
+        <div style={{ marginBottom: '10px', fontWeight: 'bold', color: '#ffe082' }}>
+          � Controles de cámara desactivados
+        </div>
+        <div style={{ fontSize: '12px', marginBottom: '8px' }}>�🖱️ Rueda: Zoom</div>
+        <div style={{ fontSize: '12px', marginBottom: '8px' }}>✋ Arrastrar: Mover imagen</div>
+        <div style={{ fontSize: '12px', marginBottom: '8px' }}>⌨️ +/- : Zoom in/out</div>
+        <div style={{ fontSize: '12px', marginBottom: '8px' }}>⌨️ 0 : Tamaño original</div>
+        <div style={{ fontSize: '12px' }}>⌨️ ESC/C : Cerrar y reactivar cámara</div>
+      </div>
+
+      {/* Contenedor de imagen */}
+      <div
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          cursor: scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in'
+        }}
+        onWheel={handleWheel}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <img
+          ref={imageRef}
+          src={artwork.src}
+          alt={artwork.title}
+          onMouseDown={handleMouseDown}
+          style={{
+            maxWidth: '90vw',
+            maxHeight: '80vh',
+            objectFit: 'contain',
+            transform: `scale(${scale}) translate(${position.x / scale}px, ${position.y / scale}px)`,
+            transition: isDragging ? 'none' : 'transform 0.2s ease',
+            userSelect: 'none',
+            pointerEvents: 'auto',
+            WebkitUserDrag: 'none', // Prevenir arrastre en Safari
+            KhtmlUserDrag: 'none', // Prevenir arrastre en navegadores antiguos
+            MozUserDrag: 'none', // Prevenir arrastre en Firefox
+            OUserDrag: 'none', // Prevenir arrastre en Opera
+            userDrag: 'none' // CSS estándar
+          }}
+          onDragStart={(e) => e.preventDefault()} // Prevenir arrastre de imagen
+          onContextMenu={(e) => e.preventDefault()} // Prevenir menú contextual
+        />
+      </div>
+
+      {/* Información de la obra */}
+      <motion.div
+        initial={{ y: 40, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.3 }}
+        style={{
+          position: 'fixed',
+          bottom: 20,
+          left: 20,
+          right: 20,
+          background: 'rgba(0,0,0,0.8)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.2)',
+          borderRadius: '16px',
+          padding: '20px',
+          color: 'white',
+          textAlign: 'center',
+          maxWidth: '800px',
+          margin: '0 auto'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 style={{ margin: '0 0 10px 0', fontSize: '1.5rem' }}>{artwork.title}</h2>
+        <div style={{ marginBottom: '10px', fontSize: '1.1rem', color: '#ffe082' }}>
+          {artwork.artist} ({artwork.year})
+        </div>
+        <p style={{ margin: '10px 0', opacity: 0.9, lineHeight: '1.5' }}>
+          {artwork.description}
+        </p>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', fontSize: '0.9rem', opacity: 0.8 }}>
+          <span><strong>Técnica:</strong> {artwork.technique}</span>
+          <span><strong>Dimensiones:</strong> {artwork.dimensions}</span>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+export default function GalleryRoom({ salaId = 1, murales = [] }) {
+  // Usar los murales reales pasados como props, o fallback a obras estáticas
+  const artworkImages = murales.length > 0 
+    ? murales.map(mural => ({
+        src: mural.url_imagen,
+        title: mural.nombre,
+        artist: mural.autor || 'Autor desconocido',
+        year: mural.anio?.toString() || 'Sin fecha',
+        description: `${mural.tecnica || 'Técnica mixta'} - Mural del programa ARPA`,
+        technique: mural.tecnica || 'Técnica mixta',
+        dimensions: 'Escala mural'
+      }))
+    : artworkSalas[salaId] || artworkSalas[1];
 
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [showList, setShowList] = useState(false);
@@ -617,18 +1000,18 @@ export default function GalleryRoom({ salaId = 1 }) {
     }
   }, []);
 
-  // Ocultar instrucciones después de 5 segundos
-  useEffect(() => {
-    console.log('Iniciando temporizador de instrucciones por 5 segundos');
-    const timer = setTimeout(() => {
-      console.log('Ocultando instrucciones después de 5 segundos');
-      setShowInstructions(false);
-    }, 5000);
-    return () => {
-      console.log('Limpiando temporizador de instrucciones');
-      clearTimeout(timer);
-    };
+  // Función para cerrar instrucciones manualmente
+  const closeInstructions = useCallback(() => {
+    console.log('Cerrando instrucciones manualmente y activando controles');
+    setShowInstructions(false);
+    
+    // Forzar activación inmediata de controles
+    setTimeout(() => {
+      console.log('Disparando evento de activación inmediata de cámara tras cerrar instrucciones');
+      window.dispatchEvent(new CustomEvent('reactivateCamera'));
+    }, 50); // Delay muy corto para activación inmediata
   }, []);
+
   // Efecto para iniciar el movimiento suave al seleccionar una pintura
   useEffect(() => {
     if (moveTo !== null && artworks[moveTo]) {
@@ -742,54 +1125,43 @@ export default function GalleryRoom({ salaId = 1 }) {
           <button onClick={() => { setShowList(false); setMenuValue(""); }} style={{marginTop:16, padding:'0.5em 1.5em', borderRadius:6, background:'#222', color:'#fff', border:'none', cursor:'pointer'}}>Cerrar</button>
         </div>
       )}
-      {/* Modal de detalle de obra */}
+      {/* Modal de detalle de obra con zoom mejorado */}
       <AnimatePresence>
       {selectedArtwork && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.35 }}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.92)',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 24
-          }}
-        >
-          <motion.div
-            initial={{ y: 40, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 40, opacity: 0 }}
-            transition={{ duration: 0.35 }}
-            style={{
-              background: '#fff',
-              borderRadius: 18,
-              padding: 32,
-              maxWidth: 600,
-              width: '100%',
-              boxShadow: '0 8px 40px #0005',
-              position: 'relative'
-            }}
-          >
-            <button onClick={() => setSelectedArtwork(null)} style={{ position: 'absolute', top: 18, right: 18, fontSize: 28, background: 'none', border: 'none', color: '#333', cursor: 'pointer' }}>×</button>
-            <div style={{ position: 'absolute', top: 18, left: 18, fontSize: 14, color: '#666', background: '#f5f5f5', padding: '4px 8px', borderRadius: 4 }}>Presiona <b>C</b> para cerrar</div>
-            <img src={selectedArtwork.src} alt={selectedArtwork.title} style={{ width: '100%', maxHeight: 320, objectFit: 'contain', borderRadius: 12, marginBottom: 18, boxShadow: '0 2px 16px #0002' }} />
-            <h2 style={{ margin: '0 0 8px 0', color: '#222' }}>{selectedArtwork.title}</h2>
-            <div style={{ color: '#666', fontWeight: 'bold', marginBottom: 8 }}>{selectedArtwork.artist} ({selectedArtwork.year})</div>
-            <div style={{ color: '#444', marginBottom: 12 }}>{selectedArtwork.description}</div>
-            <div style={{ color: '#555', fontSize: 15 }}><b>Técnica:</b> {selectedArtwork.technique}</div>
-            <div style={{ color: '#555', fontSize: 15 }}><b>Dimensiones:</b> {selectedArtwork.dimensions}</div>
-          </motion.div>
-        </motion.div>
+        <ZoomModal 
+          artwork={selectedArtwork} 
+          onClose={() => setSelectedArtwork(null)} 
+        />
       )}
       </AnimatePresence>
+      {/* Indicador de controles de cámara desactivados - Posicionado en el centro superior */}
+      {selectedArtwork && (
+        <div style={{
+          position: 'fixed',
+          top: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 1001,
+          background: 'rgba(255, 87, 34, 0.95)',
+          color: 'white',
+          padding: '12px 20px',
+          borderRadius: '25px',
+          fontSize: '14px',
+          fontWeight: 'bold',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          boxShadow: '0 4px 20px rgba(255, 87, 34, 0.4)',
+          backdropFilter: 'blur(15px)',
+          border: '2px solid rgba(255, 255, 255, 0.3)',
+          animation: 'pulse 2s infinite'
+        }}>
+          🔒 <span>Controles de cámara desactivados</span>
+        </div>
+      )}
+      
       {/* Botón de sonido con icono y hotkey visual */}
-      <div style={{ position: 'fixed', zIndex: 1000, top: 80, right: 20, display: 'flex', alignItems: 'center', gap: '1em' }}>
+      <div style={{ position: 'fixed', zIndex: 1000, top: 80, right: 20, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1em' }}>
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -885,26 +1257,29 @@ export default function GalleryRoom({ salaId = 1 }) {
               WALL_MARGIN_INITIAL={WALL_MARGIN_INITIAL}
               WALL_MARGIN_FINAL={WALL_MARGIN_FINAL}
             />
-            <PointerLockControls />
+            <ConditionalPointerLockControls enabled={!selectedArtwork} />
             <CameraLerpController cameraRef={cameraRef} cameraTarget={cameraTarget} setCameraTarget={setCameraTarget} />
           </Canvas>
         </>
       )}
-      {/* Instrucciones solo durante los primeros 5 segundos y cuando no hay placas visibles */}
+      {/* Instrucciones que solo se pueden cerrar con clic */}
       {showInstructions && !selectedArtwork && !showList && (
-        <div style={{
-          position:'fixed',
-          top:0,
-          left:0,
-          width:'100vw',
-          height:'100vh',
-          background:'rgba(0,0,0,0.7)',
-          display:'flex',
-          alignItems:'center',
-          justifyContent:'center',
-          zIndex:1000,
-          backdropFilter:'blur(8px)'
-        }}>
+        <div 
+          onClick={closeInstructions}
+          style={{
+            position:'fixed',
+            top:0,
+            left:0,
+            width:'100vw',
+            height:'100vh',
+            background:'rgba(0,0,0,0.6)', // Un poco más transparente
+            display:'flex',
+            alignItems:'center',
+            justifyContent:'center',
+            zIndex:500, // Reducido de 1000 a 500 para no bloquear tanto
+            backdropFilter:'blur(6px)', // Reducido de 8px
+            cursor: 'pointer' // Indicar que es clickeable
+          }}>
           <div style={{
             background:'rgba(255,255,255,0.98)',
             borderRadius:18,
@@ -918,21 +1293,156 @@ export default function GalleryRoom({ salaId = 1 }) {
             border:'1.5px solid #e3eafc',
             textAlign:'center',
             letterSpacing:0.2,
-            lineHeight:1.6
+            lineHeight:1.6,
+            pointerEvents: 'none' // El contenido no debe interceptar el clic
           }}>
-            <div style={{fontSize:'2.5em', marginBottom:'0.3em'}}>🎓 Museo Virtual 3D</div>
-            <div style={{fontWeight:700, fontSize:'1.15em', marginBottom:'0.7em', color:'#3949ab'}}>Bienvenido/a al recorrido interactivo</div>
-            <ul style={{textAlign:'left', color:'#222', fontWeight:400, fontSize:'1em', margin:'0 auto 0.7em auto', maxWidth:420, paddingLeft:24, lineHeight:1.7}}>
+            <div style={{fontSize:'2.2em', marginBottom:'0.4em'}}>� Museo Virtual 3D</div>
+            <div style={{fontWeight:700, fontSize:'1.1em', marginBottom:'0.8em', color:'#3949ab'}}>Bienvenido/a al recorrido interactivo</div>
+            <ul style={{textAlign:'left', color:'#222', fontWeight:400, fontSize:'0.95em', margin:'0 auto 1em auto', maxWidth:420, paddingLeft:24, lineHeight:1.6}}>
               <li><b>WASD</b> o <b>Flechas</b>: Moverse por el espacio</li>
-              <li><b>Click</b>: Activar cámara libre y mirar con el mouse</li>
+              <li><b>Mouse</b>: Mirar alrededor</li>
+              <li><b>Clic en cuadro</b>: Ver detalles y zoom</li>
               <li><b>L</b>: Abrir/cerrar lista de obras</li>
               <li><b>C</b>: Cerrar modales</li>
               <li><b>🔊</b>: Activar/desactivar sonido</li>
             </ul>
-            <div style={{fontSize:'1.7em', color:'#3949ab'}}>¡Disfruta el recorrido! 🎨</div>
+            <div style={{fontSize:'1.6em', color:'#2e7d32', marginBottom:'0.3em'}}>
+              🖱️ <strong>Haz clic aquí para empezar</strong> 🎮
+            </div>
+            <div style={{fontSize:'0.85em', color:'#666', fontStyle:'italic'}}>
+              Los controles se activarán al hacer clic
+            </div>
           </div>
         </div>
       )}
+      {/* Estilos CSS para animaciones */}
+      <style jsx>{`
+        @keyframes pulse {
+          0% {
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% {
+            opacity: 0.7;
+            transform: scale(1.05);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+      `}</style>
     </>
   )
+}
+
+// Componente personalizado para controles de cámara que se puede desactivar
+function ConditionalPointerLockControls({ enabled = true }) {
+  const controlsRef = useRef();
+  
+  // Efecto principal para manejar el estado de habilitación
+  useEffect(() => {
+    console.log('ConditionalPointerLockControls effect:', { enabled });
+    
+    if (controlsRef.current) {
+      if (enabled) {
+        // Reactivar controles con delay para asegurar limpieza completa
+        const timer = setTimeout(() => {
+          if (controlsRef.current) {
+            try {
+              // Asegurar que no hay pointer lock activo antes de conectar
+              if (document.pointerLockElement) {
+                document.exitPointerLock();
+              }
+              
+              // Pequeño delay adicional después de salir del pointer lock
+              setTimeout(() => {
+                if (controlsRef.current && enabled) {
+                  controlsRef.current.connect();
+                  console.log('✅ PointerLockControls CONECTADOS');
+                  
+                  // Restaurar cursor normal
+                  document.body.style.cursor = '';
+                }
+              }, 100);
+            } catch (error) {
+              console.error('Error conectando PointerLockControls:', error);
+            }
+          }
+        }, 150); // Delay optimizado
+        
+        return () => clearTimeout(timer);
+      } else {
+        // Desactivar controles inmediatamente
+        try {
+          controlsRef.current.disconnect();
+          console.log('❌ PointerLockControls DESCONECTADOS');
+          
+          // Forzar liberación del puntero
+          if (document.pointerLockElement) {
+            document.exitPointerLock();
+          }
+          
+          // Asegurar cursor visible
+          document.body.style.cursor = 'auto';
+        } catch (error) {
+          console.error('Error desconectando PointerLockControls:', error);
+        }
+      }
+    }
+  }, [enabled]);
+
+  // Inicialización al montar el componente - DESHABILITADA
+  // Los controles solo se activan después del clic del usuario
+  useEffect(() => {
+    console.log('🚀 ConditionalPointerLockControls montado - esperando clic del usuario');
+    // No inicializar automáticamente los controles
+  }, []);
+
+  // Listener para evento personalizado de reactivación forzada
+  useEffect(() => {
+    const handleReactivate = () => {
+      if (enabled && controlsRef.current) {
+        console.log('Reactivación forzada de controles de cámara');
+        try {
+          // Desconectar y reconectar para forzar reactivación
+          controlsRef.current.disconnect();
+          setTimeout(() => {
+            if (controlsRef.current && enabled) {
+              controlsRef.current.connect();
+              console.log('Controles de cámara FORZADAMENTE reactivados');
+            }
+          }, 50);
+        } catch (error) {
+          console.error('Error en reactivación forzada:', error);
+        }
+      }
+    };
+
+    window.addEventListener('reactivateCamera', handleReactivate);
+    
+    return () => {
+      window.removeEventListener('reactivateCamera', handleReactivate);
+    };
+  }, [enabled]);
+
+  // Cleanup al desmontar
+  useEffect(() => {
+    return () => {
+      if (controlsRef.current) {
+        try {
+          controlsRef.current.disconnect();
+          if (document.pointerLockElement) {
+            document.exitPointerLock();
+          }
+          document.body.style.cursor = '';
+        } catch (error) {
+          console.error('Error en cleanup:', error);
+        }
+      }
+    };
+  }, []);
+
+  // Siempre renderizar los controles para mantener la referencia
+  return <PointerLockControls ref={controlsRef} />;
 }

@@ -1,0 +1,634 @@
+{
+  "info": {
+    "name": "Museo 3D - API Completa v3.0",
+    "description": "Colección completa y actualizada de endpoints para el Museo Virtual 3D. Incluye gestión de murales, salas, usuarios y funcionalidades avanzadas con ejemplos de respuesta corregidos.",
+    "version": "3.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string",
+      "description": "URL base del servidor de desarrollo"
+    },
+    {
+      "key": "production_url",
+      "value": "https://museo-3d.vercel.app",
+      "type": "string",
+      "description": "URL de producción (cuando esté disponible)"
+    },
+    {
+      "key": "api_version",
+      "value": "v1",
+      "type": "string",
+      "description": "Versión del API"
+    }
+  ],
+  "item": [
+    {
+      "name": "🎨 Murales",
+      "description": "Endpoints para gestionar murales del museo",
+      "item": [
+        {
+          "name": "📋 Obtener todos los murales",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has murales array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('murales');",
+                  "    pm.expect(jsonData.murales).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Response has estadisticas\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('estadisticas');",
+                  "    pm.expect(jsonData.estadisticas).to.have.property('total');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/murales",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "murales"
+              ]
+            },
+            "description": "Obtiene todos los murales con información de salas y estadísticas completas."
+          },
+          "response": []
+        },
+        {
+          "name": "🆕 Crear mural (JSON)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has mural data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('nombre');",
+                  "});",
+                  "",
+                  "// Guardar ID para uso posterior",
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('created_mural_id', jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Mural de Prueba\",\n  \"autor\": \"Artista de Prueba\",\n  \"tecnica\": \"Acrílico sobre muro\",\n  \"anio\": 2025,\n  \"ubicacion\": \"Pared de prueba\",\n  \"url_imagen\": \"https://res.cloudinary.com/daol1ohso/image/upload/v1749847137/ejemplo.jpg\",\n  \"medidas\": \"2.0 x 3.0 m\",\n  \"salaId\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/murales",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "murales"
+              ]
+            },
+            "description": "Crea un nuevo mural enviando datos en formato JSON."
+          },
+          "response": []
+        },
+        {
+          "name": "🔍 Obtener mural por ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has mural data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('nombre');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/murales/15",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "murales",
+                "15"
+              ]
+            },
+            "description": "Obtiene un mural específico por su ID."
+          },
+          "response": []
+        },
+        {
+          "name": "✏️ Actualizar mural",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has updated data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('nombre');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Mural Actualizado\",\n  \"autor\": \"Artista Modificado\",\n  \"tecnica\": \"Técnica Actualizada\",\n  \"anio\": 2025,\n  \"ubicacion\": \"Nueva ubicación\",\n  \"url_imagen\": \"https://res.cloudinary.com/daol1ohso/image/upload/v1749847137/actualizado.jpg\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/murales/{{created_mural_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "murales",
+                "{{created_mural_id}}"
+              ]
+            },
+            "description": "Actualiza un mural existente."
+          },
+          "response": []
+        },
+        {
+          "name": "🗑️ Eliminar mural",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "",
+                  "pm.test(\"Response body is empty\", function () {",
+                  "    pm.expect(pm.response.text()).to.be.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/murales/{{created_mural_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "murales",
+                "{{created_mural_id}}"
+              ]
+            },
+            "description": "Elimina un mural del museo."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🏛️ Salas",
+      "description": "Endpoints para gestionar salas del museo",
+      "item": [
+        {
+          "name": "📋 Obtener todas las salas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has salas array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('salas');",
+                  "    pm.expect(jsonData.salas).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test(\"Response has estadisticas\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('estadisticas');",
+                  "    pm.expect(jsonData.estadisticas).to.have.property('total');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/salas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salas"
+              ]
+            },
+            "description": "Obtiene todas las salas con información completa de propietarios, colaboradores y murales asociados."
+          },
+          "response": []
+        },
+        {
+          "name": "🔍 Filtrar salas por propietario",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Filtered by owner\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.filtros.ownerId).to.not.be.null;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/salas?ownerId={{test_user_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salas"
+              ],
+              "query": [
+                {
+                  "key": "ownerId",
+                  "value": "{{test_user_id}}",
+                  "description": "ID del propietario de las salas"
+                }
+              ]
+            },
+            "description": "Filtra salas por propietario específico."
+          },
+          "response": []
+        },
+        {
+          "name": "🆕 Crear nueva sala",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has sala data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('nombre');",
+                  "    pm.expect(jsonData).to.have.property('owner');",
+                  "});",
+                  "",
+                  "// Guardar ID para uso posterior",
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('created_sala_id', jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sala de Prueba\",\n  \"ownerId\": 2,\n  \"murales\": [15, 16, 17],\n  \"colaboradores\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/salas",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salas"
+              ]
+            },
+            "description": "Crea una nueva sala en el museo."
+          },
+          "response": []
+        },
+        {
+          "name": "🔍 Obtener sala por ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has sala data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('nombre');",
+                  "    pm.expect(jsonData).to.have.property('owner');",
+                  "    pm.expect(jsonData).to.have.property('murales');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/salas/2",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salas",
+                "2"
+              ]
+            },
+            "description": "Obtiene una sala específica por su ID."
+          },
+          "response": []
+        },
+        {
+          "name": "✏️ Actualizar sala",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has updated data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('nombre');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Sala ARPA Actualizada\",\n  \"murales\": [15, 16, 17, 18]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/salas/{{created_sala_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salas",
+                "{{created_sala_id}}"
+              ]
+            },
+            "description": "Actualiza una sala existente."
+          },
+          "response": []
+        },
+        {
+          "name": "🗑️ Eliminar sala",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 204\", function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});",
+                  "",
+                  "pm.test(\"Response body is empty\", function () {",
+                  "    pm.expect(pm.response.text()).to.be.empty;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/salas/{{created_sala_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "salas",
+                "{{created_sala_id}}"
+              ]
+            },
+            "description": "Elimina una sala del museo."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🧪 Testing & Utilities",
+      "description": "Endpoints de utilidad y testing",
+      "item": [
+        {
+          "name": "🏥 Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Server is healthy\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('status');",
+                  "    pm.expect(jsonData.status).to.eql('OK');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            },
+            "description": "Verifica que el servidor esté funcionando correctamente."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Script global que se ejecuta antes de cada request",
+          "console.log('🚀 Ejecutando request a:', pm.request.url.toString());",
+          "",
+          "// Agregar timestamp para debugging",
+          "pm.environment.set('timestamp', new Date().toISOString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Script global que se ejecuta después de cada response",
+          "console.log('✅ Response recibida en:', pm.environment.get('timestamp'));",
+          "console.log('📊 Status:', pm.response.status, pm.response.code);",
+          "",
+          "// Log de errores si el status no es exitoso",
+          "if (pm.response.code >= 400) {",
+          "    console.error('❌ Error detectado:', pm.response.text());",
+          "}"
+        ]
+      }
+    }
+  ]
+}
