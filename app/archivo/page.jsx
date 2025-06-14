@@ -79,7 +79,7 @@ export default function ArchiveCarussel () {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/murales');
+        const res = await fetch('https://museo-3d.vercel.app/api/murales');
         const data = await res.json();
 
         const dataInfo = data.murales;
