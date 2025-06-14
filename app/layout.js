@@ -17,16 +17,14 @@ const geistMono = Geist_Mono({
 });
 
 
-
 export default function RootLayout({ children }) {
   return (
     <html lang="es">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      > <ParallaxProvider>
-        <AuthProvider> 
-        <ClientLayout>{children}</ClientLayout>
-        </AuthProvider>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ParallaxProvider>
+          <AuthProvider>
+            <ClientLayout>{children}</ClientLayout>
+          </AuthProvider>
         </ParallaxProvider>
       </body>
     </html>

@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
+import { useSession, signOut } from "next-auth/react";
 import AuthModal from "./AuthModal";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,6 +23,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register'
   const fileInputRef = useRef();
   const router = useRouter();
+  const { data: session, status } = useSession();
 
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [transitioning, setTransitioning] = useState(false);
@@ -67,7 +69,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
     e.preventDefault();
     setTransitioning(true);
     setTimeout(() => {
-      router.push("/subir-archivo");
+      router.push("/crear-sala");
     }, 900);
   };
 
@@ -106,11 +108,20 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
                 <div className="flex flex-col gap-2">
                   <NavigationMenuLink asChild>
                     <Link
-                     href="/subir-archivo"
+                     href="/crear-sala"
                      onClick={onSubirArchivo}
                       className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all"
                     >
-                      Subir documento
+                      Crear Sala
+                    </Link>
+                  </NavigationMenuLink>
+                  <NavigationMenuLink asChild>
+                    <Link
+                      href="/archivo"
+                      className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all"
+                      onClick={onNavigate ? (e) => onNavigate(e, "/archivo") : undefined}
+                    >
+                      Ver archivo
                     </Link>
                   </NavigationMenuLink>
                   <NavigationMenuLink asChild>
@@ -130,9 +141,9 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
             <NavigationMenuItem>
               <NavigationMenuLink asChild>
                 <Link
-                  href="#about"
+                  href="/acerca-de"
                   className="hover:text-primary transition-all px-3 py-2 rounded-lg"
-                   onClick={onNavigate ? (e) => onNavigate(e, "#about") : undefined}
+                   onClick={onNavigate ? (e) => onNavigate(e, "/acerca-de") : undefined}
                 >
                   Acerca de
                 </Link>
@@ -153,15 +164,72 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
           </NavigationMenuList>
         </NavigationMenu>
 
-        {/* Botón (ej. iniciar sesión) */}
+        {/* Usuario autenticado o botón de login */}
         <div className="flex items-center gap-3">
-           <button
-            onClick={() => setAuthModal("login")}
-            className="hidden md:inline-block rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-200 shadow-sm hover:shadow-md"
-            
-          >
-            Iniciar sesión
-          </button>
+          {status === "loading" ? (
+            <div className="w-8 h-8 rounded-full bg-muted animate-pulse"></div>
+          ) : session ? (
+            <NavigationMenu>
+              <NavigationMenuList>
+                <NavigationMenuItem>
+                  <NavigationMenuTrigger className="flex items-center gap-2 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
+                    <img
+                      src={session.user?.image || "/assets/default-avatar.svg"}
+                      alt={session.user?.name || "Usuario"}
+                      className="w-8 h-8 rounded-full object-cover border-2 border-primary/20"
+                      onError={(e) => {
+                        e.target.src = "/assets/default-avatar.svg";
+                      }}
+                    />
+                    <span className="hidden md:inline text-sm font-medium">
+                      {session.user?.name || session.user?.email?.split("@")[0]}
+                    </span>
+                  </NavigationMenuTrigger>
+                  <NavigationMenuContent className="bg-card p-4 rounded-lg shadow-lg border min-w-[180px]">
+                    <div className="flex flex-col gap-2">
+                      <div className="px-3 py-2 border-b border-border">
+                        <p className="text-sm font-medium text-foreground">
+                          {session.user?.name || "Usuario"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {session.user?.email}
+                        </p>
+                      </div>
+                      <NavigationMenuLink asChild>
+                        <Link
+                          href="/perfil"
+                          className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm"
+                        >
+                          Mi perfil
+                        </Link>
+                      </NavigationMenuLink>
+                      <NavigationMenuLink asChild>
+                        <Link
+                          href="/mis-documentos"
+                          className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm"
+                        >
+                          Mis documentos
+                        </Link>
+                      </NavigationMenuLink>
+                      <button
+                        onClick={() => signOut()}
+                        className="block w-full text-left px-3 py-2 rounded-md hover:bg-muted transition-all text-sm text-red-600 hover:text-red-700"
+                      >
+                        Cerrar sesión
+                      </button>
+                    </div>
+                  </NavigationMenuContent>
+                </NavigationMenuItem>
+              </NavigationMenuList>
+            </NavigationMenu>
+          ) : (
+            <button
+              onClick={() => setAuthModal("login")}
+              className="hidden md:inline-block rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-200 shadow-sm hover:shadow-md"
+            >
+              Iniciar sesión
+            </button>
+          )}
         </div>
       </div>
     </motion.nav>
