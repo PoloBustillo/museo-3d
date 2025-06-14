@@ -1,4 +1,5 @@
 import { Swiper, SwiperSlide } from 'swiper/react';
+
 export default function SwiperItem ({title,img, description,categories}){
     return(
         <SwiperSlide>
