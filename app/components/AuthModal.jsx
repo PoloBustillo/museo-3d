@@ -199,13 +199,6 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
           <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" alt="Google" style={{width:22, height:22, marginRight:6}} />
           Iniciar sesión con Google
         </button>
-        <button type="button" onClick={() => signIn('microsoft')} style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-          background: '#fff', color: '#222', border: '1.5px solid #bbb', borderRadius: 8, fontWeight: 'bold', fontSize: 16,
-          padding: '0.6em 0', cursor: 'pointer', boxShadow: '0 2px 8px #0001', width: '100%'}}>
-          <img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="Microsoft" style={{width:22, height:22, marginRight:6, background:'#fff', borderRadius:3}} />
-          Iniciar sesión con Microsoft
-        </button>
       </div>
       <div style={{ marginTop: 18, textAlign: 'center', fontSize: 15, background:'#f5f5fa', borderRadius:8, padding:'0.7em 0', color:'#222', fontWeight:500 }}>
         {localMode === "login" ? (

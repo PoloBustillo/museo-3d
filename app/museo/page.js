@@ -236,6 +236,7 @@ export default function MuseoPage() {
 
       <div
         style={{
+          paddingTop: "60px",
           maxWidth: 1200,
           margin: "0 auto",
           position: "relative",
