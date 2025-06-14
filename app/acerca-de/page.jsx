@@ -20,9 +20,12 @@ export default function AcercaDe() {
               <h2 className="text-3xl font-bold mb-6 text-foreground">Nuestra Historia</h2>
               <div className="space-y-4 text-muted-foreground">
                 <p>
-                  El Mural ARPA nació de la necesidad de preservar el rico patrimonio 
-                  artístico mexicano en la era digital. Fundado con la visión de hacer 
-                  accesible el arte mural a todo el mundo.
+                  El Mural ARPA nació como parte de un esfuerzo colectivo por documentar
+                   y visibilizar las obras murales creadas por estudiantes de la Facultad
+                    de Artes de la BUAP, muchas de las cuales han sido desarrolladas en
+                   colaboración con eventos culturales y académicos como el Primer Hackatón BUAP. 
+                   Este proyecto refleja la fusión entre tradición artística y vanguardia tecnológica,
+                   con el objetivo de preservar el legado del muralismo mexicano en la era digital.
                 </p>
                 <p>
                   Nuestro proyecto combina la tradición del muralismo mexicano con 
@@ -32,7 +35,7 @@ export default function AcercaDe() {
               </div>
             </div>
             <div className="bg-muted rounded-lg h-64 flex items-center justify-center">
-              <span className="text-muted-foreground">Imagen de historia</span>
+              <img src="/images/El_Performance.JPG" alt="El performance" className="w-full h-full object-cover rounded-lg"/>
             </div>
           </div>
         </div>
@@ -47,15 +50,19 @@ export default function AcercaDe() {
               <p className="text-muted-foreground">
                 Preservar, documentar y difundir el arte mural mexicano a través de 
                 tecnologías digitales innovadoras, haciendo accesible este patrimonio 
-                cultural a audiencias globales.
+                cultural a audiencias globales. Buscamos convertirnos en un puente entre 
+                el arte tradicional y las nuevas formas de interacción digital, garantizando 
+                que las obras murales realizadas por artistas emergentes tengan vida propia 
+                más allá de las paredes donde fueron creadas.
               </p>
             </div>
             <div className="bg-card p-8 rounded-lg border shadow-sm">
               <h3 className="text-2xl font-bold mb-4 text-foreground">Nuestra Visión</h3>
               <p className="text-muted-foreground">
                 Ser la plataforma líder mundial en la preservación y experiencia 
-                digital del arte mural, conectando artistas, historiadores y 
-                amantes del arte en una comunidad global.
+                digital del arte mural, conectando artistas, historiadores y amantes 
+                del arte en una comunidad global comprometida con la memoria cultural 
+                y la innovación artística.
               </p>
             </div>
           </div>
@@ -66,21 +73,69 @@ export default function AcercaDe() {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12 text-foreground">Nuestro Equipo</h2>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="col-span-3 flex justify-center text-center">
             <div className="text-center">
-              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4"></div>
+              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
+                <img src="/images/Equipo_6.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
+              </div>
               <h4 className="font-semibold text-foreground">Director de Arte</h4>
               <p className="text-sm text-muted-foreground">Especialista en muralismo mexicano</p>
             </div>
+          </div>
+
+          <h2 className="text-2xl font-bold text-center mb-6 text-foreground mt-12">Devs</h2>
+          <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center">
-              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4"></div>
-              <h4 className="font-semibold text-foreground">Director Técnico</h4>
+              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
+                <img src="/images/Equipo_5.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
+              </div>
+              <h4 className="font-semibold text-foreground">Director de Proyecto</h4>
               <p className="text-sm text-muted-foreground">Experto en tecnologías digitales</p>
             </div>
             <div className="text-center">
-              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4"></div>
-              <h4 className="font-semibold text-foreground">Curator</h4>
-              <p className="text-sm text-muted-foreground">Historiador de arte mexicano</p>
+              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
+                <img src="/images/Equipo_1.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
+              </div>
+              <h4 className="font-semibold text-foreground">Arquitecto de Bases de Datos</h4>
+              <p className="text-sm text-muted-foreground">Especialista en gestión y modelado de datos</p>
+            </div>
+            <div className="text-center">
+              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
+                <img src="/images/Equipo_2.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
+              </div>
+              <h4 className="font-semibold text-foreground">Arquitecto de Bases de Datos</h4>
+              <p className="text-sm text-muted-foreground">Especialista en gestión y modelado de datos</p>
+            </div>
+            <div className="text-center">
+              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
+                <img src="/images/Equipo_3.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
+              </div>
+              <h4 className="font-semibold text-foreground">Diseñador UI</h4>
+              <p className="text-sm text-muted-foreground">Creador del diseño visual e interfaz digital</p>
+            </div>
+            <div className="text-center">
+              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
+                <img src="/images/Equipo_2.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
+              </div>
+              <h4 className="font-semibold text-foreground">Diseñador UI</h4>
+              <p className="text-sm text-muted-foreground">Creador del diseño visual e interfaz digital</p>
+            </div>
+            <div className="text-center">
+              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
+                <img src="/images/Equipo_4.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
+              </div>
+              <h4 className="font-semibold text-foreground">Diseñador UX</h4>
+              <p className="text-sm text-muted-foreground">Experto en usabilidad y experiencia digital</p>
+            </div>
+
+            <div className="col-span-3 flex justify-center text-center">
+            <div className="text-center">
+              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
+                <img src="/images/Equipo_4.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
+              </div>
+              <h4 className="font-semibold text-foreground">Redactor de Contenidos</h4>
+              <p className="text-sm text-muted-foreground">Encargado de la narrativa y edición web</p>
+            </div>
             </div>
           </div>
         </div>
