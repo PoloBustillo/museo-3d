@@ -21,7 +21,7 @@ export default function Footer() {
           <span className="font-semibold text-primary">Contenido</span>
           <Link href="/" className="hover:text-primary transition">Inicio</Link>
           <Link href="/museo" className="hover:text-primary transition">Museo Virtual</Link>
-          <Link href="/subir-archivo" className="hover:text-primary transition">Subir documento</Link>
+          <Link href="/crear-sala" className="hover:text-primary transition">Subir documento</Link>
           <Link href="#about" className="hover:text-primary transition">Acerca de</Link>
         </div>
 

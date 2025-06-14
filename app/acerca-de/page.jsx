@@ -164,7 +164,7 @@ export default function AcercaDe() {
               Explorar Museo
             </a>
             <a 
-              href="/subir-archivo" 
+              href="/crear-sala" 
               className="border border-white px-6 py-3 rounded-lg hover:bg-white/10 transition-colors font-semibold"
             >
               Contribuir

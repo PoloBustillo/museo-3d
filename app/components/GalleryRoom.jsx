@@ -252,15 +252,34 @@ function CameraLerpTo({ target, cameraRef, onArrive }) {
 // Componente para animar la cámara suavemente usando useFrame
 function CameraLerpController({ cameraRef, cameraTarget, setCameraTarget }) {
   const { camera } = useThree();
+  const transitionStarted = useRef(false);
+  
   useFrame(() => {
     if (cameraTarget) {
       const [tx, ty, tz] = cameraTarget.position;
-      camera.position.lerp(new THREE.Vector3(tx, ty, tz), 0.08);
-      camera.lookAt(...cameraTarget.lookAt);
-      if (camera.position.distanceTo(new THREE.Vector3(tx, ty, tz)) < 0.05) {
+      const [lx, ly, lz] = cameraTarget.lookAt;
+      
+      // Solo aplicar lerp de posición
+      camera.position.lerp(new THREE.Vector3(tx, ty, tz), 0.12);
+      
+      const distanceToTarget = camera.position.distanceTo(new THREE.Vector3(tx, ty, tz));
+      
+      // Solo aplicar lookAt UNA VEZ al inicio de la transición
+      if (!transitionStarted.current) {
+        camera.lookAt(lx, ly, lz);
+        transitionStarted.current = true;
+        console.log('Transición de cámara iniciada - orientación inicial aplicada');
+      }
+      
+      // Finalizar transición cuando esté cerca
+      if (distanceToTarget < 0.1) {
         camera.position.set(tx, ty, tz);
         setCameraTarget(null);
+        transitionStarted.current = false;
+        console.log('Transición de cámara completada - controles totalmente liberados');
       }
+    } else {
+      transitionStarted.current = false;
     }
   });
   return null;
@@ -923,16 +942,61 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
     console.log(`Cambiando a sala ${roomId}`);
     if (onRoomChange && typeof onRoomChange === 'function') {
       onRoomChange(roomId);
+      
+      // Reposicionamiento más suave después de cambiar sala
+      setTimeout(() => {
+        if (cameraRef) {
+          const startX = FIRST_X - WALL_MARGIN_INITIAL * 0.6;
+          const cameraY = 2;
+          const cameraZ = 0;
+          
+          // Posicionar cámara con orientación más natural
+          setCameraTarget({
+            position: [startX, cameraY, cameraZ],
+            lookAt: [startX + 1, cameraY, cameraZ - 0.5] // Mirar ligeramente hacia adelante y abajo
+          });
+          
+          console.log(`Cámara reposicionada suavemente para nueva sala`);
+        }
+      }, 200); // Delay reducido
     }
     setShowRoomSelector(false);
     setRoomSelectorPrompted(false);
-  }, [onRoomChange]);
+  }, [onRoomChange, cameraRef, FIRST_X, WALL_MARGIN_INITIAL, setCameraTarget]);
 
   const handleCloseRoomSelector = useCallback(() => {
     // El modal se cierra automáticamente al alejarse, no necesitamos forzar el cierre
     // Solo se usa si el usuario presiona ESC
     setShowRoomSelector(false);
   }, []);
+
+  // Efecto para reposicionar cámara cuando cambia de sala (solo si es necesario)
+  useEffect(() => {
+    // Solo ejecutar si hay una cámara, obras, y no hay instrucciones visibles
+    if (cameraRef && artworks.length > 0 && !showInstructions) {
+      console.log(`Sala ${salaId} cargada - verificando si necesita reposicionamiento`);
+      
+      // Solo reposicionar si estamos muy lejos del área de la galería
+      const currentX = cameraRef.position.x;
+      const galleryStartX = FIRST_X - WALL_MARGIN_INITIAL;
+      const galleryEndX = LAST_X + WALL_MARGIN_FINAL;
+      
+      // Solo reposicionar si la cámara está fuera del rango razonable de la galería
+      if (currentX < galleryStartX - 8 || currentX > galleryEndX + 8) {
+        const startX = FIRST_X - WALL_MARGIN_INITIAL * 0.6;
+        const cameraY = 2;
+        const cameraZ = 0;
+        
+        console.log(`Cámara fuera del rango (${currentX}), reposicionando a [${startX}, ${cameraY}, ${cameraZ}]`);
+        
+        // Posicionamiento inmediato sin transición para evitar bloqueos
+        cameraRef.position.set(startX, cameraY, cameraZ);
+        cameraRef.lookAt(startX + 1, cameraY, cameraZ - 0.5);
+      } else {
+        console.log('Cámara ya está en posición adecuada, no se reposiciona');
+      }
+    }
+  }, [salaId, cameraRef, artworks.length, showInstructions, FIRST_X, WALL_MARGIN_INITIAL, LAST_X, WALL_MARGIN_FINAL]);
 
   // Efecto para iniciar el movimiento suave al seleccionar una pintura
   useEffect(() => {

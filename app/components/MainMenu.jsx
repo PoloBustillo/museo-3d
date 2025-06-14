@@ -69,7 +69,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
     e.preventDefault();
     setTransitioning(true);
     setTimeout(() => {
-      router.push("/subir-archivo");
+      router.push("/crear-sala");
     }, 900);
   };
 

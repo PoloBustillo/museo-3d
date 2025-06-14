@@ -143,7 +143,7 @@ export default function ClientLayout({ children }) {
     <div className="min-h-screen flex flex-col bg-black text-white">
       <header className="sticky top-0 z-[60]">
         <MainMenu
-          onSubirArchivo={(e) => handleRouteTransition(e, "/subir-archivo")}
+          onSubirArchivo={(e) => handleRouteTransition(e, "/crear-sala")}
           onNavigate={handleRouteTransition}
         />
       </header>
