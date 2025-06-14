@@ -21,7 +21,7 @@ export default function BackgroundSound({ url }) {
       if (audio.current) {
         audio.current.setBuffer(buffer)
         audio.current.setLoop(true)
-        audio.current.setVolume(0.5)
+        audio.current.setVolume(0.8)
         audio.current.play()
       }
     })
