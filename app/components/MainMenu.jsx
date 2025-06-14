@@ -1,12 +1,10 @@
 "use client";
 import Link from "next/link";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import AuthModal from "./AuthModal";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-
-
 
 import {
   NavigationMenu,
@@ -20,7 +18,6 @@ import {
 } from "./ui/navigation-menu";
 import Footer from "./Footer";
 
-
 export default function MainMenu({ onSubirArchivo, onNavigate }) {
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register'
   const fileInputRef = useRef();
@@ -28,6 +25,31 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
 
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [transitioning, setTransitioning] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const [lastScrollY, setLastScrollY] = useState(0);
+
+  // Control de visibilidad del navbar
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      
+      if (currentScrollY < 10) {
+        // Siempre visible en el top
+        setIsVisible(true);
+      } else if (currentScrollY < lastScrollY) {
+        // Scrolling up - mostrar navbar
+        setIsVisible(true);
+      } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
+        // Scrolling down - ocultar navbar
+        setIsVisible(false);
+      }
+      
+      setLastScrollY(currentScrollY);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY]);
 
 
 
@@ -51,8 +73,13 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
 
   return (
     <>
-        {/* Navigation Menu */}
-       <nav className="sticky top-0 z-50 w-full border-b border-border bg-background text-foreground shadow-sm">
+        {/* Navigation Menu with auto-hide on scroll */}
+       <motion.nav 
+         initial={{ y: 0 }}
+         animate={{ y: isVisible ? 0 : -100 }}
+         transition={{ duration: 0.3, ease: "easeInOut" }}
+         className="fixed top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-md text-foreground shadow-sm"
+       >
       <div className="max-w-screen-xl mx-auto flex items-center justify-between px-4 py-3 md:py-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3">
@@ -69,31 +96,33 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
 
         {/* Navigation Menu */}
         <NavigationMenu>
-          <NavigationMenuList className="hidden md:flex gap-6 text-sm font-medium">
+          <NavigationMenuList className="hidden md:flex text-sm font-medium">
       
             <NavigationMenuItem>
-              <NavigationMenuTrigger className="hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition">
+              <NavigationMenuTrigger className="hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
                 Archivo
               </NavigationMenuTrigger>
-              <NavigationMenuContent className="bg-card p-4 rounded-lg shadow-lg">
-                <NavigationMenuLink asChild>
-                  <Link
-                   href="/subir-archivo"
-                   onClick={onSubirArchivo}
-                    className="block px-2 py-1 rounded-md hover:bg-muted hover:text-primary transition"
-                  >
-                    Subir documento
-                  </Link>
-                </NavigationMenuLink>
-                <NavigationMenuLink asChild>
-                  <Link
-                    href="/museo"
-                    className="block px-2 py-1 rounded-md hover:bg-muted hover:text-primary transition"
-                    onClick={onNavigate ? (e) => onNavigate(e, "/museo") : undefined}
-                  >
-                    Explorar mural
-                  </Link>
-                </NavigationMenuLink>
+              <NavigationMenuContent className="bg-card p-6 rounded-lg shadow-lg border min-w-[200px]">
+                <div className="flex flex-col gap-2">
+                  <NavigationMenuLink asChild>
+                    <Link
+                     href="/subir-archivo"
+                     onClick={onSubirArchivo}
+                      className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all"
+                    >
+                      Subir documento
+                    </Link>
+                  </NavigationMenuLink>
+                  <NavigationMenuLink asChild>
+                    <Link
+                      href="/museo"
+                      className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all"
+                      onClick={onNavigate ? (e) => onNavigate(e, "/museo") : undefined}
+                    >
+                      Explorar mural
+                    </Link>
+                  </NavigationMenuLink>
+                </div>
               </NavigationMenuContent>
             </NavigationMenuItem>
 
@@ -102,7 +131,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
               <NavigationMenuLink asChild>
                 <Link
                   href="#about"
-                  className="hover:text-primary transition"
+                  className="hover:text-primary transition-all px-3 py-2 rounded-lg"
                    onClick={onNavigate ? (e) => onNavigate(e, "#about") : undefined}
                 >
                   Acerca de
@@ -114,7 +143,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
               <NavigationMenuLink asChild>
                 <Link
                   href="/museo"
-                  className="hover:text-primary transition"
+                  className="hover:text-primary transition-all px-3 py-2 rounded-lg"
                  // onClick={onNavigate ? (e) => onNavigate(e, "/museo") : undefined}
                 >
                   Museo Virtual
@@ -125,17 +154,17 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
         </NavigationMenu>
 
         {/* Botón (ej. iniciar sesión) */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
            <button
             onClick={() => setAuthModal("login")}
-            className="hidden md:inline-block rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-secondary transition"
+            className="hidden md:inline-block rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-200 shadow-sm hover:shadow-md"
             
           >
             Iniciar sesión
           </button>
         </div>
       </div>
-    </nav>
+    </motion.nav>
      <AuthModal
         open={!!authModal}
         mode={authModal}
