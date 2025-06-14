@@ -4,12 +4,13 @@ import  Search from '../../components/archive/Search';
 import Carousel from '../../components/archive/Carousel';
 import Gallery from '../../components/archive/Galery';
 import { object } from "yup";
+import styles from './Achive.module.css';
 
 function agruparMuralesPorFiltrosNumericos(murales, filtrosSeleccionados) {
   const resultado = {};
+  const final = [];
 
   murales.forEach(mural => {
-    // Revisa todas las claves que interesan
     const posiblesFiltros = {
       anio: mural.anio,
       salaId: mural.salaId,
@@ -28,14 +29,52 @@ function agruparMuralesPorFiltrosNumericos(murales, filtrosSeleccionados) {
       }
     });
   });
+    Object.entries(resultado).forEach(([clave, lista]) => {
+        if (lista.length > 1) {
+            final.push({ [clave]: lista });
+        }
+    });
 
-  return resultado;
+
+  return final;
 }
 
+const parsedPhotos = (dataImg) => {
+    return dataImg.map((item) => {
+        let width = 200;
+        let height = 300;
+
+        if (typeof item.medidas === 'string') {
+            // Extraer todas las dimensiones numéricas del string
+            const dimensiones = item.medidas
+                .replace(/m/g, '') // quitar unidad "m"
+                .split('x')        // separar por 'x'
+                .map(d => parseFloat(d.trim()))
+                .filter(n => !isNaN(n));
+
+            // Si al menos hay dos dimensiones válidas
+            if (dimensiones.length >= 2) {
+                width = dimensiones[0] * 10;
+                height = dimensiones[1] * 10;
+            }
+        }
+
+        return {
+            src: item.url_imagen,
+            autor: item.autor,
+            tecnica: item.tecnica,
+            width,
+            height,
+            title: item.nombre,
+        };
+    });
+};
 
 
-export default function ArchiveCarussel (){
-const [photos, setPhotos] = useState([]);
+
+export default function ArchiveCarussel () {
+  const [photos, setPhotos] = useState([]);
+  const [yearPhotos, setYearPhotos] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -43,47 +82,21 @@ const [photos, setPhotos] = useState([]);
         const res = await fetch('http://localhost:3000/api/murales');
         const data = await res.json();
 
-        console.log("TODO el objeto:", data);
-
-
-        // Acceder a estadísticas:
+        const dataInfo = data.murales;
         const dataYear = data.estadisticas.porAnio;
-        console.log("Estadísticas:", dataYear);
+        const filtrosNumericos = Object.keys(dataYear);
 
-        const dataInfo =  data.murales;
-        console.log("HOLA",data);
-
-        const filtrosNumericos = Object.keys(dataYear); // ["2021", "2022", "2023"]
         const agrupados = agruparMuralesPorFiltrosNumericos(dataInfo, filtrosNumericos);
         console.log("Agrupados:", agrupados);
-        console.log("3:", agrupados['2023'].length);
 
+        setPhotos(parsedPhotos(dataInfo));
 
+        // Extraer el grupo de murales del año 2023 si existe
+        const grupo2023 = agrupados.find(grupo => grupo['2024']);
+        if (grupo2023) {
+          setYearPhotos(parsedPhotos(grupo2023['2024']));
+        }
 
-
-        const parsedPhotos = dataInfo.map((item) => {
-          const medidas = item.medidas?.match(/([\d.]+)\s*x\s*([\d.]+)/);
-          let width = 800;
-          let height = 600;
-
-          if (medidas && medidas.length === 3) {
-            width = parseFloat(medidas[1]) * 120;  // escalar para ajustar
-            height = parseFloat(medidas[2]) * 100;
-          }
-
-          return {
-            src: item.url_imagen,
-            autor: item.autor,
-            tecnica: item.tecnica,
-            
-            width,
-            height,
-            title: item.nombre,
-          };
-        });
-
-        setPhotos(parsedPhotos);
-        console.log(photos);
       } catch (e) {
         console.error('Error al obtener murales: ', e);
       }
@@ -92,13 +105,21 @@ const [photos, setPhotos] = useState([]);
     fetchData();
   }, []);
 
-    return (
-        <div>
-            <Search/>
-            <Gallery photos={photos}></Gallery>
-            <Carousel items={photos}></Carousel>
+  return (
+    <div>
+       
+        <div className={styles.searchItem}>
+            <h1>Acervo Arpa</h1>
+            <Search></Search>
+        </div>
+        
+        <div className={styles.mainContent}>
+            <Carousel items={photos} />
+            <Gallery photos={photos} />
 
         </div>
-    )
-}
 
+
+    </div>
+  );
+}

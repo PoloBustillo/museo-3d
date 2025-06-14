@@ -1,0 +1,17 @@
+.mainContent {
+   /* vertical */
+    height: auto;
+    margin: 0;
+    padding: 0 2em 0 2em; /* top right bottom left */
+
+}
+
+.searchItem{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    margin: 0;
+    padding: 7em 2em 0 2em; /* top right bottom left */
+
+}

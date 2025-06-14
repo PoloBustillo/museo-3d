@@ -1,50 +1,52 @@
-// Carousel.jsx
-"use client";
-import { useRef } from "react";
-import styles from "./Carousel.module.css";
-import "@fortawesome/fontawesome-free/css/all.min.css";
+import { useState, useRef, useEffect, useId } from "react";
+import { AnimatePresence, motion } from "framer-motion"; // Asegúrate de tener framer-motion instalado
+import { useOutsideClick } from "@/hooks/use-outside-click";
 
+export function ExpandableCard({ card, onClose }) {
+  const id = useId();
+  const ref = useRef(null);
 
+  useOutsideClick(ref, onClose);
 
-export default function Carousel({items}) {
-  const slideRef = useRef(null);
+  useEffect(() => {
+    function onKeyDown(e) {
+      if (e.key === "Escape") onClose();
+    }
 
-  const next = () => {
-    const first = slideRef.current.children[0];
-    slideRef.current.appendChild(first);
-  };
-
-  const prev = () => {
-    const last = slideRef.current.children[slideRef.current.children.length - 1];
-    slideRef.current.prepend(last);
-  };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
 
   return (
-    <div className={styles.container}>
-      <div className={styles.slide} ref={slideRef}>
-        {items.map((item, i) => (
-          <div
-            key={i}
-            className={styles.item}
-            style={{ backgroundImage: `url(${item.src})` }}
-          >
-            <div className={styles.content}>
-              <div className={styles.name}>{item.title}</div>
-              <div className={styles.des}>{item.autor}</div>
-              <button>See More</button>
+    <AnimatePresence>
+      <motion.div
+        className="fixed inset-0 bg-black/30 z-40 flex justify-center items-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      >
+        <motion.div
+          layoutId={`card-${card.title}-${id}`}
+          ref={ref}
+          className="bg-white dark:bg-neutral-900 max-w-lg w-full p-4 rounded-2xl shadow-xl z-50"
+        >
+          <div className="flex justify-between items-start">
+            <div>
+              <h2 className="text-xl font-semibold">{card.title}</h2>
+              <p className="text-neutral-600">{card.description}</p>
             </div>
+            <button
+              onClick={onClose}
+              className="ml-4 text-xl font-bold text-red-500"
+            >
+              ×
+            </button>
           </div>
-        ))}
-      </div>
-
-      <div className={styles.button}>
-        <button onClick={prev} className={styles.prev}>
-          <i className="fa-solid fa-arrow-left"></i>
-        </button>
-        <button onClick={next} className={styles.next}>
-          <i className="fa-solid fa-arrow-right"></i>
-        </button>
-      </div>
-    </div>
+          <div className="mt-4 text-sm text-neutral-700 overflow-auto max-h-60">
+            {typeof card.content === "function" ? card.content() : card.content}
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }

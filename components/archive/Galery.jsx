@@ -1,14 +1,17 @@
-"use client";
-import { useEffect, useState } from "react";
-import { ColumnsPhotoAlbum } from "react-photo-album";
-import "react-photo-album/columns.css";
+
+import { RowsPhotoAlbum } from "react-photo-album";
+import "react-photo-album/rows.css";
+
 
 export default function Gallery({photos}) {
  
   return (
-    <ColumnsPhotoAlbum
-      photos={photos}
-      layout="columns"
-    />
+
+      <RowsPhotoAlbum
+        photos={photos}
+        layout="rows"
+      />
+
+    
   );
 }
