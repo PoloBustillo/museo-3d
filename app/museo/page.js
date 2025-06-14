@@ -146,8 +146,7 @@ export default function MuseoPage() {
       <div
         style={{
           minHeight: "100vh",
-          background:
-            "linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #533483 75%, #7209b7 100%)",
+          background: "linear-gradient(135deg, #282828 0%, #3c3c3c 25%, #515151 50%, #6d6d6d 75%, #909090 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -175,8 +174,7 @@ export default function MuseoPage() {
       <div
         style={{
           minHeight: "100vh",
-          background:
-            "linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #533483 75%, #7209b7 100%)",
+          background: "linear-gradient(135deg, #282828 0%, #3c3c3c 25%, #515151 50%, #6d6d6d 75%, #909090 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
