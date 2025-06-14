@@ -26,10 +26,9 @@ export default function AcercaDe() {
                    colaboración con eventos culturales y académicos como el Primer Hackatón BUAP. 
                    Este proyecto refleja la fusión entre tradición artística y vanguardia tecnológica,
                    con el objetivo de preservar el legado del muralismo mexicano en la era digital.
-
                 </p>
                 <p>
-                 Nuestro proyecto combina la tradición del muralismo mexicano con 
+                  Nuestro proyecto combina la tradición del muralismo mexicano con 
                   las tecnologías más avanzadas para crear experiencias inmersivas 
                   que conectan a las personas con el arte.
                 </p>
@@ -61,8 +60,9 @@ export default function AcercaDe() {
               <h3 className="text-2xl font-bold mb-4 text-foreground">Nuestra Visión</h3>
               <p className="text-muted-foreground">
                 Ser la plataforma líder mundial en la preservación y experiencia 
-                digital del arte mural, conectando artistas, historiadores y 
-                amantes del arte en una comunidad global.
+                digital del arte mural, conectando artistas, historiadores y amantes 
+                del arte en una comunidad global comprometida con la memoria cultural 
+                y la innovación artística.
               </p>
             </div>
           </div>
@@ -90,7 +90,6 @@ export default function AcercaDe() {
                 <img src="/images/Equipo_5.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
               </div>
               <h4 className="font-semibold text-foreground">Director de Proyecto</h4>
-              <p className="text-sm text-muted-foreground">Polo Bustillo</p>
               <p className="text-sm text-muted-foreground">Experto en tecnologías digitales</p>
             </div>
             <div className="text-center">
@@ -98,7 +97,6 @@ export default function AcercaDe() {
                 <img src="/images/Equipo_1.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
               </div>
               <h4 className="font-semibold text-foreground">Arquitecto de Bases de Datos</h4>
-              <p className="text-sm text-muted-foreground">Dayron Salazar</p>
               <p className="text-sm text-muted-foreground">Especialista en gestión y modelado de datos</p>
             </div>
             <div className="text-center">
@@ -106,7 +104,6 @@ export default function AcercaDe() {
                 <img src="/images/Equipo_2.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
               </div>
               <h4 className="font-semibold text-foreground">Arquitecto de Bases de Datos</h4>
-              <p className="text-sm text-muted-foreground">Angel Peréz</p>
               <p className="text-sm text-muted-foreground">Especialista en gestión y modelado de datos</p>
             </div>
             <div className="text-center">
@@ -114,7 +111,6 @@ export default function AcercaDe() {
                 <img src="/images/Equipo_3.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
               </div>
               <h4 className="font-semibold text-foreground">Diseñador UI</h4>
-              <p className="text-sm text-muted-foreground">Ixcheel Huerta</p>
               <p className="text-sm text-muted-foreground">Creador del diseño visual e interfaz digital</p>
             </div>
             <div className="text-center">
@@ -122,7 +118,6 @@ export default function AcercaDe() {
                 <img src="/images/Equipo_2.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
               </div>
               <h4 className="font-semibold text-foreground">Diseñador UI</h4>
-              <p className="text-sm text-muted-foreground">Andrei Carro</p>
               <p className="text-sm text-muted-foreground">Creador del diseño visual e interfaz digital</p>
             </div>
             <div className="text-center">
@@ -130,7 +125,6 @@ export default function AcercaDe() {
                 <img src="/images/Equipo_4.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
               </div>
               <h4 className="font-semibold text-foreground">Diseñador UX</h4>
-              <p className="text-sm text-muted-foreground">Kenai Sánchez</p>
               <p className="text-sm text-muted-foreground">Experto en usabilidad y experiencia digital</p>
             </div>
 
@@ -147,7 +141,6 @@ export default function AcercaDe() {
           </div>
         </div>
       </section>
-
 
       {/* Call to Action */}
       <section className="py-16 bg-primary text-primary-foreground">

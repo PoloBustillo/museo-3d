@@ -21,7 +21,6 @@ export default function MuseoPage() {
 
         const data = await response.json();
 
-        // Mapear las salas de la API al formato necesario para la UI
         const salasFormateadas = data.salas.map((sala) => ({
           id: sala.id,
           nombre: sala.nombre,
@@ -147,8 +146,7 @@ export default function MuseoPage() {
       <div
         style={{
           minHeight: "100vh",
-          background:
-            "linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #533483 75%, #7209b7 100%)",
+          background: "linear-gradient(135deg, #282828 0%, #3c3c3c 25%, #515151 50%, #6d6d6d 75%, #909090 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -176,8 +174,7 @@ export default function MuseoPage() {
       <div
         style={{
           minHeight: "100vh",
-          background:
-            "linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #533483 75%, #7209b7 100%)",
+          background: "linear-gradient(135deg, #282828 0%, #3c3c3c 25%, #515151 50%, #6d6d6d 75%, #909090 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -209,30 +206,30 @@ export default function MuseoPage() {
 
   return (
     <div
-      style={{
-        minHeight: "100vh",
-        background:
-          "linear-gradient(135deg, #1a1a2e 0%, #16213e 25%, #0f3460 50%, #533483 75%, #7209b7 100%)",
-        padding: "40px 20px",
-        position: "relative",
-      }}
-    >
-      {/* Efectos de fondo adicionales */}
-      <div
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: `
-            radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-            radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-            radial-gradient(circle at 40% 80%, rgba(119, 198, 255, 0.3) 0%, transparent 50%)
-          `,
-          pointerEvents: "none",
-        }}
-      />
+  style={{
+    minHeight: "100vh",
+    background: "linear-gradient(135deg, #282828 0%, #3c3c3c 25%, #515151 50%, #6d6d6d 75%, #909090 100%)",
+    padding: "40px 20px",
+    position: "relative",
+  }}
+>
+  {/* Efectos de fondo refinados */}
+  <div
+    style={{
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: `
+        radial-gradient(circle at 25% 55%, rgba(90, 90, 120, 0.25) 0%, transparent 50%),
+        radial-gradient(circle at 75% 25%, rgba(160, 120, 200, 0.2) 0%, transparent 50%),
+        radial-gradient(circle at 45% 85%, rgba(100, 160, 220, 0.2) 0%, transparent 50%)
+      `,
+      pointerEvents: "none",
+    }}
+  />
+
 
       <div
         style={{
@@ -244,20 +241,15 @@ export default function MuseoPage() {
         }}
       >
         <h1
-          style={{
-            textAlign: "center",
-            color: "white",
-            fontSize: "3rem",
-            marginBottom: "1rem",
-            textShadow: "0 4px 8px rgba(0,0,0,0.5)",
-            fontWeight: "700",
-            background: "linear-gradient(45deg, #ffffff, #e3f2fd, #f3e5f5)",
-            backgroundClip: "text",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-          }}
-        >
-          🏛️ Museo Virtual 3D
+        style={{
+          textAlign: "center",
+          color: "white",
+          fontSize: "3rem",
+          marginBottom: "1rem",
+          textShadow: "0 6px 12px rgba(0,0,0,0.7)",
+          fontWeight: "700",
+        }}
+        > Museo Virtual 3D 
         </h1>
         <p
           style={{
@@ -275,20 +267,22 @@ export default function MuseoPage() {
         <div
           style={{
             textAlign: "center",
-            color: "rgba(255,255,255,0.9)",
+            color: "rgba(255,255,255,0.95)",
             fontSize: "1rem",
             marginBottom: "3rem",
             display: "flex",
             justifyContent: "center",
             gap: "2rem",
             flexWrap: "wrap",
-            background: "rgba(255,255,255,0.1)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255,255,255,0.2)",
+            background: "rgba(255, 255, 255, 0.15)", 
+            backdropFilter: "blur(16px) saturate(180%)", 
+            WebkitBackdropFilter: "blur(16px) saturate(180%)",
+            border: "1px solid rgba(255, 255, 255, 0.25)", 
             borderRadius: "20px",
-            padding: "1rem 2rem",
-            maxWidth: "800px",
+            padding: "1.2rem 2.5rem", 
+            maxWidth: "850px",
             margin: "0 auto 3rem auto",
+            boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.3)", 
           }}
         >
           <span style={{ fontWeight: "600" }}>
@@ -474,20 +468,23 @@ export default function MuseoPage() {
 
         {/* Información adicional */}
         <div
-          style={{
-            marginTop: "3rem",
-            textAlign: "center",
-            color: "rgba(255,255,255,0.8)",
-            fontSize: "0.9rem",
-            background: "rgba(255,255,255,0.05)",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: "16px",
-            padding: "1.5rem",
-            maxWidth: "600px",
-            margin: "3rem auto 0 auto",
-          }}
-        >
+        style={{
+          marginTop: "3rem",
+          textAlign: "center",
+          color: "rgb(255, 255, 255)",
+          fontSize: "1rem",
+          background: "rgba(255, 255, 255, 0.12)", 
+          backdropFilter: "blur(16px) saturate(180%)", 
+          WebkitBackdropFilter: "blur(16px) saturate(180%)",
+          border: "1px solid rgba(255, 255, 255, 0.25)", 
+          borderRadius: "20px", 
+          padding: "1.5rem 2rem", 
+          maxWidth: "650px",
+          margin: "3rem auto 0 auto",
+          boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.3)",
+        }}
+      >
+
           <p style={{ marginBottom: "0.5rem", fontWeight: "500" }}>
             🔄 Las salas se actualizan automáticamente desde la base de datos
           </p>
