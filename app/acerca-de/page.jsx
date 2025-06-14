@@ -72,70 +72,71 @@ export default function AcercaDe() {
       {/* Equipo */}
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12 text-foreground">Nuestro Equipo</h2>
+
+<h2 className="text-3xl font-bold text-center mb-12 text-foreground">Con apoyo de: </h2>
           <div className="col-span-3 flex justify-center text-center">
             <div className="text-center">
               <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
-                <img src="/images/Equipo_6.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
+                <img src="/images/Arpa.webp" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
               </div>
-              <h4 className="font-semibold text-foreground">Director de Arte</h4>
-              <p className="text-sm text-muted-foreground">Especialista en muralismo mexicano</p>
+              <h4 className="font-semibold text-foreground">Escuela de Artes Plásticas y Audiovisuales (BUAP)</h4>
             </div>
           </div>
 
-          <h2 className="text-2xl font-bold text-center mb-6 text-foreground mt-12">Devs</h2>
+          <h2 className="text-3xl font-bold text-center mt-12 mb-12 text-foreground">Nuestro Equipo:</h2>
+
+          <h2 className="text-2xl font-bold text-center mb-6 text-foreground mt-12">Desarrolladores</h2>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="text-center">
               <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
                 <img src="/images/Equipo_5.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
               </div>
-              <h4 className="font-semibold text-foreground">Director de Proyecto</h4>
-              <p className="text-sm text-muted-foreground">Experto en tecnologías digitales</p>
-            </div>
-            <div className="text-center">
-              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
-                <img src="/images/Equipo_1.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
-              </div>
-              <h4 className="font-semibold text-foreground">Arquitecto de Bases de Datos</h4>
-              <p className="text-sm text-muted-foreground">Especialista en gestión y modelado de datos</p>
-            </div>
-            <div className="text-center">
-              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
-                <img src="/images/Equipo_2.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
-              </div>
-              <h4 className="font-semibold text-foreground">Arquitecto de Bases de Datos</h4>
-              <p className="text-sm text-muted-foreground">Especialista en gestión y modelado de datos</p>
-            </div>
-            <div className="text-center">
-              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
-                <img src="/images/Equipo_3.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
-              </div>
-              <h4 className="font-semibold text-foreground">Diseñador UI</h4>
-              <p className="text-sm text-muted-foreground">Creador del diseño visual e interfaz digital</p>
-            </div>
-            <div className="text-center">
-              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
-                <img src="/images/Equipo_2.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
-              </div>
-              <h4 className="font-semibold text-foreground">Diseñador UI</h4>
-              <p className="text-sm text-muted-foreground">Creador del diseño visual e interfaz digital</p>
+              <h4 className="font-semibold text-foreground">Experto en tecnologías digitales</h4>
+              <p className="text-sm text-muted-foreground">Mario Leopoldo Bustillo Eguiluz</p>
             </div>
             <div className="text-center">
               <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
                 <img src="/images/Equipo_4.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
               </div>
-              <h4 className="font-semibold text-foreground">Diseñador UX</h4>
-              <p className="text-sm text-muted-foreground">Experto en usabilidad y experiencia digital</p>
+              <h4 className="font-semibold text-foreground">Área de gestión y modelado de base datos</h4>
+              <p className="text-sm text-muted-foreground">Ángel Hernández Gonzalez</p>
+            </div>
+            <div className="text-center">
+              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
+                <img src="/images/Equipo_2.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
+              </div>
+              <h4 className="font-semibold text-foreground">Área de gestión y modelado de base de datos</h4>
+              <p className="text-sm text-muted-foreground">Dayron Jesus Salazar Alfaro</p>
+            </div>
+            <div className="text-center">
+              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
+                <img src="/images/Equipo_2.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
+              </div>
+              <h4 className="font-semibold text-foreground">Front-end / Diseñador UI/UX</h4>
+              <p className="text-sm text-muted-foreground">Andrei Carro Flores</p>
+            </div>
+            <div className="text-center">
+              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
+                <img src="/images/Equipo_4.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
+              </div>
+              <h4 className="font-semibold text-foreground">Front-end / Diseñador UI/UX</h4>
+              <p className="text-sm text-muted-foreground">Angel Kenai Sanchez Rojas</p>
+            </div>
+            <div className="text-center">
+              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
+                <img src="/images/Equipo_3.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
+              </div>
+              <h4 className="font-semibold text-foreground">Front-end</h4>
+              <p className="text-sm text-muted-foreground">Ixcheel Jasmin Huerta Ramos</p>
             </div>
 
             <div className="col-span-3 flex justify-center">
               <div className="text-center">
                 <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
-                  <img src="/images/Equipo_4.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
+                  <img src="/images/Equipo_1.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
                 </div>
-                <h4 className="font-semibold text-foreground">Redactor de Contenidos</h4>
-                <p className="text-sm text-muted-foreground">Dante Castelán</p>
-                <p className="text-sm text-muted-foreground">Encargado de la narrativa y edición web</p>
+                <h4 className="font-semibold text-foreground">DevOps</h4>
+                <p className="text-sm text-muted-foreground">Dante Castelán Carpinteyro</p>
               </div>
             </div>
           </div>
