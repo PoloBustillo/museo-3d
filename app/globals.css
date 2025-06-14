@@ -121,9 +121,12 @@
   }
 }
 
-.clip-triangle-right {
-  clip-path: polygon(0 0, 100% 50%, 0 100%);
+.clip-poly-right {
+  clip-path: polygon(0% 0%, 75% 0%, 100% 50%, 75% 100%, 0% 100%);
 }
-.clip-triangle-left {
-  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+.clip-poly-left {
+  clip-path: polygon(25% 0%, 100% 0%, 100% 100%, 25% 100%, 0% 50%);
 }
+
+.safe-pad-left  { padding-left:  clamp(2rem, 7vw, 6rem); }
+.safe-pad-right { padding-right: clamp(2rem, 7vw, 6rem); }
