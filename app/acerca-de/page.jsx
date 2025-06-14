@@ -92,7 +92,6 @@ export default function AcercaDe() {
               <h4 className="font-semibold text-foreground">Director de Proyecto</h4>
               <p className="text-sm text-muted-foreground">Polo Bustillo</p>
               <p className="text-sm text-muted-foreground">Experto en tecnologías digitales</p>
-div>
             </div>
             <div className="text-center">
               <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
@@ -135,15 +134,15 @@ div>
               <p className="text-sm text-muted-foreground">Experto en usabilidad y experiencia digital</p>
             </div>
 
-            <div className="col-span-3 flex justify-center text-center">
-            <div className="text-center">
-              <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
-                <img src="/images/Equipo_4.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
+            <div className="col-span-3 flex justify-center">
+              <div className="text-center">
+                <div className="w-32 h-32 bg-muted rounded-full mx-auto mb-4 overflow-hidden">
+                  <img src="/images/Equipo_4.jpg" alt="Redactor de Contenidos" className="object-cover rounded-lg"/>
+                </div>
+                <h4 className="font-semibold text-foreground">Redactor de Contenidos</h4>
+                <p className="text-sm text-muted-foreground">Dante Castelán</p>
+                <p className="text-sm text-muted-foreground">Encargado de la narrativa y edición web</p>
               </div>
-              <h4 className="font-semibold text-foreground">Redactor de Contenidos</h4>
-              <p className="text-sm text-muted-foreground">Dante Castelán</p>
-              <p className="text-sm text-muted-foreground">Encargado de la narrativa y edición web</p>
-            </div>
             </div>
           </div>
         </div>
