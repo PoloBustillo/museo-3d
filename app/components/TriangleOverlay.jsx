@@ -27,7 +27,6 @@ export default function AnimatedTriangleOverlay({
         flex items-center
       `}
     >
-      {/* El ml-auto empuja el bloque al borde derecho */}
       <div className={`
         max-w-md
         ${isLeft

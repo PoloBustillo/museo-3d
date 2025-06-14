@@ -98,7 +98,7 @@ export default function ClientLayout({ children }) {
     "/assets/bansky1.png",
     "/assets/bansky2.png",
     "/assets/bansky3.png",
-    "/assets/bansky4.png"
+    "/assets/bansky4.png",
   ];
   const [banskyImg, setBanskyImg] = useState(BANKSY_IMAGES[0]);
   useEffect(() => {
