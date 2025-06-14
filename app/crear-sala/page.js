@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import toast, { Toaster } from "react-hot-toast";
 import { motion } from "framer-motion";
+import { useAuth } from "../hooks/useAuth";
 
 const schema = yup.object().shape({
   nombre: yup.string().required("El nombre de la sala es obligatorio"),
@@ -14,6 +15,7 @@ const schema = yup.object().shape({
 });
 
 export default function CrearSala() {
+  const { user, isAuthenticated, isLoading } = useAuth();
   const {
     register,
     handleSubmit,
@@ -67,8 +69,10 @@ export default function CrearSala() {
   const uploadMural = async (muralData) => {
     const formData = new FormData();
     Object.entries(muralData).forEach(([key, value]) => {
-      if (value) formData.append(key, value);
+      if (value !== undefined && value !== null) formData.append(key, value);
     });
+    // Asegurar que ubicacion siempre esté presente
+    if (!formData.has("ubicacion")) formData.append("ubicacion", "");
     if (muralData.imagen) formData.append("imagen", muralData.imagen);
     const res = await fetch("/api/murales", {
       method: "POST",

@@ -946,23 +946,24 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
       // Reposicionamiento más suave después de cambiar sala
       setTimeout(() => {
         if (cameraRef) {
-          const startX = FIRST_X - WALL_MARGIN_INITIAL * 0.6;
+          // Posicionar en el centro de la galería para evitar quedar atrapado
+          const centerX = (FIRST_X + LAST_X) / 2;
           const cameraY = 2;
-          const cameraZ = 0;
+          const cameraZ = 0; // Centro del pasillo
           
-          // Posicionar cámara con orientación más natural
+          // Posicionar cámara en el centro mirando hacia una de las paredes con obras
           setCameraTarget({
-            position: [startX, cameraY, cameraZ],
-            lookAt: [startX + 1, cameraY, cameraZ - 0.5] // Mirar ligeramente hacia adelante y abajo
+            position: [centerX, cameraY, cameraZ],
+            lookAt: [centerX, cameraY, cameraZ + 3] // Mirar hacia una pared con obras
           });
           
-          console.log(`Cámara reposicionada suavemente para nueva sala`);
+          console.log(`Cámara reposicionada al centro de la galería`);
         }
-      }, 200); // Delay reducido
+      }, 200);
     }
     setShowRoomSelector(false);
     setRoomSelectorPrompted(false);
-  }, [onRoomChange, cameraRef, FIRST_X, WALL_MARGIN_INITIAL, setCameraTarget]);
+  }, [onRoomChange, cameraRef, FIRST_X, LAST_X, setCameraTarget]);
 
   const handleCloseRoomSelector = useCallback(() => {
     // El modal se cierra automáticamente al alejarse, no necesitamos forzar el cierre
@@ -983,20 +984,21 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
       
       // Solo reposicionar si la cámara está fuera del rango razonable de la galería
       if (currentX < galleryStartX - 8 || currentX > galleryEndX + 8) {
-        const startX = FIRST_X - WALL_MARGIN_INITIAL * 0.6;
+        // Posicionar en el centro de la galería para máxima libertad de movimiento
+        const centerX = (FIRST_X + LAST_X) / 2;
         const cameraY = 2;
         const cameraZ = 0;
         
-        console.log(`Cámara fuera del rango (${currentX}), reposicionando a [${startX}, ${cameraY}, ${cameraZ}]`);
+        console.log(`Cámara fuera del rango (${currentX}), reposicionando al centro [${centerX}, ${cameraY}, ${cameraZ}]`);
         
-        // Posicionamiento inmediato sin transición para evitar bloqueos
-        cameraRef.position.set(startX, cameraY, cameraZ);
-        cameraRef.lookAt(startX + 1, cameraY, cameraZ - 0.5);
+        // Posicionamiento inmediato en el centro mirando hacia las obras
+        cameraRef.position.set(centerX, cameraY, cameraZ);
+        cameraRef.lookAt(centerX, cameraY, cameraZ + 3);
       } else {
         console.log('Cámara ya está en posición adecuada, no se reposiciona');
       }
     }
-  }, [salaId, cameraRef, artworks.length, showInstructions, FIRST_X, WALL_MARGIN_INITIAL, LAST_X, WALL_MARGIN_FINAL]);
+  }, [salaId, cameraRef, artworks.length, showInstructions, FIRST_X, LAST_X, WALL_MARGIN_INITIAL, WALL_MARGIN_FINAL]);
 
   // Efecto para iniciar el movimiento suave al seleccionar una pintura
   useEffect(() => {
@@ -1277,8 +1279,8 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
             camera={{ position: [0, 2, 0], fov: 60, rotation: [0, 0, 0] }}
             onCreated={({ camera, gl, scene }) => {
               setCameraRef(camera);
-              // Asegurar que la cámara mire hacia adelante (eje Z negativo)
-              camera.lookAt(0, 2, -5);
+              // Asegurar que la cámara mire hacia la galería (eje Z positivo)
+              camera.lookAt(0, 2, 5);
               gl.shadowMap.enabled = true;
               gl.shadowMap.type = THREE.PCFSoftShadowMap;
               gl.setPixelRatio(window.devicePixelRatio);
