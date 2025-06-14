@@ -1,21 +1,10 @@
 "use client";
 import Link from "next/link";
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AuthModal from "./components/AuthModal";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import AnimatedTriangleOverlay  from './components/TriangleOverlay';
-import AnimatedOverlay from './components/AnimatedOverlay';
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuIndicator,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  NavigationMenuViewport,
-} from "./components/ui/navigation-menu"; 
 
 const steps = [
   {
@@ -34,7 +23,7 @@ const steps = [
 
 export default function Home() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register'
+  const [authModal, setAuthModal] = useState(null);
   const [current, setCurrent] = useState(0);
   const containerRef = useRef(null);
 
@@ -95,7 +84,8 @@ export default function Home() {
       />
     </AnimatePresence>
     </div>
-    
+
+
       {authModal && (
         <AuthModal
           open={!!authModal}
