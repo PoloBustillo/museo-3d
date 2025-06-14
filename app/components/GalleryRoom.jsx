@@ -216,7 +216,7 @@ function getHallwayArtworks(images, firstX, pictureSpacing) {
   return positions;
 }
 
-function Picture({ src, title, artist, year, description, technique, dimensions, position, rotation = [0, 0, 0], onClick, showPlaque, selected }) {
+function Picture({ src, title, artist, year, description, technique, dimensions, position, rotation = [0, 0, 0], onClick, showPlaque, selected, selectedArtwork }) {
   const texture = useTexture(src);
   const [hovered, setHovered] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 3, height: 2 });
@@ -286,8 +286,8 @@ function Picture({ src, title, artist, year, description, technique, dimensions,
         <planeGeometry args={[w, h]} />
         <meshStandardMaterial map={texture} side={THREE.DoubleSide} />
       </mesh>
-      {/* Placa informativa solo si showPlaque es true */}
-      {showPlaque && (
+      {/* Placa informativa solo si showPlaque es true y NO hay selectedArtwork */}
+      {showPlaque && !selectedArtwork && (
         <Html position={[0, -h/2 - 0.25, depth]} center style={{ pointerEvents: 'none', textAlign: 'left', background: 'rgba(30,30,30,0.97)', color: '#fff', borderRadius: 12, padding: '18px 28px', fontSize: 15, minWidth: 340, maxWidth: 480, boxShadow: hovered ? '0 0 16px #d4af37' : '0 2px 16px #000a', border: hovered ? '2px solid #d4af37' : 'none', transition: 'all 0.2s', lineHeight: 1.5 }}>
           <div style={{fontSize:'1.2em', fontWeight:'bold', marginBottom:4}}>{title}</div>
           <div style={{fontWeight:'bold', color:'#ffe082', marginBottom:2}}>{artist} ({year})</div>
@@ -454,7 +454,14 @@ function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork, showList
 
       {/* Cuadros */}
       {artworks.map((art, i) => (
-        <Picture key={i} {...art} onClick={setSelectedArtwork} showPlaque={passedInitialWall && !selectedArtwork && !showList && !showInstructions} selected={selectedArtwork && selectedArtwork.title === art.title} />
+        <Picture 
+          key={i} 
+          {...art} 
+          onClick={setSelectedArtwork} 
+          showPlaque={passedInitialWall && !selectedArtwork && !showList && !showInstructions} 
+          selected={selectedArtwork && selectedArtwork.title === art.title}
+          selectedArtwork={selectedArtwork} // Pasar selectedArtwork como prop adicional
+        />
       ))}
 
       {/* Bancas pegadas a las paredes */}
@@ -554,6 +561,18 @@ function ZoomModal({ artwork, onClose }) {
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
     setScale(prev => Math.max(0.5, Math.min(5, prev * delta)));
   }, []);
+
+  // Usar addEventListener con { passive: false } para evitar el error
+  useEffect(() => {
+    const modalContainer = document.getElementById('zoom-modal-container');
+    if (modalContainer) {
+      modalContainer.addEventListener('wheel', handleWheel, { passive: false });
+      
+      return () => {
+        modalContainer.removeEventListener('wheel', handleWheel);
+      };
+    }
+  }, [handleWheel]);
 
   const handleMouseDown = useCallback((e) => {
     if (scale > 1) {
@@ -787,7 +806,7 @@ function ZoomModal({ artwork, onClose }) {
       {/* Información de controles */}
       <div style={{
         position: 'fixed',
-        top: 20,
+        top: 100, // Movido más abajo de 20 a 100
         left: 20,
         color: 'rgba(255,255,255,0.9)',
         fontSize: '14px',
@@ -810,6 +829,7 @@ function ZoomModal({ artwork, onClose }) {
 
       {/* Contenedor de imagen */}
       <div
+        id="zoom-modal-container"
         style={{
           width: '100%',
           height: '100%',
@@ -819,7 +839,6 @@ function ZoomModal({ artwork, onClose }) {
           overflow: 'hidden',
           cursor: scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'zoom-in'
         }}
-        onWheel={handleWheel}
         onClick={(e) => e.stopPropagation()}
       >
         <img
@@ -846,40 +865,42 @@ function ZoomModal({ artwork, onClose }) {
         />
       </div>
 
-      {/* Información de la obra */}
-      <motion.div
-        initial={{ y: 40, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2, duration: 0.3 }}
-        style={{
-          position: 'fixed',
-          bottom: 20,
-          left: 20,
-          right: 20,
-          background: 'rgba(0,0,0,0.8)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.2)',
-          borderRadius: '16px',
-          padding: '20px',
-          color: 'white',
-          textAlign: 'center',
-          maxWidth: '800px',
-          margin: '0 auto'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 style={{ margin: '0 0 10px 0', fontSize: '1.5rem' }}>{artwork.title}</h2>
-        <div style={{ marginBottom: '10px', fontSize: '1.1rem', color: '#ffe082' }}>
-          {artwork.artist} ({artwork.year})
-        </div>
-        <p style={{ margin: '10px 0', opacity: 0.9, lineHeight: '1.5' }}>
-          {artwork.description}
-        </p>
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', fontSize: '0.9rem', opacity: 0.8 }}>
-          <span><strong>Técnica:</strong> {artwork.technique}</span>
-          <span><strong>Dimensiones:</strong> {artwork.dimensions}</span>
-        </div>
-      </motion.div>
+      {/* Información de la obra - se oculta cuando hay zoom */}
+      {scale <= 1 && (
+        <motion.div
+          initial={{ y: 40, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.3 }}
+          style={{
+            position: 'fixed',
+            bottom: 20,
+            left: 20,
+            right: 20,
+            background: 'rgba(0,0,0,0.8)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            borderRadius: '16px',
+            padding: '20px',
+            color: 'white',
+            textAlign: 'center',
+            maxWidth: '800px',
+            margin: '0 auto'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <h2 style={{ margin: '0 0 10px 0', fontSize: '1.5rem' }}>{artwork.title}</h2>
+          <div style={{ marginBottom: '10px', fontSize: '1.1rem', color: '#ffe082' }}>
+            {artwork.artist} ({artwork.year})
+          </div>
+          <p style={{ margin: '10px 0', opacity: 0.9, lineHeight: '1.5' }}>
+            {artwork.description}
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', fontSize: '0.9rem', opacity: 0.8 }}>
+            <span><strong>Técnica:</strong> {artwork.technique}</span>
+            <span><strong>Dimensiones:</strong> {artwork.dimensions}</span>
+          </div>
+        </motion.div>
+      )}
     </motion.div>
   );
 }
@@ -1033,7 +1054,8 @@ export default function GalleryRoom({ salaId = 1, murales = [] }) {
 
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === 'c' || e.key === 'C') {
+      // Solo permitir tecla 'C' si las instrucciones NO están visibles
+      if ((e.key === 'c' || e.key === 'C') && !showInstructions) {
         if (selectedArtwork) setSelectedArtwork(null);
         if (showList) setShowList(false);
       }
@@ -1055,7 +1077,7 @@ export default function GalleryRoom({ salaId = 1, murales = [] }) {
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [showList, selectedArtwork, listIndex, artworks.length]);
+  }, [showList, selectedArtwork, listIndex, artworks.length, showInstructions]);
 
   useEffect(() => {
     if (!showList) setListIndex(0);
@@ -1092,7 +1114,22 @@ export default function GalleryRoom({ salaId = 1, murales = [] }) {
       </div>
       {/* Overlay de lista de obras con navegación rápida e indicador visual */}
       {showList && (
-        <div style={{ position: 'absolute', zIndex: 40, top: 60, left: 0, right: 0, background: 'rgba(255,255,255,0.97)', maxWidth: 400, margin: '0 auto', borderRadius: 12, boxShadow: '0 4px 24px #0002', padding: 24, color:'#222', fontWeight:'bold' }}>
+        <div style={{ 
+          position: 'fixed', 
+          top: '50%', 
+          left: '50%', 
+          transform: 'translate(-50%, -50%)',
+          zIndex: 40, 
+          background: 'rgba(255,255,255,0.97)', 
+          maxWidth: 400, 
+          borderRadius: 12, 
+          boxShadow: '0 4px 24px #0002', 
+          padding: 24, 
+          color:'#222', 
+          fontWeight:'bold',
+          maxHeight: '80vh',
+          overflow: 'auto'
+        }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <h3 style={{marginTop:0, color:'#111'}}>Lista de obras</h3>
             <div style={{ fontSize: 12, color: '#666', background: '#f5f5f5', padding: '2px 6px', borderRadius: 4 }}>Presiona <b>C</b> para cerrar</div>
@@ -1195,7 +1232,7 @@ export default function GalleryRoom({ salaId = 1, murales = [] }) {
       <div style={{
         position: 'fixed',
         left: 24,
-        bottom: 24,
+        bottom: 80, // Cambiado de 24 a 80 para evitar que la navbar lo tape
         zIndex: 100,
         background: 'rgba(30,30,30,0.45)',
         color: '#fff',
@@ -1230,7 +1267,7 @@ export default function GalleryRoom({ salaId = 1, murales = [] }) {
             style={{ width: '100vw', height: '100vh', background: '#eaf6ff' }}
             dpr={[1, 2]}
             shadows
-            antialias
+            gl={{ antialias: true }}
           >
             {soundEnabled && <BackGroundSound url="/assets/audio.mp3" />}
             <Room 
@@ -1303,14 +1340,13 @@ export default function GalleryRoom({ salaId = 1, murales = [] }) {
               <li><b>Mouse</b>: Mirar alrededor</li>
               <li><b>Clic en cuadro</b>: Ver detalles y zoom</li>
               <li><b>L</b>: Abrir/cerrar lista de obras</li>
-              <li><b>C</b>: Cerrar modales</li>
               <li><b>🔊</b>: Activar/desactivar sonido</li>
             </ul>
             <div style={{fontSize:'1.6em', color:'#2e7d32', marginBottom:'0.3em'}}>
-              🖱️ <strong>Haz clic aquí para empezar</strong> 🎮
+              🖱️ <strong>Haz clic en cualquier parte para comenzar</strong> 🎮
             </div>
             <div style={{fontSize:'0.85em', color:'#666', fontStyle:'italic'}}>
-              Los controles se activarán al hacer clic
+              Estas instrucciones solo se cierran con un clic del mouse
             </div>
           </div>
         </div>
