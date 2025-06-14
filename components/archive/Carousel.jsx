@@ -1,44 +1,28 @@
-// Carousel.jsx
+// components/archive/Carousel.jsx
 "use client";
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import styles from "./Carousel.module.css";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 
-const items = [
-  {
-    title: "Switzerland",
-    description: "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ab, eum!",
-    image: "https://i.ibb.co/qCkd9jS/img1.jpg",
-  },
-  {
-    title: "Finland",
-    description: "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ab, eum!",
-    image: "https://i.ibb.co/jrRb11q/img2.jpg",
-  },
-  {
-    title: "Iceland",
-    description: "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ab, eum!",
-    image: "https://i.ibb.co/NSwVv8D/img3.jpg",
-  },
-  {
-    title: "Australia",
-    description: "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ab, eum!",
-    image: "https://i.ibb.co/Bq4Q0M8/img4.jpg",
-  },
-  {
-    title: "Netherland",
-    description: "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ab, eum!",
-    image: "https://i.ibb.co/jTQfmTq/img5.jpg",
-  },
-  {
-    title: "Ireland",
-    description: "Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ab, eum!",
-    image: "https://i.ibb.co/RNkk6L0/img6.jpg",
-  },
-];
-
 export default function Carousel() {
   const slideRef = useRef(null);
+  const [murals, setMurals] = useState([]);
+
+  useEffect(() => {
+    const fetchMurals = async () => {
+      try {
+        const response = await fetch('/api/murales');
+        if (!response.ok) throw new Error("Error fetching data");
+
+        const data = await response.json();
+        setMurals(data.murales); // ← Acceso correcto al array de murales
+      } catch (err) {
+        console.error("Fetch error:", err);
+      }
+    };
+
+    fetchMurals();
+  }, []);
 
   const next = () => {
     const first = slideRef.current.children[0];
@@ -53,15 +37,21 @@ export default function Carousel() {
   return (
     <div className={styles.container}>
       <div className={styles.slide} ref={slideRef}>
-        {items.map((item, i) => (
+        {murals.map((mural) => (
           <div
-            key={i}
+            key={mural.id}
             className={styles.item}
-            style={{ backgroundImage: `url(${item.image})` }}
+            style={{ backgroundImage: `url(${mural.url_imagen})` }}
           >
             <div className={styles.content}>
-              <div className={styles.name}>{item.title}</div>
-              <div className={styles.des}>{item.description}</div>
+              <div className={styles.name}>{mural.nombre}</div>
+              <div className={styles.des}>
+                {mural.autor ? `Autor: ${mural.autor}` : "Autor desconocido"}
+                <br />
+                Año: {mural.anio}
+                <br />
+                Ubicación: {mural.ubicacion}
+              </div>
               <button>See More</button>
             </div>
           </div>
