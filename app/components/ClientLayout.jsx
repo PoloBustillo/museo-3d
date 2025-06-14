@@ -8,16 +8,16 @@ import Footer from "./Footer";
 import { ThemeProvider } from "./ui/theme-provider"
 
 const FRASES_68 = [
-  "La universidad será tomada por su pueblo.",
-  "¡2 de octubre no se olvida!",
-  "Por la libertad de expresión y la justicia social.",
-  "Somos hijos del pueblo, nunca nos podrán vencer.",
-  "La imaginación al poder.",
-  "Queremos un país libre, no un país de silencio.",
-  "La represión no callará la verdad.",
-  "La memoria es nuestra fuerza.",
-  "Democracia, libertad y justicia para todos.",
-  "El respeto al derecho ajeno es la paz."
+    "El arte limpia del alma el polvo de la vida.",
+    "El arte es la mentira que nos permite ver la verdad.",
+    "Donde hay arte, hay esperanza.",
+    "El arte dice lo que las palabras callan.",
+    "El arte no reproduce lo visible, lo hace visible.",
+    "Pintar es otra forma de llevar un diario.",
+    "El arte es libertad en forma pura.",
+    "Crear es resistir.",
+    "El arte vive cuando provoca.",
+    "El arte transforma el dolor en belleza."
 ];
 
 export default function ClientLayout({ children }) {

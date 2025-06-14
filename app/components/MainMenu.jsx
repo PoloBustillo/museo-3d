@@ -89,7 +89,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
                   <Link
                     href="/museo"
                     className="block px-2 py-1 rounded-md hover:bg-muted hover:text-primary transition"
-                    // onClick={onNavigate ? (e) => onNavigate(e, "/museo") : undefined}
+                    onClick={onNavigate ? (e) => onNavigate(e, "/museo") : undefined}
                   >
                     Explorar mural
                   </Link>
@@ -103,7 +103,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
                 <Link
                   href="#about"
                   className="hover:text-primary transition"
-                  // onClick={onNavigate ? (e) => onNavigate(e, "#about") : undefined}
+                   onClick={onNavigate ? (e) => onNavigate(e, "#about") : undefined}
                 >
                   Acerca de
                 </Link>
@@ -115,6 +115,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
                 <Link
                   href="/museo"
                   className="hover:text-primary transition"
+                 // onClick={onNavigate ? (e) => onNavigate(e, "/museo") : undefined}
                 >
                   Museo Virtual
                 </Link>
