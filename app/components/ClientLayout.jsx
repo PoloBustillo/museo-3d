@@ -3,6 +3,9 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import MainMenu from "./MainMenu";
+import Footer from "./Footer";
+
+import { ThemeProvider } from "./ui/theme-provider"
 
 const FRASES_68 = [
   "La universidad será tomada por su pueblo.",
@@ -107,6 +110,8 @@ export default function ClientLayout({ children }) {
         )}
       </AnimatePresence>
       <div style={{ flex: 1 }}>{children}</div>
+
+       <Footer />
     </div>
   );
 }
