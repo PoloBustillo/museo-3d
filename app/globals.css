@@ -128,5 +128,213 @@
   clip-path: polygon(25% 0%, 100% 0%, 100% 100%, 25% 100%, 0% 50%);
 }
 
-.safe-pad-left  { padding-left:  clamp(2rem, 7vw, 6rem); }
-.safe-pad-right { padding-right: clamp(2rem, 7vw, 6rem); }
+/* Utilidades adicionales para el museo */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Animaciones suaves para filtros */
+.filter-transition {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Estilos para botones de filtro activos */
+.filter-active {
+  background-color: #3b82f6;
+  color: white;
+  box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+}
+
+/* Hover effects mejorados para cards de colección */
+.collection-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilos específicos para la página de perfil elegante */
+.profile-header {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 25%, #475569 50%, #64748b 75%, #94a3b8 100%);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.collection-card-elegant {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.collection-card-elegant:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.stats-card {
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.stats-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Gradientes específicos para las estadísticas */
+.stats-blue {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.stats-purple {
+  background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+  border-color: rgba(147, 51, 234, 0.3);
+}
+
+.stats-green {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.stats-amber {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+/* Animaciones para botones elegantes */
+.elegant-button {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.elegant-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.elegant-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+
+.elegant-button:hover::before {
+  left: 100%;
+}
+
+/* Efectos de glassmorphism mejorados */
+.glass-filter {
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* Líneas de separación elegantes */
+.elegant-divider {
+  background: linear-gradient(90deg, transparent, rgba(156, 163, 175, 0.3), transparent);
+  height: 1px;
+  margin: 2rem 0;
+}
+
+/* Overlay para imágenes */
+.image-overlay {
+  background: linear-gradient(135deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.3) 100%);
+}
+
+/* Estilos adicionales para el diseño elegante del perfil */
+.bg-gradient-radial {
+  background: radial-gradient(circle, var(--tw-gradient-stops));
+}
+
+/* Glassmorphism mejorado */
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Transiciones suaves para hover effects */
+.transition-all {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Sombras elegantes */
+.shadow-xl {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Colores sobrios para botones */
+.bg-slate-500:hover {
+  background-color: rgb(100 116 139);
+}
+
+.bg-slate-600:hover {
+  background-color: rgb(71 85 105);
+}
+
+.bg-gray-500:hover {
+  background-color: rgb(107 114 128);
+}
+
+.bg-stone-500:hover {
+  background-color: rgb(120 113 108);
+}
+
+/* Efectos de blur y gradientes suaves */
+.blur-3xl {
+  filter: blur(64px);
+}
+
+/* Estilos para el fondo con gradiente elegante */
+.bg-gradient-to-br {
+  background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+}
+
+.from-slate-50 {
+  --tw-gradient-from: #f8fafc;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(248, 250, 252, 0));
+}
+
+.via-gray-100 {
+  --tw-gradient-via: #f3f4f6;
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-via), var(--tw-gradient-to, rgba(243, 244, 246, 0));
+}
+
+.to-stone-100 {
+  --tw-gradient-to: #f5f5f4;
+}
