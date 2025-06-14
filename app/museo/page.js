@@ -471,7 +471,7 @@ export default function MuseoPage() {
         style={{
           marginTop: "3rem",
           textAlign: "center",
-          color: "rgba(255,255,255,0.9)",
+          color: "rgb(255, 255, 255)",
           fontSize: "1rem",
           background: "rgba(255, 255, 255, 0.12)", 
           backdropFilter: "blur(16px) saturate(180%)", 
