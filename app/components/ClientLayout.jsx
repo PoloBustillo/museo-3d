@@ -83,11 +83,16 @@ const FRASES_68 = [
 
 export default function ClientLayout({ children }) {
   const [transitioning, setTransitioning] = useState(false);
-  const [nextRoute, setNextRoute] = useState(null);
-  const [frase, setFrase] = useState(FRASES_MURALISTAS[0]);
+  const [nextRoute, setNextRoute]         = useState(null);
+  const [frase, setFrase]                 = useState(FRASES_MURALISTAS[0]);
   const prevFrase = useRef(FRASES_MURALISTAS[0]);
+
+  const [footerVisible, setFooterVisible] = useState(false);
+  const mainRef     = useRef(null);
+  const sentinelRef = useRef(null);  
+  const [hoveringBottom, setHoveringBottom] = useState(false);
+
   const router = useRouter();
-  // Imágenes de Banksy
   const BANKSY_IMAGES = [
     "/assets/bansky.png",
     "/assets/bansky1.png",
@@ -96,21 +101,23 @@ export default function ClientLayout({ children }) {
     "/assets/bansky4.png"
   ];
   const [banskyImg, setBanskyImg] = useState(BANKSY_IMAGES[0]);
-  // Elegir frase e imagen aleatoria distinta a la anterior
   useEffect(() => {
     if (transitioning) {
       let nueva;
       do {
-        nueva = FRASES_MURALISTAS[Math.floor(Math.random() * FRASES_MURALISTAS.length)];
+        nueva =
+          FRASES_MURALISTAS[
+            Math.floor(Math.random() * FRASES_MURALISTAS.length)
+          ];
       } while (nueva === prevFrase.current && FRASES_MURALISTAS.length > 1);
       setFrase(nueva);
       prevFrase.current = nueva;
-      // Imagen aleatoria
-      setBanskyImg(BANKSY_IMAGES[Math.floor(Math.random() * BANKSY_IMAGES.length)]);
+      setBanskyImg(
+        BANKSY_IMAGES[Math.floor(Math.random() * BANKSY_IMAGES.length)]
+      );
     }
   }, [transitioning]);
 
-  // Llama esto para cualquier transición animada
   const handleRouteTransition = (e, route) => {
     if (e) e.preventDefault();
     setTransitioning(true);
@@ -119,14 +126,28 @@ export default function ClientLayout({ children }) {
       router.push(route);
       setTransitioning(false);
       setNextRoute(null);
-    }, 3200); // 1200 + 2000ms extra
+    }, 3200);
   };
 
+  useEffect(() => {
+    if (!mainRef.current) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setFooterVisible(entry.isIntersecting),
+      { root: mainRef.current, threshold: 0.6 }
+    );
+    if (sentinelRef.current) io.observe(sentinelRef.current);
+    return () => io.disconnect();
+  }, []);
+
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      <MainMenu onSubirArchivo={e => handleRouteTransition(e, "/subir-archivo")}
-        onNavigate={handleRouteTransition}
-      />
+    <div className="min-h-screen flex flex-col bg-black text-white">
+      <header className="sticky top-0 z-[60]">
+        <MainMenu
+          onSubirArchivo={(e) => handleRouteTransition(e, "/subir-archivo")}
+          onNavigate={handleRouteTransition}
+        />
+      </header>
+
       <AnimatePresence>
         {transitioning && (
           <motion.div
@@ -134,22 +155,8 @@ export default function ClientLayout({ children }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
-            style={{
-              position: "fixed",
-              inset: 0,
-              zIndex: 3000,
-              background: "rgba(10, 10, 15, 0.88)",
-              backdropFilter: "blur(12px) saturate(120%)",
-              WebkitBackdropFilter: "blur(12px) saturate(120%)",
-              border: "none",
-              boxShadow: "0 8px 32px 0 rgba(0,0,0,0.55)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexDirection: "column"
-            }}
+            className="fixed inset-0 z-[3000] bg-black/80 backdrop-blur-lg flex flex-col items-center justify-center"
           >
-            {/* Imagen Banksy PNG */}
             <motion.img
               src={banskyImg}
               alt="Banksy pintando"
@@ -158,16 +165,15 @@ export default function ClientLayout({ children }) {
               exit={{ opacity: 0, y: 40 }}
               transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
               style={{
-                maxWidth: "320px",
+                maxWidth: 320,
                 width: "40vw",
                 height: "auto",
                 marginBottom: "2.5rem",
-                filter: "drop-shadow(0 8px 32px #0008) grayscale(0.2) blur(0.5px)",
+                filter: "drop-shadow(0 8px 32px #0008) grayscale(.2) blur(.5px)",
                 pointerEvents: "none",
-                userSelect: "none"
+                userSelect: "none",
               }}
             />
-            {/* Frase centrada, fuente artística */}
             <motion.span
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -177,20 +183,19 @@ export default function ClientLayout({ children }) {
                 color: "#fff",
                 fontSize: "2.2vw",
                 fontWeight: 600,
-                fontFamily: "'DM Serif Display', 'Playfair Display', 'Georgia', serif",
+                fontFamily:
+                  "'DM Serif Display','Playfair Display','Georgia',serif",
                 fontStyle: "italic",
                 letterSpacing: "0.01em",
                 textAlign: "center",
                 width: "100vw",
-                textShadow: "0 2px 32px #fff3, 0 1px 0 #0008, 0 0 80px #fff1",
+                textShadow:
+                  "0 2px 32px #fff3, 0 1px 0 #0008, 0 0 80px #fff1",
                 mixBlendMode: "lighten",
                 opacity: 0.97,
+                lineHeight: 1.2,
                 userSelect: "none",
                 pointerEvents: "none",
-                padding: 0,
-                margin: 0,
-                lineHeight: 1.2,
-                display: "block"
               }}
             >
               {frase}
@@ -198,9 +203,23 @@ export default function ClientLayout({ children }) {
           </motion.div>
         )}
       </AnimatePresence>
-      <div style={{ flex: 1 }}>{children}</div>
 
-       <Footer />
+      <main ref={mainRef} className="flex-1 overflow-hidden">
+        {children}
+
+      <div
+       className="absolute bottom-0 left-0 w-full h-[64px]"
+       onMouseEnter={() => setHoveringBottom(true)}
+       onMouseLeave={() => setHoveringBottom(false)}
+      />
+      </main>
+      <footer
+      className={`fixed bottom-0 left-0 w-full z-[60] bg-black transition-all duration-500
+      ${hoveringBottom ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full pointer-events-none'}`}
+>
+  <Footer />
+</footer>
     </div>
   );
 }
+
