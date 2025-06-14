@@ -1,220 +1,29 @@
 'use client'
 
-// --- Limpieza de imports y organización ---
+// React imports
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+
+// Three.js and React Three Fiber imports
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PointerLockControls, useTexture, Html } from '@react-three/drei';
-import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
-import BackGroundSound from './BackGroundSound.jsx';
+
+// Animation imports
 import { motion, AnimatePresence } from "framer-motion";
 
-// --- Configuración y utilidades ---
-const artworkImages = [
-  {
-    src: '/assets/artworks/cuadro1.jpg',
-    title: 'Abstract Composition I',
-    artist: 'Maria Rodriguez',
-    year: '2023',
-    description: 'Composición abstracta con formas geométricas y colores vibrantes.',
-    technique: 'Óleo sobre lienzo',
-    dimensions: '120 x 90 cm'
-  },
-  {
-    src: '/assets/artworks/cuadro2.jpg',
-    title: 'Urban Landscape',
-    artist: 'John Smith',
-    year: '2022',
-    description: 'Paisaje urbano contemporáneo con perspectiva dinámica.',
-    technique: 'Acrílico sobre madera',
-    dimensions: '100 x 80 cm'
-  },
-  {
-    src: '/assets/artworks/cuadro3.jpg',
-    title: 'Portrait in Blue',
-    artist: 'Anna Chen',
-    year: '2024',
-    description: 'Retrato expresivo en tonos azules.',
-    technique: 'Mixta sobre papel',
-    dimensions: '70 x 100 cm'
-  },
-  {
-    src: '/assets/artworks/cuadro4.jpg',
-    title: 'Nature Study',
-    artist: 'Carlos Rivera',
-    year: '2023',
-    description: 'Estudio detallado de elementos naturales.',
-    technique: 'Acuarela sobre papel',
-    dimensions: '60 x 80 cm'
-  },
-  {
-    src: '/assets/artworks/cuadro5.jpg',
-    title: 'Digital Dreams',
-    artist: 'Sarah Johnson',
-    year: '2024',
-    description: 'Obra digital que explora el subconsciente.',
-    technique: 'Arte digital',
-    dimensions: '90 x 90 cm'
-  },
-  {
-    src: '/assets/artworks/cuadro1.jpg',
-    title: 'Abstract Composition I',
-    artist: 'Maria Rodriguez',
-    year: '2023',
-    description: 'Composición abstracta con formas geométricas y colores vibrantes.',
-    technique: 'Óleo sobre lienzo',
-    dimensions: '120 x 90 cm'
-  },
-  {
-    src: '/assets/artworks/cuadro2.jpg',
-    title: 'Urban Landscape',
-    artist: 'John Smith',
-    year: '2022',
-    description: 'Paisaje urbano contemporáneo con perspectiva dinámica.',
-    technique: 'Acrílico sobre madera',
-    dimensions: '100 x 80 cm'
-  },
-  {
-    src: '/assets/artworks/cuadro3.jpg',
-    title: 'Portrait in Blue',
-    artist: 'Anna Chen',
-    year: '2024',
-    description: 'Retrato expresivo en tonos azules.',
-    technique: 'Mixta sobre papel',
-    dimensions: '70 x 100 cm'
-  },
-  {
-    src: '/assets/artworks/cuadro4.jpg',
-    title: 'Nature Study',
-    artist: 'Carlos Rivera',
-    year: '2023',
-    description: 'Estudio detallado de elementos naturales.',
-    technique: 'Acuarela sobre papel',
-    dimensions: '60 x 80 cm'
-  },
-  {
-    src: '/assets/artworks/cuadro5.jpg',
-    title: 'Digital Dreams',
-    artist: 'Sarah Johnson',
-    year: '2024',
-    description: 'Obra digital que explora el subconsciente.',
-    technique: 'Arte digital',
-    dimensions: '90 x 90 cm'
-  },
-  // Puedes agregar más obras siguiendo este formato
-];
+// Local component imports
+import BackGroundSound from './BackGroundSound.jsx';
+import { GALLERY_CONFIG } from './gallery/config.js';
+import { calculateArtworkPositions, calculateGalleryDimensions } from './gallery/utils.js';
+import { GalleryLighting } from './gallery/GalleryLighting.jsx';
+import { GalleryEnvironment } from './gallery/GalleryEnvironment.jsx';
+import { GalleryBenches } from './gallery/GalleryBenches.jsx';
+import { RoomSelectorModal } from './gallery/RoomSelectorModal.jsx';
+import { GalleryWalls } from './gallery/GalleryWalls.jsx';
+import { useProximityDetection } from './gallery/useProximityDetection.js';
 
-// Colecciones de obras por sala
-const artworkSalas = {
-  1: [ // Sala Principal
-    {
-      src: '/assets/artworks/cuadro1.jpg',
-      title: 'Abstract Composition I',
-      artist: 'Maria Rodriguez',
-      year: '2023',
-      description: 'Composición abstracta con formas geométricas y colores vibrantes.',
-      technique: 'Óleo sobre lienzo',
-      dimensions: '120 x 90 cm'
-    },
-    {
-      src: '/assets/artworks/cuadro2.jpg',
-      title: 'Urban Landscape',
-      artist: 'John Smith',
-      year: '2022',
-      description: 'Paisaje urbano contemporáneo con perspectiva dinámica.',
-      technique: 'Acrílico sobre madera',
-      dimensions: '100 x 80 cm'
-    }
-  ],
-  2: [ // Sala Contemporánea
-    {
-      src: '/assets/artworks/cuadro3.jpg',
-      title: 'Portrait in Blue',
-      artist: 'Anna Chen',
-      year: '2024',
-      description: 'Retrato expresivo en tonos azules.',
-      technique: 'Mixta sobre papel',
-      dimensions: '70 x 100 cm'
-    },
-    {
-      src: '/assets/artworks/cuadro4.jpg',
-      title: 'Nature Study',
-      artist: 'Carlos Rivera',
-      year: '2023',
-      description: 'Estudio detallado de elementos naturales.',
-      technique: 'Acuarela sobre papel',
-      dimensions: '60 x 80 cm'
-    }
-  ],
-  3: [ // Sala Digital
-    {
-      src: '/assets/artworks/cuadro5.jpg',
-      title: 'Digital Dreams',
-      artist: 'Sarah Johnson',
-      year: '2024',
-      description: 'Obra digital que explora el subconsciente.',
-      technique: 'Arte digital',
-      dimensions: '90 x 90 cm'
-    }
-  ],
-  4: [ // Sala ARPA - aquí podrías agregar los murales de la base de datos
-    {
-      src: '/assets/artworks/cuadro1.jpg',
-      title: 'Saturnino-Moon',
-      artist: 'Miguel Fernando Lima Rodríguez, Pamela Sánchez Hernández',
-      year: '2024',
-      description: 'Mural colaborativo con temática lunar y saturnina.',
-      technique: 'Acrílico sobre muro',
-      dimensions: '2.46 x 3.8m'
-    },
-    {
-      src: '/assets/artworks/cuadro2.jpg',
-      title: 'Metamorfosis Marina',
-      artist: 'Vanessa Flores "Flores en el Mar"',
-      year: '2024',
-      description: 'Transformación marina en el arte mural.',
-      technique: 'Pintura vinílica sobre muro',
-      dimensions: '5 m x 4.30 m'
-    }
-  ]
-};
-
-const HALL_LENGTH = 40;
-const HALL_WIDTH = 14; // ancho del pasillo aumentado
-const WALL_HEIGHT = 2;
-const PICTURE_SPACING = 6;
-const FLOOR_EXTRA = 10;
-const CEILING_HEIGHT = 5.5;
-const PICTURE_WIDTH = 3;
-const WALL_MARGIN_INITIAL = 4;
-const WALL_MARGIN_FINAL = 2;
-
-// --- Texturas ---
-const floorTextureUrl = '/assets/textures/floor.jpg';
-const wallTextureUrl = '/assets/textures/wall.jpg';
-const benchTextureUrl = '/assets/textures/bench.jpg';
-
-function getHallwayArtworks(images, firstX, pictureSpacing) {
-  const positions = [];
-  const n = images.length;
-  const pairs = Math.ceil(n / 2);
-  
-  // Calcular el espaciado para centrar las obras
-  const totalContentWidth = (pairs - 1) * pictureSpacing;
-  const startX = firstX;
-  
-  for (let i = 0; i < n; i++) {
-    const side = i % 2 === 0 ? 1 : -1;
-    const index = Math.floor(i / 2);
-    const x = startX + index * pictureSpacing;
-    const cuadroProfundidad = 0.15;
-    const z = side === 1
-      ? (HALL_WIDTH / 2 - cuadroProfundidad / 2)
-      : -(HALL_WIDTH / 2 - cuadroProfundidad / 2);
-    const rot = [0, side === 1 ? 0 : Math.PI, 0];
-    positions.push({ ...images[i], position: [x, WALL_HEIGHT, z], rotation: rot });
-  }
-  return positions;
-}
+// Extraer constantes para facilitar el uso
+const { HALL_WIDTH, WALL_HEIGHT, CEILING_HEIGHT, PICTURE_SPACING } = GALLERY_CONFIG;
 
 function Picture({ src, title, artist, year, description, technique, dimensions, position, rotation = [0, 0, 0], onClick, showPlaque, selected, selectedArtwork }) {
   const texture = useTexture(src);
@@ -300,26 +109,7 @@ function Picture({ src, title, artist, year, description, technique, dimensions,
   )
 }
 
-function Bench({ position }) {
-  return (
-    <group position={position}>
-      <mesh position={[0, 0.25, 0]}>
-        <boxGeometry args={[2, 0.5, 0.5]} />
-        <meshStandardMaterial color="saddlebrown" />
-      </mesh>
-      <mesh position={[-0.75, 0, 0]}>
-        <cylinderGeometry args={[0.1, 0.1, 0.5, 16]} />
-        <meshStandardMaterial color="black" />
-      </mesh>
-      <mesh position={[0.75, 0, 0]}>
-        <cylinderGeometry args={[0.1, 0.1, 0.5, 16]} />
-        <meshStandardMaterial color="black" />
-      </mesh>
-    </group>
-  )
-}
-
-function PlayerControls({ moveTo, onArrive, mobileDir, onPassInitialWall, setCameraX, FIRST_X, LAST_X, WALL_MARGIN_INITIAL, WALL_MARGIN_FINAL }) {
+function PlayerControls({ moveTo, onArrive, onPassInitialWall, FIRST_X, LAST_X, WALL_MARGIN_INITIAL, WALL_MARGIN_FINAL }) {
   const passedWallRef = useRef(false);
   const { camera } = useThree();
   const velocity = useRef(new THREE.Vector3());
@@ -342,10 +132,10 @@ function PlayerControls({ moveTo, onArrive, mobileDir, onPassInitialWall, setCam
     const minZ = -HALL_WIDTH/2 + 0.7;
     const maxZ = HALL_WIDTH/2 - 0.7;
     direction.current.set(0, 0, 0);
-    if (keys.current.w || mobileDir === 'forward') direction.current.z -= 1;
-    if (keys.current.s || mobileDir === 'back') direction.current.z += 1;
-    if (keys.current.a || mobileDir === 'left') direction.current.x -= 1;
-    if (keys.current.d || mobileDir === 'right') direction.current.x += 1;
+    if (keys.current.w) direction.current.z -= 1;
+    if (keys.current.s) direction.current.z += 1;
+    if (keys.current.a) direction.current.x -= 1;
+    if (keys.current.d) direction.current.x += 1;
     direction.current.normalize();
     direction.current.applyEuler(camera.rotation);
     direction.current.y = 0;
@@ -356,12 +146,13 @@ function PlayerControls({ moveTo, onArrive, mobileDir, onPassInitialWall, setCam
     camera.position.z = Math.max(minZ, Math.min(maxZ, camera.position.z));
     
     // Límites de movimiento en X (paredes del inicio y final)
-    const minX = FIRST_X - WALL_MARGIN_INITIAL + 1;
-    const maxX = LAST_X + WALL_MARGIN_FINAL - 1;
+    // Ajustado para los márgenes balanceados
+    const minX = FIRST_X - WALL_MARGIN_INITIAL * 0.8 + 0.3;
+    const maxX = LAST_X + WALL_MARGIN_FINAL - 0.8;
     camera.position.x = Math.max(minX, Math.min(maxX, camera.position.x));
     
-    if (typeof setCameraX === 'function') setCameraX(camera.position.x);
-    if (!passedWallRef.current && onPassInitialWall && camera.position.x > FIRST_X - WALL_MARGIN_INITIAL + 0.5) {
+    // Lógica de detección de límites (para fines futuros si es necesario)
+    if (!passedWallRef.current && onPassInitialWall && camera.position.x > FIRST_X - WALL_MARGIN_INITIAL * 0.8 + 0.2) {
       onPassInitialWall();
       passedWallRef.current = true;
     }
@@ -372,87 +163,30 @@ function PlayerControls({ moveTo, onArrive, mobileDir, onPassInitialWall, setCam
 // --- Cálculo de largo dinámico para techo y paredes ---
 const WALL_MARGIN = 2; // margen visual al inicio y final
 
-function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork, showList, showInstructions, artworks, DYNAMIC_LENGTH, DYNAMIC_CENTER_X, FIRST_X, LAST_X, WALL_MARGIN_INITIAL, WALL_MARGIN_FINAL }) {
-  // Cargar texturas
-  const floorTexture = useTexture(floorTextureUrl);
-  // Textura para paredes con repetición y anisotropía
-  const wallTexture = useTexture('/assets/textures/wall.jpg');
-  if (wallTexture) {
-    wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
-    wallTexture.repeat.set(Math.ceil(DYNAMIC_LENGTH / 4), 2);
-    wallTexture.anisotropy = 16;
-  }
+/**
+ * Componente principal de la sala de la galería
+ * Renderiza el entorno 3D, las obras de arte y los elementos interactivos
+ */
+function Room({ 
+  passedInitialWall, 
+  setSelectedArtwork, 
+  selectedArtwork, 
+  showList, 
+  showInstructions, 
+  artworks, 
+  galleryDimensions 
+}) {
+  const { dynamicLength, dynamicCenterX, firstX, lastX, wallMarginInitial, wallMarginFinal } = galleryDimensions;
 
-  // Piso con textura optimizada
-  if (floorTexture) {
-    floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
-    floorTexture.repeat.set(Math.ceil(DYNAMIC_LENGTH / 4), Math.ceil(HALL_WIDTH / 2));
-    floorTexture.anisotropy = 16;
-  }
-
-  // Elimina objetos decorativos añadidos y corrige materiales
   return (
     <>
-      {/* Iluminación mejorada */}
-      <ambientLight intensity={1.1} />
-      <directionalLight position={[10, 12, 10]} intensity={1.2} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
-      {/* Luces puntuales cálidas a lo largo del pasillo */}
-      {Array.from({ length: Math.max(2, Math.floor(DYNAMIC_LENGTH / 6)) }).map((_, i) => (
-        <pointLight
-          key={`plight-${i}`}
-          position={[DYNAMIC_CENTER_X - DYNAMIC_LENGTH/2 + 3 + i*6, CEILING_HEIGHT-0.7, 0]}
-          intensity={1.5}
-          distance={8}
-          color="#ffe6b2"
-          castShadow
-        />
-      ))}
-      {/* Piso con textura optimizada */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[DYNAMIC_CENTER_X, 0, 0]}>
-        <planeGeometry args={[DYNAMIC_LENGTH, HALL_WIDTH]} />
-        <meshStandardMaterial map={floorTexture} />
-      </mesh>
-      {/* Techo */}
-      <mesh position={[DYNAMIC_CENTER_X, CEILING_HEIGHT, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[DYNAMIC_LENGTH, HALL_WIDTH + FLOOR_EXTRA]} />
-        <meshStandardMaterial color="#f5f5f5" side={THREE.DoubleSide} />
-      </mesh>
-      {/* Paredes laterales con textura optimizada */}
-      <mesh position={[DYNAMIC_CENTER_X, 2.5, HALL_WIDTH/2]}>
-        <boxGeometry args={[DYNAMIC_LENGTH, 5, 0.1]} />
-        <meshStandardMaterial map={wallTexture} color="#ffffff" />
-      </mesh>
-      <mesh position={[DYNAMIC_CENTER_X, 2.5, -HALL_WIDTH/2]}>
-        <boxGeometry args={[DYNAMIC_LENGTH, 5, 0.1]} />
-        <meshStandardMaterial map={wallTexture} color="#ffffff" />
-      </mesh>
-
-      {/* Molduras a lo largo del pasillo (ajustadas al largo dinámico) */}
-      <mesh position={[DYNAMIC_CENTER_X, CEILING_HEIGHT-0.02, HALL_WIDTH/2 - 0.13]}>
-        <boxGeometry args={[DYNAMIC_LENGTH, 0.09, 0.09]} />
-        <meshStandardMaterial color="#FFF" />
-      </mesh>
-      <mesh position={[DYNAMIC_CENTER_X, CEILING_HEIGHT-0.02, -HALL_WIDTH/2 + 0.13]}>
-        <boxGeometry args={[DYNAMIC_LENGTH, 0.09, 0.09]} />
-        <meshStandardMaterial color="#FFF" />
-      </mesh>
-
-      {/* Lámparas (opcional: puedes alinearlas a DYNAMIC_LENGTH si lo deseas) */}
-      {Array.from({ length: Math.floor(DYNAMIC_LENGTH / 8) }).map((_, i) => (
-        <>
-          <mesh key={`lamp-mesh-${i}`} position={[DYNAMIC_CENTER_X - DYNAMIC_LENGTH/2 + 4 + i*8, CEILING_HEIGHT-0.2, 0]}>
-            <cylinderGeometry args={[0.25, 0.25, 0.1, 24]} />
-            <meshStandardMaterial color="#FFF" />
-          </mesh>
-          <pointLight key={`lamp-light-${i}`} position={[DYNAMIC_CENTER_X - DYNAMIC_LENGTH/2 + 4 + i*8, CEILING_HEIGHT-0.5, 0]} intensity={1.2} distance={6} color="#fffbe6" />
-          <mesh key={`lamp-ring-${i}`} position={[DYNAMIC_CENTER_X - DYNAMIC_LENGTH/2 + 4 + i*8, CEILING_HEIGHT-0.19, 0]} rotation={[-Math.PI/2, 0, 0]}>
-            <torusGeometry args={[0.45, 0.035, 16, 32]} />
-            <meshStandardMaterial color="#f8bbd0" />
-          </mesh>
-        </>
-      ))}
-
-      {/* Cuadros */}
+      {/* Iluminación */}
+      <GalleryLighting dynamicLength={dynamicLength} dynamicCenterX={dynamicCenterX} />
+      
+      {/* Entorno (piso, paredes, techo) */}
+      <GalleryEnvironment dynamicLength={dynamicLength} dynamicCenterX={dynamicCenterX} />
+      
+      {/* Obras de arte */}
       {artworks.map((art, i) => (
         <Picture 
           key={i} 
@@ -460,31 +194,22 @@ function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork, showList
           onClick={setSelectedArtwork} 
           showPlaque={passedInitialWall && !selectedArtwork && !showList && !showInstructions} 
           selected={selectedArtwork && selectedArtwork.title === art.title}
-          selectedArtwork={selectedArtwork} // Pasar selectedArtwork como prop adicional
+          selectedArtwork={selectedArtwork}
         />
       ))}
 
-      {/* Bancas pegadas a las paredes */}
-      <Bench position={[-HALL_LENGTH/2 + 6, 0, HALL_WIDTH/2 - 1.2]} />
-      <Bench position={[0, 0, HALL_WIDTH/2 - 1.2]} />
-      <Bench position={[HALL_LENGTH/2 - 6, 0, HALL_WIDTH/2 - 1.2]} />
-      <Bench position={[-HALL_LENGTH/2 + 6, 0, -HALL_WIDTH/2 + 1.2]} />
-      <Bench position={[0, 0, -HALL_WIDTH/2 + 1.2]} />
-      <Bench position={[HALL_LENGTH/2 - 6, 0, -HALL_WIDTH/2 + 1.2]} />
+      {/* Bancos */}
+      <GalleryBenches dynamicLength={dynamicLength} />
 
-      {/* Pared inicial */}
-      <mesh position={[FIRST_X - WALL_MARGIN_INITIAL, 2.5, 0]}>
-        <boxGeometry args={[0.1, 10, 30]} />
-        <meshStandardMaterial color="#f0f0f0" opacity={0.98} transparent />
-      </mesh>
-      
-      {/* Pared final */}
-      <mesh position={[LAST_X + WALL_MARGIN_FINAL + 0.5, 2.5, 0]}>
-        <boxGeometry args={[0.1, 10, 30]} />
-        <meshStandardMaterial color="#f0f0f0" opacity={0.98} transparent />
-      </mesh>
+      {/* Paredes de límite con textura */}
+      <GalleryWalls 
+        firstX={firstX}
+        lastX={lastX}
+        wallMarginInitial={wallMarginInitial}
+        wallMarginFinal={wallMarginFinal}
+      />
     </>
-  )
+  );
 }
 
 function CameraLerpTo({ target, cameraRef, onArrive }) {
@@ -527,25 +252,6 @@ function CameraLerpController({ cameraRef, cameraTarget, setCameraTarget }) {
     }
   });
   return null;
-}
-
-// --- Checker procedural para el piso ---
-function createCheckerTexture(size = 512, squares = 16) {
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  const sq = size / squares;
-  for (let y = 0; y < squares; y++) {
-    for (let x = 0; x < squares; x++) {
-      ctx.fillStyle = (x + y) % 2 === 0 ? '#e0e0e0' : '#bdbdbd';
-      ctx.fillRect(x * sq, y * sq, sq, sq);
-    }
-  }
-  const texture = new THREE.Texture(canvas);
-  texture.needsUpdate = true;
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.repeat.set(1, 1);
-  return texture;
 }
 
 // Componente para modal con zoom avanzado
@@ -905,54 +611,86 @@ function ZoomModal({ artwork, onClose }) {
   );
 }
 
-export default function GalleryRoom({ salaId = 1, murales = [] }) {
-  // Usar los murales reales pasados como props, o fallback a obras estáticas
-  const artworkImages = murales.length > 0 
-    ? murales.map(mural => ({
-        src: mural.url_imagen,
-        title: mural.nombre,
-        artist: mural.autor || 'Autor desconocido',
-        year: mural.anio?.toString() || 'Sin fecha',
-        description: `${mural.tecnica || 'Técnica mixta'} - Mural del programa ARPA`,
-        technique: mural.tecnica || 'Técnica mixta',
-        dimensions: 'Escala mural'
-      }))
-    : artworkSalas[salaId] || artworkSalas[1];
+export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, availableRooms = [] }) {
+  // Validar que hay murales que mostrar
+  if (!murales || murales.length === 0) {
+    return (
+      <div style={{
+        width: '100vw',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: '#eaf6ff',
+        color: '#1a237e',
+        fontSize: '1.5em',
+        textAlign: 'center',
+        fontWeight: 'bold'
+      }}>
+        <div>
+          <div style={{ fontSize: '3em', marginBottom: '0.5em' }}>🎨</div>
+          <div>No hay obras disponibles en esta sala</div>
+          <div style={{ fontSize: '0.8em', marginTop: '1em', color: '#666' }}>
+            Por favor, contacta al administrador para cargar los murales
+          </div>
+        </div>
+      </div>
+    );
+  }
 
+  // Usar los murales reales pasados como props
+  const artworkImages = murales.map(mural => ({
+    src: mural.url_imagen,
+    title: mural.nombre,
+    artist: mural.autor || 'Autor desconocido',
+    year: mural.anio?.toString() || 'Sin fecha',
+    description: `${mural.tecnica || 'Técnica mixta'} - Mural del programa ARPA`,
+    technique: mural.tecnica || 'Técnica mixta',
+    dimensions: 'Escala mural'
+  }));
+
+  // Estados del componente
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [showList, setShowList] = useState(false);
   const [moveTo, setMoveTo] = useState(null);
   const [menuValue, setMenuValue] = useState("");
-  const [tooltipIndex, setTooltipIndex] = useState(null);
   const [showInstructions, setShowInstructions] = useState(true);
-  const [cameraX, setCameraX] = useState();
   const [selectedArtwork, setSelectedArtwork] = useState(null);
-  const [passedInitialWall, setPassedInitialWall] = useState(true); // Empezar como si ya pasó la pared
+  const [passedInitialWall, setPassedInitialWall] = useState(true);
   const [isClient, setIsClient] = useState(false);
   const [cameraRef, setCameraRef] = useState(null);
   const [cameraTarget, setCameraTarget] = useState(null);
   const [listIndex, setListIndex] = useState(0);
+  const [showRoomSelector, setShowRoomSelector] = useState(false);
+  const [roomSelectorPrompted, setRoomSelectorPrompted] = useState(false);
 
-  // Constantes dinámicas basadas en la cantidad de obras de la sala con mínimo de 6 cuadros
-  const MIN_CUADROS = 6; // Mínimo 6 cuadros
-  const PAIRS = Math.ceil(artworkImages.length / 2);
-  const MIN_PAIRS = Math.ceil(MIN_CUADROS / 2); // Mínimo 3 pares (6 cuadros)
-  const EFFECTIVE_PAIRS = Math.max(MIN_PAIRS, PAIRS); // Usar el mayor entre el real y el mínimo
-  
-  // Calcular dimensiones basadas en los pares efectivos (reales o mínimo)
-  const SPACING_TOTAL = (EFFECTIVE_PAIRS - 1) * PICTURE_SPACING;
-  const CONTENT_LENGTH = SPACING_TOTAL + PICTURE_WIDTH;
-  
-  // Centrar las obras en la sala
-  const FIRST_X = -CONTENT_LENGTH / 2;
-  const LAST_X = FIRST_X + SPACING_TOTAL;
-  
-  // La sala se ajusta al contenido real pero con el mínimo de 6 cuadros
-  const DYNAMIC_LENGTH = CONTENT_LENGTH + WALL_MARGIN_INITIAL + WALL_MARGIN_FINAL;
-  const DYNAMIC_CENTER_X = 0; // Centrado en el origen
+  // Calcular dimensiones de la galería y posiciones de las obras
+  const galleryDimensions = calculateGalleryDimensions(artworkImages);
+  const artworks = calculateArtworkPositions(
+    artworkImages, 
+    galleryDimensions.firstX, 
+    PICTURE_SPACING, 
+    galleryDimensions.contentLength
+  );
 
-  // Crear las obras después de definir las constantes
-  const artworks = getHallwayArtworks(artworkImages, FIRST_X, PICTURE_SPACING);
+  // Extraer dimensiones para compatibilidad con código existente
+  const { 
+    firstX: FIRST_X, 
+    lastX: LAST_X, 
+    dynamicLength: DYNAMIC_LENGTH,
+    dynamicCenterX: DYNAMIC_CENTER_X,
+    wallMarginInitial: WALL_MARGIN_INITIAL,
+    wallMarginFinal: WALL_MARGIN_FINAL
+  } = galleryDimensions;
+
+  // Detección de proximidad a las paredes
+  const proximityState = useProximityDetection(cameraRef, galleryDimensions, 3);
+
+  // Usar salas reales del componente padre o fallback a configuración
+  const roomsToShow = availableRooms.length > 0 ? availableRooms : GALLERY_CONFIG.AVAILABLE_ROOMS.map(room => ({
+    ...room,
+    artworkCount: room.id === salaId ? artworkImages.length : null
+  }));
 
   // Hotkey para abrir/cerrar la lista de obras
   useEffect(() => {
@@ -1021,6 +759,20 @@ export default function GalleryRoom({ salaId = 1, murales = [] }) {
     }
   }, []);
 
+  // Detección de proximidad para cambio de salas - El modal aparece y desaparece automáticamente
+  useEffect(() => {
+    // Mostrar modal al acercarse a la pared final (si no hay instrucciones visibles)
+    if (proximityState.nearEndWall && !showInstructions) {
+      setShowRoomSelector(true);
+    }
+    
+    // Ocultar modal al alejarse de la pared final
+    if (!proximityState.nearEndWall) {
+      setShowRoomSelector(false);
+      setRoomSelectorPrompted(false);
+    }
+  }, [proximityState.nearEndWall, showInstructions]);
+
   // Función para cerrar instrucciones manualmente
   const closeInstructions = useCallback(() => {
     console.log('Cerrando instrucciones manualmente y activando controles');
@@ -1031,6 +783,22 @@ export default function GalleryRoom({ salaId = 1, murales = [] }) {
       console.log('Disparando evento de activación inmediata de cámara tras cerrar instrucciones');
       window.dispatchEvent(new CustomEvent('reactivateCamera'));
     }, 50); // Delay muy corto para activación inmediata
+  }, []);
+
+  // Funciones para manejo del cambio de salas
+  const handleRoomSelect = useCallback((roomId) => {
+    console.log(`Cambiando a sala ${roomId}`);
+    if (onRoomChange && typeof onRoomChange === 'function') {
+      onRoomChange(roomId);
+    }
+    setShowRoomSelector(false);
+    setRoomSelectorPrompted(false);
+  }, [onRoomChange]);
+
+  const handleCloseRoomSelector = useCallback(() => {
+    // El modal se cierra automáticamente al alejarse, no necesitamos forzar el cierre
+    // Solo se usa si el usuario presiona ESC
+    setShowRoomSelector(false);
   }, []);
 
   // Efecto para iniciar el movimiento suave al seleccionar una pintura
@@ -1277,18 +1045,12 @@ export default function GalleryRoom({ salaId = 1, murales = [] }) {
               showList={showList} 
               showInstructions={showInstructions}
               artworks={artworks}
-              DYNAMIC_LENGTH={DYNAMIC_LENGTH}
-              DYNAMIC_CENTER_X={DYNAMIC_CENTER_X}
-              FIRST_X={FIRST_X}
-              LAST_X={LAST_X}
-              WALL_MARGIN_INITIAL={WALL_MARGIN_INITIAL}
-              WALL_MARGIN_FINAL={WALL_MARGIN_FINAL}
+              galleryDimensions={galleryDimensions}
             />
             <PlayerControls 
               moveTo={moveTo !== null ? artworks[moveTo].position : null} 
               onArrive={() => setMoveTo(null)} 
               onPassInitialWall={() => { setPassedInitialWall(true); }} 
-              setCameraX={setCameraX}
               FIRST_X={FIRST_X}
               LAST_X={LAST_X}
               WALL_MARGIN_INITIAL={WALL_MARGIN_INITIAL}
@@ -1368,6 +1130,41 @@ export default function GalleryRoom({ salaId = 1, murales = [] }) {
           }
         }
       `}</style>
+      
+      {/* Indicador de proximidad a pared final */}
+      {proximityState.nearEndWall && !showInstructions && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 900,
+          background: 'rgba(76, 175, 80, 0.95)',
+          color: 'white',
+          padding: '15px 25px',
+          borderRadius: '30px',
+          fontSize: '16px',
+          fontWeight: 'bold',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          boxShadow: '0 4px 20px rgba(76, 175, 80, 0.4)',
+          backdropFilter: 'blur(10px)',
+          border: '2px solid rgba(255, 255, 255, 0.3)',
+          animation: 'pulse 2s infinite'
+        }}>
+          🚪 <span>Selector de salas disponible</span>
+        </div>
+      )}
+
+      {/* Modal de selección de salas */}
+      <RoomSelectorModal
+        isOpen={showRoomSelector}
+        onClose={handleCloseRoomSelector}
+        onSelectRoom={handleRoomSelect}
+        availableRooms={roomsToShow}
+        currentRoom={salaId}
+      />
     </>
   )
 }

@@ -59,6 +59,17 @@ export default function MuseoPage() {
     return colores[salaId] || "#f5f5f5";
   };
 
+  // Función auxiliar para asignar íconos por ID de sala
+  const getIconBySalaId = (salaId) => {
+    const iconos = {
+      1: "🎨",
+      2: "🖼️",
+      3: "💻",
+      4: "🎭",
+    };
+    return iconos[salaId] || "🏛️";
+  };
+
   // Salas de fallback en caso de error de API
   const getSalasFallback = () => [
     {
@@ -117,6 +128,15 @@ export default function MuseoPage() {
           murales={
             salas.find((sala) => sala.id === salaSeleccionada)?.murales || []
           }
+          onRoomChange={(newSalaId) => setSalaSeleccionada(newSalaId)}
+          availableRooms={salas.map((sala) => ({
+            id: sala.id,
+            name: sala.nombre,
+            description: sala.descripcion,
+            icon: getIconBySalaId(sala.id),
+            cantidadMurales: sala.cantidadMurales,
+            color: sala.color,
+          }))}
         />
       </div>
     );
