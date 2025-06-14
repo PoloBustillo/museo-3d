@@ -1,6 +1,6 @@
-import  Search from '@/components/archive/Search';
-import Carousel from '@/components/archive/Carousel';
-import Gallery from '@/components/archive/Galery';
+import  Search from '../../components/archive/Search';
+import Carousel from '../../components/archive/Carousel';
+import Gallery from '../../components/archive/Galery';
 
 
 export default function ArchiveCarussel (){

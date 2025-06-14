@@ -3,6 +3,9 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import MainMenu from "./MainMenu";
+import Footer from "./Footer";
+
+import { ThemeProvider } from "./ui/theme-provider"
 
 const FRASES_MURALISTAS = [
   "Pinto lo que veo, lo que pienso y lo que siento. - Diego Rivera",
@@ -64,6 +67,18 @@ const FRASES_MURALISTAS = [
   "Mi pincel danza al ritmo de mis emociones. - Anónimo",
   "El arte verdadero no imita, crea. - Anónimo",
   "La imaginación es más importante que el conocimiento. - Albert Einstein"
+];
+const FRASES_68 = [
+    "El arte limpia del alma el polvo de la vida.",
+    "El arte es la mentira que nos permite ver la verdad.",
+    "Donde hay arte, hay esperanza.",
+    "El arte dice lo que las palabras callan.",
+    "El arte no reproduce lo visible, lo hace visible.",
+    "Pintar es otra forma de llevar un diario.",
+    "El arte es libertad en forma pura.",
+    "Crear es resistir.",
+    "El arte vive cuando provoca.",
+    "El arte transforma el dolor en belleza."
 ];
 
 export default function ClientLayout({ children }) {
@@ -184,6 +199,8 @@ export default function ClientLayout({ children }) {
         )}
       </AnimatePresence>
       <div style={{ flex: 1 }}>{children}</div>
+
+       <Footer />
     </div>
   );
 }
