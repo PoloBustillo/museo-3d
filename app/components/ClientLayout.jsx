@@ -204,21 +204,23 @@ export default function ClientLayout({ children }) {
         )}
       </AnimatePresence>
 
-      <main ref={mainRef} className="flex-1 overflow-hidden">
+      <main ref={mainRef} className="flex-1 overflow-hidden relative">
         {children}
-
       <div
-       className="absolute bottom-0 left-0 w-full h-[64px]"
-       onMouseEnter={() => setHoveringBottom(true)}
-       onMouseLeave={() => setHoveringBottom(false)}
+        className="absolute bottom-0 left-0 w-full h-[64px]"
+        onMouseEnter={() => setHoveringBottom(true)}
+        onMouseLeave={() => setHoveringBottom(false)}
       />
       </main>
       <footer
-      className={`fixed bottom-0 left-0 w-full z-[60] bg-black transition-all duration-500
-      ${hoveringBottom ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full pointer-events-none'}`}
->
-  <Footer />
-</footer>
+  onMouseEnter={() => setHoveringBottom(true)}
+  onMouseLeave={() => setHoveringBottom(false)}
+  className={`
+    fixed bottom-0 left-0 w-full z-[60] bg-black transition-all duration-500
+    ${hoveringBottom ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-full pointer-events-none'}
+  `}>
+      <Footer />
+    </footer>
     </div>
   );
 }
