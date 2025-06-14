@@ -128,6 +128,19 @@
   clip-path: polygon(25% 0%, 100% 0%, 100% 100%, 25% 100%, 0% 50%);
 }
 
+.safe-pad-left  { padding-left:  clamp(2rem, 7vw, 6rem); }
+.safe-pad-right { padding-right: clamp(2rem, 7vw, 6rem); }
+
+@keyframes borderPulse {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-borderPulse {
+  background-size: 200% 200%;
+  animation: borderPulse 3s ease-in-out infinite;
+}
 /* Utilidades adicionales para el museo */
 .line-clamp-2 {
   display: -webkit-box;
