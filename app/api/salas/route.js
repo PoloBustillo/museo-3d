@@ -138,51 +138,199 @@ export async function POST(req) {
       );
     }
 
-    // Crear la sala
-    const sala = await prisma.sala.create({
-      data: {
-        nombre: data.nombre.trim(),
-        owner: { connect: { id: Number(data.ownerId) } },
-        colaboradores: {
-          connect: data.colaboradores?.map((id) => ({ id: Number(id) })) || [],
+    // Validar que los murales existan si se proporcionan
+    if (data.murales && data.murales.length > 0) {
+      const existingMurales = await prisma.mural.findMany({
+        where: {
+          id: { in: data.murales.map((id) => Number(id)) },
         },
-        murales: {
-          connect: data.murales?.map((id) => ({ id: Number(id) })) || [],
+      });
+
+      if (existingMurales.length !== data.murales.length) {
+        const foundIds = existingMurales.map((m) => m.id);
+        const missingIds = data.murales.filter(
+          (id) => !foundIds.includes(Number(id))
+        );
+
+        return new Response(
+          JSON.stringify({
+            error: "Murales no encontrados",
+            message: `Los siguientes murales no existen: ${missingIds.join(
+              ", "
+            )}`,
+            found: foundIds,
+            missing: missingIds,
+          }),
+          {
+            status: 404,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
+    // Validar que los colaboradores existan si se proporcionan
+    if (data.colaboradores && data.colaboradores.length > 0) {
+      const existingColaboradores = await prisma.user.findMany({
+        where: {
+          id: { in: data.colaboradores.map((id) => Number(id)) },
         },
-      },
-      include: {
-        owner: {
-          select: {
-            id: true,
-            email: true,
-            role: true,
+      });
+
+      if (existingColaboradores.length !== data.colaboradores.length) {
+        const foundIds = existingColaboradores.map((u) => u.id);
+        const missingIds = data.colaboradores.filter(
+          (id) => !foundIds.includes(Number(id))
+        );
+
+        return new Response(
+          JSON.stringify({
+            error: "Colaboradores no encontrados",
+            message: `Los siguientes usuarios no existen: ${missingIds.join(
+              ", "
+            )}`,
+            found: foundIds,
+            missing: missingIds,
+          }),
+          {
+            status: 404,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+    }
+
+    // Crear la sala con manejo de errores mejorado
+    let sala;
+    try {
+      sala = await prisma.sala.create({
+        data: {
+          nombre: data.nombre.trim(),
+          owner: { connect: { id: Number(data.ownerId) } },
+          colaboradores: {
+            connect:
+              data.colaboradores?.map((id) => ({ id: Number(id) })) || [],
+          },
+          murales: {
+            connect: data.murales?.map((id) => ({ id: Number(id) })) || [],
           },
         },
-        colaboradores: {
-          select: {
-            id: true,
-            email: true,
-            role: true,
+        include: {
+          owner: {
+            select: {
+              id: true,
+              email: true,
+              role: true,
+            },
+          },
+          colaboradores: {
+            select: {
+              id: true,
+              email: true,
+              role: true,
+            },
+          },
+          murales: {
+            select: {
+              id: true,
+              nombre: true,
+              autor: true,
+              tecnica: true,
+              anio: true,
+              url_imagen: true,
+            },
+          },
+          _count: {
+            select: {
+              murales: true,
+              colaboradores: true,
+            },
           },
         },
-        murales: {
-          select: {
-            id: true,
-            nombre: true,
-            autor: true,
-            tecnica: true,
-            anio: true,
-            url_imagen: true,
-          },
-        },
-        _count: {
-          select: {
-            murales: true,
-            colaboradores: true,
-          },
-        },
-      },
-    });
+      });
+    } catch (connectError) {
+      console.error("Error al conectar relaciones:", connectError);
+
+      // Si es un error de registro no encontrado, verificar qué falló
+      if (connectError.code === "P2025") {
+        // Re-verificar murales en tiempo real
+        if (data.murales && data.murales.length > 0) {
+          const currentMurales = await prisma.mural.findMany({
+            where: {
+              id: { in: data.murales.map((id) => Number(id)) },
+            },
+          });
+
+          const foundIds = currentMurales.map((m) => m.id);
+          const missingIds = data.murales.filter(
+            (id) => !foundIds.includes(Number(id))
+          );
+
+          if (missingIds.length > 0) {
+            return new Response(
+              JSON.stringify({
+                error: "Error al crear sala - Murales no encontrados",
+                message: `Los siguientes murales no existen al momento de crear la sala: ${missingIds.join(
+                  ", "
+                )}`,
+                found: foundIds,
+                missing: missingIds,
+                totalRequested: data.murales.length,
+                totalFound: foundIds.length,
+              }),
+              {
+                status: 404,
+                headers: { "Content-Type": "application/json" },
+              }
+            );
+          }
+        }
+
+        // Re-verificar colaboradores si el error no fue por murales
+        if (data.colaboradores && data.colaboradores.length > 0) {
+          const currentColaboradores = await prisma.user.findMany({
+            where: {
+              id: { in: data.colaboradores.map((id) => Number(id)) },
+            },
+          });
+
+          const foundIds = currentColaboradores.map((u) => u.id);
+          const missingIds = data.colaboradores.filter(
+            (id) => !foundIds.includes(Number(id))
+          );
+
+          if (missingIds.length > 0) {
+            return new Response(
+              JSON.stringify({
+                error: "Error al crear sala - Colaboradores no encontrados",
+                message: `Los siguientes colaboradores no existen al momento de crear la sala: ${missingIds.join(
+                  ", "
+                )}`,
+                found: foundIds,
+                missing: missingIds,
+              }),
+              {
+                status: 404,
+                headers: { "Content-Type": "application/json" },
+              }
+            );
+          }
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          error: "Error al crear sala",
+          message: connectError.message,
+          code: connectError.code,
+          details: "Error interno al establecer las relaciones",
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
 
     return new Response(JSON.stringify(sala), {
       status: 201,
