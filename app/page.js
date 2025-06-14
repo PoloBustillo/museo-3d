@@ -1,10 +1,10 @@
 "use client";
 import Link from "next/link";
-import { useRef, useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from 'react';
 import AuthModal from "./components/AuthModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import TriangleOverlay from './components/TriangleOver';
+import AnimatedTriangleOverlay  from './components/TriangleOver';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -59,28 +59,22 @@ export default function Home() {
   };
 
     useEffect(() => {
-    const observer = new IntersectionObserver(
+    const obs = new IntersectionObserver(
       entries => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            setCurrent(Number(entry.target.dataset.index));
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            setCurrent(Number(e.target.dataset.index));
           }
         });
       },
-      { threshold: 0.5 }
+      { root: containerRef.current, threshold: 0.5 }
     );
-
-    const els = containerRef.current.querySelectorAll('.section');
-    els.forEach(el => observer.observe(el));
-    return () => observer.disconnect();
+    const secs = containerRef.current.querySelectorAll('.section');
+    secs.forEach(s => obs.observe(s));
+    return () => obs.disconnect();
   }, []);
 
     const side = current % 2 === 0 ? 'left' : 'right';
-
-    <TriangleOverlay
-  text={sections[current].instructions}
-  side={side}/>
-
 
   return (
     <>
@@ -96,11 +90,16 @@ export default function Home() {
           style={{ backgroundImage: `url(${sec.imageUrl})` }}
         />
       ))}
-      <TriangleOverlay
-        text={sections[current].instructions}
-        side={side}
-      />
+
+      <AnimatePresence mode="wait">
+        <AnimatedTriangleOverlay
+          key={sections[current].instructions}
+          text={sections[current].instructions}
+          side={side}
+        />
+      </AnimatePresence>
     </div>
+
 
 
 
