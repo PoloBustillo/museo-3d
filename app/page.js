@@ -4,7 +4,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import AuthModal from "./components/AuthModal";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import AnimatedTriangleOverlay  from './components/TriangleOver';
+import AnimatedTriangleOverlay  from './components/TriangleOverlay';
+import AnimatedOverlay from './components/AnimatedOverlay';
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -16,18 +17,18 @@ import {
   NavigationMenuViewport,
 } from "./components/ui/navigation-menu"; 
 
-const sections = [
+const steps = [
   {
-    imageUrl: '/images/Origen.jpg',
-    instructions: 'Bienvenido a la experiencia del Mural Arpa, explora y descubre su historia.',
+    img: '/images/Origen.jpg',
+    text: 'Bienvenido a la experiencia del Mural Arpa, explora y descubre su historia.',
   },
   {
-    imageUrl: '/images/Impulso_Humano_Creador.jpg',
-    instructions: 'Visita nuestra galería de arte y conoce a los artistas detrás de las obras.',
+    img: '/images/Impulso_Humano_Creador.jpg',
+    text: 'Visita nuestra galería de arte y conoce a los artistas detrás de las obras.',
   },
   {
-    imageUrl: '/images/CCU_15_años_de_Arte_y_Cultura.jpg',
-    instructions: 'Inicia sesión para subir tus propias obras de arte y ser parte de nuestra comunidad.',
+    img: '/images/CCU_15_años_de_Arte_y_Cultura.jpg',
+    text: 'Inicia sesión para subir tus propias obras de arte y ser parte de nuestra comunidad.',
   },
 ];
 
@@ -78,31 +79,23 @@ export default function Home() {
 
   return (
     <>
-      <div
-      ref={containerRef}
-      className="relative h-screen overflow-y-scroll scroll-smooth snap-y snap-mandatory"
-    >
-      {sections.map((sec, i) => (
-        <div
-          key={i}
-          data-index={i}
-          className="section snap-center h-screen bg-cover bg-center"
-          style={{ backgroundImage: `url(${sec.imageUrl})` }}
-        />
+      <div ref={containerRef} className="h-screen overflow-y-scroll snap-y snap-mandatory">
+      {steps.map((s,i)=>(
+        <div key={i} data-index={i}
+             className="section snap-center h-screen bg-cover bg-center"
+             style={{backgroundImage:`url(${s.img})`}}/>
       ))}
 
-      <AnimatePresence mode="wait">
-        <AnimatedTriangleOverlay
-          key={sections[current].instructions}
-          text={sections[current].instructions}
+     <AnimatePresence mode="wait">
+       <AnimatedTriangleOverlay
+          key={current}
+          step={current + 1}
+          text={steps[current].text}
           side={side}
-        />
-      </AnimatePresence>
+      />
+    </AnimatePresence>
     </div>
-
-
-
-
+    
       {authModal && (
         <AuthModal
           open={!!authModal}
