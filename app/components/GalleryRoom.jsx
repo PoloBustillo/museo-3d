@@ -103,6 +103,81 @@ const artworkImages = [
   // Puedes agregar más obras siguiendo este formato
 ];
 
+// Colecciones de obras por sala
+const artworkSalas = {
+  1: [ // Sala Principal
+    {
+      src: '/assets/artworks/cuadro1.jpg',
+      title: 'Abstract Composition I',
+      artist: 'Maria Rodriguez',
+      year: '2023',
+      description: 'Composición abstracta con formas geométricas y colores vibrantes.',
+      technique: 'Óleo sobre lienzo',
+      dimensions: '120 x 90 cm'
+    },
+    {
+      src: '/assets/artworks/cuadro2.jpg',
+      title: 'Urban Landscape',
+      artist: 'John Smith',
+      year: '2022',
+      description: 'Paisaje urbano contemporáneo con perspectiva dinámica.',
+      technique: 'Acrílico sobre madera',
+      dimensions: '100 x 80 cm'
+    }
+  ],
+  2: [ // Sala Contemporánea
+    {
+      src: '/assets/artworks/cuadro3.jpg',
+      title: 'Portrait in Blue',
+      artist: 'Anna Chen',
+      year: '2024',
+      description: 'Retrato expresivo en tonos azules.',
+      technique: 'Mixta sobre papel',
+      dimensions: '70 x 100 cm'
+    },
+    {
+      src: '/assets/artworks/cuadro4.jpg',
+      title: 'Nature Study',
+      artist: 'Carlos Rivera',
+      year: '2023',
+      description: 'Estudio detallado de elementos naturales.',
+      technique: 'Acuarela sobre papel',
+      dimensions: '60 x 80 cm'
+    }
+  ],
+  3: [ // Sala Digital
+    {
+      src: '/assets/artworks/cuadro5.jpg',
+      title: 'Digital Dreams',
+      artist: 'Sarah Johnson',
+      year: '2024',
+      description: 'Obra digital que explora el subconsciente.',
+      technique: 'Arte digital',
+      dimensions: '90 x 90 cm'
+    }
+  ],
+  4: [ // Sala ARPA - aquí podrías agregar los murales de la base de datos
+    {
+      src: '/assets/artworks/cuadro1.jpg',
+      title: 'Saturnino-Moon',
+      artist: 'Miguel Fernando Lima Rodríguez, Pamela Sánchez Hernández',
+      year: '2024',
+      description: 'Mural colaborativo con temática lunar y saturnina.',
+      technique: 'Acrílico sobre muro',
+      dimensions: '2.46 x 3.8m'
+    },
+    {
+      src: '/assets/artworks/cuadro2.jpg',
+      title: 'Metamorfosis Marina',
+      artist: 'Vanessa Flores "Flores en el Mar"',
+      year: '2024',
+      description: 'Transformación marina en el arte mural.',
+      technique: 'Pintura vinílica sobre muro',
+      dimensions: '5 m x 4.30 m'
+    }
+  ]
+};
+
 const HALL_LENGTH = 40;
 const HALL_WIDTH = 14; // ancho del pasillo aumentado
 const WALL_HEIGHT = 2;
@@ -112,24 +187,25 @@ const CEILING_HEIGHT = 5.5;
 const PICTURE_WIDTH = 3;
 const WALL_MARGIN_INITIAL = 4;
 const WALL_MARGIN_FINAL = 2;
-const PAIRS = Math.ceil(artworkImages.length / 2);
-const FIRST_X = -HALL_LENGTH / 2 + PICTURE_SPACING;
-const LAST_X = FIRST_X + (PAIRS - 1) * PICTURE_SPACING;
-const DYNAMIC_LENGTH = (LAST_X - FIRST_X) + PICTURE_WIDTH + WALL_MARGIN_INITIAL + WALL_MARGIN_FINAL;
-const DYNAMIC_CENTER_X = (FIRST_X + LAST_X) / 2 - (WALL_MARGIN_FINAL - WALL_MARGIN_INITIAL) / 2;
 
 // --- Texturas ---
 const floorTextureUrl = '/assets/textures/floor.jpg';
 const wallTextureUrl = '/assets/textures/wall.jpg';
 const benchTextureUrl = '/assets/textures/bench.jpg';
 
-function getHallwayArtworks(images) {
+function getHallwayArtworks(images, firstX, pictureSpacing) {
   const positions = [];
   const n = images.length;
+  const pairs = Math.ceil(n / 2);
+  
+  // Calcular el espaciado para centrar las obras
+  const totalContentWidth = (pairs - 1) * pictureSpacing;
+  const startX = firstX;
+  
   for (let i = 0; i < n; i++) {
     const side = i % 2 === 0 ? 1 : -1;
     const index = Math.floor(i / 2);
-    const x = -HALL_LENGTH / 2 + PICTURE_SPACING + index * PICTURE_SPACING;
+    const x = startX + index * pictureSpacing;
     const cuadroProfundidad = 0.15;
     const z = side === 1
       ? (HALL_WIDTH / 2 - cuadroProfundidad / 2)
@@ -139,8 +215,6 @@ function getHallwayArtworks(images) {
   }
   return positions;
 }
-
-const artworks = getHallwayArtworks(artworkImages);
 
 function Picture({ src, title, artist, year, description, technique, dimensions, position, rotation = [0, 0, 0], onClick, showPlaque, selected }) {
   const texture = useTexture(src);
@@ -215,7 +289,7 @@ function Bench({ position }) {
   )
 }
 
-function PlayerControls({ moveTo, onArrive, mobileDir, onPassInitialWall, setCameraX }) {
+function PlayerControls({ moveTo, onArrive, mobileDir, onPassInitialWall, setCameraX, FIRST_X, LAST_X, WALL_MARGIN_INITIAL, WALL_MARGIN_FINAL }) {
   const passedWallRef = useRef(false);
   const { camera } = useThree();
   const velocity = useRef(new THREE.Vector3());
@@ -268,7 +342,7 @@ function PlayerControls({ moveTo, onArrive, mobileDir, onPassInitialWall, setCam
 // --- Cálculo de largo dinámico para techo y paredes ---
 const WALL_MARGIN = 2; // margen visual al inicio y final
 
-function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork, showList, showInstructions }) {
+function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork, showList, showInstructions, artworks, DYNAMIC_LENGTH, DYNAMIC_CENTER_X, FIRST_X, LAST_X, WALL_MARGIN_INITIAL, WALL_MARGIN_FINAL }) {
   // Cargar texturas
   const floorTexture = useTexture(floorTextureUrl);
   // Textura para paredes con repetición y anisotropía
@@ -362,7 +436,7 @@ function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork, showList
       <Bench position={[HALL_LENGTH/2 - 6, 0, -HALL_WIDTH/2 + 1.2]} />
 
       {/* Pared inicial */}
-      <mesh position={[FIRST_X - WALL_MARGIN_INITIAL - 0.5, 2.5, 0]}>
+      <mesh position={[FIRST_X - WALL_MARGIN_INITIAL, 2.5, 0]}>
         <boxGeometry args={[0.1, 10, 30]} />
         <meshStandardMaterial color="#f0f0f0" opacity={0.98} transparent />
       </mesh>
@@ -437,7 +511,10 @@ function createCheckerTexture(size = 512, squares = 16) {
   return texture;
 }
 
-export default function GalleryRoom() {
+export default function GalleryRoom({ salaId = 1 }) {
+  // Obtener las obras de la sala específica
+  const artworkImages = artworkSalas[salaId] || artworkSalas[1];
+
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [showList, setShowList] = useState(false);
   const [moveTo, setMoveTo] = useState(null);
@@ -451,6 +528,27 @@ export default function GalleryRoom() {
   const [cameraRef, setCameraRef] = useState(null);
   const [cameraTarget, setCameraTarget] = useState(null);
   const [listIndex, setListIndex] = useState(0);
+
+  // Constantes dinámicas basadas en la cantidad de obras de la sala con mínimo de 6 cuadros
+  const MIN_CUADROS = 6; // Mínimo 6 cuadros
+  const PAIRS = Math.ceil(artworkImages.length / 2);
+  const MIN_PAIRS = Math.ceil(MIN_CUADROS / 2); // Mínimo 3 pares (6 cuadros)
+  const EFFECTIVE_PAIRS = Math.max(MIN_PAIRS, PAIRS); // Usar el mayor entre el real y el mínimo
+  
+  // Calcular dimensiones basadas en los pares efectivos (reales o mínimo)
+  const SPACING_TOTAL = (EFFECTIVE_PAIRS - 1) * PICTURE_SPACING;
+  const CONTENT_LENGTH = SPACING_TOTAL + PICTURE_WIDTH;
+  
+  // Centrar las obras en la sala
+  const FIRST_X = -CONTENT_LENGTH / 2;
+  const LAST_X = FIRST_X + SPACING_TOTAL;
+  
+  // La sala se ajusta al contenido real pero con el mínimo de 6 cuadros
+  const DYNAMIC_LENGTH = CONTENT_LENGTH + WALL_MARGIN_INITIAL + WALL_MARGIN_FINAL;
+  const DYNAMIC_CENTER_X = 0; // Centrado en el origen
+
+  // Crear las obras después de definir las constantes
+  const artworks = getHallwayArtworks(artworkImages, FIRST_X, PICTURE_SPACING);
 
   // Hotkey para abrir/cerrar la lista de obras
   useEffect(() => {
@@ -691,9 +789,14 @@ export default function GalleryRoom() {
       )}
       </AnimatePresence>
       {/* Botón de sonido con icono y hotkey visual */}
-      <div style={{ position: 'absolute', zIndex: 10, top: 80, right: 20, display: 'flex', alignItems: 'center', gap: '1em' }}>
+      <div style={{ position: 'fixed', zIndex: 1000, top: 80, right: 20, display: 'flex', alignItems: 'center', gap: '1em' }}>
         <button
-          onClick={() => setSoundEnabled((v) => !v)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSoundEnabled((v) => !v);
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onMouseUp={(e) => e.stopPropagation()}
           style={{
             background: soundEnabled ? '#ffe082' : '#fff',
             border: '2px solid #222',
@@ -708,7 +811,8 @@ export default function GalleryRoom() {
             cursor: 'pointer',
             transition: 'background 0.2s, box-shadow 0.2s',
             outline: 'none',
-            padding: 0
+            padding: 0,
+            pointerEvents: 'all'
           }}
           aria-label={soundEnabled ? "Desactivar sonido" : "Activar sonido"}
         >
@@ -757,8 +861,30 @@ export default function GalleryRoom() {
             antialias
           >
             {soundEnabled && <BackGroundSound url="/assets/audio.mp3" />}
-            <Room passedInitialWall={passedInitialWall} setSelectedArtwork={setSelectedArtwork} selectedArtwork={selectedArtwork} showList={showList} showInstructions={showInstructions} />
-            <PlayerControls moveTo={moveTo !== null ? artworks[moveTo].position : null} onArrive={() => setMoveTo(null)} onPassInitialWall={() => { setPassedInitialWall(true); }} setCameraX={setCameraX} />
+            <Room 
+              passedInitialWall={passedInitialWall} 
+              setSelectedArtwork={setSelectedArtwork} 
+              selectedArtwork={selectedArtwork} 
+              showList={showList} 
+              showInstructions={showInstructions}
+              artworks={artworks}
+              DYNAMIC_LENGTH={DYNAMIC_LENGTH}
+              DYNAMIC_CENTER_X={DYNAMIC_CENTER_X}
+              FIRST_X={FIRST_X}
+              LAST_X={LAST_X}
+              WALL_MARGIN_INITIAL={WALL_MARGIN_INITIAL}
+              WALL_MARGIN_FINAL={WALL_MARGIN_FINAL}
+            />
+            <PlayerControls 
+              moveTo={moveTo !== null ? artworks[moveTo].position : null} 
+              onArrive={() => setMoveTo(null)} 
+              onPassInitialWall={() => { setPassedInitialWall(true); }} 
+              setCameraX={setCameraX}
+              FIRST_X={FIRST_X}
+              LAST_X={LAST_X}
+              WALL_MARGIN_INITIAL={WALL_MARGIN_INITIAL}
+              WALL_MARGIN_FINAL={WALL_MARGIN_FINAL}
+            />
             <PointerLockControls />
             <CameraLerpController cameraRef={cameraRef} cameraTarget={cameraTarget} setCameraTarget={setCameraTarget} />
           </Canvas>
