@@ -121,12 +121,10 @@
   }
 }
 
-/* Triángulo en el lado izquierdo efecto parallax página principal */
-.clip-triangle-left {
-  clip-path: polygon(0 0, 60% 50%, 0 100%);
+.clip-triangle-right {
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
 }
 
-/* Triángulo en el lado derecho efecto parallax página principal */
-.clip-triangle-right {
-  clip-path: polygon(100% 0, 100% 100%, 40% 50%);
+.clip-triangle-left {
+  clip-path: polygon(100% 0, 0 50%, 100% 100%);
 }
