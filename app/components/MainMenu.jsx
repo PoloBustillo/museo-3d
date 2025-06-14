@@ -108,11 +108,11 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
                 <div className="flex flex-col gap-2">
                   <NavigationMenuLink asChild>
                     <Link
-                     href="/subir-archivo"
+                     href="/crear-sala"
                      onClick={onSubirArchivo}
                       className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all"
                     >
-                      Subir documento
+                      Crear Sala
                     </Link>
                   </NavigationMenuLink>
                   <NavigationMenuLink asChild>

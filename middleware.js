@@ -9,7 +9,7 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         // Definir qué rutas necesitan autenticación
-        const protectedPaths = ["/museo", "/dashboard", "/admin"];
+        const protectedPaths = ["/crear-sala", "/perfil"];
         const isProtectedPath = protectedPaths.some((path) =>
           req.nextUrl.pathname.startsWith(path)
         );
