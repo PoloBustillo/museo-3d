@@ -9,7 +9,7 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         // Definir qué rutas necesitan autenticación
-        const protectedPaths = ["/museo", "/dashboard", "/admin"];
+        const protectedPaths = ["/crear-sala", "/perfil"];
         const isProtectedPath = protectedPaths.some((path) =>
           req.nextUrl.pathname.startsWith(path)
         );
@@ -29,13 +29,13 @@ export default withAuth(
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
+     * Match all request paths except:
+     * - api routes
      * - _next/static (static files)
      * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public (public files)
-     * - api (API routes)
+     * - favicon.ico
+     * - assets folder
      */
-    "/((?!_next/static|_next/image|favicon.ico|public|api).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|assets).*)",
   ],
 };

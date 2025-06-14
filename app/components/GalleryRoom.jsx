@@ -3,6 +3,9 @@
 // React imports
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 
+// NextAuth imports
+import { useSession } from 'next-auth/react';
+
 // Three.js and React Three Fiber imports
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PointerLockControls, useTexture, Html } from '@react-three/drei';
@@ -21,6 +24,14 @@ import { GalleryBenches } from './gallery/GalleryBenches.jsx';
 import { RoomSelectorModal } from './gallery/RoomSelectorModal.jsx';
 import { GalleryWalls } from './gallery/GalleryWalls.jsx';
 import { useProximityDetection } from './gallery/useProximityDetection.js';
+
+// Personal collection utilities
+import { 
+  getPersonalCollection, 
+  addToPersonalCollection, 
+  removeFromPersonalCollection, 
+  isInPersonalCollection 
+} from '../../lib/personalCollection.js';
 
 // Extraer constantes para facilitar el uso
 const { HALL_WIDTH, WALL_HEIGHT, CEILING_HEIGHT, PICTURE_SPACING } = GALLERY_CONFIG;
@@ -172,6 +183,7 @@ function Room({
   setSelectedArtwork, 
   selectedArtwork, 
   showList, 
+  showCollection,
   showInstructions, 
   artworks, 
   galleryDimensions 
@@ -192,7 +204,7 @@ function Room({
           key={i} 
           {...art} 
           onClick={setSelectedArtwork} 
-          showPlaque={passedInitialWall && !selectedArtwork && !showList && !showInstructions} 
+          showPlaque={passedInitialWall && !selectedArtwork && !showList && !showCollection && !showInstructions} 
           selected={selectedArtwork && selectedArtwork.title === art.title}
           selectedArtwork={selectedArtwork}
         />
@@ -240,27 +252,86 @@ function CameraLerpTo({ target, cameraRef, onArrive }) {
 // Componente para animar la cámara suavemente usando useFrame
 function CameraLerpController({ cameraRef, cameraTarget, setCameraTarget }) {
   const { camera } = useThree();
+  const transitionStarted = useRef(false);
+  
   useFrame(() => {
     if (cameraTarget) {
       const [tx, ty, tz] = cameraTarget.position;
-      camera.position.lerp(new THREE.Vector3(tx, ty, tz), 0.08);
-      camera.lookAt(...cameraTarget.lookAt);
-      if (camera.position.distanceTo(new THREE.Vector3(tx, ty, tz)) < 0.05) {
+      const [lx, ly, lz] = cameraTarget.lookAt;
+      
+      // Solo aplicar lerp de posición
+      camera.position.lerp(new THREE.Vector3(tx, ty, tz), 0.12);
+      
+      const distanceToTarget = camera.position.distanceTo(new THREE.Vector3(tx, ty, tz));
+      
+      // Solo aplicar lookAt UNA VEZ al inicio de la transición
+      if (!transitionStarted.current) {
+        camera.lookAt(lx, ly, lz);
+        transitionStarted.current = true;
+        console.log('Transición de cámara iniciada - orientación inicial aplicada');
+      }
+      
+      // Finalizar transición cuando esté cerca
+      if (distanceToTarget < 0.1) {
         camera.position.set(tx, ty, tz);
         setCameraTarget(null);
+        transitionStarted.current = false;
+        console.log('Transición de cámara completada - controles totalmente liberados');
       }
+    } else {
+      transitionStarted.current = false;
     }
   });
   return null;
 }
 
 // Componente para modal con zoom avanzado
-function ZoomModal({ artwork, onClose }) {
+function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
   const [scale, setScale] = useState(1);
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, startX: 0, startY: 0 });
+  const [isInCollection, setIsInCollection] = useState(false);
+  const [collectionMessage, setCollectionMessage] = useState('');
   const imageRef = useRef(null);
+
+  // Verificar si la obra está en la colección al cargar el modal
+  useEffect(() => {
+    setIsInCollection(isInPersonalCollection(artwork, userId));
+  }, [artwork, userId]);
+
+  // Función para manejar la colección
+  const handleCollectionAction = useCallback((e) => {
+    e.stopPropagation();
+    
+    if (isInCollection) {
+      // Remover de la colección
+      const artworkId = `${artwork.title}-${artwork.artist}`;
+      const success = removeFromPersonalCollection(artworkId, userId);
+      if (success) {
+        setIsInCollection(false);
+        setCollectionMessage('🗑️ Removido de tu colección');
+        // Actualizar el contador en el componente principal
+        if (onCollectionUpdate) onCollectionUpdate();
+      } else {
+        setCollectionMessage('❌ Error al remover');
+      }
+    } else {
+      // Añadir a la colección
+      const success = addToPersonalCollection(artwork, userId);
+      if (success) {
+        setIsInCollection(true);
+        setCollectionMessage('✅ ¡Añadido a tu colección!');
+        // Actualizar el contador en el componente principal
+        if (onCollectionUpdate) onCollectionUpdate();
+      } else {
+        setCollectionMessage('⚡ Ya está en tu colección');
+      }
+    }
+    
+    // Limpiar mensaje después de 3 segundos
+    setTimeout(() => setCollectionMessage(''), 3000);
+  }, [artwork, isInCollection, onCollectionUpdate, userId]);
 
   const handleWheel = useCallback((e) => {
     e.preventDefault();
@@ -530,7 +601,7 @@ function ZoomModal({ artwork, onClose }) {
         <div style={{ fontSize: '12px', marginBottom: '8px' }}>✋ Arrastrar: Mover imagen</div>
         <div style={{ fontSize: '12px', marginBottom: '8px' }}>⌨️ +/- : Zoom in/out</div>
         <div style={{ fontSize: '12px', marginBottom: '8px' }}>⌨️ 0 : Tamaño original</div>
-        <div style={{ fontSize: '12px' }}>⌨️ ESC/C : Cerrar y reactivar cámara</div>
+        <div style={{ fontSize: '12px', marginBottom: '8px' }}>⌨️ ESC/C : Cerrar y reactivar cámara</div>
       </div>
 
       {/* Contenedor de imagen */}
@@ -605,6 +676,65 @@ function ZoomModal({ artwork, onClose }) {
             <span><strong>Técnica:</strong> {artwork.technique}</span>
             <span><strong>Dimensiones:</strong> {artwork.dimensions}</span>
           </div>
+          
+          {/* Botón de colección y mensaje */}
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            gap: '12px', 
+            marginTop: '20px' 
+          }}>
+            <button
+              onClick={handleCollectionAction}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: isInCollection ? '2px solid #ff5722' : '2px solid #4caf50',
+                background: isInCollection ? 'rgba(255, 87, 34, 0.1)' : 'rgba(76, 175, 80, 0.1)',
+                color: isInCollection ? '#ff5722' : '#4caf50',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                backdropFilter: 'blur(10px)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = isInCollection ? 'rgba(255, 87, 34, 0.2)' : 'rgba(76, 175, 80, 0.2)';
+                e.target.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = isInCollection ? 'rgba(255, 87, 34, 0.1)' : 'rgba(76, 175, 80, 0.1)';
+                e.target.style.transform = 'scale(1)';
+              }}
+            >
+              {isInCollection ? '🗑️ Remover de mi colección' : '❤️ Guardar en mi colección'}
+            </button>
+            
+            {/* Mensaje de feedback */}
+            {collectionMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  color: '#333',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)'
+                }}
+              >
+                {collectionMessage}
+              </motion.div>
+            )}
+          </div>
         </motion.div>
       )}
     </motion.div>
@@ -612,6 +742,10 @@ function ZoomModal({ artwork, onClose }) {
 }
 
 export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, availableRooms = [] }) {
+  // Obtener sesión del usuario
+  const { data: session, status } = useSession();
+  const userId = session?.user?.id || null;
+
   // Validar que hay murales que mostrar
   if (!murales || murales.length === 0) {
     return (
@@ -652,6 +786,8 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
   // Estados del componente
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [showList, setShowList] = useState(false);
+  const [showCollection, setShowCollection] = useState(false);
+  const [personalCollection, setPersonalCollection] = useState([]);
   const [moveTo, setMoveTo] = useState(null);
   const [menuValue, setMenuValue] = useState("");
   const [showInstructions, setShowInstructions] = useState(true);
@@ -692,11 +828,13 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
     artworkCount: room.id === salaId ? artworkImages.length : null
   }));
 
-  // Hotkey para abrir/cerrar la lista de obras
+  // Hotkey para abrir/cerrar la lista de obras y colección
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key.toLowerCase() === 'l') {
         setShowList((prev) => !prev);
+      } else if (e.key.toLowerCase() === 'm') {
+        setShowCollection((prev) => !prev);
       }
     };
     window.addEventListener('keydown', handleKey);
@@ -733,6 +871,20 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
   }, [soundEnabled]);
 
   useEffect(() => { setIsClient(true); }, []);
+
+  // Cargar colección personal desde localStorage
+  useEffect(() => {
+    if (isClient) {
+      const collection = getPersonalCollection(userId);
+      setPersonalCollection(collection);
+    }
+  }, [isClient, showCollection, userId]); // Recargar cuando se abra el modal de colección o cambie el usuario
+
+  // Función para refrescar la colección (será pasada al ZoomModal)
+  const refreshPersonalCollection = useCallback(() => {
+    const collection = getPersonalCollection(userId);
+    setPersonalCollection(collection);
+  }, [userId]);
 
   // Solicitar pantalla completa al entrar al museo
   useEffect(() => {
@@ -790,16 +942,63 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
     console.log(`Cambiando a sala ${roomId}`);
     if (onRoomChange && typeof onRoomChange === 'function') {
       onRoomChange(roomId);
+      
+      // Reposicionamiento más suave después de cambiar sala
+      setTimeout(() => {
+        if (cameraRef) {
+          // Posicionar en el centro de la galería para evitar quedar atrapado
+          const centerX = (FIRST_X + LAST_X) / 2;
+          const cameraY = 2;
+          const cameraZ = 0; // Centro del pasillo
+          
+          // Posicionar cámara en el centro mirando hacia una de las paredes con obras
+          setCameraTarget({
+            position: [centerX, cameraY, cameraZ],
+            lookAt: [centerX, cameraY, cameraZ + 3] // Mirar hacia una pared con obras
+          });
+          
+          console.log(`Cámara reposicionada al centro de la galería`);
+        }
+      }, 200);
     }
     setShowRoomSelector(false);
     setRoomSelectorPrompted(false);
-  }, [onRoomChange]);
+  }, [onRoomChange, cameraRef, FIRST_X, LAST_X, setCameraTarget]);
 
   const handleCloseRoomSelector = useCallback(() => {
     // El modal se cierra automáticamente al alejarse, no necesitamos forzar el cierre
     // Solo se usa si el usuario presiona ESC
     setShowRoomSelector(false);
   }, []);
+
+  // Efecto para reposicionar cámara cuando cambia de sala (solo si es necesario)
+  useEffect(() => {
+    // Solo ejecutar si hay una cámara, obras, y no hay instrucciones visibles
+    if (cameraRef && artworks.length > 0 && !showInstructions) {
+      console.log(`Sala ${salaId} cargada - verificando si necesita reposicionamiento`);
+      
+      // Solo reposicionar si estamos muy lejos del área de la galería
+      const currentX = cameraRef.position.x;
+      const galleryStartX = FIRST_X - WALL_MARGIN_INITIAL;
+      const galleryEndX = LAST_X + WALL_MARGIN_FINAL;
+      
+      // Solo reposicionar si la cámara está fuera del rango razonable de la galería
+      if (currentX < galleryStartX - 8 || currentX > galleryEndX + 8) {
+        // Posicionar en el centro de la galería para máxima libertad de movimiento
+        const centerX = (FIRST_X + LAST_X) / 2;
+        const cameraY = 2;
+        const cameraZ = 0;
+        
+        console.log(`Cámara fuera del rango (${currentX}), reposicionando al centro [${centerX}, ${cameraY}, ${cameraZ}]`);
+        
+        // Posicionamiento inmediato en el centro mirando hacia las obras
+        cameraRef.position.set(centerX, cameraY, cameraZ);
+        cameraRef.lookAt(centerX, cameraY, cameraZ + 3);
+      } else {
+        console.log('Cámara ya está en posición adecuada, no se reposiciona');
+      }
+    }
+  }, [salaId, cameraRef, artworks.length, showInstructions, FIRST_X, LAST_X, WALL_MARGIN_INITIAL, WALL_MARGIN_FINAL]);
 
   // Efecto para iniciar el movimiento suave al seleccionar una pintura
   useEffect(() => {
@@ -856,7 +1055,15 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
   return (
     <>
       {/* Botón de menú con ícono de pintura en vez de dropdown */}
-      <div style={{ position: 'absolute', zIndex: 30, top: 80, left: 20 }}>
+      <div style={{ 
+        position: 'absolute', 
+        zIndex: 30, 
+        top: 80, 
+        left: 20,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
         <button 
           onClick={() => setShowList(!showList)}
           style={{
@@ -878,6 +1085,51 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
           aria-label="Mostrar lista de obras"
         >
           🎨
+        </button>
+        
+        {/* Botón para mostrar colección personal */}
+        <button
+          onClick={() => setShowCollection(!showCollection)}
+          style={{
+            background: showCollection ? '#ff5722' : '#fff',
+            color: showCollection ? '#fff' : '#333',
+            border: 'none',
+            borderRadius: 12,
+            width: 54,
+            height: 54,
+            fontSize: 28,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: showCollection ? '0 0 0 3px #ff5722' : '0 2px 8px #0002',
+            cursor: 'pointer',
+            transition: 'background 0.2s, box-shadow 0.2s',
+            outline: 'none',
+            padding: 0,
+            position: 'relative'
+          }}
+          aria-label="Mi colección personal"
+        >
+          ❤️
+          {personalCollection.length > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: -4,
+              right: -4,
+              background: '#f44336',
+              color: 'white',
+              borderRadius: '50%',
+              width: 20,
+              height: 20,
+              fontSize: 12,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 'bold'
+            }}>
+              {personalCollection.length}
+            </div>
+          )}
         </button>
       </div>
       {/* Overlay de lista de obras con navegación rápida e indicador visual */}
@@ -935,7 +1187,9 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
       {selectedArtwork && (
         <ZoomModal 
           artwork={selectedArtwork} 
-          onClose={() => setSelectedArtwork(null)} 
+          onClose={() => setSelectedArtwork(null)}
+          onCollectionUpdate={refreshPersonalCollection}
+          userId={userId}
         />
       )}
       </AnimatePresence>
@@ -1016,6 +1270,7 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
         gap: 4
       }}>
         <div><span style={{background:'#222', borderRadius:4, padding:'2px 8px', marginRight:6, fontWeight:'bold'}}>L</span> Lista de obras</div>
+        <div><span style={{background:'#ff5722', borderRadius:4, padding:'2px 8px', marginRight:6, fontWeight:'bold'}}>M</span> Mi colección</div>
         <div><span style={{background:'#222', borderRadius:4, padding:'2px 8px', marginRight:6, fontWeight:'bold'}}>🔊</span> Activar/desactivar sonido</div>
       </div>
       {isClient && (
@@ -1024,8 +1279,8 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
             camera={{ position: [0, 2, 0], fov: 60, rotation: [0, 0, 0] }}
             onCreated={({ camera, gl, scene }) => {
               setCameraRef(camera);
-              // Asegurar que la cámara mire hacia adelante (eje Z negativo)
-              camera.lookAt(0, 2, -5);
+              // Asegurar que la cámara mire hacia la galería (eje Z positivo)
+              camera.lookAt(0, 2, 5);
               gl.shadowMap.enabled = true;
               gl.shadowMap.type = THREE.PCFSoftShadowMap;
               gl.setPixelRatio(window.devicePixelRatio);
@@ -1043,6 +1298,7 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
               setSelectedArtwork={setSelectedArtwork} 
               selectedArtwork={selectedArtwork} 
               showList={showList} 
+              showCollection={showCollection}
               showInstructions={showInstructions}
               artworks={artworks}
               galleryDimensions={galleryDimensions}
@@ -1102,6 +1358,7 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
               <li><b>Mouse</b>: Mirar alrededor</li>
               <li><b>Clic en cuadro</b>: Ver detalles y zoom</li>
               <li><b>L</b>: Abrir/cerrar lista de obras</li>
+              <li><b>M</b>: Ver mi colección personal</li>
               <li><b>🔊</b>: Activar/desactivar sonido</li>
             </ul>
             <div style={{fontSize:'1.6em', color:'#2e7d32', marginBottom:'0.3em'}}>
@@ -1165,6 +1422,189 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
         availableRooms={roomsToShow}
         currentRoom={salaId}
       />
+      
+      {/* Modal de colección personal */}
+      {showCollection && (
+        <div style={{ 
+          position: 'fixed', 
+          top: '50%', 
+          left: '50%', 
+          transform: 'translate(-50%, -50%)',
+          zIndex: 40, 
+          background: 'rgba(255,255,255,0.97)', 
+          maxWidth: 450, 
+          borderRadius: 12, 
+          boxShadow: '0 4px 24px #0002', 
+          padding: 24, 
+          color:'#222', 
+          fontWeight:'bold',
+          maxHeight: '80vh',
+          overflow: 'auto'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h3 style={{marginTop:0, color:'#111', display: 'flex', alignItems: 'center', gap: '8px'}}>
+              ❤️ Mi Colección
+              <span style={{
+                background: '#ff5722',
+                color: 'white',
+                fontSize: '12px',
+                padding: '2px 8px',
+                borderRadius: '12px',
+                fontWeight: 'bold'
+              }}>
+                {personalCollection.length}
+              </span>
+            </h3>
+            <div style={{ fontSize: 12, color: '#666', background: '#f5f5f5', padding: '2px 6px', borderRadius: 4 }}>Presiona <b>M</b> para cerrar</div>
+          </div>
+          
+          {personalCollection.length === 0 ? (
+            <div style={{
+              textAlign: 'center',
+              padding: '40px 20px',
+              color: '#666',
+              fontSize: '14px'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>💔</div>
+              <div style={{ marginBottom: '8px' }}>Tu colección está vacía</div>
+              <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                Haz clic en las obras y usa "❤️ Guardar en mi colección" para añadirlas aquí
+              </div>
+            </div>
+          ) : (
+            <ul style={{listStyle:'none', padding:0, margin:0}}>
+              {personalCollection.map((artwork, i) => (
+                <li key={artwork.id} style={{
+                  marginBottom:12,
+                  display:'flex',
+                  alignItems:'center',
+                  gap:12,
+                  cursor:'pointer',
+                  background: 'transparent',
+                  borderRadius: 8,
+                  padding: '8px',
+                  border: '1px solid #eee',
+                  transition: 'background 0.2s, box-shadow 0.2s',
+                  position: 'relative'
+                }}
+                onClick={() => {
+                  // Buscar la obra en el array de artworks para mostrarla
+                  const foundArtwork = artworks.find(art => 
+                    art.title === artwork.title && art.artist === artwork.artist
+                  );
+                  if (foundArtwork) {
+                    setSelectedArtwork(foundArtwork);
+                    setShowCollection(false);
+                  }
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#f8f8f8';
+                  e.target.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'transparent';
+                  e.target.style.boxShadow = 'none';
+                }}
+                >
+                  <img 
+                    src={artwork.src} 
+                    alt={artwork.title} 
+                    style={{
+                      width:48, 
+                      height:32, 
+                      objectFit:'cover', 
+                      borderRadius:4, 
+                      border:'1px solid #ccc'
+                    }} 
+                  />
+                  <div style={{ flex: 1 }}>
+                    <div style={{color:'#111', fontWeight:'bold', fontSize: '14px'}}>
+                      {artwork.title}
+                    </div>
+                    <div style={{color:'#666', fontSize: '12px', marginTop: '2px'}}>
+                      {artwork.artist} • {artwork.year}
+                    </div>
+                    <div style={{color:'#999', fontSize: '10px', marginTop: '2px'}}>
+                      Añadido: {new Date(artwork.addedAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeFromPersonalCollection(artwork.id, userId);
+                      setPersonalCollection(getPersonalCollection(userId));
+                    }}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#ff5722',
+                      fontSize: '16px',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      borderRadius: '4px',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = 'rgba(255, 87, 34, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = 'transparent';
+                    }}
+                    title="Remover de mi colección"
+                  >
+                    🗑️
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginTop: 16,
+            paddingTop: 16,
+            borderTop: '1px solid #eee'
+          }}>
+            <button 
+              onClick={() => { setShowCollection(false); setMenuValue(""); }} 
+              style={{
+                padding:'0.5em 1.5em', 
+                borderRadius:6, 
+                background:'#222', 
+                color:'#fff', 
+                border:'none', 
+                cursor:'pointer'
+              }}
+            >
+              Cerrar
+            </button>
+            
+            {personalCollection.length > 0 && (
+              <button 
+                onClick={() => {
+                  if (confirm('¿Estás seguro de que quieres limpiar toda tu colección?')) {
+                    sessionStorage.removeItem('personalCollection');
+                    setPersonalCollection([]);
+                  }
+                }}
+                style={{
+                  padding:'0.5em 1em', 
+                  borderRadius:6, 
+                  background:'#ff5722', 
+                  color:'#fff', 
+                  border:'none', 
+                  cursor:'pointer',
+                  fontSize: '12px'
+                }}
+              >
+                🗑️ Limpiar colección
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </>
   )
 }
