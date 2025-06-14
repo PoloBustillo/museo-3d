@@ -950,10 +950,10 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
           const cameraY = 2;
           const cameraZ = 0;
           
-          // Posicionar cámara con orientación más natural
+          // Posicionar cámara mirando hacia las obras (giro de 180°)
           setCameraTarget({
             position: [startX, cameraY, cameraZ],
-            lookAt: [startX + 1, cameraY, cameraZ - 0.5] // Mirar ligeramente hacia adelante y abajo
+            lookAt: [startX - 1, cameraY, cameraZ + 0.5] // Mirar hacia las obras, no hacia la pared
           });
           
           console.log(`Cámara reposicionada suavemente para nueva sala`);
@@ -989,9 +989,9 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
         
         console.log(`Cámara fuera del rango (${currentX}), reposicionando a [${startX}, ${cameraY}, ${cameraZ}]`);
         
-        // Posicionamiento inmediato sin transición para evitar bloqueos
+        // Posicionamiento inmediato mirando hacia las obras (giro de 180°)
         cameraRef.position.set(startX, cameraY, cameraZ);
-        cameraRef.lookAt(startX + 1, cameraY, cameraZ - 0.5);
+        cameraRef.lookAt(startX - 1, cameraY, cameraZ + 0.5);
       } else {
         console.log('Cámara ya está en posición adecuada, no se reposiciona');
       }
@@ -1277,8 +1277,8 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
             camera={{ position: [0, 2, 0], fov: 60, rotation: [0, 0, 0] }}
             onCreated={({ camera, gl, scene }) => {
               setCameraRef(camera);
-              // Asegurar que la cámara mire hacia adelante (eje Z negativo)
-              camera.lookAt(0, 2, -5);
+              // Asegurar que la cámara mire hacia la galería (eje Z positivo)
+              camera.lookAt(0, 2, 5);
               gl.shadowMap.enabled = true;
               gl.shadowMap.type = THREE.PCFSoftShadowMap;
               gl.setPixelRatio(window.devicePixelRatio);
