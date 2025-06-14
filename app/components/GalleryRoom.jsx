@@ -103,6 +103,81 @@ const artworkImages = [
   // Puedes agregar más obras siguiendo este formato
 ];
 
+// Colecciones de obras por sala
+const artworkSalas = {
+  1: [ // Sala Principal
+    {
+      src: '/assets/artworks/cuadro1.jpg',
+      title: 'Abstract Composition I',
+      artist: 'Maria Rodriguez',
+      year: '2023',
+      description: 'Composición abstracta con formas geométricas y colores vibrantes.',
+      technique: 'Óleo sobre lienzo',
+      dimensions: '120 x 90 cm'
+    },
+    {
+      src: '/assets/artworks/cuadro2.jpg',
+      title: 'Urban Landscape',
+      artist: 'John Smith',
+      year: '2022',
+      description: 'Paisaje urbano contemporáneo con perspectiva dinámica.',
+      technique: 'Acrílico sobre madera',
+      dimensions: '100 x 80 cm'
+    }
+  ],
+  2: [ // Sala Contemporánea
+    {
+      src: '/assets/artworks/cuadro3.jpg',
+      title: 'Portrait in Blue',
+      artist: 'Anna Chen',
+      year: '2024',
+      description: 'Retrato expresivo en tonos azules.',
+      technique: 'Mixta sobre papel',
+      dimensions: '70 x 100 cm'
+    },
+    {
+      src: '/assets/artworks/cuadro4.jpg',
+      title: 'Nature Study',
+      artist: 'Carlos Rivera',
+      year: '2023',
+      description: 'Estudio detallado de elementos naturales.',
+      technique: 'Acuarela sobre papel',
+      dimensions: '60 x 80 cm'
+    }
+  ],
+  3: [ // Sala Digital
+    {
+      src: '/assets/artworks/cuadro5.jpg',
+      title: 'Digital Dreams',
+      artist: 'Sarah Johnson',
+      year: '2024',
+      description: 'Obra digital que explora el subconsciente.',
+      technique: 'Arte digital',
+      dimensions: '90 x 90 cm'
+    }
+  ],
+  4: [ // Sala ARPA - aquí podrías agregar los murales de la base de datos
+    {
+      src: '/assets/artworks/cuadro1.jpg',
+      title: 'Saturnino-Moon',
+      artist: 'Miguel Fernando Lima Rodríguez, Pamela Sánchez Hernández',
+      year: '2024',
+      description: 'Mural colaborativo con temática lunar y saturnina.',
+      technique: 'Acrílico sobre muro',
+      dimensions: '2.46 x 3.8m'
+    },
+    {
+      src: '/assets/artworks/cuadro2.jpg',
+      title: 'Metamorfosis Marina',
+      artist: 'Vanessa Flores "Flores en el Mar"',
+      year: '2024',
+      description: 'Transformación marina en el arte mural.',
+      technique: 'Pintura vinílica sobre muro',
+      dimensions: '5 m x 4.30 m'
+    }
+  ]
+};
+
 const HALL_LENGTH = 40;
 const HALL_WIDTH = 14; // ancho del pasillo aumentado
 const WALL_HEIGHT = 2;
@@ -112,24 +187,25 @@ const CEILING_HEIGHT = 5.5;
 const PICTURE_WIDTH = 3;
 const WALL_MARGIN_INITIAL = 4;
 const WALL_MARGIN_FINAL = 2;
-const PAIRS = Math.ceil(artworkImages.length / 2);
-const FIRST_X = -HALL_LENGTH / 2 + PICTURE_SPACING;
-const LAST_X = FIRST_X + (PAIRS - 1) * PICTURE_SPACING;
-const DYNAMIC_LENGTH = (LAST_X - FIRST_X) + PICTURE_WIDTH + WALL_MARGIN_INITIAL + WALL_MARGIN_FINAL;
-const DYNAMIC_CENTER_X = (FIRST_X + LAST_X) / 2 - (WALL_MARGIN_FINAL - WALL_MARGIN_INITIAL) / 2;
 
 // --- Texturas ---
 const floorTextureUrl = '/assets/textures/floor.jpg';
 const wallTextureUrl = '/assets/textures/wall.jpg';
 const benchTextureUrl = '/assets/textures/bench.jpg';
 
-function getHallwayArtworks(images) {
+function getHallwayArtworks(images, firstX, pictureSpacing) {
   const positions = [];
   const n = images.length;
+  const pairs = Math.ceil(n / 2);
+  
+  // Calcular el espaciado para centrar las obras
+  const totalContentWidth = (pairs - 1) * pictureSpacing;
+  const startX = firstX;
+  
   for (let i = 0; i < n; i++) {
     const side = i % 2 === 0 ? 1 : -1;
     const index = Math.floor(i / 2);
-    const x = -HALL_LENGTH / 2 + PICTURE_SPACING + index * PICTURE_SPACING;
+    const x = startX + index * pictureSpacing;
     const cuadroProfundidad = 0.15;
     const z = side === 1
       ? (HALL_WIDTH / 2 - cuadroProfundidad / 2)
@@ -139,8 +215,6 @@ function getHallwayArtworks(images) {
   }
   return positions;
 }
-
-const artworks = getHallwayArtworks(artworkImages);
 
 function Picture({ src, title, artist, year, description, technique, dimensions, position, rotation = [0, 0, 0], onClick, showPlaque, selected }) {
   const texture = useTexture(src);
@@ -215,7 +289,7 @@ function Bench({ position }) {
   )
 }
 
-function PlayerControls({ moveTo, onArrive, mobileDir, onPassInitialWall, setCameraX }) {
+function PlayerControls({ moveTo, onArrive, mobileDir, onPassInitialWall, setCameraX, FIRST_X, LAST_X, WALL_MARGIN_INITIAL, WALL_MARGIN_FINAL }) {
   const passedWallRef = useRef(false);
   const { camera } = useThree();
   const velocity = useRef(new THREE.Vector3());
@@ -247,7 +321,15 @@ function PlayerControls({ moveTo, onArrive, mobileDir, onPassInitialWall, setCam
     direction.current.y = 0;
     velocity.current.copy(direction.current).multiplyScalar(5 * delta);
     camera.position.add(velocity.current);
+    
+    // Límites de movimiento en Z (paredes laterales)
     camera.position.z = Math.max(minZ, Math.min(maxZ, camera.position.z));
+    
+    // Límites de movimiento en X (paredes del inicio y final)
+    const minX = FIRST_X - WALL_MARGIN_INITIAL + 1;
+    const maxX = LAST_X + WALL_MARGIN_FINAL - 1;
+    camera.position.x = Math.max(minX, Math.min(maxX, camera.position.x));
+    
     if (typeof setCameraX === 'function') setCameraX(camera.position.x);
     if (!passedWallRef.current && onPassInitialWall && camera.position.x > FIRST_X - WALL_MARGIN_INITIAL + 0.5) {
       onPassInitialWall();
@@ -260,7 +342,7 @@ function PlayerControls({ moveTo, onArrive, mobileDir, onPassInitialWall, setCam
 // --- Cálculo de largo dinámico para techo y paredes ---
 const WALL_MARGIN = 2; // margen visual al inicio y final
 
-function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork, showList }) {
+function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork, showList, showInstructions, artworks, DYNAMIC_LENGTH, DYNAMIC_CENTER_X, FIRST_X, LAST_X, WALL_MARGIN_INITIAL, WALL_MARGIN_FINAL }) {
   // Cargar texturas
   const floorTexture = useTexture(floorTextureUrl);
   // Textura para paredes con repetición y anisotropía
@@ -342,7 +424,7 @@ function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork, showList
 
       {/* Cuadros */}
       {artworks.map((art, i) => (
-        <Picture key={i} {...art} onClick={setSelectedArtwork} showPlaque={passedInitialWall && !selectedArtwork && !showList} selected={selectedArtwork && selectedArtwork.title === art.title} />
+        <Picture key={i} {...art} onClick={setSelectedArtwork} showPlaque={passedInitialWall && !selectedArtwork && !showList && !showInstructions} selected={selectedArtwork && selectedArtwork.title === art.title} />
       ))}
 
       {/* Bancas pegadas a las paredes */}
@@ -353,10 +435,16 @@ function Room({ passedInitialWall, setSelectedArtwork, selectedArtwork, showList
       <Bench position={[0, 0, -HALL_WIDTH/2 + 1.2]} />
       <Bench position={[HALL_LENGTH/2 - 6, 0, -HALL_WIDTH/2 + 1.2]} />
 
-      {/* Pared de bienvenida cubriendo toda la pantalla */}
-      <mesh position={[FIRST_X - WALL_MARGIN_INITIAL - 2, 2.5, 0]}>
+      {/* Pared inicial */}
+      <mesh position={[FIRST_X - WALL_MARGIN_INITIAL, 2.5, 0]}>
         <boxGeometry args={[0.1, 10, 30]} />
-        <meshStandardMaterial color="#cce6ff" opacity={0.98} transparent />
+        <meshStandardMaterial color="#f0f0f0" opacity={0.98} transparent />
+      </mesh>
+      
+      {/* Pared final */}
+      <mesh position={[LAST_X + WALL_MARGIN_FINAL + 0.5, 2.5, 0]}>
+        <boxGeometry args={[0.1, 10, 30]} />
+        <meshStandardMaterial color="#f0f0f0" opacity={0.98} transparent />
       </mesh>
     </>
   )
@@ -423,7 +511,10 @@ function createCheckerTexture(size = 512, squares = 16) {
   return texture;
 }
 
-export default function GalleryRoom() {
+export default function GalleryRoom({ salaId = 1 }) {
+  // Obtener las obras de la sala específica
+  const artworkImages = artworkSalas[salaId] || artworkSalas[1];
+
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [showList, setShowList] = useState(false);
   const [moveTo, setMoveTo] = useState(null);
@@ -432,11 +523,32 @@ export default function GalleryRoom() {
   const [showInstructions, setShowInstructions] = useState(true);
   const [cameraX, setCameraX] = useState();
   const [selectedArtwork, setSelectedArtwork] = useState(null);
-  const [passedInitialWall, setPassedInitialWall] = useState(false);
+  const [passedInitialWall, setPassedInitialWall] = useState(true); // Empezar como si ya pasó la pared
   const [isClient, setIsClient] = useState(false);
   const [cameraRef, setCameraRef] = useState(null);
   const [cameraTarget, setCameraTarget] = useState(null);
   const [listIndex, setListIndex] = useState(0);
+
+  // Constantes dinámicas basadas en la cantidad de obras de la sala con mínimo de 6 cuadros
+  const MIN_CUADROS = 6; // Mínimo 6 cuadros
+  const PAIRS = Math.ceil(artworkImages.length / 2);
+  const MIN_PAIRS = Math.ceil(MIN_CUADROS / 2); // Mínimo 3 pares (6 cuadros)
+  const EFFECTIVE_PAIRS = Math.max(MIN_PAIRS, PAIRS); // Usar el mayor entre el real y el mínimo
+  
+  // Calcular dimensiones basadas en los pares efectivos (reales o mínimo)
+  const SPACING_TOTAL = (EFFECTIVE_PAIRS - 1) * PICTURE_SPACING;
+  const CONTENT_LENGTH = SPACING_TOTAL + PICTURE_WIDTH;
+  
+  // Centrar las obras en la sala
+  const FIRST_X = -CONTENT_LENGTH / 2;
+  const LAST_X = FIRST_X + SPACING_TOTAL;
+  
+  // La sala se ajusta al contenido real pero con el mínimo de 6 cuadros
+  const DYNAMIC_LENGTH = CONTENT_LENGTH + WALL_MARGIN_INITIAL + WALL_MARGIN_FINAL;
+  const DYNAMIC_CENTER_X = 0; // Centrado en el origen
+
+  // Crear las obras después de definir las constantes
+  const artworks = getHallwayArtworks(artworkImages, FIRST_X, PICTURE_SPACING);
 
   // Hotkey para abrir/cerrar la lista de obras
   useEffect(() => {
@@ -448,11 +560,75 @@ export default function GalleryRoom() {
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, []);
-  // Activar audio automáticamente al pasar la pared de inicio
+
+  // Activar audio cuando el usuario interactúe (navegadores bloquean audio automático)
   useEffect(() => {
-    if (passedInitialWall) setSoundEnabled(true);
-  }, [passedInitialWall]);
+    const enableAudioOnInteraction = () => {
+      if (!soundEnabled) {
+        console.log('Activando audio por interacción del usuario');
+        setSoundEnabled(true);
+      }
+    };
+
+    // Escuchar eventos de interacción
+    const handleKeyDown = (e) => {
+      if (['w', 'a', 's', 'd', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key.toLowerCase())) {
+        enableAudioOnInteraction();
+      }
+    };
+
+    const handleClick = () => {
+      enableAudioOnInteraction();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('click', handleClick);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('click', handleClick);
+    };
+  }, [soundEnabled]);
+
   useEffect(() => { setIsClient(true); }, []);
+
+  // Solicitar pantalla completa al entrar al museo
+  useEffect(() => {
+    const enterFullscreen = async () => {
+      try {
+        if (document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+          console.log('Pantalla completa activada');
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          await document.documentElement.webkitRequestFullscreen();
+          console.log('Pantalla completa activada (webkit)');
+        } else if (document.documentElement.msRequestFullscreen) {
+          await document.documentElement.msRequestFullscreen();
+          console.log('Pantalla completa activada (ms)');
+        }
+      } catch (err) {
+        console.log('No se pudo activar pantalla completa:', err);
+      }
+    };
+    
+    // Solo intentar si no estamos ya en pantalla completa
+    if (!document.fullscreenElement) {
+      enterFullscreen();
+    }
+  }, []);
+
+  // Ocultar instrucciones después de 5 segundos
+  useEffect(() => {
+    console.log('Iniciando temporizador de instrucciones por 5 segundos');
+    const timer = setTimeout(() => {
+      console.log('Ocultando instrucciones después de 5 segundos');
+      setShowInstructions(false);
+    }, 5000);
+    return () => {
+      console.log('Limpiando temporizador de instrucciones');
+      clearTimeout(timer);
+    };
+  }, []);
   // Efecto para iniciar el movimiento suave al seleccionar una pintura
   useEffect(() => {
     if (moveTo !== null && artworks[moveTo]) {
@@ -474,7 +650,7 @@ export default function GalleryRoom() {
 
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'c' || e.key === 'C') {
         if (selectedArtwork) setSelectedArtwork(null);
         if (showList) setShowList(false);
       }
@@ -534,7 +710,10 @@ export default function GalleryRoom() {
       {/* Overlay de lista de obras con navegación rápida e indicador visual */}
       {showList && (
         <div style={{ position: 'absolute', zIndex: 40, top: 60, left: 0, right: 0, background: 'rgba(255,255,255,0.97)', maxWidth: 400, margin: '0 auto', borderRadius: 12, boxShadow: '0 4px 24px #0002', padding: 24, color:'#222', fontWeight:'bold' }}>
-          <h3 style={{marginTop:0, color:'#111'}}>Lista de obras</h3>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <h3 style={{marginTop:0, color:'#111'}}>Lista de obras</h3>
+            <div style={{ fontSize: 12, color: '#666', background: '#f5f5f5', padding: '2px 6px', borderRadius: 4 }}>Presiona <b>C</b> para cerrar</div>
+          </div>
           <ul style={{listStyle:'none', padding:0, margin:0}}>
             {artworks.map((art, i) => (
               <li key={i} style={{
@@ -598,6 +777,7 @@ export default function GalleryRoom() {
             }}
           >
             <button onClick={() => setSelectedArtwork(null)} style={{ position: 'absolute', top: 18, right: 18, fontSize: 28, background: 'none', border: 'none', color: '#333', cursor: 'pointer' }}>×</button>
+            <div style={{ position: 'absolute', top: 18, left: 18, fontSize: 14, color: '#666', background: '#f5f5f5', padding: '4px 8px', borderRadius: 4 }}>Presiona <b>C</b> para cerrar</div>
             <img src={selectedArtwork.src} alt={selectedArtwork.title} style={{ width: '100%', maxHeight: 320, objectFit: 'contain', borderRadius: 12, marginBottom: 18, boxShadow: '0 2px 16px #0002' }} />
             <h2 style={{ margin: '0 0 8px 0', color: '#222' }}>{selectedArtwork.title}</h2>
             <div style={{ color: '#666', fontWeight: 'bold', marginBottom: 8 }}>{selectedArtwork.artist} ({selectedArtwork.year})</div>
@@ -609,9 +789,14 @@ export default function GalleryRoom() {
       )}
       </AnimatePresence>
       {/* Botón de sonido con icono y hotkey visual */}
-      <div style={{ position: 'absolute', zIndex: 10, top: 80, right: 20, display: 'flex', alignItems: 'center', gap: '1em' }}>
+      <div style={{ position: 'fixed', zIndex: 1000, top: 80, right: 20, display: 'flex', alignItems: 'center', gap: '1em' }}>
         <button
-          onClick={() => setSoundEnabled((v) => !v)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setSoundEnabled((v) => !v);
+          }}
+          onMouseDown={(e) => e.stopPropagation()}
+          onMouseUp={(e) => e.stopPropagation()}
           style={{
             background: soundEnabled ? '#ffe082' : '#fff',
             border: '2px solid #222',
@@ -626,7 +811,8 @@ export default function GalleryRoom() {
             cursor: 'pointer',
             transition: 'background 0.2s, box-shadow 0.2s',
             outline: 'none',
-            padding: 0
+            padding: 0,
+            pointerEvents: 'all'
           }}
           aria-label={soundEnabled ? "Desactivar sonido" : "Activar sonido"}
         >
@@ -658,9 +844,11 @@ export default function GalleryRoom() {
       {isClient && (
         <>
           <Canvas
-            camera={{ position: [FIRST_X - WALL_MARGIN_INITIAL - 3, 2, 0], fov: 60 }}
+            camera={{ position: [0, 2, 0], fov: 60, rotation: [0, 0, 0] }}
             onCreated={({ camera, gl, scene }) => {
               setCameraRef(camera);
+              // Asegurar que la cámara mire hacia adelante (eje Z negativo)
+              camera.lookAt(0, 2, -5);
               gl.shadowMap.enabled = true;
               gl.shadowMap.type = THREE.PCFSoftShadowMap;
               gl.setPixelRatio(window.devicePixelRatio);
@@ -673,30 +861,55 @@ export default function GalleryRoom() {
             antialias
           >
             {soundEnabled && <BackGroundSound url="/assets/audio.mp3" />}
-            <Room passedInitialWall={passedInitialWall} setSelectedArtwork={setSelectedArtwork} selectedArtwork={selectedArtwork} showList={showList} />
-            <PlayerControls moveTo={moveTo !== null ? artworks[moveTo].position : null} onArrive={() => setMoveTo(null)} onPassInitialWall={() => { setShowInstructions(false); setPassedInitialWall(true); }} setCameraX={setCameraX} />
+            <Room 
+              passedInitialWall={passedInitialWall} 
+              setSelectedArtwork={setSelectedArtwork} 
+              selectedArtwork={selectedArtwork} 
+              showList={showList} 
+              showInstructions={showInstructions}
+              artworks={artworks}
+              DYNAMIC_LENGTH={DYNAMIC_LENGTH}
+              DYNAMIC_CENTER_X={DYNAMIC_CENTER_X}
+              FIRST_X={FIRST_X}
+              LAST_X={LAST_X}
+              WALL_MARGIN_INITIAL={WALL_MARGIN_INITIAL}
+              WALL_MARGIN_FINAL={WALL_MARGIN_FINAL}
+            />
+            <PlayerControls 
+              moveTo={moveTo !== null ? artworks[moveTo].position : null} 
+              onArrive={() => setMoveTo(null)} 
+              onPassInitialWall={() => { setPassedInitialWall(true); }} 
+              setCameraX={setCameraX}
+              FIRST_X={FIRST_X}
+              LAST_X={LAST_X}
+              WALL_MARGIN_INITIAL={WALL_MARGIN_INITIAL}
+              WALL_MARGIN_FINAL={WALL_MARGIN_FINAL}
+            />
             <PointerLockControls />
             <CameraLerpController cameraRef={cameraRef} cameraTarget={cameraTarget} setCameraTarget={setCameraTarget} />
           </Canvas>
         </>
       )}
-      {/* Instrucciones solo si showInstructions es true y la cámara está ANTES de la pared inicial */}
-      {showInstructions && (typeof cameraX === 'undefined' || cameraX <= FIRST_X - WALL_MARGIN_INITIAL + 0.5) && (
+      {/* Instrucciones solo durante los primeros 5 segundos y cuando no hay placas visibles */}
+      {showInstructions && !selectedArtwork && !showList && (
         <div style={{
           position:'fixed',
-          bottom:120,
+          top:0,
           left:0,
-          right:0,
-          zIndex:200,
+          width:'100vw',
+          height:'100vh',
+          background:'rgba(0,0,0,0.7)',
           display:'flex',
+          alignItems:'center',
           justifyContent:'center',
-          pointerEvents:'none',
+          zIndex:1000,
+          backdropFilter:'blur(8px)'
         }}>
           <div style={{
             background:'rgba(255,255,255,0.98)',
             borderRadius:18,
             padding:'2.2em 2.5em',
-            boxShadow:'0 4px 32px #0002',
+            boxShadow:'0 4px 32px rgba(0,0,0,0.3)',
             fontSize:'1.25em',
             color:'#1a237e',
             fontWeight:'bold',
@@ -713,11 +926,10 @@ export default function GalleryRoom() {
               <li><b>WASD</b> o <b>Flechas</b>: Moverse por el espacio</li>
               <li><b>Click</b>: Activar cámara libre y mirar con el mouse</li>
               <li><b>L</b>: Abrir/cerrar lista de obras</li>
-              <li><b>Esc</b>: Cerrar modales</li>
+              <li><b>C</b>: Cerrar modales</li>
               <li><b>🔊</b>: Activar/desactivar sonido</li>
-              <li>Avanza para atravesar la pared e ingresar al pasillo principal</li>
             </ul>
-            <div style={{fontSize:'1.7em', color:'#3949ab'}}>➡️🚶‍♂️</div>
+            <div style={{fontSize:'1.7em', color:'#3949ab'}}>¡Disfruta el recorrido! 🎨</div>
           </div>
         </div>
       )}

@@ -3,7 +3,8 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 // PUT /api/murales/[id]
-export async function PUT(req, { params }) {
+export async function PUT(req, context) {
+  const params = await context.params;
   const { id } = params;
   try {
     const data = await req.json();
@@ -33,7 +34,8 @@ export async function PUT(req, { params }) {
 }
 
 // DELETE /api/murales/[id]
-export async function DELETE(req, { params }) {
+export async function DELETE(req, context) {
+  const params = await context.params;
   const { id } = params;
   try {
     await prisma.mural.delete({ where: { id: Number(id) } });
