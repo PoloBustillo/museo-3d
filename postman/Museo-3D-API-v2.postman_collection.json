@@ -433,6 +433,35 @@
         },
         {
           "name": "🔍 Obtener mural por ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has mural data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('nombre');",
+                  "    pm.expect(jsonData).to.have.property('autor');",
+                  "    pm.expect(jsonData).to.have.property('tecnica');",
+                  "    pm.expect(jsonData).to.have.property('anio');",
+                  "    pm.expect(jsonData).to.have.property('url_imagen');",
+                  "});",
+                  "",
+                  "pm.test(\"ID matches request\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    var requestedId = pm.request.url.path[2]; // Extract ID from URL path",
+                  "    pm.expect(jsonData.id.toString()).to.eql(requestedId);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "GET",
             "header": [
@@ -442,19 +471,84 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/murales/{{created_mural_id}}",
+              "raw": "{{base_url}}/api/murales/3",
               "host": [
                 "{{base_url}}"
               ],
               "path": [
                 "api",
                 "murales",
-                "{{created_mural_id}}"
+                "3"
               ]
             },
-            "description": "Obtiene un mural específico por su ID. Incluye toda la información detallada y la relación con la sala."
+            "description": "Obtiene un mural específico por su ID. Incluye toda la información detallada y la relación con la sala y el propietario si está disponible."
           },
-          "response": []
+          "response": [
+            {
+              "name": "✅ Éxito - Mural encontrado",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/murales/3",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "murales",
+                    "3"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\\n  \\\"id\\\": 3,\\n  \\\"nombre\\\": \\\"Saturnino-Moon\\\",\\n  \\\"autor\\\": \\\"Miguel Fernando Lima Rodríguez, Pamela Sánchez Hernández\\\",\\n  \\\"colaboradores\\\": \\\"Xally Domínguez Ahuatl\\\",\\n  \\\"tecnica\\\": \\\"Acrílico sobre muro\\\",\\n  \\\"medidas\\\": \\\"2.46 x 3.8m\\\",\\n  \\\"anio\\\": 2024,\\n  \\\"ubicacion\\\": \\\"ARPA 3 descanso escaleras primer piso\\\",\\n  \\\"url_imagen\\\": \\\"https://res.cloudinary.com/daol1ohso/image/upload/v1749847152/Saturnino-Moon_smag4l.jpg\\\",\\n  \\\"salaId\\\": null,\\n  \\\"sala\\\": null\\n}"
+            },
+            {
+              "name": "❌ Error - Mural no encontrado",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/api/murales/999",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "murales",
+                    "999"
+                  ]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\\n  \\\"error\\\": \\\"Mural no encontrado\\\",\\n  \\\"message\\\": \\\"No se encontró un mural con ID 999\\\"\\n}"
+            }
+          ]
         }
       ]
     },
