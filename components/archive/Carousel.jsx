@@ -1,28 +1,10 @@
-// components/archive/Carousel.jsx
-"use client";
-import { useRef, useEffect, useState } from "react";
-import styles from "./Carousel.module.css";
-import "@fortawesome/fontawesome-free/css/all.min.css";
+import { useState, useRef } from "react";
+import ExpandableCard from "./Expandable";
+import styles from "./Carousel.module.css"; // asegúrate que exista
 
-export default function Carousel() {
+export default function Carousel({ title, items }) {
   const slideRef = useRef(null);
-  const [murals, setMurals] = useState([]);
-
-  useEffect(() => {
-    const fetchMurals = async () => {
-      try {
-        const response = await fetch('/api/murales');
-        if (!response.ok) throw new Error("Error fetching data");
-
-        const data = await response.json();
-        setMurals(data.murales); // ← Acceso correcto al array de murales
-      } catch (err) {
-        console.error("Fetch error:", err);
-      }
-    };
-
-    fetchMurals();
-  }, []);
+  const [activeCard, setActiveCard] = useState(null);
 
   const next = () => {
     const first = slideRef.current.children[0];
@@ -37,22 +19,16 @@ export default function Carousel() {
   return (
     <div className={styles.container}>
       <div className={styles.slide} ref={slideRef}>
-        {murals.map((mural) => (
+        {items.map((item, i) => (
           <div
-            key={mural.id}
+            key={i}
             className={styles.item}
-            style={{ backgroundImage: `url(${mural.url_imagen})` }}
+            style={{ backgroundImage: `url(${item.src})` }}
           >
             <div className={styles.content}>
-              <div className={styles.name}>{mural.nombre}</div>
-              <div className={styles.des}>
-                {mural.autor ? `Autor: ${mural.autor}` : "Autor desconocido"}
-                <br />
-                Año: {mural.anio}
-                <br />
-                Ubicación: {mural.ubicacion}
-              </div>
-              <button>See More</button>
+              <div className={styles.name}>{item.title}</div>
+              <div className={styles.des}>{item.autor}</div>
+              <button onClick={() => setActiveCard(item)}>See More</button>
             </div>
           </div>
         ))}
@@ -66,6 +42,10 @@ export default function Carousel() {
           <i className="fa-solid fa-arrow-right"></i>
         </button>
       </div>
+
+      {activeCard && (
+        <ExpandableCard card={activeCard} onClose={() => setActiveCard(null)} />
+      )}
     </div>
   );
 }
