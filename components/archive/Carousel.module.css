@@ -56,20 +56,25 @@
 }
 
 
+.item .content {
+  position: absolute;
+  top: 50%;
+  left: 100px;
+  width: 300px;
+  text-align: left;
+  color: #ffffff; /* más blanco para mayor contraste */
+  transform: translate(0, -50%);
+  font-family: system-ui;
 
-.item .content{
-    position: absolute;
-    top: 50%;
-    left: 100px;
-    width: 300px;
-    text-align: left;
-    color: #eee;
-    transform: translate(0, -50%);
-    font-family: system-ui;
-    text-shadow: 10px 10px 10px rgba(3, 0, 0, 1);
+  /* Sombra de texto más oscura y precisa */
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
 
-    display: none;
-    
+  /* Fondo semitransparente opcional para resaltar texto */
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  border-radius: 0.5rem;
+
+  display: none;
 }
 
 

@@ -109,11 +109,11 @@ export default function ArchiveCarussel () {
     <div>
        
         <div className={styles.searchItem}>
-            <h1>Acervo Arpa</h1>
-            <Search></Search>
+             <h1 className={styles.headingTitle}>Acervo Arpa</h1>
         </div>
         
         <div className={styles.mainContent}>
+            
             <Carousel items={photos} />
             <Gallery photos={photos} />
 
