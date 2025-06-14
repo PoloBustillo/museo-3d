@@ -1,6 +1,6 @@
 import NextAuth from "next-auth";
-import GoogleProvider from "next-auth/providers/google";
-import MicrosoftProvider from "next-auth/providers/azure-ad";
+import Google from "next-auth/providers/google";
+import Microsoft from "next-auth/providers/microsoft";
 
 console.log("🔧 Loading NextAuth configuration...");
 
@@ -28,13 +28,13 @@ console.log(
   process.env.MICROSOFT_CLIENT_SECRET ? "✅ Set" : "❌ Not set"
 );
 
-export const authOptions = {
+export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
-    GoogleProvider({
+    Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
-    MicrosoftProvider({
+    Microsoft({
       clientId: process.env.MICROSOFT_CLIENT_ID || "MICROSOFT_CLIENT_ID_HERE",
       clientSecret:
         process.env.MICROSOFT_CLIENT_SECRET || "MICROSOFT_CLIENT_SECRET_HERE",
@@ -48,15 +48,15 @@ export const authOptions = {
     signIn: "/", // Puedes personalizar la ruta de login
   },
   callbacks: {
-    async signIn({ user, account, profile, email, credentials }) {
+    async signIn({ user, account, profile }) {
       console.log("🔐 SignIn callback:", {
         user: user.email,
-        provider: account.provider,
+        provider: account?.provider,
       });
       return true;
     },
     async session({ session, token }) {
-      console.log("📋 Session callback:", { user: session.user.email });
+      console.log("📋 Session callback:", { user: session.user?.email });
       return session;
     },
     async jwt({ token, user, account, profile }) {
@@ -71,16 +71,10 @@ export const authOptions = {
   },
   events: {
     async signIn(message) {
-      console.log("✅ User signed in:", message.user.email);
+      console.log("✅ User signed in:", message.user?.email);
     },
     async signOut(message) {
       console.log("👋 User signed out:", message.token?.email || "unknown");
-    },
-    async createUser(message) {
-      console.log("👤 New user created:", message.user.email);
-    },
-    async session(message) {
-      console.log("📱 Session active:", message.session.user.email);
     },
   },
   debug: process.env.NODE_ENV === "development",
@@ -95,7 +89,4 @@ export const authOptions = {
       console.log("🐛 NextAuth Debug:", code, metadata);
     },
   },
-};
-
-const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
+});

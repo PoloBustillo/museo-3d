@@ -12,14 +12,17 @@ datasource db {
 
 // Example model
 model User {
-    id            Int      @id @default(autoincrement())
-    email         String   @unique
-    password      String
-    creadoEn      DateTime @default(now())
-    role          String   @default("user")
-    provider      String?
-    salasPropias  Sala[]   @relation("SalaOwner")
-    salasColabora Sala[]   @relation("SalaColaboradores")
+    id            Int       @id @default(autoincrement())
+    email         String    @unique
+    password      String? // Nullable para usuarios OAuth
+    name          String? // Nombre del usuario
+    image         String? // URL de imagen del usuario
+    emailVerified DateTime? // Para NextAuth
+    creadoEn      DateTime  @default(now())
+    role          String    @default("user")
+    provider      String? // OAuth provider
+    salasPropias  Sala[]    @relation("SalaOwner")
+    salasColabora Sala[]    @relation("SalaColaboradores")
 }
 
 model Mural {
