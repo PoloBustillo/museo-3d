@@ -85,7 +85,7 @@ export default function ClientLayout({ children }) {
   return (
     <ParallaxProvider>
       <AuthProvider>
-        <div className="min-h-screen bg-black text-white flex flex-col relative">
+        <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white flex flex-col relative transition-colors duration-300">
           <header className="sticky top-0 z-[60]">
             <MainMenu
               onSubirArchivo={(e) => handleRouteTransition(e, "/crear-sala")}

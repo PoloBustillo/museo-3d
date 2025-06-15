@@ -150,7 +150,7 @@ export default function MuseoPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-700 via-gray-600 to-gray-500 p-10 relative">
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 dark:from-gray-700 dark:via-gray-600 dark:to-gray-500 p-10 relative transition-colors duration-300">
       {/* Efectos de fondo refinados */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -165,13 +165,13 @@ export default function MuseoPage() {
 
       <div className="pt-15 max-w-6xl mx-auto relative z-10">
         <h1
-          className="text-center text-white text-5xl mb-4 font-bold"
+          className="text-center text-gray-900 dark:text-white text-5xl mb-4 font-bold transition-colors duration-300"
           style={{ textShadow: "0 6px 12px rgba(0,0,0,0.7)" }}
         >
           Museo Virtual 3D
         </h1>
         <p
-          className="text-center text-white/95 text-xl mb-4"
+          className="text-center text-gray-800 dark:text-white/95 text-xl mb-4 transition-colors duration-300"
           style={{ textShadow: "0 2px 4px rgba(0,0,0,0.3)" }}
         >
           Explora nuestras salas virtuales y sumérgete en el arte
@@ -179,9 +179,9 @@ export default function MuseoPage() {
 
         {/* Estadísticas del museo */}
         <div
-          className="text-center text-white/95 text-base mb-12 flex justify-center gap-8 flex-wrap rounded-3xl p-5 max-w-4xl mx-auto shadow-2xl border border-white/20"
+          className="text-center text-gray-800 dark:text-white/95 text-base mb-12 flex justify-center gap-8 flex-wrap rounded-3xl p-5 max-w-4xl mx-auto shadow-2xl border border-gray-300 dark:border-white/20 transition-colors duration-300"
           style={{
-            background: "rgba(255, 255, 255, 0.1)",
+            background: "rgba(255, 255, 255, 0.8)",
             backdropFilter: "blur(15px)",
           }}
         >

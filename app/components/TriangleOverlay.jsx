@@ -7,19 +7,20 @@ export default function AnimatedTriangleOverlay({
   text = '',
   side = 'left',
   isFinalStep = false,
+  scrollOpacity = 1,
 }) {
   const isLeft = side === 'left';
 
   return (
     <motion.div
-      key={`${side}-${step}`}
+      key={`triangle-${side}-${step}`} // Key más específica que incluye lado y paso
       initial={{ 
         x: isLeft ? '-100%' : '100%',
         opacity: 0 
       }}
       animate={{ 
         x: '0%',
-        opacity: 1,
+        opacity: 1, // Siempre 1 para la animación
         transition: { 
           duration: 0.6, 
           ease: [0.4, 0, 0.2, 1] 
@@ -34,10 +35,12 @@ export default function AnimatedTriangleOverlay({
         } 
       }}
       className={`
-        fixed top-0 h-full w-1/2 z-[50] bg-black text-white pointer-events-none
+        fixed top-0 h-screen w-1/2 z-[20] bg-black dark:bg-gray-900 text-white pointer-events-none 
+        transition-all duration-200 ease-out
         ${isLeft ? 'left-0 clip-poly-right' : 'right-0 clip-poly-left'}
         flex items-center
       `}
+      style={{ opacity: scrollOpacity }}
     >
       <div className={`
         max-w-md pointer-events-auto

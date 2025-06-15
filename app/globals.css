@@ -116,6 +116,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html,
+  body {
+    height: 100%;
+    overflow-x: hidden;
+  }
   body {
     @apply bg-background text-foreground;
   }
@@ -350,4 +355,21 @@
 
 .to-stone-100 {
   --tw-gradient-to: #f5f5f4;
+}
+
+/* Estilos específicos para la página principal */
+.section {
+  position: relative;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover !important;
+  background-position: center center !important;
+  min-height: 100vh !important;
+  height: 100vh;
+}
+
+@media (max-width: 768px) {
+  .section {
+    background-attachment: scroll; /* Better performance on mobile */
+  }
 }

@@ -23,6 +23,7 @@ export default function Home() {
   const [authModal, setAuthModal] = useState(null);
   const [current, setCurrent] = useState(0);
   const [isClient, setIsClient] = useState(false);
+  const [scrollOpacity, setScrollOpacity] = useState(1);
   const containerRef = useRef(null);
 
   // Evitar problemas de hidratación
@@ -49,6 +50,14 @@ export default function Home() {
       if (clampedCurrent !== current) {
         setCurrent(clampedCurrent);
       }
+
+      // Calcular opacidad basada en el scroll
+      const totalScrollHeight = container.scrollHeight - container.clientHeight;
+      const scrollProgress = Math.min(scrollTop / totalScrollHeight, 1);
+
+      // Opacidad suave: empieza en 1, baja gradualmente hasta 0.2
+      const opacity = Math.max(0.2, 1 - scrollProgress * 0.8);
+      setScrollOpacity(opacity);
     };
 
     const container = containerRef.current;
@@ -65,7 +74,7 @@ export default function Home() {
         container.removeEventListener("scroll", handleScroll);
       }
     };
-  }, [isClient]);
+  }, [isClient, current]); // Agregamos current como dependencia
 
   // Navegación con flechas del teclado
   useEffect(() => {
@@ -101,7 +110,7 @@ export default function Home() {
   // Evitar renderizado hasta que el cliente esté listo
   if (!isClient) {
     return (
-      <div className="h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] bg-black flex items-center justify-center">
+      <div className="h-screen bg-black flex items-center justify-center">
         <div className="text-white">Cargando...</div>
       </div>
     );
@@ -111,14 +120,17 @@ export default function Home() {
     <>
       <div
         ref={containerRef}
-        className="h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] overflow-y-scroll snap-y snap-mandatory"
+        className="h-screen w-full overflow-y-scroll snap-y snap-mandatory"
+        style={{ height: "100vh" }}
       >
         {steps.map((step, index) => (
           <div
             key={index}
             data-index={index}
-            className="section snap-center h-full bg-cover bg-center"
-            style={{ backgroundImage: `url(${step.img})` }}
+            className="section snap-center h-screen w-full"
+            style={{
+              backgroundImage: `url(${step.img})`,
+            }}
           />
         ))}
       </div>
@@ -126,17 +138,18 @@ export default function Home() {
       {/* Overlay triangular fuera del contenedor de scroll */}
       <AnimatePresence mode="wait" initial={false}>
         <AnimatedTriangleOverlay
-          key={`section-${current}-${side}`}
+          key={`triangle-${side}-${current + 1}`}
           step={current + 1}
           text={steps[current] ? steps[current].text : ""}
           side={side}
           isFinalStep={current === steps.length - 1}
+          scrollOpacity={scrollOpacity}
         />
       </AnimatePresence>
 
       {/* Indicador de posición */}
       <div
-        className={`fixed top-1/2 transform -translate-y-1/2 z-50 space-y-3 transition-all duration-500 ${
+        className={`fixed top-1/2 transform -translate-y-1/2 z-[40] space-y-3 transition-all duration-500 ${
           side === "left" ? "right-8" : "left-8"
         }`}
       >
@@ -155,7 +168,7 @@ export default function Home() {
       </div>
 
       {/* Contador de progreso */}
-      <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 bg-black/20 backdrop-blur-sm rounded-full px-4 py-2">
+      <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[40] bg-black/20 backdrop-blur-sm rounded-full px-4 py-2">
         <span className="text-white font-medium">
           {current + 1} / {steps.length}
         </span>

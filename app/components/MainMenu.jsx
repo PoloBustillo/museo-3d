@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import AuthModal from "./AuthModal";
+import ThemeSwitch from "./ThemeSwitch";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -129,7 +130,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
          initial={{ y: 0 }}
          animate={{ y: isVisible ? 0 : -100 }}
          transition={{ duration: 0.3, ease: "easeInOut" }}
-         className="fixed top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-md text-foreground shadow-sm"
+         className="fixed top-0 z-50 w-full border-b border-gray-200 dark:border-gray-700 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md text-gray-900 dark:text-white shadow-sm transition-colors duration-300"
        >
       <div className="max-w-screen-xl mx-auto flex items-center justify-between px-4 py-3 md:py-4">
         {/* Logo */}
@@ -137,8 +138,12 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
           <img
             src="/assets/nav/logo.svg"
             alt="Logo"
-            className="h-8 w-auto flex-shrink-0"
-
+            className="h-8 w-auto flex-shrink-0 dark:hidden"
+          />
+          <img
+            src="/assets/nav/logo-white.svg"
+            alt="Logo"
+            className="h-8 w-auto flex-shrink-0 hidden dark:block"
           />
           <TypewriterText 
             text="Mural ARPA" 
@@ -218,7 +223,10 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
         </NavigationMenu>
 
         {/* Usuario autenticado o botón de login */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+          {/* Theme Switch */}
+          <ThemeSwitch />
+          
           {status === "loading" ? (
             <div className="w-8 h-8 rounded-full bg-muted animate-pulse"></div>
           ) : session ? (
