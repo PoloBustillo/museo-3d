@@ -28,7 +28,7 @@ export default function ExpandableCard({ card, onClose }) {
         {/* Botón de cierre en la esquina */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-2xl font-bold text-red-500 z-10"
+          className="absolute top-4 right-4 text-2xl font-bold text-red-500 z-10 cursor-pointer hover:text-red-600 transition-colors"
         >
           ×
         </button>

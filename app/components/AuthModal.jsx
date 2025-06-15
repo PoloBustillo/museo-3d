@@ -1,51 +1,66 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { signIn } from "next-auth/react";
-import { motion } from "framer-motion";
-import { Dialog, DialogTitle, DialogClose } from "../../components/ui/dialog";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Mail, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function AuthModal({ open, onClose, mode = "login" }) {
   const [form, setForm] = useState({ email: "", password: "", name: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [localMode, setLocalMode] = useState(mode);
-  const [modeKey, setModeKey] = useState(mode);
   const modalRef = useRef();
-  const firstOpen = useRef(true);
 
   useEffect(() => {
     setLocalMode(mode);
-    setModeKey(mode + Date.now()); // fuerza cambio de clave para animación
   }, [mode]);
 
   useEffect(() => {
     if (!open) return;
+    
     const handleKey = (e) => {
-      if (e.key === "Escape") onClose(null);
+      if (e.key === "Escape") {
+        setLocalMode("login");
+        setForm({ email: "", password: "", name: "" });
+        setError("");
+        setLoading(false);
+        setShowPassword(false);
+        onClose(null);
+      }
     };
+    
     window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
-
-  // Detectar si es la primera vez que se abre el modal
-  useEffect(() => {
-    if (open && firstOpen.current) {
-      firstOpen.current = false;
-    }
+    document.body.style.overflow = 'hidden';
+    
+    return () => {
+      window.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = 'unset';
+    };
   }, [open]);
 
-  if (!open) return null;
-
-  const handleClose = () => {
+  const handleClose = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    // Limpiar el estado del modal
     setLocalMode("login");
     setForm({ email: "", password: "", name: "" });
     setError("");
     setLoading(false);
-    onClose(null);
+    setShowPassword(false);
+    
+    // Cerrar el modal
+    if (onClose) {
+      onClose(null);
+    }
   };
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+    if (error) setError(""); // Limpiar error al escribir
   };
 
   const handleSubmit = async (e) => {
@@ -70,9 +85,7 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
         // Registro de usuario
         const response = await fetch("/api/auth/register", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             email: form.email,
             password: form.password,
@@ -88,7 +101,7 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
           return;
         }
 
-        // Registro exitoso, ahora hacer login automáticamente
+        // Registro exitoso, hacer login automáticamente
         const result = await signIn("credentials", {
           email: form.email,
           password: form.password,
@@ -98,7 +111,6 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
         if (result?.error) {
           setError("Cuenta creada, pero error al iniciar sesión. Intenta hacer login.");
         } else {
-          // Éxito
           onClose("success");
         }
       } else {
@@ -112,7 +124,6 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
         if (result?.error) {
           setError("Credenciales incorrectas");
         } else {
-          // Éxito
           onClose("success");
         }
       }
@@ -125,102 +136,217 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
   };
 
   const handleBackdropClick = (e) => {
-    if (modalRef.current && !modalRef.current.contains(e.target)) {
+    if (e.target === e.currentTarget) {
       handleClose();
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={v => { if (!v) handleClose(); }}>
-      <DialogClose onClick={handleClose} />
-      <DialogTitle>{localMode === "login" ? "Iniciar sesión" : "Crear cuenta"}</DialogTitle>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {localMode === "register" && (
-          <label style={{ fontWeight: 'bold', color: '#222' }}>
-            Nombre completo
-            <input 
-              type="text" 
-              name="name" 
-              value={form.name} 
-              onChange={handleChange} 
-              required 
-              style={{ padding: 8, borderRadius: 6, border: '1px solid #bbb', width: '100%', marginTop: 4 }} 
-            />
-          </label>
-        )}
-        <label style={{ fontWeight: 'bold', color: '#222' }}>
-          Correo electrónico
-          <input 
-            type="email" 
-            name="email" 
-            value={form.email} 
-            onChange={handleChange} 
-            required 
-            style={{ padding: 8, borderRadius: 6, border: '1px solid #bbb', width: '100%', marginTop: 4 }} 
-          />
-        </label>
-        <label style={{ fontWeight: 'bold', color: '#222' }}>
-          Contraseña
-          <input 
-            type="password" 
-            name="password" 
-            value={form.password} 
-            onChange={handleChange} 
-            required 
-            minLength="6"
-            style={{ padding: 8, borderRadius: 6, border: '1px solid #bbb', width: '100%', marginTop: 4 }} 
-          />
-        </label>
-        {error && <div style={{ color: '#c62828', fontSize: 15, marginTop: 4 }}>{error}</div>}
-        <button 
-          type="submit" 
-          disabled={loading}
-          style={{ 
-            padding: '0.7em 2em', 
-            fontSize: '1.1em', 
-            borderRadius: 8, 
-            background: loading ? '#ccc' : '#222', 
-            color: '#fff', 
-            border: 'none', 
-            fontWeight: 'bold', 
-            cursor: loading ? 'not-allowed' : 'pointer', 
-            boxShadow: '0 2px 8px #0002', 
-            marginTop: 8 
-          }}
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-50 flex items-center justify-center min-h-screen bg-black/50 backdrop-blur-sm"
+          onClick={handleBackdropClick}
         >
-          {loading ? 'Procesando...' : (localMode === "login" ? "Entrar" : "Crear cuenta")}
-        </button>
-      </form>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '18px 0 8px 0' }}>
-        <button type="button" onClick={() => signIn('google')} style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-          background: '#fff', color: '#222', border: '1.5px solid #bbb', borderRadius: 8, fontWeight: 'bold', fontSize: 16,
-          padding: '0.6em 0', cursor: 'pointer', boxShadow: '0 2px 8px #0001', width: '100%'}}>
-          <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" alt="Google" style={{width:22, height:22, marginRight:6}} />
-          Iniciar sesión con Google
-        </button>
-      </div>
-      <div style={{ marginTop: 18, textAlign: 'center', fontSize: 15, background:'#f5f5fa', borderRadius:8, padding:'0.7em 0', color:'#222', fontWeight:500 }}>
-        {localMode === "login" ? (
-          <>
-            ¿No tienes cuenta?{' '}
-            <a href="#" onClick={e => { 
-              e.preventDefault(); 
-              setLocalMode('register');
-              setError("");
-            }} style={{ color: '#3949ab', fontWeight: 'bold', textDecoration: 'underline', cursor: 'pointer', background:'#fff', padding:'2px 8px', borderRadius:4 }}>Crear una</a>
-          </>
-        ) : (
-          <>
-            ¿Ya tienes cuenta?{' '}
-            <a href="#" onClick={e => { 
-              e.preventDefault(); 
-              setLocalMode('login');
-              setError("");
-            }} style={{ color: '#3949ab', fontWeight: 'bold', textDecoration: 'underline', cursor: 'pointer', background:'#fff', padding:'2px 8px', borderRadius:4 }}>Iniciar sesión</a>
-          </>
-        )}
-      </div>
-    </Dialog>
+          <motion.div
+            ref={modalRef}
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="relative w-full max-w-md mx-4 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+          >
+            {/* Header */}
+            <div className="relative p-6 pb-4 border-b border-gray-100 dark:border-gray-800">
+              <button
+                onClick={handleClose}
+                type="button"
+                className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 cursor-pointer z-10"
+              >
+                <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+              </button>
+              
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                  {localMode === "login" ? "Bienvenido de vuelta" : "Crear cuenta"}
+                </h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                  {localMode === "login" 
+                    ? "Inicia sesión para continuar" 
+                    : "Únete para explorar el museo virtual"
+                  }
+                </p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Nombre (solo registro) */}
+                {localMode === "register" && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Nombre completo
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type="text"
+                        name="name"
+                        value={form.name}
+                        onChange={handleChange}
+                        required
+                        className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
+                        placeholder="Tu nombre completo"
+                      />
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Correo electrónico
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="email"
+                      name="email"
+                      value={form.email}
+                      onChange={handleChange}
+                      required
+                      className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
+                      placeholder="tu@email.com"
+                    />
+                  </div>
+                </div>
+
+                {/* Contraseña */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Contraseña
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      value={form.password}
+                      onChange={handleChange}
+                      required
+                      minLength="6"
+                      className="w-full pl-10 pr-12 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
+                      placeholder="Mínimo 6 caracteres"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4 text-gray-400" />
+                      ) : (
+                        <Eye className="w-4 h-4 text-gray-400" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Error */}
+                <AnimatePresence>
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                    >
+                      <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {loading 
+                    ? "Procesando..." 
+                    : (localMode === "login" ? "Iniciar sesión" : "Crear cuenta")
+                  }
+                </button>
+              </form>
+
+              {/* Divider */}
+              <div className="my-6 flex items-center">
+                <div className="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
+                <span className="px-4 text-sm text-gray-500 dark:text-gray-400">o</span>
+                <div className="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
+              </div>
+
+              {/* Google Sign In */}
+              <button
+                type="button"
+                onClick={() => signIn('google')}
+                className="w-full py-3 px-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 flex items-center justify-center gap-3 font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
+              >
+                <img 
+                  src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" 
+                  alt="Google" 
+                  className="w-5 h-5" 
+                />
+                Continuar con Google
+              </button>
+
+              {/* Toggle Mode */}
+              <div className="mt-6 text-center p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  {localMode === "login" ? (
+                    <>
+                      ¿No tienes cuenta?{' '}
+                      <button
+                        onClick={() => {
+                          setLocalMode('register');
+                          setError("");
+                        }}
+                        className="text-blue-600 dark:text-blue-400 font-medium hover:underline transition-all duration-200 cursor-pointer"
+                      >
+                        Crear una gratis
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      ¿Ya tienes cuenta?{' '}
+                      <button
+                        onClick={() => {
+                          setLocalMode('login');
+                          setError("");
+                        }}
+                        className="text-blue-600 dark:text-blue-400 font-medium hover:underline transition-all duration-200 cursor-pointer"
+                      >
+                        Iniciar sesión
+                      </button>
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
