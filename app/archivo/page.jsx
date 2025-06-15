@@ -62,6 +62,9 @@ const parsedPhotos = (dataImg) => {
         return {
             src: item.url_imagen,
             autor: item.autor,
+            colab: item.colaboradores,
+            medidas:item.medidas,
+            anio: item.anio,
             tecnica: item.tecnica,
             width,
             height,

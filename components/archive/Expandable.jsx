@@ -48,8 +48,14 @@ export default function ExpandableCard({ card, onClose }) {
         <div className="w-full md:w-2/5 flex flex-col justify-center items-center text-center px-4 text-black">
           <h2 className="text-2xl font-semibold mt-2">{card.title}</h2>
           <p className="text-sm">{card.autor}</p>
+          <p className="text-sm">{card.colab}</p>
+          <p className="text-sm">{card.tecnica}</p>
+         
+          <p className="text-sm">{card.medidas}</p>
+          <p className="text-sm">{card.anio}</p>
           {card.description && (
             <p className="mt-2 text-sm">{card.description}</p>
+            
           )}
           <div className="mt-4 text-sm overflow-auto max-h-60">
             {typeof card.content === "function" ? card.content() : card.content}

@@ -1,5 +1,7 @@
 import { useState, useRef } from "react";
 import ExpandableCard from "./Expandable";
+import '@fortawesome/fontawesome-free/css/all.min.css';
+
 import styles from "./Carousel.module.css"; // asegúrate que exista
 
 export default function Carousel({ title, items }) {
@@ -28,7 +30,8 @@ export default function Carousel({ title, items }) {
             <div className={styles.content}>
               <div className={styles.name}>{item.title}</div>
               <div className={styles.des}>{item.autor}</div>
-              <button onClick={() => setActiveCard(item)}>See More</button>
+              <div className={styles.des}>{item.tecnica}</div>
+              <button onClick={() => setActiveCard(item)}>Ver mas</button>
             </div>
           </div>
         ))}
