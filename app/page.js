@@ -24,49 +24,91 @@ export default function Home() {
   const [current, setCurrent] = useState(0);
   const [isClient, setIsClient] = useState(false);
   const [scrollOpacity, setScrollOpacity] = useState(1);
+  const [scrollY, setScrollY] = useState(0);
   const containerRef = useRef(null);
 
   // Evitar problemas de hidratación
   useEffect(() => {
     setIsClient(true);
+
+    // Agregar clase para prevenir scroll del body
+    document.body.classList.add("home-active");
+    document.documentElement.classList.add("home-page");
+
+    return () => {
+      document.body.classList.remove("home-active");
+      document.documentElement.classList.remove("home-page");
+    };
   }, []);
 
   useEffect(() => {
     if (!isClient) return;
 
+    let ticking = false;
+
     const handleScroll = () => {
-      if (!containerRef.current) return;
+      if (!ticking) {
+        requestAnimationFrame(() => {
+          if (!containerRef.current) return;
 
-      const container = containerRef.current;
-      const scrollTop = container.scrollTop;
-      const sectionHeight = container.clientHeight;
-      const newCurrent = Math.round(scrollTop / sectionHeight);
+          const container = containerRef.current;
+          const scrollTop = container.scrollTop;
+          const sectionHeight = container.clientHeight;
+          const totalHeight = sectionHeight * steps.length;
 
-      const clampedCurrent = Math.max(
-        0,
-        Math.min(newCurrent, steps.length - 1)
-      );
+          // Actualizar posición de scroll para parallax
+          setScrollY(scrollTop);
 
-      if (clampedCurrent !== current) {
-        setCurrent(clampedCurrent);
+          // Calcular sección actual basada en el scroll
+          const newCurrent = Math.floor(
+            (scrollTop + sectionHeight * 0.5) / sectionHeight
+          );
+          const clampedCurrent = Math.max(
+            0,
+            Math.min(newCurrent, steps.length - 1)
+          );
+
+          if (clampedCurrent !== current) {
+            setCurrent(clampedCurrent);
+          }
+
+          // Opacidad del triángulo basada en la proximidad a la sección actual
+          const currentSectionStart = current * sectionHeight;
+
+          // Calcular qué tan cerca estamos del centro de la sección actual
+          const sectionCenter = currentSectionStart + sectionHeight / 2;
+          const distanceFromCenter = Math.abs(
+            scrollTop + sectionHeight / 2 - sectionCenter
+          );
+          const maxDistance = sectionHeight / 2;
+
+          // Opacidad basada en proximidad al centro de la sección
+          let opacity;
+          if (distanceFromCenter <= maxDistance * 0.3) {
+            // En el centro de la sección: totalmente visible
+            opacity = 1;
+          } else if (distanceFromCenter <= maxDistance) {
+            // Transición suave hacia los bordes
+            const fadeProgress =
+              (distanceFromCenter - maxDistance * 0.3) / (maxDistance * 0.7);
+            opacity = 1 - fadeProgress * fadeProgress; // Curva cuadrática para transición más suave
+          } else {
+            // Fuera de la sección: invisible
+            opacity = 0;
+          }
+
+          setScrollOpacity(opacity);
+
+          ticking = false;
+        });
+        ticking = true;
       }
-
-      // Calcular opacidad basada en el scroll
-      const totalScrollHeight = container.scrollHeight - container.clientHeight;
-      const scrollProgress = Math.min(scrollTop / totalScrollHeight, 1);
-
-      // Opacidad suave: empieza en 1, baja gradualmente hasta 0.2
-      const opacity = Math.max(0.2, 1 - scrollProgress * 0.8);
-      setScrollOpacity(opacity);
     };
 
     const container = containerRef.current;
     if (container) {
-      // Agregar listener de scroll con passive: false para mejor control
-      container.addEventListener("scroll", handleScroll, { passive: false });
-
-      // Llamar una vez al inicio para establecer el estado inicial
-      handleScroll();
+      container.addEventListener("scroll", handleScroll, { passive: true });
+      handleScroll(); // Llamar una vez al inicio
     }
 
     return () => {
@@ -103,8 +145,13 @@ export default function Home() {
   const side = current % 2 === 0 ? "left" : "right";
 
   const scrollToSection = (index) => {
-    const section = containerRef.current?.children[index];
-    section?.scrollIntoView({ behavior: "smooth" });
+    if (!containerRef.current) return;
+    const sectionHeight = containerRef.current.clientHeight;
+    const targetScrollTop = index * sectionHeight;
+    containerRef.current.scrollTo({
+      top: targetScrollTop,
+      behavior: "smooth",
+    });
   };
 
   // Evitar renderizado hasta que el cliente esté listo
@@ -117,19 +164,124 @@ export default function Home() {
   }
 
   return (
-    <>
+    <div className="home-page">
       <div
         ref={containerRef}
-        className="h-screen w-full overflow-y-scroll snap-y snap-mandatory"
-        style={{ height: "100vh" }}
+        className="h-screen w-full overflow-y-scroll parallax-container relative"
+        style={{
+          height: "100vh",
+          maxHeight: "100vh",
+          overflow: "hidden auto", // Solo scroll vertical
+        }}
       >
+        {/* Fondos con parallax absolutos */}
+        {steps.map((step, index) => {
+          const sectionHeight = containerRef.current?.clientHeight || 800;
+          const sectionOffset = index * sectionHeight;
+
+          // Calcular el parallax de manera que la imagen se mantenga centrada en su sección
+          const scrollFromSectionStart = scrollY - sectionOffset;
+          const parallaxOffset = scrollFromSectionStart * 0.1; // Parallax positivo más sutil
+
+          // Calcular opacidad basada en la proximidad a la sección
+          const distanceFromSection = Math.abs(scrollY - sectionOffset);
+          const normalizedDistance = distanceFromSection / sectionHeight;
+
+          // Opacidad más gradual y suave
+          let opacity = 1;
+          if (normalizedDistance > 1.2) {
+            opacity = Math.max(0.1, 1 - (normalizedDistance - 1.2) * 0.5);
+          } else if (normalizedDistance > 0.8) {
+            opacity = 1 - (normalizedDistance - 0.8) * 0.5;
+          }
+
+          // Efectos de zoom más suaves y graduales
+          const scrollProgress = Math.max(
+            0,
+            Math.min(
+              1,
+              (scrollY - sectionOffset + sectionHeight) / (sectionHeight * 2)
+            )
+          );
+
+          // Zoom más sutil y gradual
+          let scale = 1;
+          let blur = 0;
+
+          if (scrollProgress < 0.3) {
+            // Entrando: zoom muy sutil desde 1.05 a 1.0
+            scale = 1.05 - scrollProgress * 0.17; // Reducido de 0.4 a 0.17
+            blur = (0.3 - scrollProgress) * 3; // Reducido de 8 a 3
+          } else if (scrollProgress > 0.7) {
+            // Saliendo: zoom sutil desde 1.0 a 0.95
+            scale = 1.0 - (scrollProgress - 0.7) * 0.17; // Reducido de 0.4 a 0.17
+            blur = (scrollProgress - 0.7) * 4; // Reducido de 12 a 4
+          }
+
+          // Rotación más sutil
+          const rotation = (scrollProgress - 0.5) * 0.5; // Reducido de 2 a 0.5 grados
+
+          return (
+            <div
+              key={`bg-${index}`}
+              className="absolute w-full h-full pointer-events-none overflow-hidden"
+              style={{
+                top: `${index * 100}vh`, // Posicionar cada imagen en su sección
+                opacity: opacity,
+                zIndex: Math.floor(opacity * 10), // Z-index basado en opacidad
+                willChange: "transform, opacity, filter",
+              }}
+            >
+              <div
+                className="absolute inset-0 w-full h-[130vh]"
+                style={{
+                  top: "-15vh",
+                  backgroundImage: `url(${step.img})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center center",
+                  backgroundRepeat: "no-repeat",
+                  transform: `
+                    translate3d(0, ${parallaxOffset}px, 0) 
+                    scale(${scale}) 
+                    rotate(${rotation}deg)
+                  `,
+                  filter: `blur(${blur}px) brightness(${
+                    1 + (scrollProgress - 0.5) * 0.1
+                  })`, // Brillo más sutil
+                  transition: "filter 0.2s ease-out",
+                }}
+              />
+
+              {/* Overlay de gradiente más sutil */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: `
+                    radial-gradient(circle at center, 
+                      transparent ${70 + scrollProgress * 15}%, 
+                      rgba(0,0,0,${scrollProgress * 0.15}) 100%
+                    )
+                  `,
+                  opacity:
+                    scrollProgress > 0.8 ? (scrollProgress - 0.8) * 2.5 : 0, // Más gradual
+                }}
+              />
+            </div>
+          );
+        })}
+
+        {/* Secciones de contenido (transparentes para scroll) */}
         {steps.map((step, index) => (
           <div
-            key={index}
+            key={`section-${index}`}
             data-index={index}
-            className="section snap-center h-screen w-full"
+            className="section h-screen w-full relative"
             style={{
-              backgroundImage: `url(${step.img})`,
+              backgroundColor: "transparent",
+              height: "100vh",
+              maxHeight: "100vh",
+              minHeight: "100vh",
+              boxSizing: "border-box",
             }}
           />
         ))}
@@ -152,6 +304,9 @@ export default function Home() {
         className={`fixed top-1/2 transform -translate-y-1/2 z-[40] space-y-3 transition-all duration-500 ${
           side === "left" ? "right-8" : "left-8"
         }`}
+        style={{
+          opacity: scrollOpacity > 0.3 ? 1 : 0.3, // Se desvanece junto con el triángulo
+        }}
       >
         {steps.map((_, index) => (
           <button
@@ -168,7 +323,12 @@ export default function Home() {
       </div>
 
       {/* Contador de progreso */}
-      <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[40] bg-black/20 backdrop-blur-sm rounded-full px-4 py-2">
+      <div
+        className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[40] bg-black/20 backdrop-blur-sm rounded-full px-4 py-2 transition-all duration-500"
+        style={{
+          opacity: scrollOpacity > 0.3 ? 1 : 0.3, // Se desvanece junto con el triángulo
+        }}
+      >
         <span className="text-white font-medium">
           {current + 1} / {steps.length}
         </span>
@@ -181,6 +341,6 @@ export default function Home() {
           onClose={(mode) => setAuthModal(mode || null)}
         />
       )}
-    </>
+    </div>
   );
 }
