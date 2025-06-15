@@ -1,9 +1,7 @@
 "use client";
-import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
-import AuthModal from "./components/AuthModal";
 import { AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
+import AuthModal from "./components/AuthModal";
 import AnimatedTriangleOverlay from "./components/TriangleOverlay";
 
 const steps = [
@@ -22,74 +20,145 @@ const steps = [
 ];
 
 export default function Home() {
-  const [uploadedFiles, setUploadedFiles] = useState([]);
   const [authModal, setAuthModal] = useState(null);
   const [current, setCurrent] = useState(0);
+  const [isClient, setIsClient] = useState(false);
   const containerRef = useRef(null);
 
-  const fileInputRef = useRef();
-  const router = useRouter();
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const files = Array.from(e.dataTransfer.files);
-    setUploadedFiles((prev) => [...prev, ...files]);
-  };
-  const handleFileChange = (e) => {
-    const files = Array.from(e.target.files);
-    setUploadedFiles((prev) => [...prev, ...files]);
-  };
-  const handleDragOver = (e) => e.preventDefault();
-  const handleSubirArchivo = (e) => {
-    e.preventDefault();
-    setTransitioning(true);
-    setTimeout(() => {
-      router.push("/crear-sala");
-    }, 900);
-  };
-
+  // Evitar problemas de hidratación
   useEffect(() => {
-    const obs = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            setCurrent(Number(e.target.dataset.index));
-          }
-        });
-      },
-      { root: containerRef.current, threshold: 0.5 }
-    );
-    const secs = containerRef.current.querySelectorAll(".section");
-    secs.forEach((s) => obs.observe(s));
-    return () => obs.disconnect();
+    setIsClient(true);
   }, []);
 
+  useEffect(() => {
+    if (!isClient) return;
+
+    const handleScroll = () => {
+      if (!containerRef.current) return;
+
+      const container = containerRef.current;
+      const scrollTop = container.scrollTop;
+      const sectionHeight = container.clientHeight;
+      const newCurrent = Math.round(scrollTop / sectionHeight);
+
+      const clampedCurrent = Math.max(
+        0,
+        Math.min(newCurrent, steps.length - 1)
+      );
+
+      if (clampedCurrent !== current) {
+        setCurrent(clampedCurrent);
+      }
+    };
+
+    const container = containerRef.current;
+    if (container) {
+      // Agregar listener de scroll con passive: false para mejor control
+      container.addEventListener("scroll", handleScroll, { passive: false });
+
+      // Llamar una vez al inicio para establecer el estado inicial
+      handleScroll();
+    }
+
+    return () => {
+      if (container) {
+        container.removeEventListener("scroll", handleScroll);
+      }
+    };
+  }, [isClient]);
+
+  // Navegación con flechas del teclado
+  useEffect(() => {
+    if (!isClient) return;
+
+    const handleKeyPress = (e) => {
+      if (e.key === "ArrowDown" || e.key === " ") {
+        e.preventDefault();
+        const nextIndex = Math.min(current + 1, steps.length - 1);
+        if (nextIndex !== current) {
+          scrollToSection(nextIndex);
+        }
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        const prevIndex = Math.max(current - 1, 0);
+        if (prevIndex !== current) {
+          scrollToSection(prevIndex);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [isClient, current]);
+
   const side = current % 2 === 0 ? "left" : "right";
+
+  const scrollToSection = (index) => {
+    const section = containerRef.current?.children[index];
+    section?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // Evitar renderizado hasta que el cliente esté listo
+  if (!isClient) {
+    return (
+      <div className="h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] bg-black flex items-center justify-center">
+        <div className="text-white">Cargando...</div>
+      </div>
+    );
+  }
 
   return (
     <>
       <div
         ref={containerRef}
-        className="h-screen overflow-y-scroll snap-y snap-mandatory"
+        className="h-[calc(100vh-4rem)] md:h-[calc(100vh-5rem)] overflow-y-scroll snap-y snap-mandatory"
       >
-        {steps.map((s, i) => (
+        {steps.map((step, index) => (
           <div
-            key={i}
-            data-index={i}
-            className="section snap-center h-screen bg-cover bg-center"
-            style={{ backgroundImage: `url(${s.img})` }}
+            key={index}
+            data-index={index}
+            className="section snap-center h-full bg-cover bg-center"
+            style={{ backgroundImage: `url(${step.img})` }}
           />
         ))}
+      </div>
 
-        <AnimatePresence mode="wait">
-          <AnimatedTriangleOverlay
-            key={current}
-            step={current + 1}
-            text={steps[current].text}
-            side={side}
-            isFinalStep={current === steps.length - 1}
+      {/* Overlay triangular fuera del contenedor de scroll */}
+      <AnimatePresence mode="wait" initial={false}>
+        <AnimatedTriangleOverlay
+          key={`section-${current}-${side}`}
+          step={current + 1}
+          text={steps[current] ? steps[current].text : ""}
+          side={side}
+          isFinalStep={current === steps.length - 1}
+        />
+      </AnimatePresence>
+
+      {/* Indicador de posición */}
+      <div
+        className={`fixed top-1/2 transform -translate-y-1/2 z-50 space-y-3 transition-all duration-500 ${
+          side === "left" ? "right-8" : "left-8"
+        }`}
+      >
+        {steps.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => scrollToSection(index)}
+            className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              index === current
+                ? "bg-white scale-125 shadow-lg"
+                : "bg-white/50 hover:bg-white/75"
+            }`}
+            aria-label={`Ir a sección ${index + 1}`}
           />
-        </AnimatePresence>
+        ))}
+      </div>
+
+      {/* Contador de progreso */}
+      <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 bg-black/20 backdrop-blur-sm rounded-full px-4 py-2">
+        <span className="text-white font-medium">
+          {current + 1} / {steps.length}
+        </span>
       </div>
 
       {authModal && (

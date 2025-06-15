@@ -95,30 +95,10 @@ export default function MuseoPage() {
 
   if (salaSeleccionada) {
     return (
-      <div
-        style={{
-          position: "fixed",
-          inset: 0,
-          width: "100vw",
-          height: "100vh",
-          zIndex: 1,
-        }}
-      >
+      <div className="fixed top-16 md:top-20 left-0 right-0 bottom-0 z-[1]">
         <button
           onClick={() => setSalaSeleccionada(null)}
-          style={{
-            position: "absolute",
-            top: 20,
-            left: 20,
-            zIndex: 1000,
-            background: "rgba(255,255,255,0.9)",
-            border: "2px solid #333",
-            borderRadius: 8,
-            padding: "8px 16px",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: 14,
-          }}
+          className="absolute top-5 left-5 z-[1000] bg-white/90 border-2 border-gray-800 rounded-lg px-4 py-2 cursor-pointer font-bold text-sm hover:bg-white transition-colors"
         >
           ← Volver a salas
         </button>
@@ -143,25 +123,9 @@ export default function MuseoPage() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "linear-gradient(135deg, #282828 0%, #3c3c3c 25%, #515151 50%, #6d6d6d 75%, #909090 100%)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div style={{ textAlign: "center", color: "white" }}>
-          <div
-            style={{
-              fontSize: "3rem",
-              marginBottom: "1rem",
-              animation: "pulse 2s infinite",
-            }}
-          >
-            🎨
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-700 via-gray-600 to-gray-500 flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="text-5xl mb-4 animate-pulse">🎨</div>
           <h2>Cargando salas del museo...</h2>
           <p>Conectando con la base de datos</p>
         </div>
@@ -171,31 +135,12 @@ export default function MuseoPage() {
 
   if (error) {
     return (
-      <div
-        style={{
-          minHeight: "100vh",
-          background: "linear-gradient(135deg, #282828 0%, #3c3c3c 25%, #515151 50%, #6d6d6d 75%, #909090 100%)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <div
-          style={{
-            textAlign: "center",
-            color: "white",
-            background: "rgba(255,255,255,0.1)",
-            padding: "2rem",
-            borderRadius: "16px",
-            maxWidth: "500px",
-            backdropFilter: "blur(10px)",
-            border: "1px solid rgba(255,255,255,0.2)",
-          }}
-        >
-          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>⚠️</div>
+      <div className="min-h-screen bg-gradient-to-br from-gray-700 via-gray-600 to-gray-500 flex items-center justify-center">
+        <div className="text-center text-white bg-white/10 p-8 rounded-2xl max-w-lg backdrop-blur-lg border border-white/20">
+          <div className="text-5xl mb-4">⚠️</div>
           <h2>Error al cargar las salas</h2>
-          <p style={{ marginBottom: "1rem" }}>{error}</p>
-          <p style={{ fontSize: "0.9rem", opacity: 0.8 }}>
+          <p className="mb-4">{error}</p>
+          <p className="text-sm opacity-80">
             Mostrando salas de ejemplo. Verifica que el servidor esté
             ejecutándose.
           </p>
@@ -205,136 +150,59 @@ export default function MuseoPage() {
   }
 
   return (
-    <div
-  style={{
-    minHeight: "100vh",
-    background: "linear-gradient(135deg, #282828 0%, #3c3c3c 25%, #515151 50%, #6d6d6d 75%, #909090 100%)",
-    padding: "40px 20px",
-    position: "relative",
-  }}
->
-  {/* Efectos de fondo refinados */}
-  <div
-    style={{
-      position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: `
-        radial-gradient(circle at 25% 55%, rgba(90, 90, 120, 0.25) 0%, transparent 50%),
-        radial-gradient(circle at 75% 25%, rgba(160, 120, 200, 0.2) 0%, transparent 50%),
-        radial-gradient(circle at 45% 85%, rgba(100, 160, 220, 0.2) 0%, transparent 50%)
-      `,
-      pointerEvents: "none",
-    }}
-  />
-
-
+    <div className="min-h-screen bg-gradient-to-br from-gray-700 via-gray-600 to-gray-500 p-10 relative">
+      {/* Efectos de fondo refinados */}
       <div
+        className="absolute inset-0 pointer-events-none"
         style={{
-          paddingTop: "60px",
-          maxWidth: 1200,
-          margin: "0 auto",
-          position: "relative",
-          zIndex: 1,
+          background: `
+            radial-gradient(circle at 25% 55%, rgba(90, 90, 120, 0.25) 0%, transparent 50%),
+            radial-gradient(circle at 75% 25%, rgba(160, 120, 200, 0.2) 0%, transparent 50%),
+            radial-gradient(circle at 45% 85%, rgba(100, 160, 220, 0.2) 0%, transparent 50%)
+          `,
         }}
-      >
+      />
+
+      <div className="pt-15 max-w-6xl mx-auto relative z-10">
         <h1
-        style={{
-          textAlign: "center",
-          color: "white",
-          fontSize: "3rem",
-          marginBottom: "1rem",
-          textShadow: "0 6px 12px rgba(0,0,0,0.7)",
-          fontWeight: "700",
-        }}
-        > Museo Virtual 3D 
+          className="text-center text-white text-5xl mb-4 font-bold"
+          style={{ textShadow: "0 6px 12px rgba(0,0,0,0.7)" }}
+        >
+          Museo Virtual 3D
         </h1>
         <p
-          style={{
-            textAlign: "center",
-            color: "rgba(255,255,255,0.95)",
-            fontSize: "1.2rem",
-            marginBottom: "1rem",
-            textShadow: "0 2px 4px rgba(0,0,0,0.3)",
-          }}
+          className="text-center text-white/95 text-xl mb-4"
+          style={{ textShadow: "0 2px 4px rgba(0,0,0,0.3)" }}
         >
           Explora nuestras salas virtuales y sumérgete en el arte
         </p>
 
         {/* Estadísticas del museo */}
         <div
+          className="text-center text-white/95 text-base mb-12 flex justify-center gap-8 flex-wrap rounded-3xl p-5 max-w-4xl mx-auto shadow-2xl border border-white/20"
           style={{
-            textAlign: "center",
-            color: "rgba(255,255,255,0.95)",
-            fontSize: "1rem",
-            marginBottom: "3rem",
-            display: "flex",
-            justifyContent: "center",
-            gap: "2rem",
-            flexWrap: "wrap",
-            background: "rgba(255, 255, 255, 0.15)", 
-            backdropFilter: "blur(16px) saturate(180%)", 
-            WebkitBackdropFilter: "blur(16px) saturate(180%)",
-            border: "1px solid rgba(255, 255, 255, 0.25)", 
-            borderRadius: "20px",
-            padding: "1.2rem 2.5rem", 
-            maxWidth: "850px",
-            margin: "0 auto 3rem auto",
-            boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.3)", 
+            background: "rgba(255, 255, 255, 0.1)",
+            backdropFilter: "blur(15px)",
           }}
         >
-          <span style={{ fontWeight: "600" }}>
+          <span className="font-semibold">
             🏛️ {salas.length} salas disponibles
           </span>
-          <span style={{ fontWeight: "600" }}>
+          <span className="font-semibold">
             🎨 {salas.reduce((total, sala) => total + sala.cantidadMurales, 0)}{" "}
             murales totales
           </span>
-          <span style={{ fontWeight: "600" }}>
+          <span className="font-semibold">
             👥 {new Set(salas.map((sala) => sala.propietario)).size} curadores
           </span>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-            gap: "2rem",
-            marginTop: "2rem",
-          }}
-        >
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
           {salas.map((sala) => (
             <div
               key={sala.id}
               onClick={() => setSalaSeleccionada(sala.id)}
-              style={{
-                background: "rgba(255,255,255,0.95)",
-                backdropFilter: "blur(20px)",
-                borderRadius: 20,
-                padding: 0,
-                cursor: "pointer",
-                boxShadow: "0 12px 40px rgba(0,0,0,0.15)",
-                transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-                overflow: "hidden",
-                transform: "translateY(0)",
-                border: "1px solid rgba(255,255,255,0.3)",
-                position: "relative",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform =
-                  "translateY(-12px) scale(1.02)";
-                e.currentTarget.style.boxShadow =
-                  "0 20px 60px rgba(0,0,0,0.25)";
-                e.currentTarget.style.background = "rgba(255,255,255,0.98)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "translateY(0) scale(1)";
-                e.currentTarget.style.boxShadow =
-                  "0 12px 40px rgba(0,0,0,0.15)";
-                e.currentTarget.style.background = "rgba(255,255,255,0.95)";
-              }}
+              className="bg-white/95 backdrop-blur-xl rounded-3xl cursor-pointer shadow-2xl overflow-hidden relative border border-white/30 transition-all duration-300 hover:transform hover:-translate-y-2 hover:scale-105 hover:shadow-3xl"
             >
               {/* Imagen de preview de la sala */}
               <div
@@ -468,23 +336,22 @@ export default function MuseoPage() {
 
         {/* Información adicional */}
         <div
-        style={{
-          marginTop: "3rem",
-          textAlign: "center",
-          color: "rgb(255, 255, 255)",
-          fontSize: "1rem",
-          background: "rgba(255, 255, 255, 0.12)", 
-          backdropFilter: "blur(16px) saturate(180%)", 
-          WebkitBackdropFilter: "blur(16px) saturate(180%)",
-          border: "1px solid rgba(255, 255, 255, 0.25)", 
-          borderRadius: "20px", 
-          padding: "1.5rem 2rem", 
-          maxWidth: "650px",
-          margin: "3rem auto 0 auto",
-          boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.3)",
-        }}
-      >
-
+          style={{
+            marginTop: "3rem",
+            textAlign: "center",
+            color: "rgb(255, 255, 255)",
+            fontSize: "1rem",
+            background: "rgba(255, 255, 255, 0.12)",
+            backdropFilter: "blur(16px) saturate(180%)",
+            WebkitBackdropFilter: "blur(16px) saturate(180%)",
+            border: "1px solid rgba(255, 255, 255, 0.25)",
+            borderRadius: "20px",
+            padding: "1.5rem 2rem",
+            maxWidth: "650px",
+            margin: "3rem auto 0 auto",
+            boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.3)",
+          }}
+        >
           <p style={{ marginBottom: "0.5rem", fontWeight: "500" }}>
             🔄 Las salas se actualizan automáticamente desde la base de datos
           </p>

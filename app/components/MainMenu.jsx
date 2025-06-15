@@ -19,6 +19,55 @@ import {
 } from "./ui/navigation-menu";
 import Footer from "./Footer";
 
+// Componente de efecto máquina de escribir
+function TypewriterText({ text, speed = 100, delay = 0, repeat = false, repeatDelay = 3000 }) {
+  const [displayedText, setDisplayedText] = useState("");
+  const [isComplete, setIsComplete] = useState(false);
+  const [cycle, setCycle] = useState(0);
+
+  useEffect(() => {
+    setDisplayedText("");
+    setIsComplete(false);
+    
+    const timer = setTimeout(() => {
+      let currentIndex = 0;
+      const interval = setInterval(() => {
+        if (currentIndex <= text.length) {
+          setDisplayedText(text.slice(0, currentIndex));
+          currentIndex++;
+        } else {
+          setIsComplete(true);
+          clearInterval(interval);
+          
+          // Si repeat está habilitado, reiniciar después del delay
+          if (repeat) {
+            setTimeout(() => {
+              setCycle(prev => prev + 1);
+            }, repeatDelay);
+          }
+        }
+      }, speed);
+
+      return () => clearInterval(interval);
+    }, delay);
+
+    return () => clearTimeout(timer);
+  }, [text, speed, delay, repeat, repeatDelay, cycle]);
+
+  return (
+    <span className="text-xl font-semibold tracking-wide text-primary inline-block min-w-[120px]">
+      {displayedText}
+      {!isComplete && (
+        <motion.span
+          animate={{ opacity: [0, 1, 0] }}
+          transition={{ duration: 0.8, repeat: Infinity }}
+          className="inline-block w-0.5 h-5 bg-primary ml-1"
+        />
+      )}
+    </span>
+  );
+}
+
 export default function MainMenu({ onSubirArchivo, onNavigate }) {
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register'
   const fileInputRef = useRef();
@@ -84,16 +133,20 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
        >
       <div className="max-w-screen-xl mx-auto flex items-center justify-between px-4 py-3 md:py-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3 min-w-fit">
           <img
             src="/assets/nav/logo.svg"
             alt="Logo"
-            className="h-8 w-auto"
+            className="h-8 w-auto flex-shrink-0"
 
           />
-          <span className="text-xl font-semibold tracking-wide text-primary">
-            Mural ARPA
-          </span>
+          <TypewriterText 
+            text="Mural ARPA" 
+            speed={120} 
+            delay={300} 
+            repeat={true} 
+            repeatDelay={5000} 
+          />
         </Link>
 
         {/* Navigation Menu */}

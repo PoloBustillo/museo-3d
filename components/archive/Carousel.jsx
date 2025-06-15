@@ -2,8 +2,6 @@ import { useState, useRef } from "react";
 import ExpandableCard from "./Expandable";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
-import styles from "./Carousel.module.css"; // asegúrate que exista
-
 export default function Carousel({ title, items }) {
   const slideRef = useRef(null);
   const [activeCard, setActiveCard] = useState(null);

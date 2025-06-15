@@ -1,5 +1,4 @@
 "use client";
-import styles from './Gallery.module.css';
 import { useState } from "react";
 
 export default function SearchBar({ onChange }) {

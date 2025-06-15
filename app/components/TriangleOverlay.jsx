@@ -10,27 +10,37 @@ export default function AnimatedTriangleOverlay({
 }) {
   const isLeft = side === 'left';
 
-  const variants = {
-    initial: { x: isLeft ? '-105%' : '105%' },
-    animate: { x: '0%', transition: { duration: 0.5, ease: 'easeInOut' } },
-    exit: { x: isLeft ? '-105%' : '105%', transition: { duration: 0.5, ease: 'easeInOut' } },
-  };
-
   return (
     <motion.div
-      key={`${step}-${text}`}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      variants={variants}
+      key={`${side}-${step}`}
+      initial={{ 
+        x: isLeft ? '-100%' : '100%',
+        opacity: 0 
+      }}
+      animate={{ 
+        x: '0%',
+        opacity: 1,
+        transition: { 
+          duration: 0.6, 
+          ease: [0.4, 0, 0.2, 1] 
+        } 
+      }}
+      exit={{ 
+        x: isLeft ? '-100%' : '100%',
+        opacity: 0,
+        transition: { 
+          duration: 0.4, 
+          ease: [0.4, 0, 0.2, 1] 
+        } 
+      }}
       className={`
-        fixed top-0 h-full w-1/2 z-[50] bg-black text-white
+        fixed top-0 h-full w-1/2 z-[50] bg-black text-white pointer-events-none
         ${isLeft ? 'left-0 clip-poly-right' : 'right-0 clip-poly-left'}
         flex items-center
       `}
     >
       <div className={`
-        max-w-md
+        max-w-md pointer-events-auto
         ${isLeft ? 'safe-pad-left text-left' : 'ml-auto safe-pad-right text-right'}
       `}>
         <h2 className="text-7xl md:text-8xl font-extrabold leading-none">

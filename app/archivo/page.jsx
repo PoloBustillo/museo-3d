@@ -4,7 +4,6 @@ import  Search from '../../components/archive/Search';
 import Carousel from '../../components/archive/Carousel';
 import Gallery from '../../components/archive/Galery';
 import { object } from "yup";
-import styles from './Achive.module.css';
 
 function agruparMuralesPorFiltrosNumericos(murales, filtrosSeleccionados) {
   const resultado = {};
@@ -111,11 +110,11 @@ export default function ArchiveCarussel () {
   return (
     <div>
        
-        <div className={styles.searchItem}>
-             <h1 className={styles.headingTitle}>Acervo Arpa</h1>
+        <div className="p-6 text-center">
+             <h1 className="text-4xl font-bold text-gray-800 mb-4">Acervo Arpa</h1>
         </div>
         
-        <div className={styles.mainContent}>
+        <div className="container mx-auto px-4">
             
             <Carousel items={photos} />
             <Gallery photos={photos} />
