@@ -1,10 +1,12 @@
 {
   "compilerOptions": {
     "jsx": "react-jsx",
-    "baseUrl": "src",
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
-      "@components/*": ["./app/components/*"],
+      "@/components/*": ["./app/components/*"],
+      "@/lib/*": ["./lib/*"],
+      "@/app/*": ["./app/*"]
     }
   }
 }

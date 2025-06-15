@@ -7,6 +7,15 @@ import AuthProvider from "./AuthProvider";
 import MainMenu from "./MainMenu";
 import Footer from "./Footer";
 
+// Para usar el nuevo menú elegante, descomenta la siguiente línea e importa ElegantMenu
+// import ElegantMenu from "./ElegantMenu";
+
+// Luego reemplaza <MainMenu /> con <ElegantMenu /> en la línea correspondiente
+// <MainMenu
+//   onSubirArchivo={(e) => handleRouteTransition(e, "/crear-sala")}
+//   onNavigate={handleRouteTransition}
+// />
+
 const FRASES_MURALISTAS = [
   "Pinto lo que veo, lo que pienso y lo que siento. - Diego Rivera",
   "El arte debe servir como arma en la lucha por la liberación. - Diego Rivera",

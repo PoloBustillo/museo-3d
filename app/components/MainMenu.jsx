@@ -72,6 +72,7 @@ function TypewriterText({ text, speed = 100, delay = 0, repeat = false, repeatDe
 export default function MainMenu({ onSubirArchivo, onNavigate }) {
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // Estado para menú móvil
+  const [mobileArchivoOpen, setMobileArchivoOpen] = useState(false); // Estado para dropdown de Archivo
   const fileInputRef = useRef();
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -86,6 +87,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
     const handleClickOutside = (event) => {
       if (mobileMenuOpen && !event.target.closest('nav') && !event.target.closest('[data-mobile-menu]')) {
         setMobileMenuOpen(false);
+        setMobileArchivoOpen(false); // Cerrar también el dropdown
       }
     };
 
@@ -94,6 +96,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
       document.body.style.overflow = 'hidden'; // Prevenir scroll
     } else {
       document.body.style.overflow = 'unset';
+      setMobileArchivoOpen(false); // Cerrar dropdown cuando se cierra el menú
     }
 
     return () => {
@@ -314,10 +317,10 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
           {/* Theme Switch */}
           <ThemeSwitch />
           
-          {/* Botón hamburguesa al final con efecto especial */}
+          {/* Botón hamburguesa con animación especial */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className={`md:hidden p-3 rounded-lg hover:bg-muted/50 transition-all duration-300 relative overflow-hidden group hamburger-button ${
+            className={`md:hidden p-3 rounded-lg transition-all duration-300 relative overflow-hidden hamburger-button ${
               mobileMenuOpen ? 'hamburger-special-open' : ''
             }`}
             aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
@@ -325,66 +328,56 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
             <div className="w-6 h-6 relative flex flex-col justify-center items-center">
               {/* Línea superior */}
               <div 
-                className={`hamburger-line-top absolute w-5 h-0.5 bg-current transition-all duration-500 ease-out ${
-                  mobileMenuOpen ? 'rotate-45 translate-y-0' : '-translate-y-2'
+                className={`hamburger-line-top absolute w-6 h-0.5 bg-current transition-all duration-500 ease-out ${
+                  mobileMenuOpen ? 'rotate-45 translate-y-0' : '-translate-y-1.5'
                 }`}
               />
               
-              {/* Línea media con efecto especial de desaparición de izq a der */}
+              {/* Línea media con efecto especial de desplazamiento a la derecha */}
               <div 
                 className={`hamburger-line-middle absolute h-0.5 bg-current ${
-                  mobileMenuOpen ? 'w-0 opacity-0' : 'w-5 opacity-100'
+                  mobileMenuOpen ? 'w-0 opacity-0' : 'w-6 opacity-100'
                 }`}
                 style={{
                   transformOrigin: 'left center',
-                  transition: mobileMenuOpen 
-                    ? 'width 0.6s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease-out 0.2s'
-                    : 'width 0.3s ease-out 0.1s, opacity 0.2s ease-out'
+                  transition: mobileMenuOpen
+                    ? 'transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), width 0.4s ease-out 0.1s, opacity 0.3s ease-out 0.2s'
+                    : 'transform 0.3s ease-out, width 0.3s ease-out, opacity 0.2s ease-out',
+                  transform: mobileMenuOpen ? 'translateX(12px) scaleX(0.2)' : 'translateX(0) scaleX(1)'
                 }}
               />
               
               {/* Línea inferior */}
               <div 
-                className={`hamburger-line-bottom absolute w-5 h-0.5 bg-current transition-all duration-500 ease-out ${
-                  mobileMenuOpen ? '-rotate-45 translate-y-0' : 'translate-y-2'
+                className={`hamburger-line-bottom absolute w-6 h-0.5 bg-current transition-all duration-500 ease-out ${
+                  mobileMenuOpen ? '-rotate-45 translate-y-0' : 'translate-y-1.5'
                 }`}
               />
             </div>
             
-            {/* SVG para el efecto de borde que se completa */}
+            {/* SVG para el efecto de borde que se completa alrededor del margen */}
             <svg 
               className="absolute inset-0 w-full h-full pointer-events-none"
               viewBox="0 0 48 48"
-              style={{ transform: 'scale(0.8)' }}
             >
               <rect
-                x="6"
-                y="6"
-                width="36"
-                height="36"
-                rx="12"
+                x="2"
+                y="2"
+                width="44"
+                height="44"
+                rx="8"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="1.5"
                 className="transition-all duration-1000 ease-out"
                 style={{
-                  strokeDasharray: '144',
-                  strokeDashoffset: mobileMenuOpen ? '0' : '144',
-                  opacity: mobileMenuOpen ? '0.6' : '0',
-                  transitionDelay: mobileMenuOpen ? '400ms' : '0ms'
+                  strokeDasharray: '176',
+                  strokeDashoffset: mobileMenuOpen ? '0' : '176',
+                  opacity: mobileMenuOpen ? '0.7' : '0',
+                  transitionDelay: mobileMenuOpen ? '0.4s' : '0s'
                 }}
               />
             </svg>
-            
-            {/* Efecto de resplandor suave */}
-            <div 
-              className={`absolute inset-0 rounded-lg bg-primary/15 transition-all duration-700 ${
-                mobileMenuOpen ? 'opacity-100 scale-110 blur-sm' : 'opacity-0 scale-100'
-              }`}
-              style={{
-                transitionDelay: mobileMenuOpen ? '500ms' : '0ms'
-              }}
-            />
           </button>
         </div>
       </div>
@@ -417,13 +410,71 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
             >
               Museo Virtual
             </Link>
-            <Link
-              href="/archivo"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block py-2 text-base font-medium hover:text-primary transition-colors"
-            >
-              Archivo
-            </Link>
+            
+            {/* Dropdown de Archivo */}
+            <div className="space-y-2">
+              <button
+                onClick={() => setMobileArchivoOpen(!mobileArchivoOpen)}
+                className="flex items-center justify-between w-full py-2 text-base font-medium hover:text-primary transition-colors"
+              >
+                <span>Archivo</span>
+                <svg
+                  className={`w-4 h-4 transition-transform duration-200 ${
+                    mobileArchivoOpen ? 'rotate-180' : ''
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              <AnimatePresence>
+                {mobileArchivoOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="pl-4 space-y-2 border-l-2 border-gray-200 dark:border-gray-700"
+                  >
+                    <Link
+                      href="/crear-sala"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setMobileArchivoOpen(false);
+                        if (onSubirArchivo) onSubirArchivo();
+                      }}
+                      className="block py-1.5 text-sm hover:text-primary transition-colors"
+                    >
+                      Crear Sala
+                    </Link>
+                    <Link
+                      href="/archivo"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setMobileArchivoOpen(false);
+                      }}
+                      className="block py-1.5 text-sm hover:text-primary transition-colors"
+                    >
+                      Ver archivo
+                    </Link>
+                    <Link
+                      href="/museo"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        setMobileArchivoOpen(false);
+                      }}
+                      className="block py-1.5 text-sm hover:text-primary transition-colors"
+                    >
+                      Explorar mural
+                    </Link>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            
             <Link
               href="/acerca-de"
               onClick={() => setMobileMenuOpen(false)}
