@@ -7,8 +7,9 @@ import {
   getPersonalCollection, 
   getCollectionStats
 } from '../../lib/personalCollection.js';
+import { ProtectedRoute } from '../components/ProtectedRoute';
 
-export default function Perfil() {
+function PerfilContent() {
   const { data: session, status } = useSession();
   const [personalCollection, setPersonalCollection] = useState([]);
   const [collectionStats, setCollectionStats] = useState({});
@@ -367,5 +368,13 @@ export default function Perfil() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Perfil() {
+  return (
+    <ProtectedRoute requireAuth={true}>
+      <PerfilContent />
+    </ProtectedRoute>
   );
 }

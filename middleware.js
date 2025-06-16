@@ -1,15 +1,31 @@
 import { withAuth } from "next-auth/middleware";
+import { NextResponse } from "next/server";
 
 export default withAuth(
   function middleware(req) {
     // Este middleware se ejecutará en las rutas protegidas
     console.log("🔒 Middleware ejecutado para:", req.nextUrl.pathname);
+
+    // Si no hay token y la ruta está protegida, redirigir a nuestra página personalizada
+    const token = req.nextauth.token;
+    const protectedPaths = ["/crear-sala", "/perfil", "/mis-documentos"];
+    const isProtectedPath = protectedPaths.some((path) =>
+      req.nextUrl.pathname.startsWith(path)
+    );
+
+    if (isProtectedPath && !token) {
+      const url = new URL("/no-autorizado", req.url);
+      url.searchParams.set("callbackUrl", req.nextUrl.pathname);
+      return NextResponse.redirect(url);
+    }
+
+    return NextResponse.next();
   },
   {
     callbacks: {
       authorized: ({ token, req }) => {
         // Definir qué rutas necesitan autenticación
-        const protectedPaths = ["/crear-sala", "/perfil"];
+        const protectedPaths = ["/crear-sala", "/perfil", "/mis-documentos"];
         const isProtectedPath = protectedPaths.some((path) =>
           req.nextUrl.pathname.startsWith(path)
         );
@@ -20,7 +36,8 @@ export default withAuth(
         }
 
         // Si la ruta está protegida, verificar token
-        return !!token;
+        // Si no hay token, permitir que el middleware maneje la redirección
+        return true;
       },
     },
   }

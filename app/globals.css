@@ -799,3 +799,81 @@ body.home-active {
 .dark {
   --primary-rgb: 96 165 250;
 }
+
+/* Animaciones para la página 404 */
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Gradiente animado para fondos */
+@keyframes gradient-x {
+  0%, 100% {
+    transform: translateX(0%);
+  }
+  50% {
+    transform: translateX(-100%);
+  }
+}
+
+.animate-gradient-x {
+  animation: gradient-x 3s ease-in-out infinite;
+  background-size: 200% 200%;
+}
+
+/* Efecto de cristal (glass effect) */
+.backdrop-blur-glass {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Animación de flotación */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Animación de pulso suave */
+@keyframes soft-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.animate-soft-pulse {
+  animation: soft-pulse 2s ease-in-out infinite;
+}
