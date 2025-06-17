@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
-import AuthModal from "./components/AuthModal";
-import AnimatedTriangleOverlay from "./components/TriangleOverlay";
+import AuthModal from "../components/AuthModal";
+import AnimatedTriangleOverlay from "../components/TriangleOverlay";
 
 const steps = [
   {

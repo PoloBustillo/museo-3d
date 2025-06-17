@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import GalleryRoom from "../components/GalleryRoom.jsx";
+import GalleryRoom from "../../components/GalleryRoom.jsx";
 
 export default function MuseoPage() {
   const [salaSeleccionada, setSalaSeleccionada] = useState(null);

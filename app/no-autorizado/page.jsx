@@ -1,12 +1,12 @@
 "use client";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
-import Unauthorized from "../components/Unauthorized";
+import Unauthorized from "../../components/Unauthorized";
 
 function UnauthorizedContent() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl");
-  
+
   const getMessage = () => {
     if (callbackUrl) {
       const pageName = getPageName(callbackUrl);
@@ -36,15 +36,17 @@ function UnauthorizedContent() {
 
 export default function Unauthorized401() {
   return (
-    <Suspense fallback={
-      <Unauthorized
-        title="Acceso no autorizado"
-        message="Necesitas iniciar sesión para acceder a esta sección del museo"
-        error="401"
-        showLogin={true}
-        redirectPath="/"
-      />
-    }>
+    <Suspense
+      fallback={
+        <Unauthorized
+          title="Acceso no autorizado"
+          message="Necesitas iniciar sesión para acceder a esta sección del museo"
+          error="401"
+          showLogin={true}
+          redirectPath="/"
+        />
+      }
+    >
       <UnauthorizedContent />
     </Suspense>
   );

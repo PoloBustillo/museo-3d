@@ -1,7 +1,7 @@
 import { Geist, Geist_Mono, Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
-import ClientLayout from "./components/ClientLayout";
-import { ThemeProvider } from "./components/ThemeProvider";
+import ClientLayout from "../components/ClientLayout";
+import { ThemeProvider } from "../providers/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

@@ -1,5 +1,5 @@
 "use client";
-import Unauthorized from "../components/Unauthorized";
+import Unauthorized from "../../components/Unauthorized";
 
 export default function Forbidden403() {
   return (
