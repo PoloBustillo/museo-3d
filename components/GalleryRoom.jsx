@@ -31,7 +31,7 @@ import {
   addToPersonalCollection, 
   removeFromPersonalCollection, 
   isInPersonalCollection 
-} from '../../lib/personalCollection.js';
+} from '../lib/personalCollection.js';
 
 // Extraer constantes para facilitar el uso
 const { HALL_WIDTH, WALL_HEIGHT, CEILING_HEIGHT, PICTURE_SPACING } = GALLERY_CONFIG;
