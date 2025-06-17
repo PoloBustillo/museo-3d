@@ -25,19 +25,49 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false);
   const [scrollOpacity, setScrollOpacity] = useState(1);
   const [scrollY, setScrollY] = useState(0);
+  const [userInteracted, setUserInteracted] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
   const containerRef = useRef(null);
-
   // Evitar problemas de hidratación
   useEffect(() => {
     setIsClient(true);
+
+    // Detectar si es desktop
+    const checkDesktop = () => {
+      setIsDesktop(window.innerWidth >= 768);
+    };
+
+    checkDesktop();
+    window.addEventListener("resize", checkDesktop);
 
     // Agregar clase para prevenir scroll del body
     document.body.classList.add("home-active");
     document.documentElement.classList.add("home-page");
 
+    // Detectar interacción del usuario para ocultar hints
+    const handleUserInteraction = () => {
+      setUserInteracted(true);
+      document.documentElement.classList.add("user-interacted");
+      // Remover listeners después de la primera interacción
+      window.removeEventListener("touchstart", handleUserInteraction);
+      window.removeEventListener("scroll", handleUserInteraction);
+      window.removeEventListener("keydown", handleUserInteraction);
+    };
+
+    // Agregar listeners para detectar interacción
+    window.addEventListener("touchstart", handleUserInteraction, {
+      passive: true,
+    });
+    window.addEventListener("scroll", handleUserInteraction, { passive: true });
+    window.addEventListener("keydown", handleUserInteraction);
     return () => {
       document.body.classList.remove("home-active");
       document.documentElement.classList.remove("home-page");
+      document.documentElement.classList.remove("user-interacted");
+      window.removeEventListener("touchstart", handleUserInteraction);
+      window.removeEventListener("scroll", handleUserInteraction);
+      window.removeEventListener("keydown", handleUserInteraction);
+      window.removeEventListener("resize", checkDesktop);
     };
   }, []);
 
@@ -141,8 +171,10 @@ export default function Home() {
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [isClient, current]);
-
   const side = current % 2 === 0 ? "left" : "right";
+
+  // Debug logging
+  console.log("Current:", current, "Side:", side, "IsDesktop:", isDesktop);
 
   const scrollToSection = (index) => {
     if (!containerRef.current) return;
@@ -162,7 +194,6 @@ export default function Home() {
       </div>
     );
   }
-
   return (
     <div className="home-page">
       <div
@@ -179,9 +210,13 @@ export default function Home() {
           const sectionHeight = containerRef.current?.clientHeight || 800;
           const sectionOffset = index * sectionHeight;
 
+          // Detectar si es dispositivo móvil para reducir efectos
+          const isMobile =
+            typeof window !== "undefined" && window.innerWidth < 768;
+
           // Calcular el parallax de manera que la imagen se mantenga centrada en su sección
           const scrollFromSectionStart = scrollY - sectionOffset;
-          const parallaxOffset = scrollFromSectionStart * 0.1; // Parallax positivo más sutil
+          const parallaxOffset = isMobile ? 0 : scrollFromSectionStart * 0.1; // Sin parallax en móvil
 
           // Calcular opacidad basada en la proximidad a la sección
           const distanceFromSection = Math.abs(scrollY - sectionOffset);
@@ -195,7 +230,7 @@ export default function Home() {
             opacity = 1 - (normalizedDistance - 0.8) * 0.5;
           }
 
-          // Efectos de zoom más suaves y graduales
+          // Efectos de zoom más suaves y graduales (reducidos en móvil)
           const scrollProgress = Math.max(
             0,
             Math.min(
@@ -204,22 +239,24 @@ export default function Home() {
             )
           );
 
-          // Zoom más sutil y gradual
+          // Zoom más sutil y gradual (sin efectos complejos en móvil)
           let scale = 1;
           let blur = 0;
 
-          if (scrollProgress < 0.3) {
-            // Entrando: zoom muy sutil desde 1.05 a 1.0
-            scale = 1.05 - scrollProgress * 0.17; // Reducido de 0.4 a 0.17
-            blur = (0.3 - scrollProgress) * 3; // Reducido de 8 a 3
-          } else if (scrollProgress > 0.7) {
-            // Saliendo: zoom sutil desde 1.0 a 0.95
-            scale = 1.0 - (scrollProgress - 0.7) * 0.17; // Reducido de 0.4 a 0.17
-            blur = (scrollProgress - 0.7) * 4; // Reducido de 12 a 4
+          if (!isMobile) {
+            if (scrollProgress < 0.3) {
+              // Entrando: zoom muy sutil desde 1.05 a 1.0
+              scale = 1.05 - scrollProgress * 0.17; // Reducido de 0.4 a 0.17
+              blur = (0.3 - scrollProgress) * 3; // Reducido de 8 a 3
+            } else if (scrollProgress > 0.7) {
+              // Saliendo: zoom sutil desde 1.0 a 0.95
+              scale = 1.0 - (scrollProgress - 0.7) * 0.17; // Reducido de 0.4 a 0.17
+              blur = (scrollProgress - 0.7) * 4; // Reducido de 12 a 4
+            }
           }
 
-          // Rotación más sutil
-          const rotation = (scrollProgress - 0.5) * 0.5; // Reducido de 2 a 0.5 grados
+          // Rotación más sutil (sin rotación en móvil)
+          const rotation = isMobile ? 0 : (scrollProgress - 0.5) * 0.5; // Reducido de 2 a 0.5 grados
 
           return (
             <div
@@ -286,7 +323,6 @@ export default function Home() {
           />
         ))}
       </div>
-
       {/* Overlay triangular fuera del contenedor de scroll */}
       <AnimatePresence mode="wait" initial={false}>
         <AnimatedTriangleOverlay
@@ -297,31 +333,47 @@ export default function Home() {
           isFinalStep={current === steps.length - 1}
           scrollOpacity={scrollOpacity}
         />
-      </AnimatePresence>
-
+      </AnimatePresence>{" "}
       {/* Indicador de posición */}
       <div
-        className={`fixed top-1/2 transform -translate-y-1/2 z-[40] space-y-3 transition-all duration-500 ${
-          side === "left" ? "right-8" : "left-8"
-        }`}
+        className={`fixed z-[40] space-y-3 scroll-indicators-desktop
+          ${/* Mobile: bottom center */ ""}
+          md:top-1/2 md:transform md:-translate-y-1/2 md:space-y-6 md:space-x-0
+          ${/* Mobile: bottom positioning */ ""}
+          bottom-20 left-1/2 transform -translate-x-1/2 flex space-x-3 space-y-0
+          md:flex-col md:space-x-0 md:space-y-6 md:bottom-auto
+        `}
         style={{
-          opacity: scrollOpacity > 0.3 ? 1 : 0.3, // Se desvanece junto con el triángulo
+          opacity: scrollOpacity > 0.3 ? 1 : 0.3,
+          // Desktop positioning - keeping left good, moving right much more outside
+          left: isDesktop ? (side === "left" ? "0rem" : "auto") : "50%", // Keep left as is (flush with edge)
+          right: isDesktop ? (side === "right" ? "-2.5rem" : "auto") : "auto", // Much more outside for right (-40px)
+          transform: isDesktop ? "translateY(-50%)" : "translateX(-50%)",
+          // Simple smooth transition for position changes only
+          transition:
+            "left 0.8s ease-in-out, right 0.8s ease-in-out, opacity 0.3s ease",
         }}
+        data-debug={`side: ${side}, current: ${current}, isDesktop: ${isDesktop}`}
       >
+        {" "}
         {steps.map((_, index) => (
           <button
             key={index}
             onClick={() => scrollToSection(index)}
-            className={`w-3 h-3 rounded-full transition-all duration-300 ${
-              index === current
-                ? "bg-white scale-125 shadow-lg"
-                : "bg-white/50 hover:bg-white/75"
-            }`}
+            className={`rounded-full transition-all duration-300
+              ${/* Mobile sizes */ ""}
+              w-3 h-3 
+              ${/* Desktop sizes - much larger (triple size) */ ""}
+              md:w-12 md:h-12
+              ${
+                index === current
+                  ? "bg-white scale-125 shadow-lg md:shadow-xl"
+                  : "bg-white/50 hover:bg-white/75 hover:scale-110"
+              }`}
             aria-label={`Ir a sección ${index + 1}`}
           />
         ))}
       </div>
-
       {/* Contador de progreso */}
       <div
         className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[40] bg-black/20 backdrop-blur-sm rounded-full px-4 py-2 transition-all duration-500"
@@ -333,7 +385,6 @@ export default function Home() {
           {current + 1} / {steps.length}
         </span>
       </div>
-
       {authModal && (
         <AuthModal
           open={!!authModal}
