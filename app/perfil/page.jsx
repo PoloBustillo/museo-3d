@@ -8,6 +8,150 @@ import {
   getCollectionStats,
 } from "../../lib/personalCollection.js";
 import { ProtectedRoute } from "../../components/ProtectedRoute";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import RainbowBackground from "./RainbowBackground";
+import MuralIcon from "@/components/ui/icons/MuralIcon";
+import SalaIcon from "@/components/ui/icons/SalaIcon";
+import ArtistaIcon from "@/components/ui/icons/ArtistaIcon";
+import TecnicaIcon from "@/components/ui/icons/TecnicaIcon";
+import ReactDOM from "react-dom";
+import React from "react";
+
+function ImageTooltip({ src, alt, anchorRef, show, previewImages = [] }) {
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  useEffect(() => {
+    if (show && anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPos({
+        top: rect.top + rect.height / 2 - 112 + window.scrollY,
+        left: rect.right + 16 + window.scrollX,
+      });
+    }
+  }, [show, anchorRef]);
+  if (!show) return null;
+  return ReactDOM.createPortal(
+    <div
+      style={{
+        position: "fixed",
+        top: pos.top,
+        left: pos.left,
+        zIndex: 1000,
+      }}
+      className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-2 min-w-[180px] max-w-[320px] max-h-[120px] flex items-center justify-center"
+    >
+      <div className="flex gap-2">
+        {previewImages.map((img, i) => (
+          <img key={img.id || i} src={img.src} alt={img.title} className="w-16 h-16 object-cover rounded-md border border-gray-200 dark:border-gray-700" />
+        ))}
+      </div>
+    </div>,
+    typeof window !== "undefined" ? document.body : null
+  );
+}
+
+function CollectionItem({ item, allItems }) {
+  const imgRef = React.useRef(null);
+  const [hovered, setHovered] = React.useState(false);
+  // Encuentra el índice de la imagen actual y toma hasta 5 a partir de ahí
+  const idx = allItems.findIndex((i) => i.id === item.id);
+  const previewImages = allItems.slice(idx, idx + 5);
+  return (
+    <div className="flex items-center gap-4 border-b py-2 relative group">
+      {item.src && (
+        <>
+          <img
+            ref={imgRef}
+            src={item.src}
+            alt={item.title}
+            className="w-12 h-12 object-cover rounded-md cursor-pointer group-hover:ring-2 group-hover:ring-primary transition"
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+          />
+          <ImageTooltip src={item.src} alt={item.title} anchorRef={imgRef} show={hovered} previewImages={previewImages} />
+        </>
+      )}
+      <div className="flex-1 text-left">
+        <div className="font-medium">{item.title}</div>
+        <div className="text-xs text-muted-foreground">{item.artist} · {item.year} · {item.technique}</div>
+      </div>
+    </div>
+  );
+}
+
+function TagPreviewTooltip({ anchorRef, show, images }) {
+  const [pos, setPos] = React.useState({ top: 0, left: 0 });
+  React.useEffect(() => {
+    if (show && anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPos({
+        top: rect.bottom + 8 + window.scrollY,
+        left: rect.left + window.scrollX,
+      });
+    }
+  }, [show, anchorRef]);
+  if (!show || images.length === 0) return null;
+  const maxPreview = 5;
+  const previewImages = images.slice(0, maxPreview);
+  const extra = images.length - maxPreview;
+  return ReactDOM.createPortal(
+    <div
+      style={{
+        position: "fixed",
+        top: pos.top,
+        left: pos.left,
+        zIndex: 1000,
+      }}
+      className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-2 min-w-[180px] max-w-[320px] max-h-[120px] flex items-center justify-center"
+    >
+      <div className="flex gap-2">
+        {previewImages.map((img, i) => {
+          // Si es el último preview y hay extra, muestra overlay
+          if (i === maxPreview - 1 && extra > 0) {
+            return (
+              <div key={img.id || i} className="relative w-16 h-16">
+                <img src={img.url_imagen} alt={img.nombre} className="w-16 h-16 object-cover rounded-md border border-gray-200 dark:border-gray-700 opacity-60" />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md">
+                  <span className="text-white font-bold text-lg">+{extra}</span>
+                </div>
+              </div>
+            );
+          }
+          return (
+            <img key={img.id || i} src={img.url_imagen} alt={img.nombre} className="w-16 h-16 object-cover rounded-md border border-gray-200 dark:border-gray-700" />
+          );
+        })}
+      </div>
+    </div>,
+    typeof window !== "undefined" ? document.body : null
+  );
+}
+
+function TagWithPreview({ label, variant, images, children }) {
+  const ref = React.useRef(null);
+  const [hovered, setHovered] = React.useState(false);
+  return (
+    <span
+      ref={ref}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{ display: 'inline-block' }}
+    >
+      <Badge variant={variant}>{label}</Badge>
+      {hovered && (
+        <TagPreviewTooltip
+          anchorRef={ref}
+          show={true}
+          images={images}
+        />
+      )}
+      {children}
+    </span>
+  );
+}
 
 function PerfilContent() {
   const { data: session, status } = useSession();
@@ -20,7 +164,15 @@ function PerfilContent() {
     totalTechniques: 0,
     salas: [],
   });
+  const [muralesStats, setMuralesStats] = useState({
+    total: 0,
+    porSala: {},
+    porTecnica: {},
+    porAnio: {},
+  });
   const [isLoadingStats, setIsLoadingStats] = useState(true);
+  const [hoveredTag, setHoveredTag] = React.useState({ type: null, value: null, anchor: null });
+  const [murales, setMurales] = React.useState([]);
 
   const userId = session?.user?.id || null;
 
@@ -77,6 +229,8 @@ function PerfilContent() {
 
           console.log("Setting new museum stats:", newStats);
           setMuseumStats(newStats);
+          setMuralesStats(muralesData.estadisticas);
+          setMurales(murales);
         } else {
           console.log("API calls failed or returned invalid structure");
           console.log("salasResponse.ok:", salasResponse.ok);
@@ -91,6 +245,8 @@ function PerfilContent() {
             totalTechniques: 0,
             salas: [],
           });
+          setMuralesStats({ total: 0, porSala: {}, porTecnica: {}, porAnio: {} });
+          setMurales([]);
         }
       } catch (error) {
         console.error("Error fetching museum stats:", error);
@@ -102,6 +258,8 @@ function PerfilContent() {
           totalTechniques: 0,
           salas: [],
         });
+        setMuralesStats({ total: 0, porSala: {}, porTecnica: {}, porAnio: {} });
+        setMurales([]);
       } finally {
         setIsLoadingStats(false);
       }
@@ -127,12 +285,11 @@ function PerfilContent() {
 
   if (status === "loading") {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p>Cargando perfil...</p>
-          </div>
+      <div className="relative min-h-screen flex items-center justify-center">
+        <RainbowBackground />
+        <div className="z-10 text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Cargando perfil...</p>
         </div>
       </div>
     );
@@ -140,280 +297,198 @@ function PerfilContent() {
 
   if (status === "unauthenticated") {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto text-center">
-          <h1 className="text-3xl font-bold mb-6">Acceso Requerido</h1>
+      <div className="relative min-h-screen flex items-center justify-center">
+        <RainbowBackground />
+        <Card className="z-10 max-w-md w-full p-8 text-center">
+          <CardTitle className="mb-4">Acceso requerido</CardTitle>
           <p className="text-muted-foreground mb-6">
             Debes iniciar sesión para ver tu perfil y colección personal.
           </p>
-          <button
-            onClick={() => (window.location.href = "/")}
-            className="bg-primary text-primary-foreground px-6 py-3 rounded-md hover:bg-primary/90 transition-colors"
-          >
-            Ir al Inicio
-          </button>
-        </div>
+          <Button onClick={() => (window.location.href = "/")}>Ir al inicio</Button>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-100 to-stone-100">
-      {/* Header elegante */}
-      <div className="mt-6 relative bg-gradient-to-r from-slate-900 via-gray-900 to-stone-900 overflow-hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-
-        {/* Patrón decorativo */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-white/5 to-transparent"></div>
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-radial from-white/10 to-transparent rounded-full blur-3xl"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-radial from-white/10 to-transparent rounded-full blur-3xl"></div>
-        </div>
-
-        <div className="mt-4 relative z-10 container mx-auto px-8 py-16 max-w-7xl">
-          <div className="text-center mb-8">
-            <h1 className="text-5xl font-light text-white mb-4 tracking-wide">
-              Mi Perfil
-            </h1>
-            <p className="text-xl text-gray-300 font-light">
-              Bienvenido a tu espacio personal en el museo virtual
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-8 py-12 max-w-7xl">
-        <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-          {/* Información Personal - Sidebar elegante */}
-          <div className="xl:col-span-1">
-            <div className="bg-white/70 backdrop-blur-sm p-8 rounded-2xl border border-white/50 shadow-xl">
-              <h2 className="text-2xl font-light text-gray-800 mb-6 border-b border-gray-200 pb-4">
-                Información Personal
-              </h2>
-
-              <div className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    Nombre
-                  </label>
-                  <div className="bg-gray-50/50 px-4 py-3 rounded-lg text-gray-800 font-medium">
-                    {session?.user?.name || "Usuario"}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    Email
-                  </label>
-                  <div className="bg-gray-50/50 px-4 py-3 rounded-lg text-gray-600 text-sm">
-                    {session?.user?.email || "No disponible"}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-600 mb-2">
-                    ID de Usuario
-                  </label>
-                  <div className="bg-gray-50/50 px-4 py-3 rounded-lg text-gray-500 font-mono text-xs">
-                    {userId || "No disponible"}
-                  </div>
-                </div>
+    <div className="relative min-h-screen flex items-center justify-center pt-10">
+      <RainbowBackground />
+      <div className="z-10 w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 px-4 min-h-screen h-full">
+        {/* Sidebar Perfil */}
+        <div className="md:col-span-1 flex flex-col items-center h-full">
+          <Card className="w-full max-w-xs p-8 text-center shadow-xl h-full min-h-[400px] flex flex-col justify-start">
+            <CardHeader className="flex flex-col items-center gap-2 border-b pb-4">
+              <Avatar className="size-20 mb-2">
+                <AvatarImage src={session?.user?.image || undefined} alt={session?.user?.name || 'Avatar'} />
+                <AvatarFallback>{session?.user?.name?.[0] || 'U'}</AvatarFallback>
+              </Avatar>
+              <CardTitle className="text-lg font-semibold">{session?.user?.name || 'Usuario'}</CardTitle>
+              <Badge variant="secondary" className="mt-1">Usuario</Badge>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4 mt-4">
+              <div className="text-left">
+                <Label>Email</Label>
+                <div className="text-sm text-muted-foreground mt-1">{session?.user?.email || 'No disponible'}</div>
               </div>
-
-              <div className="mt-8 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-100">
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  La información se obtiene de tu proveedor de autenticación.
-                  Para realizar cambios, contacta al administrador del sistema.
-                </p>
+              <div className="text-left">
+                <Label>ID de usuario</Label>
+                <div className="text-xs font-mono text-muted-foreground mt-1">{userId || 'No disponible'}</div>
               </div>
+            </CardContent>
+            <div className="mt-6 text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+              La información se obtiene de tu proveedor de autenticación.<br />Para cambios, contacta al administrador.
             </div>
-          </div>
-
-          {/* Área principal */}
-          <div className="xl:col-span-3">
-            {/* Estadísticas del Museo */}
-            <div className="bg-white/70 backdrop-blur-sm p-8 rounded-2xl border border-white/50 shadow-xl mb-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-light text-gray-800 flex items-center gap-3">
-                  <span className="text-2xl">🏛️</span>
-                  Estadísticas del Museo
-                </h2>
-                {isLoadingStats && (
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-600"></div>
-                )}
-              </div>
-
-              {/* Estadísticas generales del museo */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="text-center p-4 bg-gradient-to-b from-blue-50 to-blue-100/50 rounded-xl border border-blue-200/50">
-                  <div className="text-3xl font-light text-blue-700 mb-1">
-                    {isLoadingStats ? "..." : museumStats.totalArtworks}
-                  </div>
-                  <div className="text-sm text-blue-600 font-medium">
-                    Obras totales
-                  </div>
-                </div>
-
-                <div className="text-center p-4 bg-gradient-to-b from-green-50 to-green-100/50 rounded-xl border border-green-200/50">
-                  <div className="text-3xl font-light text-green-700 mb-1">
-                    {isLoadingStats ? "..." : museumStats.totalSalas}
-                  </div>
-                  <div className="text-sm text-green-600 font-medium">
-                    Salas virtuales
-                  </div>
-                </div>
-
-                <div className="text-center p-4 bg-gradient-to-b from-purple-50 to-purple-100/50 rounded-xl border border-purple-200/50">
-                  <div className="text-3xl font-light text-purple-700 mb-1">
-                    {isLoadingStats ? "..." : museumStats.totalArtists}
-                  </div>
-                  <div className="text-sm text-purple-600 font-medium">
-                    Artistas
-                  </div>
-                </div>
-
-                <div className="text-center p-4 bg-gradient-to-b from-orange-50 to-orange-100/50 rounded-xl border border-orange-200/50">
-                  <div className="text-3xl font-light text-orange-700 mb-1">
-                    {isLoadingStats ? "..." : museumStats.totalTechniques}
-                  </div>
-                  <div className="text-sm text-orange-600 font-medium">
-                    Técnicas
-                  </div>
-                </div>
-              </div>
-
-              {/* Información sobre las salas */}
-              <div className="bg-gradient-to-r from-gray-50/50 to-gray-100/50 rounded-xl border border-gray-200/50 p-6">
-                <h3 className="text-lg font-medium text-gray-800 mb-4">
-                  Salas del Museo
-                </h3>
-                {isLoadingStats ? (
-                  <div className="text-center py-8 text-gray-500">
-                    <div className="text-4xl mb-2">🏛️</div>
-                    <p>Cargando información de salas...</p>
-                  </div>
-                ) : museumStats.salas.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {museumStats.salas.map((sala, index) => (
-                      <div
-                        key={sala.id}
-                        className="flex items-center gap-3 p-3 bg-white/50 rounded-lg"
-                      >
-                        <span className="text-2xl">
-                          {index === 0
-                            ? "🎨"
-                            : index === 1
-                            ? "🌟"
-                            : index === 2
-                            ? "🎭"
-                            : "🏺"}
-                        </span>
-                        <div>
-                          <h4 className="font-medium text-gray-800">
-                            {sala.nombre}
-                          </h4>
-                          <p className="text-sm text-gray-600">
-                            {sala._count?.murales || 0} obras •{" "}
-                            {sala._count?.colaboradores || 0} colaboradores
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <div className="text-4xl mb-2">📭</div>
-                    <p>No hay salas disponibles por el momento</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Mi Colección Personal - Solo estadísticas básicas */}
-            <div className="bg-white/70 backdrop-blur-sm p-8 rounded-2xl border border-white/50 shadow-xl mb-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-light text-gray-800 flex items-center gap-3">
-                  <span className="text-2xl">📄</span>
-                  Mi Colección Personal
-                </h2>
-
-                {personalCollection.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                    <span className="text-sm text-gray-600">
-                      {personalCollection.length} obras
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {personalCollection.length > 0 ? (
-                <div>
-                  {/* Estadísticas compactas */}
-                  <div className="grid grid-cols-3 gap-6 mb-8">
-                    <div className="text-center p-4 bg-gradient-to-b from-slate-50 to-slate-100/50 rounded-xl border border-slate-200/50">
-                      <div className="text-2xl font-light text-slate-700 mb-1">
-                        {collectionStats.totalArtworks || 0}
-                      </div>
-                      <div className="text-xs text-slate-600 font-medium">
-                        Mis obras
-                      </div>
-                    </div>
-
-                    <div className="text-center p-4 bg-gradient-to-b from-gray-50 to-gray-100/50 rounded-xl border border-gray-200/50">
-                      <div className="text-2xl font-light text-gray-700 mb-1">
-                        {collectionStats.uniqueArtists || 0}
-                      </div>
-                      <div className="text-xs text-gray-600 font-medium">
-                        Artistas
-                      </div>
-                    </div>
-
-                    <div className="text-center p-4 bg-gradient-to-b from-stone-50 to-stone-100/50 rounded-xl border border-stone-200/50">
-                      <div className="text-2xl font-light text-stone-700 mb-1">
-                        {collectionStats.uniqueTechniques || 0}
-                      </div>
-                      <div className="text-xs text-stone-600 font-medium">
-                        Técnicas
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Enlace a gestión completa */}
-                  <div className="text-center">
-                    <Link
-                      href="/mis-documentos"
-                      className="bg-slate-600 text-white px-8 py-4 rounded-xl font-medium hover:bg-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1 inline-block"
-                    >
-                      📊 Gestionar y Explorar Colección
-                    </Link>
-                    <p className="text-sm text-gray-500 mt-3">
-                      Accede a herramientas avanzadas de búsqueda, filtros y
-                      gestión
-                    </p>
-                  </div>
-                </div>
+          </Card>
+        </div>
+        {/* Main content: Estadísticas y Colección */}
+        <div className="md:col-span-2 flex flex-col gap-8">
+          <Card className="w-full max-w-2xl mx-auto p-8 mb-4">
+            <CardHeader className="mb-4">
+              <CardTitle className="text-lg font-semibold">Estadísticas del museo</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoadingStats ? (
+                <div className="text-center text-muted-foreground">Cargando estadísticas...</div>
               ) : (
-                <div className="text-center py-12">
-                  <div className="text-6xl mb-4 opacity-20">📄</div>
-                  <h3 className="text-xl font-light text-gray-600 mb-3">
-                    Tu colección está vacía
-                  </h3>
-                  <p className="text-gray-500 mb-6 max-w-md mx-auto leading-relaxed text-sm">
-                    Explora el museo virtual y guarda tus obras favoritas en tu
-                    colección personal.
-                  </p>
-                  <Link
-                    href="/museo"
-                    className="inline-block bg-slate-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-                  >
-                    🏛️ Explorar Museo
-                  </Link>
+                <div className="flex flex-col gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <SalaIcon className="w-6 h-6 text-blue-500" />
+                        <span className="text-2xl font-bold">{museumStats.totalSalas}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">Salas</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <MuralIcon className="w-6 h-6 text-indigo-500" />
+                        <span className="text-2xl font-bold">{museumStats.totalArtworks}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">Murales</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <ArtistaIcon className="w-6 h-6 text-rose-500" />
+                        <span className="text-2xl font-bold">{museumStats.totalArtists}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">Artistas</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <TecnicaIcon className="w-6 h-6 text-green-500" />
+                        <span className="text-2xl font-bold">{museumStats.totalTechniques}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">Técnicas</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-medium mb-2">Técnicas más usadas</div>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(muralesStats.porTecnica || {})
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 3)
+                        .map(([tecnica, count], i) => (
+                          <TagWithPreview
+                            key={tecnica}
+                            label={`${tecnica} (${count})`}
+                            variant={i === 0 ? 'blue' : i === 1 ? 'green' : 'violet'}
+                            images={murales.filter(m => m.tecnica === tecnica && m.url_imagen)}
+                          />
+                        ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-medium mb-2">Murales por año (últimos 5)</div>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(muralesStats.porAnio || {})
+                        .sort((a, b) => b[0] - a[0])
+                        .slice(0, 5)
+                        .map(([anio, count], i) => (
+                          <TagWithPreview
+                            key={anio}
+                            label={`${anio}: ${count}`}
+                            variant={i % 2 === 0 ? 'yellow' : 'pink'}
+                            images={murales.filter(m => String(m.anio) === String(anio) && m.url_imagen)}
+                          />
+                        ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-medium mb-2">Salas con más murales</div>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(muralesStats.porSala || {})
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 3)
+                        .map(([sala, count], i) => (
+                          <TagWithPreview
+                            key={sala}
+                            label={`${sala}: ${count}`}
+                            variant={i === 0 ? 'violet' : i === 1 ? 'blue' : 'green'}
+                            images={murales.filter(m => (m.sala?.nombre || 'Sin sala') === sala && m.url_imagen)}
+                          />
+                        ))}
+                    </div>
+                  </div>
                 </div>
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
+          <Card className="w-full max-w-2xl mx-auto p-8">
+            <CardHeader className="mb-4">
+              <CardTitle className="text-lg font-semibold">Mi colección personal</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {personalCollection.length === 0 ? (
+                <div className="text-center text-muted-foreground">No tienes obras guardadas en tu colección.</div>
+              ) : (
+                <div className="flex flex-col gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <MuralIcon className="w-6 h-6 text-indigo-500" />
+                        <span className="text-2xl font-bold">{collectionStats.totalArtworks}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">Obras</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <ArtistaIcon className="w-6 h-6 text-rose-500" />
+                        <span className="text-2xl font-bold">{collectionStats.uniqueArtists}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">Artistas</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <TecnicaIcon className="w-6 h-6 text-green-500" />
+                        <span className="text-2xl font-bold">{collectionStats.uniqueTechniques}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">Técnicas</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-2 mb-1">
+                        <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 17l4 4 4-4m-4-5v9"/></svg>
+                        <span className="text-2xl font-bold">{collectionStats.oldestYear || '-'}</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground">Año más antiguo</div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="font-medium mb-2">Obras guardadas</div>
+                    <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                      {personalCollection.map((item) => (
+                        <CollectionItem key={item.id} item={item} allItems={personalCollection} />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-center mt-4">
+                    <Button asChild>
+                      <Link href="/mis-documentos">Gestionar colección avanzada</Link>
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

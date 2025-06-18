@@ -48,6 +48,7 @@ export default function ClientLayout({ children }) {
   // Páginas que no necesitan padding-top (manejan su propio espaciado)
   const noTopPaddingPages = ["/", "/museo"];
   const needsTopPadding = !noTopPaddingPages.includes(pathname);
+  const isMainOrMuseo = noTopPaddingPages.includes(pathname);
 
   // Inicializar imagen y frase al montar el componente
   useEffect(() => {
@@ -79,21 +80,27 @@ export default function ClientLayout({ children }) {
               onMouseLeave={() => setHoveringBottom(false)}
             />
           </main>
-          <footer
-            onMouseEnter={() => setHoveringBottom(true)}
-            onMouseLeave={() => setHoveringBottom(false)}
-            className={`
-                hidden md:block
-                fixed bottom-0 left-0 w-full z-[15] transition-all duration-500
-                ${
-                  hoveringBottom
-                    ? "opacity-100 translate-y-0"
-                    : "opacity-0 translate-y-full pointer-events-none"
-                }
-              `}
-          >
-            <Footer />
-          </footer>
+          {isMainOrMuseo ? (
+            <footer
+              onMouseEnter={() => setHoveringBottom(true)}
+              onMouseLeave={() => setHoveringBottom(false)}
+              className={`
+                  hidden md:block
+                  fixed bottom-0 left-0 w-full z-[15] transition-all duration-500
+                  ${
+                    hoveringBottom
+                      ? "opacity-100 translate-y-0"
+                      : "opacity-0 translate-y-full pointer-events-none"
+                  }
+                `}
+            >
+              <Footer />
+            </footer>
+          ) : (
+            <footer className="block w-full z-[15] pt-8">
+              <Footer />
+            </footer>
+          )}
         </div>
       </AuthProvider>
     </ParallaxProvider>
