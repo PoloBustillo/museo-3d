@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { signIn } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
+import { X, Mail, Lock, User, Eye, EyeOff, Loader2, CheckCircle2, XCircle } from "lucide-react";
 
 export default function AuthModal({ open, onClose, mode = "login" }) {
   const [form, setForm] = useState({ email: "", password: "", name: "", confirmPassword: "" });
@@ -145,6 +145,12 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
     }
   };
 
+  // Validaciones inteligentes
+  const isEmailValid = form.email.length > 3 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
+  const isPasswordValid = form.password.length >= 6;
+  const isConfirmValid = localMode === "register" && form.confirmPassword.length > 0 && form.password === form.confirmPassword;
+  const isNameValid = localMode === "register" ? form.name.length > 2 : true;
+
   return (
     <AnimatePresence>
       {open && (
@@ -162,10 +168,10 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="relative w-full max-w-md mx-4 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+            className="relative w-full max-w-md sm:max-w-md max-w-sm mx-2 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[90vh] flex flex-col"
           >
             {/* Header */}
-            <div className="relative p-6 pb-4 border-b border-gray-100 dark:border-gray-800">
+            <div className="relative p-4 sm:p-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
               <button
                 onClick={handleClose}
                 type="button"
@@ -187,138 +193,218 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
               </div>
             </div>
 
-            {/* Content */}
-            <div className="p-6">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Nombre (solo registro) */}
-                {localMode === "register" && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Nombre completo
-                    </label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type="text"
-                        name="name"
-                        value={form.name}
-                        onChange={handleChange}
-                        required
-                        className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
-                        placeholder="Tu nombre completo"
-                      />
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Email */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Correo electrónico
-                  </label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="email"
-                      name="email"
-                      value={form.email}
-                      onChange={handleChange}
-                      required
-                      className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
-                      placeholder="tu@email.com"
-                    />
-                  </div>
-                </div>
-
-                {/* Contraseña */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Contraseña
-                  </label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      name="password"
-                      value={form.password}
-                      onChange={handleChange}
-                      required
-                      minLength="6"
-                      className="w-full pl-10 pr-12 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
-                      placeholder="Mínimo 6 caracteres"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="w-4 h-4 text-gray-400" />
-                      ) : (
-                        <Eye className="w-4 h-4 text-gray-400" />
-                      )}                    </button>
-                  </div>
-                </div>
-
-                {/* Confirmar Contraseña (solo registro) */}
-                {localMode === "register" && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Confirmar contraseña
-                    </label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        name="confirmPassword"
-                        value={form.confirmPassword}
-                        onChange={handleChange}
-                        required
-                        minLength="6"
-                        className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
-                        placeholder="Confirma tu contraseña"
-                      />
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Error */}
-                <AnimatePresence>
-                  {error && (
+            {/* Content animado entre modos */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.form
+                  key={localMode}
+                  onSubmit={handleSubmit}
+                  className="space-y-4"
+                  initial={{ opacity: 0, x: localMode === 'login' ? 40 : -40 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: localMode === 'login' ? -40 : 40 }}
+                  transition={{ duration: 0.25, ease: 'easeInOut' }}
+                >
+                  {/* Nombre (solo registro) */}
+                  {localMode === "register" && (
                     <motion.div
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
                     >
-                      <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Nombre completo
+                      </label>
+                      <div>
+                        <div className="flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent  w-full  ${form.name.length === 0 ? 'border-gray-200 dark:border-gray-700' : isNameValid ? 'border-green-400 dark:border-green-500' : 'border-red-400 dark:border-red-500'}">
+                          <User className="w-5 h-5 text-gray-300 dark:text-gray-500 mr-2" />
+                          <input
+                            type="text"
+                            name="name"
+                            value={form.name}
+                            onChange={handleChange}
+                            required
+                            className="flex-1 bg-transparent outline-none border-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 py-2"
+                            placeholder="Tu nombre completo"
+                            autoComplete="name"
+                          />
+                          {form.name.length > 0 && (
+                            <>
+                              {isNameValid ? (
+                                <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
+                              ) : (
+                                <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
+                              )}
+                            </>
+                          )}
+                        </div>
+                        {form.name.length > 0 && (
+                          <p className={`text-xs mt-1 ${isNameValid ? 'text-green-600' : 'text-red-500'}`}>
+                            {isNameValid ? 'Nombre válido' : 'Introduce tu nombre completo'}
+                          </p>
+                        )}
+                      </div>
                     </motion.div>
                   )}
-                </AnimatePresence>
 
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl disabled:cursor-not-allowed cursor-pointer"
-                >
-                  {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {loading 
-                    ? "Procesando..." 
-                    : (localMode === "login" ? "Iniciar sesión" : "Crear cuenta")
-                  }
-                </button>
-              </form>
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Correo electrónico
+                    </label>
+                    <div>
+                      <div className="flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full  ${form.email.length === 0 ? 'border-gray-200 dark:border-gray-700' : isEmailValid ? 'border-green-400 dark:border-green-500' : 'border-red-400 dark:border-red-500'}">
+                        <Mail className="w-5 h-5 text-gray-300 dark:text-gray-500 mr-2" />
+                        <input
+                          type="email"
+                          name="email"
+                          value={form.email}
+                          onChange={handleChange}
+                          required
+                          className="flex-1 bg-transparent outline-none border-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 py-2"
+                          placeholder="tu@email.com"
+                          autoComplete="email"
+                        />
+                        {form.email.length > 0 && (
+                          <>
+                            {isEmailValid ? (
+                              <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
+                            ) : (
+                              <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
+                            )}
+                          </>
+                        )}
+                      </div>
+                      {form.email.length > 0 && (
+                        <p className={`text-xs mt-1 ${isEmailValid ? 'text-green-600' : 'text-red-500'}`}>
+                          {isEmailValid ? 'Correo válido' : 'Introduce un correo válido'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Contraseña */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Contraseña
+                    </label>
+                    <div>
+                      <div className="flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full  ${form.password.length === 0 ? 'border-gray-200 dark:border-gray-700' : isPasswordValid ? 'border-green-400 dark:border-green-500' : 'border-red-400 dark:border-red-500'}">
+                        <Lock className="w-5 h-5 text-gray-300 dark:text-gray-500 mr-2" />
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          name="password"
+                          value={form.password}
+                          onChange={handleChange}
+                          required
+                          minLength="6"
+                          className="flex-1 bg-transparent outline-none border-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 py-2"
+                          placeholder="Mínimo 6 caracteres"
+                          autoComplete="current-password"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="ml-2 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+                          tabIndex={-1}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="w-4 h-4 text-gray-400" />
+                          ) : (
+                            <Eye className="w-4 h-4 text-gray-400" />
+                          )}
+                        </button>
+                        {form.password.length > 0 && (
+                          <>
+                            {isPasswordValid ? (
+                              <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
+                            ) : (
+                              <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
+                            )}
+                          </>
+                        )}
+                      </div>
+                      {form.password.length > 0 && (
+                        <p className={`text-xs mt-1 ${isPasswordValid ? 'text-green-600' : 'text-red-500'}`}>
+                          {isPasswordValid ? 'Contraseña válida' : 'Mínimo 6 caracteres'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Confirmar Contraseña (solo registro) */}
+                  {localMode === "register" && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Confirmar contraseña
+                      </label>
+                      <div>
+                        <div className="flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full  ${form.confirmPassword.length === 0 ? 'border-gray-200 dark:border-gray-700' : isConfirmValid ? 'border-green-400 dark:border-green-500' : 'border-red-400 dark:border-red-500'}">
+                          <Lock className="w-5 h-5 text-gray-300 dark:text-gray-500 mr-2" />
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            name="confirmPassword"
+                            value={form.confirmPassword}
+                            onChange={handleChange}
+                            required
+                            minLength="6"
+                            className="flex-1 bg-transparent outline-none border-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 py-2"
+                            placeholder="Confirma tu contraseña"
+                            autoComplete="new-password"
+                          />
+                          {form.confirmPassword.length > 0 && (
+                            <>
+                              {isConfirmValid ? (
+                                <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
+                              ) : (
+                                <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
+                              )}
+                            </>
+                          )}
+                        </div>
+                        {form.confirmPassword.length > 0 && (
+                          <p className={`text-xs mt-1 ${isConfirmValid ? 'text-green-600' : 'text-red-500'}`}>
+                            {isConfirmValid ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden'}
+                          </p>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* Error */}
+                  <AnimatePresence>
+                    {error && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                      >
+                        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {loading 
+                      ? "Procesando..." 
+                      : (localMode === "login" ? "Iniciar sesión" : "Crear cuenta")
+                    }
+                  </button>
+                </motion.form>
+              </AnimatePresence>
 
               {/* Divider */}
               <div className="my-6 flex items-center">
