@@ -1,49 +1,34 @@
 "use client";
-import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-200 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white mt-10 transition-colors duration-300">
-      <div className="max-w-screen-xl mx-auto px-4 py-10 grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
-        {/* Columna 1 - Logo */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <img 
-              src="/assets/nav/logo.svg" 
-              alt="Logo" 
-              className="h-8 w-auto dark:hidden" 
-            />
-            <img 
-              src="/assets/nav/logo-white.svg" 
-              alt="Logo" 
-              className="h-8 w-auto hidden dark:block" 
-            />
-            <span className="text-lg font-bold tracking-wide text-blue-600 dark:text-blue-400">Mural ARPA</span>
-          </div>
-          <p className="text-gray-600 dark:text-gray-300">
-            Preservando el arte mural con tecnología.
-          </p>
+    <footer className="w-full border-t border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md text-gray-700 dark:text-gray-300 transition-colors duration-300 relative overflow-hidden">
+      {/* Blobs animados de fondo */}
+      <div className="pointer-events-none absolute inset-0 w-full h-full z-0">
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-300 dark:bg-blue-700 rounded-full mix-blend-multiply filter blur-2xl opacity-60 animate-blob"></div>
+        <div className="absolute -top-20 -right-24 w-96 h-96 bg-purple-200 dark:bg-purple-800 rounded-full mix-blend-multiply filter blur-2xl opacity-60 animate-blob animation-delay-2000"></div>
+      </div>
+      <div className="max-w-screen-xl mx-auto px-4 py-8 flex flex-col items-center justify-center gap-3 relative z-10">
+        <div className="flex items-center gap-2 mb-2">
+          <img
+            src="/assets/nav/logo.svg"
+            alt="Logo"
+            className="h-7 w-auto dark:hidden"
+          />
+          <img
+            src="/assets/nav/logo-white.svg"
+            alt="Logo"
+            className="h-7 w-auto hidden dark:block"
+          />
+          <span className="text-base font-semibold tracking-wide text-gray-800 dark:text-gray-200">Mural ARPA</span>
         </div>
-
-        {/* Columna 2 - Enlaces rápidos */}
-        <div className="flex flex-col gap-2">
-          <span className="font-semibold text-blue-600 dark:text-blue-400">Contenido</span>
-          <Link href="/" className="hover:text-blue-600 dark:hover:text-blue-400 transition">Inicio</Link>
-          <Link href="/museo" className="hover:text-blue-600 dark:hover:text-blue-400 transition">Museo Virtual</Link>
-          <Link href="/crear-sala" className="hover:text-blue-600 dark:hover:text-blue-400 transition">Subir documento</Link>
-          <Link href="#about" className="hover:text-blue-600 dark:hover:text-blue-400 transition">Acerca de</Link>
-        </div>
-
-        {/* Columna 3 - Contacto / Legal */}
-        <div className="flex flex-col gap-2">
-          <span className="font-semibold text-blue-600 dark:text-blue-400">Contacto</span>
-          <a href="mailto:contacto@arpa.org" className="hover:text-blue-600 dark:hover:text-blue-400 transition">
-            contacto@arpa.org
-          </a>
-          <p>Benemérita Universidad Autónoma de Puebla</p>
-          <p className="text-gray-500 dark:text-gray-400 text-xs mt-4">
-            &copy; {new Date().getFullYear()} Mural ARPA. Todos los derechos reservados.
-          </p>
+        <p className="text-xs font-semibold text-gray-700 dark:font-light dark:text-gray-400 mb-1 text-center max-w-xs">
+          Preservando el arte mural con tecnología.
+        </p>
+        <div className="w-full flex justify-center">
+          <span className="text-xs font-semibold text-gray-600 dark:font-light dark:text-gray-500 text-center">
+            &copy; {new Date().getFullYear()} TakitoCorp. Todos los derechos reservados.
+          </span>
         </div>
       </div>
     </footer>

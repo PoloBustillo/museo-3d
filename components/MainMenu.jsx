@@ -6,19 +6,16 @@ import AuthModal from "./AuthModal";
 import ThemeSwitch from "./ThemeSwitch";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
 import {
   NavigationMenu,
   NavigationMenuContent,
-  NavigationMenuIndicator,
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
-  NavigationMenuViewport,
 } from "./ui/navigation-menu";
-import Footer from "./Footer";
 
 // Componente de efecto máquina de escribir
 function TypewriterText({
@@ -75,16 +72,13 @@ function TypewriterText({
   );
 }
 
-export default function MainMenu({ onSubirArchivo, onNavigate }) {
+export default function MainMenu({ onSubirArchivo }) {
   const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // Estado para menú móvil
   const [mobileArchivoOpen, setMobileArchivoOpen] = useState(false); // Estado para dropdown de Archivo
-  const fileInputRef = useRef();
   const router = useRouter();
+  const pathname = usePathname();
   const { data: session, status } = useSession();
-
-  const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [transitioning, setTransitioning] = useState(false);
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
 
@@ -138,24 +132,6 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const files = Array.from(e.dataTransfer.files);
-    setUploadedFiles((prev) => [...prev, ...files]);
-  };
-  const handleFileChange = (e) => {
-    const files = Array.from(e.target.files);
-    setUploadedFiles((prev) => [...prev, ...files]);
-  };
-  const handleDragOver = (e) => e.preventDefault();
-  const handleSubirArchivo = (e) => {
-    e.preventDefault();
-    setTransitioning(true);
-    setTimeout(() => {
-      router.push("/crear-sala");
-    }, 900);
-  };
-
   return (
     <>
       {/* Navigation Menu with auto-hide on scroll */}
@@ -194,7 +170,14 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
           <NavigationMenu className="hidden md:block">
             <NavigationMenuList className="text-sm font-medium">
               <NavigationMenuItem>
-                <NavigationMenuTrigger className="hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
+                <NavigationMenuTrigger
+                  className={
+                    "hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all " +
+                    (pathname.startsWith("/crear-sala") || pathname.startsWith("/archivo") || pathname.startsWith("/museo")
+                      ? "elegant-active-menu"
+                      : "")
+                  }
+                >
                   Archivo
                 </NavigationMenuTrigger>
                 <NavigationMenuContent className="bg-card p-6 rounded-lg shadow-lg border min-w-[200px]">
@@ -203,7 +186,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
                       <Link
                         href="/crear-sala"
                         onClick={onSubirArchivo}
-                        className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all"
+                        className={`block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all ${pathname.startsWith("/crear-sala") ? "elegant-active-menu" : ""}`}
                       >
                         Crear Sala
                       </Link>
@@ -211,12 +194,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
                     <NavigationMenuLink asChild>
                       <Link
                         href="/archivo"
-                        className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all"
-                        onClick={
-                          onNavigate
-                            ? (e) => onNavigate(e, "/archivo")
-                            : undefined
-                        }
+                        className={`block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all ${pathname.startsWith("/archivo") ? "elegant-active-menu" : ""}`}
                       >
                         Ver archivo
                       </Link>
@@ -224,12 +202,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
                     <NavigationMenuLink asChild>
                       <Link
                         href="/museo"
-                        className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all"
-                        onClick={
-                          onNavigate
-                            ? (e) => onNavigate(e, "/museo")
-                            : undefined
-                        }
+                        className={`block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all ${pathname.startsWith("/museo") ? "elegant-active-menu" : ""}`}
                       >
                         Explorar mural
                       </Link>
@@ -242,12 +215,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
                 <NavigationMenuLink asChild>
                   <Link
                     href="/acerca-de"
-                    className="hover:text-primary transition-all px-3 py-2 rounded-lg"
-                    onClick={
-                      onNavigate
-                        ? (e) => onNavigate(e, "/acerca-de")
-                        : undefined
-                    }
+                    className={`hover:text-primary transition-all px-3 py-2 rounded-lg ${pathname.startsWith("/acerca-de") ? "elegant-active-menu" : ""}`}
                   >
                     Acerca de
                   </Link>
@@ -258,8 +226,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
                 <NavigationMenuLink asChild>
                   <Link
                     href="/museo"
-                    className="hover:text-primary transition-all px-3 py-2 rounded-lg"
-                    // onClick={onNavigate ? (e) => onNavigate(e, "/museo") : undefined}
+                    className={`hover:text-primary transition-all px-3 py-2 rounded-lg ${pathname.startsWith("/museo") ? "elegant-active-menu" : ""}`}
                   >
                     Museo Virtual
                   </Link>
@@ -426,14 +393,14 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
               <Link
                 href="/"
                 onClick={() => setMobileMenuOpen(false)}
-                className="block py-2 text-base font-medium hover:text-primary transition-colors"
+                className={`block py-2 text-base font-medium hover:text-primary transition-colors ${pathname === "/" ? "elegant-active-menu" : ""}`}
               >
                 Inicio
               </Link>
               <Link
                 href="/museo"
                 onClick={() => setMobileMenuOpen(false)}
-                className="block py-2 text-base font-medium hover:text-primary transition-colors"
+                className={`block py-2 text-base font-medium hover:text-primary transition-colors ${pathname.startsWith("/museo") ? "elegant-active-menu" : ""}`}
               >
                 Museo Virtual
               </Link>
@@ -442,7 +409,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
               <div className="space-y-2">
                 <button
                   onClick={() => setMobileArchivoOpen(!mobileArchivoOpen)}
-                  className="flex items-center justify-between w-full py-2 text-base font-medium hover:text-primary transition-colors"
+                  className={`flex items-center justify-between w-full py-2 text-base font-medium hover:text-primary transition-colors ${["/crear-sala","/archivo","/museo"].some(p=>pathname.startsWith(p)) ? "elegant-active-menu" : ""}`}
                 >
                   <span>Archivo</span>
                   <svg
@@ -478,7 +445,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
                           setMobileArchivoOpen(false);
                           if (onSubirArchivo) onSubirArchivo();
                         }}
-                        className="block py-1.5 text-sm hover:text-primary transition-colors"
+                        className={`block py-1.5 text-sm hover:text-primary transition-colors ${pathname.startsWith("/crear-sala") ? "elegant-active-menu" : ""}`}
                       >
                         Crear Sala
                       </Link>
@@ -488,7 +455,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
                           setMobileMenuOpen(false);
                           setMobileArchivoOpen(false);
                         }}
-                        className="block py-1.5 text-sm hover:text-primary transition-colors"
+                        className={`block py-1.5 text-sm hover:text-primary transition-colors ${pathname.startsWith("/archivo") ? "elegant-active-menu" : ""}`}
                       >
                         Ver archivo
                       </Link>
@@ -498,7 +465,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
                           setMobileMenuOpen(false);
                           setMobileArchivoOpen(false);
                         }}
-                        className="block py-1.5 text-sm hover:text-primary transition-colors"
+                        className={`block py-1.5 text-sm hover:text-primary transition-colors ${pathname.startsWith("/museo") ? "elegant-active-menu" : ""}`}
                       >
                         Explorar mural
                       </Link>
@@ -510,7 +477,7 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
               <Link
                 href="/acerca-de"
                 onClick={() => setMobileMenuOpen(false)}
-                className="block py-2 text-base font-medium hover:text-primary transition-colors"
+                className={`block py-2 text-base font-medium hover:text-primary transition-colors ${pathname.startsWith("/acerca-de") ? "elegant-active-menu" : ""}`}
               >
                 Acerca de
               </Link>
