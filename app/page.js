@@ -346,7 +346,7 @@ export default function Home() {
       </AnimatePresence>{" "}
       {/* Indicador de posición */}
       <div
-        className={`fixed z-[40] space-y-3 scroll-indicators-desktop
+        className={`fixed z-[50] space-y-3 scroll-indicators-desktop
           ${/* Mobile: bottom center */ ""}
           md:top-1/2 md:transform md:-translate-y-1/2 md:space-y-6 md:space-x-0
           ${/* Mobile: bottom positioning */ ""}

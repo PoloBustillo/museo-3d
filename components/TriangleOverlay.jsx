@@ -52,7 +52,6 @@ export default function AnimatedTriangleOverlay({
         paddingRight: !isLeft ? "env(safe-area-inset-right)" : "0",
       }}
     >
-      {" "}
       <div
         className={`
           max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg transition-all duration-500 ease-out px-2 sm:px-4 md:px-6 lg:px-8
@@ -61,26 +60,19 @@ export default function AnimatedTriangleOverlay({
               ? "safe-pad-left text-left"
               : "ml-auto safe-pad-right text-right"
           }
-          ${
-            isVisible && scrollOpacity > 0.5
-              ? "pointer-events-auto"
-              : "pointer-events-none"
-          }
+          pointer-events-none
         `}
         style={{
           transform: `translateY(${contentY}px) scale(${numberScale})`,
           opacity: appearProgress,
         }}
       >
-        {" "}
         {/* Step number - Large and visible on all devices */}
         <h2
           className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-extrabold leading-none relative transition-all duration-500 ease-out"
           style={{
             filter: `drop-shadow(0 2px 4px rgba(0,0,0,0.2))`,
-            transform: `scale(${numberScale}) perspective(1000px) rotateX(${
-              (1 - scrollOpacity) * 5
-            }deg)`,
+            transform: `scale(${numberScale}) perspective(1000px) rotateX(${(1 - scrollOpacity) * 5}deg)`,
           }}
         >
           {step.toString().padStart(2, "0")}
@@ -104,15 +96,13 @@ export default function AnimatedTriangleOverlay({
           }}
         >
           {text}
-        </p>{" "}
+        </p>
         {isFinalStep && (
           <div
             className="mt-6 sm:mt-8 flex justify-center transition-all duration-500 ease-out"
             style={{
               opacity: buttonOpacity,
-              transform: `translateY(${(1 - buttonOpacity) * 10}px) scale(${
-                0.9 + buttonOpacity * 0.1
-              })`,
+              transform: `translateY(${(1 - buttonOpacity) * 10}px) scale(${0.9 + buttonOpacity * 0.1})`,
             }}
           >
             <Link
@@ -121,6 +111,7 @@ export default function AnimatedTriangleOverlay({
                 relative inline-block px-4 sm:px-6 py-2.5 sm:py-3 rounded-md border border-white
                 font-semibold text-sm sm:text-base text-white overflow-hidden group
                 backdrop-blur-md bg-white/10 hover:scale-105 transition-transform duration-300
+                pointer-events-auto
               "
             >
               <span
@@ -133,7 +124,6 @@ export default function AnimatedTriangleOverlay({
                   transition-opacity duration-500 ease-in-out
                 "
               />
-
               <span
                 aria-hidden
                 className="
@@ -143,13 +133,12 @@ export default function AnimatedTriangleOverlay({
                   group-hover:scale-x-100 group-hover:brightness-125
                 "
               />
-
               <span className="relative z-10 transition-colors duration-500">
                 ¡Visita el museo virtual!
               </span>
             </Link>
           </div>
-        )}{" "}
+        )}
       </div>
     </div>
   );

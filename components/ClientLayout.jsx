@@ -83,6 +83,7 @@ export default function ClientLayout({ children }) {
             onMouseEnter={() => setHoveringBottom(true)}
             onMouseLeave={() => setHoveringBottom(false)}
             className={`
+                hidden md:block
                 fixed bottom-0 left-0 w-full z-[15] transition-all duration-500
                 ${
                   hoveringBottom
