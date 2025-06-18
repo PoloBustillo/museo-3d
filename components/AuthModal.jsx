@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, User, Eye, EyeOff, Loader2 } from "lucide-react";
 
 export default function AuthModal({ open, onClose, mode = "login" }) {
-  const [form, setForm] = useState({ email: "", password: "", name: "" });
+  const [form, setForm] = useState({ email: "", password: "", name: "", confirmPassword: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -22,7 +22,7 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
     const handleKey = (e) => {
       if (e.key === "Escape") {
         setLocalMode("login");
-        setForm({ email: "", password: "", name: "" });
+        setForm({ email: "", password: "", name: "", confirmPassword: "" });
         setError("");
         setLoading(false);
         setShowPassword(false);
@@ -47,7 +47,7 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
     
     // Limpiar el estado del modal
     setLocalMode("login");
-    setForm({ email: "", password: "", name: "" });
+    setForm({ email: "", password: "", name: "", confirmPassword: "" });
     setError("");
     setLoading(false);
     setShowPassword(false);
@@ -72,10 +72,14 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
       setError("Por favor, completa todos los campos");
       setLoading(false);
       return;
+    }    if (localMode === "register" && !form.name) {
+      setError("Por favor, ingresa tu nombre");
+      setLoading(false);
+      return;
     }
 
-    if (localMode === "register" && !form.name) {
-      setError("Por favor, ingresa tu nombre");
+    if (localMode === "register" && form.password !== form.confirmPassword) {
+      setError("Las contraseñas no coinciden");
       setLoading(false);
       return;
     }
@@ -257,10 +261,36 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
                         <EyeOff className="w-4 h-4 text-gray-400" />
                       ) : (
                         <Eye className="w-4 h-4 text-gray-400" />
-                      )}
-                    </button>
+                      )}                    </button>
                   </div>
                 </div>
+
+                {/* Confirmar Contraseña (solo registro) */}
+                {localMode === "register" && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Confirmar contraseña
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        name="confirmPassword"
+                        value={form.confirmPassword}
+                        onChange={handleChange}
+                        required
+                        minLength="6"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-200 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 transition-all duration-200"
+                        placeholder="Confirma tu contraseña"
+                      />
+                    </div>
+                  </motion.div>
+                )}
 
                 {/* Error */}
                 <AnimatePresence>

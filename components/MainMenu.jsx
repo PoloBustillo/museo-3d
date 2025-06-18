@@ -349,18 +349,17 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
               aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
             >
               <div className="w-6 h-6 relative flex flex-col justify-center items-center">
-                {/* Línea superior */}
+                {/* Línea superior */}{" "}
                 <div
-                  className={`hamburger-line-top absolute w-6 h-0.5 bg-current transition-all duration-500 ease-out ${
+                  className={`hamburger-line-top absolute w-6 h-px bg-current transition-all duration-500 ease-out ${
                     mobileMenuOpen
                       ? "rotate-45 translate-y-0"
                       : "-translate-y-1.5"
                   }`}
                 />
-
-                {/* Línea media con efecto especial de desplazamiento a la derecha */}
+                {/* Línea media con efecto especial de desplazamiento a la derecha */}{" "}
                 <div
-                  className={`hamburger-line-middle absolute h-0.5 bg-current ${
+                  className={`hamburger-line-middle absolute h-px bg-current ${
                     mobileMenuOpen ? "w-0 opacity-0" : "w-6 opacity-100"
                   }`}
                   style={{
@@ -373,10 +372,9 @@ export default function MainMenu({ onSubirArchivo, onNavigate }) {
                       : "translateX(0) scaleX(1)",
                   }}
                 />
-
-                {/* Línea inferior */}
+                {/* Línea inferior */}{" "}
                 <div
-                  className={`hamburger-line-bottom absolute w-6 h-0.5 bg-current transition-all duration-500 ease-out ${
+                  className={`hamburger-line-bottom absolute w-6 h-px bg-current transition-all duration-500 ease-out ${
                     mobileMenuOpen
                       ? "-rotate-45 translate-y-0"
                       : "translate-y-1.5"

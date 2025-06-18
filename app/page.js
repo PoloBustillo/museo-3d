@@ -373,10 +373,10 @@ export default function Home() {
             aria-label={`Ir a sección ${index + 1}`}
           />
         ))}
-      </div>
-      {/* Contador de progreso */}
+      </div>{" "}
+      {/* Contador de progreso - Solo visible en desktop */}
       <div
-        className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[40] bg-black/20 backdrop-blur-sm rounded-full px-4 py-2 transition-all duration-500"
+        className="hidden md:block fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[40] bg-black/20 backdrop-blur-sm rounded-full px-4 py-2 transition-all duration-500"
         style={{
           opacity: scrollOpacity > 0.3 ? 1 : 0.3, // Se desvanece junto con el triángulo
         }}
