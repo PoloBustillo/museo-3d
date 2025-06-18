@@ -30,7 +30,6 @@ async function main() {
           url_imagen: "",
         },
       });
-      console.log(`Mural insertado: ${row["Título"]}`);
     } catch (e) {
       console.error(`Error insertando mural: ${row["Título"]}`, e);
     }
