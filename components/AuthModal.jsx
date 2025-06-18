@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { signIn } from "next-auth/react";
-import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, User, Eye, EyeOff, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function AuthModal({ open, onClose, mode = "login" }) {
   const [form, setForm] = useState({ email: "", password: "", name: "", confirmPassword: "" });
@@ -10,6 +10,7 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [localMode, setLocalMode] = useState(mode);
+  const [success, setSuccess] = useState(false);
   const modalRef = useRef();
 
   useEffect(() => {
@@ -18,9 +19,8 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
 
   useEffect(() => {
     if (!open) return;
-    
     const handleKey = (e) => {
-      if (e.key === "Escape") {
+      if (e.key === "Escape" && !success) {
         setLocalMode("login");
         setForm({ email: "", password: "", name: "", confirmPassword: "" });
         setError("");
@@ -29,15 +29,13 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
         onClose(null);
       }
     };
-    
     window.addEventListener("keydown", handleKey);
     document.body.style.overflow = 'hidden';
-    
     return () => {
       window.removeEventListener("keydown", handleKey);
       document.body.style.overflow = 'unset';
     };
-  }, [open]);
+  }, [open, success]);
 
   const handleClose = (e) => {
     if (e) {
@@ -115,7 +113,7 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
         if (result?.error) {
           setError("Cuenta creada, pero error al iniciar sesión. Intenta hacer login.");
         } else {
-          onClose("success");
+          setSuccess(true);
         }
       } else {
         // Login de usuario
@@ -128,7 +126,7 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
         if (result?.error) {
           setError("Credenciales incorrectas");
         } else {
-          onClose("success");
+          setSuccess(true);
         }
       }
     } catch (error) {
@@ -150,6 +148,17 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
   const isPasswordValid = form.password.length >= 6;
   const isConfirmValid = localMode === "register" && form.confirmPassword.length > 0 && form.password === form.confirmPassword;
   const isNameValid = localMode === "register" ? form.name.length > 2 : true;
+
+  // Cierra el modal tras mostrar el éxito
+  useEffect(() => {
+    if (success) {
+      const timeout = setTimeout(() => {
+        setSuccess(false);
+        onClose("success");
+      }, 1000);
+      return () => clearTimeout(timeout);
+    }
+  }, [success, onClose]);
 
   return (
     <AnimatePresence>
@@ -179,7 +188,6 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
               >
                 <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
               </button>
-              
               <div className="text-center">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                   {localMode === "login" ? "Bienvenido de vuelta" : "Crear cuenta"}
@@ -196,214 +204,224 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
             {/* Content animado entre modos */}
             <div className="p-4 sm:p-6 overflow-y-auto flex-1">
               <AnimatePresence mode="wait" initial={false}>
-                <motion.form
-                  key={localMode}
-                  onSubmit={handleSubmit}
-                  className="space-y-4"
-                  initial={{ opacity: 0, x: localMode === 'login' ? 40 : -40 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: localMode === 'login' ? -40 : 40 }}
-                  transition={{ duration: 0.25, ease: 'easeInOut' }}
-                >
-                  {/* Nombre (solo registro) */}
-                  {localMode === "register" && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Nombre completo
-                      </label>
-                      <div>
-                        <div className="flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent  w-full  ${form.name.length === 0 ? 'border-gray-200 dark:border-gray-700' : isNameValid ? 'border-green-400 dark:border-green-500' : 'border-red-400 dark:border-red-500'}">
-                          <User className="w-5 h-5 text-gray-300 dark:text-gray-500 mr-2" />
-                          <input
-                            type="text"
-                            name="name"
-                            value={form.name}
-                            onChange={handleChange}
-                            required
-                            className="flex-1 bg-transparent outline-none border-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 py-2"
-                            placeholder="Tu nombre completo"
-                            autoComplete="name"
-                          />
-                          {form.name.length > 0 && (
-                            <>
-                              {isNameValid ? (
+                {success ? (
+                  <motion.div
+                    key="success-message"
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -30 }}
+                    transition={{ duration: 0.4, ease: 'easeInOut' }}
+                    className="flex flex-col items-center justify-center h-full min-h-[200px]"
+                  >
+                    <CheckCircle2 className="w-16 h-16 text-green-500 mb-4 animate-soft-pulse" />
+                    <h3 className="text-xl font-semibold text-green-600 mb-2">¡Éxito!</h3>
+                    <p className="text-gray-600 dark:text-gray-300 text-center">Tu autenticación fue exitosa.<br/>Redirigiendo...</p>
+                  </motion.div>
+                ) : (
+                  <motion.form
+                    key={localMode}
+                    onSubmit={handleSubmit}
+                    className="space-y-4"
+                    initial={{ y: localMode === 'login' ? 40 : -40 }}
+                    animate={{ y: 0 }}
+                    exit={{ y: localMode === 'login' ? -40 : 40 }}
+                    transition={{ duration: 0.25, ease: 'easeInOut' }}
+                  >
+                    {/* Nombre (solo registro) */}
+                    {localMode === "register" && (
+                      <motion.div
+                        initial={{ y: 16 }}
+                        animate={{ y: 0 }}
+                        exit={{ y: -16 }}
+                        transition={{ duration: 0.5, ease: 'easeOut' }}
+                      >
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Nombre completo
+                        </label>
+                        <div>
+                          <div className={`flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full ${form.name.length === 0 ? 'border-gray-200 dark:border-gray-700' : isNameValid ? 'border-green-400 dark:border-green-500' : 'border-red-400 dark:border-red-500'}`}>
+                            <User className="w-5 h-5 text-gray-300 dark:text-gray-500 mr-2" />
+                            <input
+                              type="text"
+                              name="name"
+                              value={form.name}
+                              onChange={handleChange}
+                              required
+                              className="flex-1 bg-transparent outline-none border-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 py-2"
+                              placeholder="Tu nombre completo"
+                              autoComplete="name"
+                            />
+                            {form.name.length > 0 && (
+                              <>{isNameValid ? (
                                 <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
                               ) : (
                                 <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
-                              )}
-                            </>
+                              )}</>
+                            )}
+                          </div>
+                          {form.name.length > 0 && (
+                            <p className={`text-xs mt-1 ${isNameValid ? 'text-green-600' : 'text-red-500'}`}>
+                              {isNameValid ? 'Nombre válido' : 'Introduce tu nombre completo'}
+                            </p>
                           )}
                         </div>
-                        {form.name.length > 0 && (
-                          <p className={`text-xs mt-1 ${isNameValid ? 'text-green-600' : 'text-red-500'}`}>
-                            {isNameValid ? 'Nombre válido' : 'Introduce tu nombre completo'}
+                      </motion.div>
+                    )}
+
+                    {/* Email */}
+                    <motion.div
+                      initial={{ y: 16 }}
+                      animate={{ y: 0 }}
+                      exit={{ y: -16 }}
+                      transition={{ duration: 0.5, ease: 'easeOut' }}
+                    >
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Correo electrónico
+                      </label>
+                      <div>
+                        <div className={`flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full ${form.email.length === 0 ? 'border-gray-200 dark:border-gray-700' : isEmailValid ? 'border-green-400 dark:border-green-500' : 'border-red-400 dark:border-red-500'}`}>
+                          <Mail className="w-5 h-5 text-gray-300 dark:text-gray-500 mr-2" />
+                          <input
+                            type="email"
+                            name="email"
+                            value={form.email}
+                            onChange={handleChange}
+                            required
+                            className="flex-1 bg-transparent outline-none border-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 py-2"
+                            placeholder="tu@email.com"
+                            autoComplete="email"
+                          />
+                          {form.email.length > 0 && (
+                            <>{isEmailValid ? (
+                              <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
+                            ) : (
+                              <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
+                            )}</>
+                          )}
+                        </div>
+                        {form.email.length > 0 && (
+                          <p className={`text-xs mt-1 ${isEmailValid ? 'text-green-600' : 'text-red-500'}`}>
+                            {isEmailValid ? 'Correo válido' : 'Introduce un correo válido'}
                           </p>
                         )}
                       </div>
                     </motion.div>
-                  )}
 
-                  {/* Email */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Correo electrónico
-                    </label>
-                    <div>
-                      <div className="flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full  ${form.email.length === 0 ? 'border-gray-200 dark:border-gray-700' : isEmailValid ? 'border-green-400 dark:border-green-500' : 'border-red-400 dark:border-red-500'}">
-                        <Mail className="w-5 h-5 text-gray-300 dark:text-gray-500 mr-2" />
-                        <input
-                          type="email"
-                          name="email"
-                          value={form.email}
-                          onChange={handleChange}
-                          required
-                          className="flex-1 bg-transparent outline-none border-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 py-2"
-                          placeholder="tu@email.com"
-                          autoComplete="email"
-                        />
-                        {form.email.length > 0 && (
-                          <>
-                            {isEmailValid ? (
-                              <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
-                            ) : (
-                              <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
-                            )}
-                          </>
-                        )}
-                      </div>
-                      {form.email.length > 0 && (
-                        <p className={`text-xs mt-1 ${isEmailValid ? 'text-green-600' : 'text-red-500'}`}>
-                          {isEmailValid ? 'Correo válido' : 'Introduce un correo válido'}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Contraseña */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Contraseña
-                    </label>
-                    <div>
-                      <div className="flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full  ${form.password.length === 0 ? 'border-gray-200 dark:border-gray-700' : isPasswordValid ? 'border-green-400 dark:border-green-500' : 'border-red-400 dark:border-red-500'}">
-                        <Lock className="w-5 h-5 text-gray-300 dark:text-gray-500 mr-2" />
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          name="password"
-                          value={form.password}
-                          onChange={handleChange}
-                          required
-                          minLength="6"
-                          className="flex-1 bg-transparent outline-none border-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 py-2"
-                          placeholder="Mínimo 6 caracteres"
-                          autoComplete="current-password"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="ml-2 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
-                          tabIndex={-1}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="w-4 h-4 text-gray-400" />
-                          ) : (
-                            <Eye className="w-4 h-4 text-gray-400" />
-                          )}
-                        </button>
-                        {form.password.length > 0 && (
-                          <>
-                            {isPasswordValid ? (
-                              <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
-                            ) : (
-                              <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
-                            )}
-                          </>
-                        )}
-                      </div>
-                      {form.password.length > 0 && (
-                        <p className={`text-xs mt-1 ${isPasswordValid ? 'text-green-600' : 'text-red-500'}`}>
-                          {isPasswordValid ? 'Contraseña válida' : 'Mínimo 6 caracteres'}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Confirmar Contraseña (solo registro) */}
-                  {localMode === "register" && (
+                    {/* Contraseña */}
                     <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2 }}
+                      initial={{ y: 16 }}
+                      animate={{ y: 0 }}
+                      exit={{ y: -16 }}
+                      transition={{ duration: 0.5, ease: 'easeOut' }}
                     >
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Confirmar contraseña
+                        Contraseña
                       </label>
                       <div>
-                        <div className="flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full  ${form.confirmPassword.length === 0 ? 'border-gray-200 dark:border-gray-700' : isConfirmValid ? 'border-green-400 dark:border-green-500' : 'border-red-400 dark:border-red-500'}">
+                        <div className={`flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full ${form.password.length === 0 ? 'border-gray-200 dark:border-gray-700' : isPasswordValid ? 'border-green-400 dark:border-green-500' : 'border-red-400 dark:border-red-500'}`}>
                           <Lock className="w-5 h-5 text-gray-300 dark:text-gray-500 mr-2" />
                           <input
                             type={showPassword ? "text" : "password"}
-                            name="confirmPassword"
-                            value={form.confirmPassword}
+                            name="password"
+                            value={form.password}
                             onChange={handleChange}
                             required
                             minLength="6"
                             className="flex-1 bg-transparent outline-none border-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 py-2"
-                            placeholder="Confirma tu contraseña"
-                            autoComplete="new-password"
+                            placeholder="Mínimo 6 caracteres"
+                            autoComplete="current-password"
                           />
-                          {form.confirmPassword.length > 0 && (
-                            <>
-                              {isConfirmValid ? (
-                                <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
-                              ) : (
-                                <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
-                              )}
-                            </>
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="ml-2 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 cursor-pointer"
+                            tabIndex={-1}
+                          >
+                            {showPassword ? (
+                              <EyeOff className="w-4 h-4 text-gray-400" />
+                            ) : (
+                              <Eye className="w-4 h-4 text-gray-400" />
+                            )}
+                          </button>
+                          {form.password.length > 0 && (
+                            <>{isPasswordValid ? (
+                              <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
+                            ) : (
+                              <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
+                            )}</>
                           )}
                         </div>
-                        {form.confirmPassword.length > 0 && (
-                          <p className={`text-xs mt-1 ${isConfirmValid ? 'text-green-600' : 'text-red-500'}`}>
-                            {isConfirmValid ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden'}
+                        {form.password.length > 0 && (
+                          <p className={`text-xs mt-1 ${isPasswordValid ? 'text-green-600' : 'text-red-500'}`}>
+                            {isPasswordValid ? 'Contraseña válida' : 'Mínimo 6 caracteres'}
                           </p>
                         )}
                       </div>
                     </motion.div>
-                  )}
 
-                  {/* Error */}
-                  <AnimatePresence>
-                    {error && (
+                    {/* Confirmar Contraseña (solo registro) */}
+                    {localMode === "register" && (
                       <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                        initial={{ y: 16 }}
+                        animate={{ y: 0 }}
+                        exit={{ y: -16 }}
+                        transition={{ duration: 0.5, ease: 'easeOut' }}
                       >
-                        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Confirmar contraseña
+                        </label>
+                        <div>
+                          <div className={`flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full ${form.confirmPassword.length === 0 ? 'border-gray-200 dark:border-gray-700' : isConfirmValid ? 'border-green-400 dark:border-green-500' : 'border-red-400 dark:border-red-500'}`}>
+                            <Lock className="w-5 h-5 text-gray-300 dark:text-gray-500 mr-2" />
+                            <input
+                              type={showPassword ? "text" : "password"}
+                              name="confirmPassword"
+                              value={form.confirmPassword}
+                              onChange={handleChange}
+                              required
+                              minLength="6"
+                              className="flex-1 bg-transparent outline-none border-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 py-2"
+                              placeholder="Confirma tu contraseña"
+                              autoComplete="new-password"
+                            />
+                            {form.confirmPassword.length > 0 && (
+                              <>{isConfirmValid ? (
+                                <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
+                              ) : (
+                                <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
+                              )}</>
+                            )}
+                          </div>
+                          {form.confirmPassword.length > 0 && (
+                            <p className={`text-xs mt-1 ${isConfirmValid ? 'text-green-600' : 'text-red-500'}`}>
+                              {isConfirmValid ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden'}
+                            </p>
+                          )}
+                        </div>
                       </motion.div>
                     )}
-                  </AnimatePresence>
 
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl disabled:cursor-not-allowed cursor-pointer"
-                  >
-                    {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                    {loading 
-                      ? "Procesando..." 
-                      : (localMode === "login" ? "Iniciar sesión" : "Crear cuenta")
-                    }
-                  </button>
-                </motion.form>
+                    {/* Error */}
+                    {error && (
+                      <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                      </div>
+                    )}
+
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl disabled:cursor-not-allowed cursor-pointer"
+                    >
+                      {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                      {loading 
+                        ? "Procesando..." 
+                        : (localMode === "login" ? "Iniciar sesión" : "Crear cuenta")
+                      }
+                    </button>
+                  </motion.form>
+                )}
               </AnimatePresence>
 
               {/* Divider */}
