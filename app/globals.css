@@ -1097,3 +1097,12 @@ body.home-active {
     z-index: 45 !important;
   }
 }
+
+@keyframes progressBarIndeterminate {
+  0% { left: -33%; width: 33%; }
+  50% { left: 33%; width: 34%; }
+  100% { left: 100%; width: 33%; }
+}
+.animate-progressBar {
+  animation: progressBarIndeterminate 0.1s cubic-bezier(0.4,0,0.2,1) infinite;
+}

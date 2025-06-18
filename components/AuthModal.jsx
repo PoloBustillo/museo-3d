@@ -414,11 +414,18 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
                       disabled={loading}
                       className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl disabled:cursor-not-allowed cursor-pointer"
                     >
-                      {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                      {loading 
-                        ? "Procesando..." 
-                        : (localMode === "login" ? "Iniciar sesión" : "Crear cuenta")
-                      }
+                      {loading ? (
+                        <>
+                          <span className="flex items-center gap-1 mr-2">
+                            <span className="block w-2 h-2 rounded-full bg-white animate-bounce [animation-delay:0s]"></span>
+                            <span className="block w-2 h-2 rounded-full bg-white animate-bounce [animation-delay:0.15s]"></span>
+                            <span className="block w-2 h-2 rounded-full bg-white animate-bounce [animation-delay:0.3s]"></span>
+                          </span>
+                          Procesando...
+                        </>
+                      ) : (
+                        localMode === "login" ? "Iniciar sesión" : "Crear cuenta"
+                      )}
                     </button>
                   </motion.form>
                 )}
@@ -478,6 +485,18 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
                 </p>
               </div>
             </div>
+
+            {/* Loading Overlay */}
+            {loading && (
+              <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm">
+                <div className="flex space-x-2 mt-2">
+                  <span className="block w-3 h-3 rounded-full bg-white dark:bg-gray-200 animate-bounce [animation-delay:0s]"></span>
+                  <span className="block w-3 h-3 rounded-full bg-white dark:bg-gray-200 animate-bounce [animation-delay:0.15s]"></span>
+                  <span className="block w-3 h-3 rounded-full bg-white dark:bg-gray-200 animate-bounce [animation-delay:0.3s]"></span>
+                </div>
+                <span className="mt-6 text-white dark:text-gray-200 font-medium text-lg tracking-wide">Cargando...</span>
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}

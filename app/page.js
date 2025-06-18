@@ -189,8 +189,18 @@ export default function Home() {
   // Evitar renderizado hasta que el cliente esté listo
   if (!isClient) {
     return (
-      <div className="h-screen bg-black flex items-center justify-center">
-        <div className="text-white">Cargando...</div>
+      <div className="h-screen bg-black flex flex-col items-center justify-center">
+        <div className="flex space-x-2 mb-4">
+          <span className="block w-3 h-3 rounded-full bg-white animate-bounce [animation-delay:0s]"></span>
+          <span className="block w-3 h-3 rounded-full bg-white animate-bounce [animation-delay:0.15s]"></span>
+          <span className="block w-3 h-3 rounded-full bg-white animate-bounce [animation-delay:0.3s]"></span>
+        </div>
+        <div className="text-white text-lg font-medium tracking-wide">
+          Cargando
+        </div>
+        <div className="mt-6 w-40 h-1.5 bg-white/10 rounded-full overflow-hidden relative">
+          <div className="absolute left-0 top-0 h-full w-1/3 bg-gradient-to-r from-blue-400 via-purple-500 to-blue-400 rounded-full animate-progressBar" />
+        </div>
       </div>
     );
   }
