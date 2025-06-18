@@ -44,9 +44,10 @@ export async function POST(req) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     console.log("Buffer creado, subiendo a Cloudinary...");
+    const folder = form.get("folder") || "murales";
     const upload = await new Promise((resolve, reject) => {
       cloudinary.uploader
-        .upload_stream({ folder: "murales" }, (err, result) => {
+        .upload_stream({ folder }, (err, result) => {
           if (err) reject(err);
           else resolve(result);
         })

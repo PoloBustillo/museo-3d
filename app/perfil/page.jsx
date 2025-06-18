@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   getPersonalCollection,
   getCollectionStats,
@@ -20,8 +20,12 @@ import ArtistaIcon from "@/components/ui/icons/ArtistaIcon";
 import TecnicaIcon from "@/components/ui/icons/TecnicaIcon";
 import ReactDOM from "react-dom";
 import React from "react";
+import { useUpdateProfile } from "../hooks/useUpdateProfile";
+import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Settings as SettingsIcon } from "lucide-react";
 
-function ImageTooltip({ src, alt, anchorRef, show, previewImages = [] }) {
+function ImageTooltip({ src, alt, anchorRef, show }) {
   const [pos, setPos] = useState({ top: 0, left: 0 });
   useEffect(() => {
     if (show && anchorRef.current) {
@@ -41,13 +45,9 @@ function ImageTooltip({ src, alt, anchorRef, show, previewImages = [] }) {
         left: pos.left,
         zIndex: 1000,
       }}
-      className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-2 min-w-[180px] max-w-[320px] max-h-[120px] flex items-center justify-center"
+      className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-2 min-w-[160px] max-w-[260px] max-h-[260px] flex items-center justify-center"
     >
-      <div className="flex gap-2">
-        {previewImages.map((img, i) => (
-          <img key={img.id || i} src={img.src} alt={img.title} className="w-16 h-16 object-cover rounded-md border border-gray-200 dark:border-gray-700" />
-        ))}
-      </div>
+      <img src={src} alt={alt} className="w-56 h-56 object-contain rounded-lg" />
     </div>,
     typeof window !== "undefined" ? document.body : null
   );
@@ -56,9 +56,6 @@ function ImageTooltip({ src, alt, anchorRef, show, previewImages = [] }) {
 function CollectionItem({ item, allItems }) {
   const imgRef = React.useRef(null);
   const [hovered, setHovered] = React.useState(false);
-  // Encuentra el índice de la imagen actual y toma hasta 5 a partir de ahí
-  const idx = allItems.findIndex((i) => i.id === item.id);
-  const previewImages = allItems.slice(idx, idx + 5);
   return (
     <div className="flex items-center gap-4 border-b py-2 relative group">
       {item.src && (
@@ -67,11 +64,11 @@ function CollectionItem({ item, allItems }) {
             ref={imgRef}
             src={item.src}
             alt={item.title}
-            className="w-12 h-12 object-cover rounded-md cursor-pointer group-hover:ring-2 group-hover:ring-primary transition"
+            className="w-12 h-12 object-cover rounded-md cursor-pointer group-hover:ring-2 group-hover:ring-primary transition ml-2"
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
           />
-          <ImageTooltip src={item.src} alt={item.title} anchorRef={imgRef} show={hovered} previewImages={previewImages} />
+          <ImageTooltip src={item.src} alt={item.title} anchorRef={imgRef} show={hovered} />
         </>
       )}
       <div className="flex-1 text-left">
@@ -153,6 +150,34 @@ function TagWithPreview({ label, variant, images, children }) {
   );
 }
 
+function AvatarTooltip({ src, alt, anchorRef, show }) {
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  useEffect(() => {
+    if (show && anchorRef.current) {
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPos({
+        top: rect.top + rect.height / 2 - 112 + window.scrollY,
+        left: rect.right + 16 + window.scrollX,
+      });
+    }
+  }, [show, anchorRef]);
+  if (!show) return null;
+  return ReactDOM.createPortal(
+    <div
+      style={{
+        position: "fixed",
+        top: pos.top,
+        left: pos.left,
+        zIndex: 1000,
+      }}
+      className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-2 min-w-[160px] max-w-[260px] max-h-[260px] flex items-center justify-center"
+    >
+      <img src={src} alt={alt} className="w-56 h-56 object-contain rounded-lg" />
+    </div>,
+    typeof window !== "undefined" ? document.body : null
+  );
+}
+
 function PerfilContent() {
   const { data: session, status } = useSession();
   const [personalCollection, setPersonalCollection] = useState([]);
@@ -173,6 +198,22 @@ function PerfilContent() {
   const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [hoveredTag, setHoveredTag] = React.useState({ type: null, value: null, anchor: null });
   const [murales, setMurales] = React.useState([]);
+  const [editMode, setEditMode] = useState(false);
+  const [newName, setNewName] = useState(session?.user?.name || "");
+  const [newImage, setNewImage] = useState(session?.user?.image || "");
+  const [imagePreview, setImagePreview] = useState(session?.user?.image || "");
+  const [checkingName, setCheckingName] = useState(false);
+  const [nameAvailable, setNameAvailable] = useState(null); // null | true | false
+  const [saving, setSaving] = useState(false);
+  const fileInputRef = useRef();
+  const { updateProfile, loading: updating, error: updateError, success: updateSuccess } = useUpdateProfile();
+  const [notifEnabled, setNotifEnabled] = useState(true);
+  const [subsEnabled, setSubsEnabled] = useState(false);
+  const [showDelete, setShowDelete] = useState(false);
+  const [deleteEmail, setDeleteEmail] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteSuccess, setDeleteSuccess] = useState(false);
 
   const userId = session?.user?.id || null;
 
@@ -283,6 +324,64 @@ function PerfilContent() {
     }
   }, [userId, status]);
 
+  // Simulación de validación de nombre (reemplazar con API real)
+  async function checkNameAvailability(name) {
+    setCheckingName(true);
+    setTimeout(() => {
+      setNameAvailable(name.length > 2 && name !== "usuario"); // Simula que "usuario" está ocupado
+      setCheckingName(false);
+    }, 700);
+  }
+
+  function handleNameChange(e) {
+    setNewName(e.target.value);
+    setNameAvailable(null);
+    if (e.target.value.length > 2) {
+      checkNameAvailability(e.target.value);
+    }
+  }
+
+  function handleImageChange(e) {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setImagePreview(ev.target.result);
+      reader.readAsDataURL(file);
+      setNewImage(file);
+    }
+  }
+
+  function handleSave() {
+    setSaving(true);
+    updateProfile({
+      name: newName,
+      imageFile: newImage instanceof File ? newImage : null,
+    })
+      .then(() => {
+        setEditMode(false);
+        setSaving(false);
+      })
+      .catch(() => {
+        setSaving(false);
+      });
+  }
+
+  async function handleDeleteAccount() {
+    setDeleteError("");
+    setDeleteLoading(true);
+    // Simulación: en real, llamar a API para eliminar cuenta
+    setTimeout(() => {
+      if (deleteEmail !== session?.user?.email) {
+        setDeleteError("El email no coincide");
+        setDeleteLoading(false);
+        return;
+      }
+      setDeleteSuccess(true);
+      setDeleteLoading(false);
+      // Aquí iría signOut y redirección
+    }, 1200);
+  }
+
   if (status === "loading") {
     return (
       <div className="relative min-h-screen flex items-center justify-center">
@@ -318,26 +417,158 @@ function PerfilContent() {
         <div className="md:col-span-1 flex flex-col items-center h-full">
           <Card className="w-full max-w-xs p-8 text-center shadow-xl h-full min-h-[400px] flex flex-col justify-start">
             <CardHeader className="flex flex-col items-center gap-2 border-b pb-4">
-              <Avatar className="size-20 mb-2">
-                <AvatarImage src={session?.user?.image || undefined} alt={session?.user?.name || 'Avatar'} />
-                <AvatarFallback>{session?.user?.name?.[0] || 'U'}</AvatarFallback>
-              </Avatar>
-              <CardTitle className="text-lg font-semibold">{session?.user?.name || 'Usuario'}</CardTitle>
-              <Badge variant="secondary" className="mt-1">Usuario</Badge>
+              {editMode ? (
+                (() => {
+                  const avatarRef = useRef();
+                  const [hovered, setHovered] = useState(false);
+                  return (
+                    <>
+                      <div className="relative mb-2">
+                        <span
+                          ref={avatarRef}
+                          onMouseEnter={() => setHovered(true)}
+                          onMouseLeave={() => setHovered(false)}
+                          style={{ display: 'inline-block' }}
+                        >
+                          <Avatar className="size-32">
+                            <AvatarImage src={imagePreview} alt={newName || 'Avatar'} />
+                            <AvatarFallback>{newName?.[0] || 'U'}</AvatarFallback>
+                          </Avatar>
+                          <AvatarTooltip src={imagePreview} alt={newName || 'Avatar'} anchorRef={avatarRef} show={hovered} />
+                        </span>
+                        <button
+                          className="absolute bottom-2 right-2 bg-primary text-white rounded-full p-2 shadow hover:bg-primary/80 transition"
+                          onClick={() => fileInputRef.current?.click()}
+                          type="button"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536M9 13l6-6m2 2l-6 6m-2 2h6"/></svg>
+                        </button>
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleImageChange}
+                        />
+                      </div>
+                      <input
+                        type="text"
+                        className="border rounded-lg px-3 py-2 text-center w-full mb-2"
+                        value={newName}
+                        onChange={handleNameChange}
+                        disabled={checkingName || saving || updating}
+                        maxLength={32}
+                      />
+                      {checkingName && <div className="text-xs text-muted-foreground">Comprobando disponibilidad...</div>}
+                      {nameAvailable === false && <div className="text-xs text-red-500">Nombre no disponible</div>}
+                      {nameAvailable === true && <div className="text-xs text-green-600">¡Nombre disponible!</div>}
+                      {updateError && <div className="text-xs text-red-500">{updateError}</div>}
+                      {updateSuccess && <div className="text-xs text-green-600">¡Perfil actualizado!</div>}
+                      <div className="flex gap-2 mt-2">
+                        <Button size="sm" variant="outline" onClick={() => setEditMode(false)} disabled={saving || updating}>Cancelar</Button>
+                        <Button size="sm" onClick={handleSave} disabled={saving || updating || nameAvailable === false || newName.length < 3}>
+                          {(saving || updating) ? "Guardando..." : "Guardar"}
+                        </Button>
+                      </div>
+                    </>
+                  );
+                })()
+              ) : (
+                (() => {
+                  const avatarRef = useRef();
+                  const [hovered, setHovered] = useState(false);
+                  return (
+                    <>
+                      <span
+                        ref={avatarRef}
+                        onMouseEnter={() => setHovered(true)}
+                        onMouseLeave={() => setHovered(false)}
+                        style={{ display: 'inline-block' }}
+                      >
+                        <Avatar className="size-32 mb-2">
+                          <AvatarImage src={session?.user?.image || undefined} alt={session?.user?.name || 'Avatar'} />
+                          <AvatarFallback>{session?.user?.name?.[0] || 'U'}</AvatarFallback>
+                        </Avatar>
+                        <AvatarTooltip src={session?.user?.image || undefined} alt={session?.user?.name || 'Avatar'} anchorRef={avatarRef} show={hovered} />
+                      </span>
+                      <CardTitle className="text-lg font-semibold">{session?.user?.name || 'Usuario'}</CardTitle>
+                      <Badge variant="secondary" className="mt-1">Usuario</Badge>
+                      <Button size="sm" className="mt-2" onClick={() => setEditMode(true)}>
+                        Editar perfil
+                      </Button>
+                    </>
+                  );
+                })()
+              )}
             </CardHeader>
             <CardContent className="flex flex-col gap-4 mt-4">
-              <div className="text-left">
-                <Label>Email</Label>
-                <div className="text-sm text-muted-foreground mt-1">{session?.user?.email || 'No disponible'}</div>
+              {/* Info de perfil */}
+              <div className="w-full max-w-xs mx-auto text-left mb-6">
+                <div className="text-left">
+                  <Label>Email</Label>
+                  <div className="text-sm text-muted-foreground mt-1">{session?.user?.email || 'No disponible'}</div>
+                </div>
+                <div className="text-left mt-2">
+                  <Label>ID de usuario</Label>
+                  <div className="text-xs font-mono text-muted-foreground mt-1">{userId || 'No disponible'}</div>
+                </div>
               </div>
-              <div className="text-left">
-                <Label>ID de usuario</Label>
-                <div className="text-xs font-mono text-muted-foreground mt-1">{userId || 'No disponible'}</div>
+              <div className="my-2 border-t border-muted-foreground/10 dark:border-neutral-800" />
+              {/* Preferencias */}
+              <div className="mb-4 text-left">
+                <div className="flex items-center gap-2 mb-3 text-lg font-bold tracking-tight">
+                  <SettingsIcon className="w-6 h-6 text-primary" />
+                  Preferencias
+                </div>
+                <div className="rounded-2xl shadow-lg bg-white/80 dark:bg-neutral-900/80 border border-muted-foreground/10 dark:border-neutral-800 p-6">
+                  <div className="flex flex-col divide-y divide-muted-foreground/10 dark:divide-neutral-800">
+                    <div className="flex items-center justify-between py-3 group">
+                      <span className="text-base font-medium">Recibir notificaciones</span>
+                      <span className="transition-transform group-hover:scale-110">
+                        <Switch checked={notifEnabled} onCheckedChange={setNotifEnabled} />
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-3 group">
+                      <span className="text-base font-medium">Suscripciones</span>
+                      <span className="transition-transform group-hover:scale-110">
+                        <Switch checked={subsEnabled} onCheckedChange={setSubsEnabled} />
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between py-3 group">
+                      <span className="text-base font-medium text-red-700 dark:text-red-300">Eliminar cuenta</span>
+                      <Button size="sm" variant="destructive" onClick={() => setShowDelete((v) => !v)}>
+                        Eliminar
+                      </Button>
+                    </div>
+                    {showDelete && (
+                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4 mt-4 flex flex-col gap-2">
+                        <div className="text-sm text-red-700 dark:text-red-300 font-medium">¿Estás seguro? Esta acción es irreversible.</div>
+                        <div className="text-xs text-muted-foreground">Escribe tu email para confirmar:</div>
+                        <Input
+                          type="email"
+                          value={deleteEmail}
+                          onChange={e => setDeleteEmail(e.target.value)}
+                          placeholder="Tu email"
+                          disabled={deleteLoading || deleteSuccess}
+                        />
+                        {deleteError && <div className="text-xs text-red-500">{deleteError}</div>}
+                        {deleteSuccess && <div className="text-xs text-green-600">Cuenta eliminada (simulado)</div>}
+                        <div className="flex gap-2 mt-2">
+                          <Button size="sm" variant="outline" onClick={() => setShowDelete(false)} disabled={deleteLoading || deleteSuccess}>Cancelar</Button>
+                          <Button size="sm" variant="destructive" onClick={handleDeleteAccount} disabled={deleteLoading || deleteSuccess || !deleteEmail}>
+                            {deleteLoading ? "Eliminando..." : "Confirmar eliminación"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {/* Mensaje de proveedor */}
+              <div className="mt-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+                La información se obtiene de tu proveedor de autenticación.<br />Para cambios, contacta al administrador.
               </div>
             </CardContent>
-            <div className="mt-6 text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
-              La información se obtiene de tu proveedor de autenticación.<br />Para cambios, contacta al administrador.
-            </div>
           </Card>
         </div>
         {/* Main content: Estadísticas y Colección */}
@@ -354,28 +585,28 @@ function PerfilContent() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-1">
-                        <SalaIcon className="w-6 h-6 text-blue-500" />
+                        <SalaIcon className="w-10 h-10 text-blue-500" />
                         <span className="text-2xl font-bold">{museumStats.totalSalas}</span>
                       </div>
                       <div className="text-xs text-muted-foreground">Salas</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-1">
-                        <MuralIcon className="w-6 h-6 text-indigo-500" />
+                        <MuralIcon className="w-10 h-10 text-indigo-500" />
                         <span className="text-2xl font-bold">{museumStats.totalArtworks}</span>
                       </div>
                       <div className="text-xs text-muted-foreground">Murales</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-1">
-                        <ArtistaIcon className="w-6 h-6 text-rose-500" />
+                        <ArtistaIcon className="w-10 h-10 text-rose-500" />
                         <span className="text-2xl font-bold">{museumStats.totalArtists}</span>
                       </div>
                       <div className="text-xs text-muted-foreground">Artistas</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-1">
-                        <TecnicaIcon className="w-6 h-6 text-green-500" />
+                        <TecnicaIcon className="w-10 h-10 text-green-500" />
                         <span className="text-2xl font-bold">{museumStats.totalTechniques}</span>
                       </div>
                       <div className="text-xs text-muted-foreground">Técnicas</div>
@@ -445,28 +676,28 @@ function PerfilContent() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-1">
-                        <MuralIcon className="w-6 h-6 text-indigo-500" />
+                        <MuralIcon className="w-10 h-10 text-indigo-500" />
                         <span className="text-2xl font-bold">{collectionStats.totalArtworks}</span>
                       </div>
                       <div className="text-xs text-muted-foreground">Obras</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-1">
-                        <ArtistaIcon className="w-6 h-6 text-rose-500" />
+                        <ArtistaIcon className="w-10 h-10 text-rose-500" />
                         <span className="text-2xl font-bold">{collectionStats.uniqueArtists}</span>
                       </div>
                       <div className="text-xs text-muted-foreground">Artistas</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-1">
-                        <TecnicaIcon className="w-6 h-6 text-green-500" />
+                        <TecnicaIcon className="w-10 h-10 text-green-500" />
                         <span className="text-2xl font-bold">{collectionStats.uniqueTechniques}</span>
                       </div>
                       <div className="text-xs text-muted-foreground">Técnicas</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-1">
-                        <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 17l4 4 4-4m-4-5v9"/></svg>
+                        <svg className="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 17l4 4 4-4m-4-5v9"/></svg>
                         <span className="text-2xl font-bold">{collectionStats.oldestYear || '-'}</span>
                       </div>
                       <div className="text-xs text-muted-foreground">Año más antiguo</div>

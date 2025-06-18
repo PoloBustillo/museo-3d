@@ -32,7 +32,23 @@ export async function POST(req) {
 }
 
 // GET /api/usuarios
-export async function GET() {
+export async function GET(req) {
+  const { searchParams } = new URL(req.url);
+  const name = searchParams.get("name");
+  if (name) {
+    try {
+      const user = await prisma.user.findFirst({ where: { name } });
+      return new Response(JSON.stringify({ available: !user }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
   try {
     const users = await prisma.user.findMany({
       select: {
