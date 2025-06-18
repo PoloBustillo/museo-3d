@@ -80,7 +80,9 @@ export default function MainMenu({ onSubirArchivo }) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const [isVisible, setIsVisible] = useState(true);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollY = useRef(0);
+  const lastHideY = useRef(0);
+  const threshold = 30;
 
   // Cerrar menú móvil al hacer clic fuera
   useEffect(() => {
@@ -113,24 +115,20 @@ export default function MainMenu({ onSubirArchivo }) {
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-
       if (currentScrollY < 10) {
-        // Siempre visible en el top
         setIsVisible(true);
-      } else if (currentScrollY < lastScrollY) {
-        // Scrolling up - mostrar navbar
-        setIsVisible(true);
-      } else if (currentScrollY > lastScrollY && currentScrollY > 100) {
-        // Scrolling down - ocultar navbar
+        lastHideY.current = 0;
+      } else if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
         setIsVisible(false);
+        lastHideY.current = currentScrollY;
+      } else if (currentScrollY < lastScrollY.current && lastHideY.current - currentScrollY > threshold) {
+        setIsVisible(true);
       }
-
-      setLastScrollY(currentScrollY);
+      lastScrollY.current = currentScrollY;
     };
-
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
-  }, [lastScrollY]);
+  }, []);
 
   return (
     <>
