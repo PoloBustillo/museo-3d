@@ -15,8 +15,8 @@ export const GALLERY_CONFIG = {
 
   // Texturas
   TEXTURES: {
-    FLOOR: "/assets/textures/floor.jpg",
-    WALL: "/assets/textures/wall.jpg",
+    FLOOR: "/assets/textures/floor.webp",
+    WALL: "/assets/textures/wall.webp",
   },
 
   // Configuración de salas disponibles

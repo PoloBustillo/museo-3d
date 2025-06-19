@@ -29,11 +29,11 @@ const FRASES_MURALISTAS = [
 ];
 
 const BANKSY_IMAGES = [
-  "/assets/bansky.png",
-  "/assets/bansky1.png",
-  "/assets/bansky2.png",
-  "/assets/bansky3.png",
-  "/assets/bansky4.png",
+  "/assets/bansky.webp",
+  "/assets/bansky1.webp",
+  "/assets/bansky2.webp",
+  "/assets/bansky3.webp",
+  "/assets/bansky4.webp",
 ];
 
 export default function ClientLayout({ children }) {
