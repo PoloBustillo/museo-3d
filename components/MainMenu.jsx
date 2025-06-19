@@ -384,182 +384,195 @@ export default function MainMenu({ onSubirArchivo }) {
         </div>
       </motion.nav>
 
-      {/* Menú móvil */}
+      {/* Menú móvil con backdrop tipo modal */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="md:hidden fixed top-[73px] left-0 right-0 z-40 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 shadow-lg"
-            data-mobile-menu
+            className="fixed inset-0 z-50 flex items-center justify-center min-h-screen bg-black/50 backdrop-blur-sm md:hidden"
+            aria-hidden="true"
+            onClick={e => {
+              if (e.target === e.currentTarget) setMobileMenuOpen(false);
+            }}
           >
-            <div className="max-w-screen-xl mx-auto px-4 py-4 space-y-3">
-              {/* Enlaces principales */}
-              <Link
-                href="/"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`block py-2 text-base font-medium hover:text-primary transition-colors ${pathname === "/" ? "elegant-active-menu" : ""}`}
-              >
-                Inicio
-              </Link>
-              <Link
-                href="/museo"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`block py-2 text-base font-medium hover:text-primary transition-colors ${pathname.startsWith("/museo") ? "elegant-active-menu" : ""}`}
-              >
-                Museo Virtual
-              </Link>
-
-              {/* Dropdown de Archivo */}
-              <div className="space-y-2">
-                <button
-                  onClick={() => setMobileArchivoOpen(!mobileArchivoOpen)}
-                  className={`flex items-center justify-between w-full py-2 text-base font-medium hover:text-primary transition-colors ${["/crear-sala","/archivo","/museo"].some(p=>pathname.startsWith(p)) ? "elegant-active-menu" : ""}`}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+              className="w-[95vw] max-w-sm rounded-xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 shadow-2xl p-4 z-50 mt-[90px]"
+              data-mobile-menu
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="px-2 py-2 space-y-3">
+                {/* Enlaces principales */}
+                <Link
+                  href="/"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block py-2 text-base font-medium hover:text-primary transition-colors ${pathname === "/" ? "elegant-active-menu" : ""}`}
                 >
-                  <span>Archivo</span>
-                  <svg
-                    className={`w-4 h-4 transition-transform duration-200 ${
-                      mobileArchivoOpen ? "rotate-180" : ""
-                    }`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
+                  Inicio
+                </Link>
+                <Link
+                  href="/museo"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block py-2 text-base font-medium hover:text-primary transition-colors ${pathname.startsWith("/museo") ? "elegant-active-menu" : ""}`}
+                >
+                  Museo Virtual
+                </Link>
 
-                <AnimatePresence>
-                  {mobileArchivoOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="pl-4 space-y-2 border-l-2 border-gray-200 dark:border-gray-700"
+                {/* Dropdown de Archivo */}
+                <div className="space-y-2">
+                  <button
+                    onClick={() => setMobileArchivoOpen(!mobileArchivoOpen)}
+                    className={`flex items-center justify-between w-full py-2 text-base font-medium hover:text-primary transition-colors ${["/crear-sala","/archivo","/museo"].some(p=>pathname.startsWith(p)) ? "elegant-active-menu" : ""}`}
+                  >
+                    <span>Archivo</span>
+                    <svg
+                      className={`w-4 h-4 transition-transform duration-200 ${
+                        mobileArchivoOpen ? "rotate-180" : ""
+                      }`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      <Link
-                        href="/crear-sala"
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                          setMobileArchivoOpen(false);
-                          if (onSubirArchivo) onSubirArchivo();
-                        }}
-                        className={`block py-1.5 text-sm hover:text-primary transition-colors ${pathname.startsWith("/crear-sala") ? "elegant-active-menu" : ""}`}
-                      >
-                        Crear Sala
-                      </Link>
-                      <Link
-                        href="/archivo"
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                          setMobileArchivoOpen(false);
-                        }}
-                        className={`block py-1.5 text-sm hover:text-primary transition-colors ${pathname.startsWith("/archivo") ? "elegant-active-menu" : ""}`}
-                      >
-                        Ver archivo
-                      </Link>
-                      <Link
-                        href="/museo"
-                        onClick={() => {
-                          setMobileMenuOpen(false);
-                          setMobileArchivoOpen(false);
-                        }}
-                        className={`block py-1.5 text-sm hover:text-primary transition-colors ${pathname.startsWith("/museo") ? "elegant-active-menu" : ""}`}
-                      >
-                        Explorar mural
-                      </Link>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </button>
 
-              <Link
-                href="/acerca-de"
-                onClick={() => setMobileMenuOpen(false)}
-                className={`block py-2 text-base font-medium hover:text-primary transition-colors ${pathname.startsWith("/acerca-de") ? "elegant-active-menu" : ""}`}
-              >
-                Acerca de
-              </Link>
+                  <AnimatePresence>
+                    {mobileArchivoOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="pl-4 space-y-2 border-l-2 border-gray-200 dark:border-gray-700"
+                      >
+                        <Link
+                          href="/crear-sala"
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            setMobileArchivoOpen(false);
+                            if (onSubirArchivo) onSubirArchivo();
+                          }}
+                          className={`block py-1.5 text-sm hover:text-primary transition-colors ${pathname.startsWith("/crear-sala") ? "elegant-active-menu" : ""}`}
+                        >
+                          Crear Sala
+                        </Link>
+                        <Link
+                          href="/archivo"
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            setMobileArchivoOpen(false);
+                          }}
+                          className={`block py-1.5 text-sm hover:text-primary transition-colors ${pathname.startsWith("/archivo") ? "elegant-active-menu" : ""}`}
+                        >
+                          Ver archivo
+                        </Link>
+                        <Link
+                          href="/museo"
+                          onClick={() => {
+                            setMobileMenuOpen(false);
+                            setMobileArchivoOpen(false);
+                          }}
+                          className={`block py-1.5 text-sm hover:text-primary transition-colors ${pathname.startsWith("/museo") ? "elegant-active-menu" : ""}`}
+                        >
+                          Explorar mural
+                        </Link>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
 
-              {/* Separador */}
-              <div className="border-t border-gray-200 dark:border-gray-700 my-4"></div>
+                <Link
+                  href="/acerca-de"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block py-2 text-base font-medium hover:text-primary transition-colors ${pathname.startsWith("/acerca-de") ? "elegant-active-menu" : ""}`}
+                >
+                  Acerca de
+                </Link>
 
-              {/* Área de usuario */}
-              {session ? (
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 py-2">
-                    <img
-                      src={session.user?.image || "/assets/default-avatar.svg"}
-                      alt={session.user?.name || "Usuario"}
-                      className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
-                      onError={(e) => {
-                        e.target.src = "/assets/default-avatar.svg";
-                      }}
-                    />
-                    <div>
-                      <p className="text-sm font-medium">
-                        {session.user?.name || "Usuario"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {session.user?.email}
-                      </p>
+                {/* Separador */}
+                <div className="border-t border-gray-200 dark:border-gray-700 my-4"></div>
+
+                {/* Área de usuario */}
+                {session ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3 py-2">
+                      <img
+                        src={session.user?.image || "/assets/default-avatar.svg"}
+                        alt={session.user?.name || "Usuario"}
+                        className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
+                        onError={(e) => {
+                          e.target.src = "/assets/default-avatar.svg";
+                        }}
+                      />
+                      <div>
+                        <p className="text-sm font-medium">
+                          {session.user?.name || "Usuario"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {session.user?.email}
+                        </p>
+                      </div>
                     </div>
+                    <Link
+                      href="/perfil"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block py-2 text-base hover:text-primary transition-colors"
+                    >
+                      Mi perfil
+                    </Link>
+                    <Link
+                      href="/mis-documentos"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block py-2 text-base hover:text-primary transition-colors"
+                    >
+                      Mis documentos
+                    </Link>
+                    <button
+                      onClick={() => {
+                        signOut();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="block w-full text-left py-2 text-base font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+                    >
+                      Cerrar sesión
+                    </button>
                   </div>
-                  <Link
-                    href="/perfil"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block py-2 text-base hover:text-primary transition-colors"
-                  >
-                    Mi perfil
-                  </Link>
-                  <Link
-                    href="/mis-documentos"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block py-2 text-base hover:text-primary transition-colors"
-                  >
-                    Mis documentos
-                  </Link>
-                  <button
-                    onClick={() => {
-                      signOut();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="block w-full text-left py-2 text-base font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-                  >
-                    Cerrar sesión
-                  </button>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <button
-                    onClick={() => {
-                      setAuthModal("login");
-                      setMobileMenuOpen(false);
-                    }}
-                    className="block w-full text-left py-2 text-base font-medium text-primary hover:text-primary/80 transition-colors"
-                  >
-                    Iniciar sesión
-                  </button>
-                  <button
-                    onClick={() => {
-                      setAuthModal("register");
-                      setMobileMenuOpen(false);
-                    }}
-                    className="block w-full text-left py-2 text-base font-medium hover:text-primary transition-colors"
-                  >
-                    Registrarse
-                  </button>
-                </div>
-              )}
-            </div>
+                ) : (
+                  <div className="space-y-3">
+                    <button
+                      onClick={() => {
+                        setAuthModal("login");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="block w-full text-left py-2 text-base font-medium text-primary hover:text-primary/80 transition-colors"
+                    >
+                      Iniciar sesión
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAuthModal("register");
+                        setMobileMenuOpen(false);
+                      }}
+                      className="block w-full text-left py-2 text-base font-medium hover:text-primary transition-colors"
+                    >
+                      Registrarse
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

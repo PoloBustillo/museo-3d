@@ -2,7 +2,10 @@
 
 export default function Footer() {
   return (
-    <footer className="w-full border-t border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md text-gray-700 dark:text-gray-300 transition-colors duration-300 relative overflow-hidden">
+    <footer
+      className="hidden md:block bg-background text-foreground w-full border-t border-gray-200 dark:border-gray-700 transition-colors duration-300 relative overflow-hidden"
+      style={{ background: 'var(--background)', color: 'var(--foreground)' }}
+    >
       {/* Blobs animados de fondo */}
       <div className="pointer-events-none absolute inset-0 w-full h-full z-0">
         <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-300 dark:bg-blue-700 rounded-full mix-blend-multiply filter blur-2xl opacity-60 animate-blob"></div>
