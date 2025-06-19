@@ -151,7 +151,12 @@ export default function MainMenu({ onSubirArchivo }) {
         initial={{ y: 0 }}
         animate={{ y: isVisible ? 0 : -100 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className={`fixed top-0 z-50 w-full border-b border-gray-200 dark:border-gray-700
+        className={`fixed top-0 z-50 w-full
+          ${
+            mobileMenuOpen
+              ? ""
+              : "border-b border-gray-200 dark:border-gray-700"
+          }
           ${
             isScrolled
               ? "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md"
@@ -429,7 +434,7 @@ export default function MainMenu({ onSubirArchivo }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 flex items-center justify-center min-h-screen bg-black/50 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-40 flex items-center justify-center min-h-screen md:hidden bg-black/50 backdrop-blur-sm pt-[56px]"
             aria-hidden="true"
             onClick={(e) => {
               if (e.target === e.currentTarget) setMobileMenuOpen(false);
@@ -440,7 +445,7 @@ export default function MainMenu({ onSubirArchivo }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.2 }}
-              className="w-[95vw] max-w-sm rounded-xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 shadow-2xl p-4 z-50 mt-[90px]"
+              className="w-[95vw] max-w-xs rounded-xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 shadow-2xl p-4 z-50 mt-[40px]"
               data-mobile-menu
               onClick={(e) => e.stopPropagation()}
             >
