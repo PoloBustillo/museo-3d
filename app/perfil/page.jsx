@@ -24,6 +24,9 @@ import { useUpdateProfile } from "../hooks/useUpdateProfile";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Settings as SettingsIcon } from "lucide-react";
+import useSWR from "swr";
+
+const fetcher = (url) => fetch(url).then((res) => res.json());
 
 function ImageTooltip({ src, alt, anchorRef, show }) {
   const [pos, setPos] = useState({ top: 0, left: 0 });
@@ -228,7 +231,7 @@ function PerfilAvatarEdit({ imagePreview, newName, handleImageChange, handleName
       {updateSuccess && <div className="text-xs text-green-600">¡Perfil actualizado!</div>}
       <div className="flex gap-2 mt-2">
         <Button size="sm" variant="outline" onClick={() => setEditMode(false)} disabled={saving || updating}>Cancelar</Button>
-        <Button size="sm" onClick={handleSave} disabled={saving || updating || nameAvailable === false || newName.length < 3}>
+        <Button size="sm" onClick={handleSave} disabled={saving || updating || nameAvailable !== true || newName.length < 3}>
           {(saving || updating) ? "Guardando..." : "Guardar"}
         </Button>
       </div>
@@ -323,97 +326,46 @@ function PerfilContent() {
     if (status !== "loading") setInitialLoading(false);
   }, [status]);
 
-  // Cargar estadísticas del museo
+  // SWR para estadísticas del museo
+  const { data: salasData, isLoading: salasLoading, error: salasError } = useSWR("/api/salas", fetcher);
+  const { data: muralesData, isLoading: muralesLoading, error: muralesError } = useSWR("/api/murales", fetcher);
+
   useEffect(() => {
-    const fetchMuseumStats = async () => {
-      try {
-        console.log("Iniciando fetchMuseumStats...");
-        setIsLoadingStats(true);
-
-        // Obtener salas
-        console.log("Fetching salas...");
-        const salasResponse = await fetch("/api/salas");
-        const salasData = await salasResponse.json();
-
-        // Obtener murales
-        console.log("Fetching murales...");
-        const muralesResponse = await fetch("/api/murales");
-        const muralesData = await muralesResponse.json();
-
-        console.log("Salas response status:", salasResponse.status);
-        console.log("Murales response status:", muralesResponse.status);
-        console.log("Salas data:", salasData);
-        console.log("Murales data:", muralesData);
-
-        // Las APIs devuelven directamente los datos, no con un campo 'success'
-        if (
-          salasResponse.ok &&
-          muralesResponse.ok &&
-          salasData.salas &&
-          muralesData.murales
-        ) {
-          const salas = salasData.salas || [];
-          const murales = muralesData.murales || [];
-
-          console.log("Salas count:", salas.length);
-          console.log("Murales count:", murales.length);
-
-          // Calcular estadísticas
-          const uniqueArtists = new Set(
-            murales.map((m) => m.autor).filter(Boolean)
-          ).size;
-          const uniqueTechniques = new Set(
-            murales.map((m) => m.tecnica).filter(Boolean)
-          ).size;
-
-          const newStats = {
-            totalArtworks: murales.length,
-            totalSalas: salas.length,
-            totalArtists: uniqueArtists,
-            totalTechniques: uniqueTechniques,
-            salas: salas.slice(0, 4), // Solo mostrar las primeras 4 salas
-          };
-
-          console.log("Setting new museum stats:", newStats);
-          setMuseumStats(newStats);
-          setMuralesStats(muralesData.estadisticas);
-          setMurales(murales);
-        } else {
-          console.log("API calls failed or returned invalid structure");
-          console.log("salasResponse.ok:", salasResponse.ok);
-          console.log("muralesResponse.ok:", muralesResponse.ok);
-          console.log("Has salas data:", !!salasData.salas);
-          console.log("Has murales data:", !!muralesData.murales);
-          // Datos de respaldo si las APIs fallan
-          setMuseumStats({
-            totalArtworks: 0,
-            totalSalas: 0,
-            totalArtists: 0,
-            totalTechniques: 0,
-            salas: [],
-          });
-          setMuralesStats({ total: 0, porSala: {}, porTecnica: {}, porAnio: {} });
-          setMurales([]);
-        }
-      } catch (error) {
-        console.error("Error fetching museum stats:", error);
-        // Datos de respaldo en caso de error
-        setMuseumStats({
-          totalArtworks: 0,
-          totalSalas: 0,
-          totalArtists: 0,
-          totalTechniques: 0,
-          salas: [],
-        });
-        setMuralesStats({ total: 0, porSala: {}, porTecnica: {}, porAnio: {} });
-        setMurales([]);
-      } finally {
-        setIsLoadingStats(false);
-      }
-    };
-
-    fetchMuseumStats();
-  }, []);
+    if (
+      salasData &&
+      muralesData &&
+      salasData.salas &&
+      muralesData.murales
+    ) {
+      const salas = salasData.salas || [];
+      const murales = muralesData.murales || [];
+      const uniqueArtists = new Set(murales.map((m) => m.autor).filter(Boolean)).size;
+      const uniqueTechniques = new Set(murales.map((m) => m.tecnica).filter(Boolean)).size;
+      setMuseumStats({
+        totalArtworks: murales.length,
+        totalSalas: salas.length,
+        totalArtists: uniqueArtists,
+        totalTechniques: uniqueTechniques,
+        salas: salas.slice(0, 4),
+      });
+      setMuralesStats(muralesData.estadisticas);
+      setMurales(murales);
+      setIsLoadingStats(false);
+    } else if (salasError || muralesError) {
+      setMuseumStats({
+        totalArtworks: 0,
+        totalSalas: 0,
+        totalArtists: 0,
+        totalTechniques: 0,
+        salas: [],
+      });
+      setMuralesStats({ total: 0, porSala: {}, porTecnica: {}, porAnio: {} });
+      setMurales([]);
+      setIsLoadingStats(false);
+    } else if (salasLoading || muralesLoading) {
+      setIsLoadingStats(true);
+    }
+  }, [salasData, muralesData, salasLoading, muralesLoading, salasError, muralesError]);
 
   // Debug: Monitor changes in museumStats
   useEffect(() => {
@@ -588,12 +540,12 @@ function PerfilContent() {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center pt-10">
+    <div className="relative min-h-screen flex items-center justify-center pt-8 md:pt-12">
       <RainbowBackground />
-      <div className="z-10 w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 px-4 min-h-screen h-full">
+      <div className="z-10 w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-[350px_1fr] gap-8 px-4 sm:px-8 h-full">
         {/* Sidebar Perfil */}
-        <div className="md:col-span-1 flex flex-col items-center h-full">
-          <Card className="w-full max-w-xs p-8 text-center shadow-xl h-full min-h-[400px] flex flex-col justify-start">
+        <div className="md:col-span-1 flex flex-col h-full md:max-w-md mx-auto w-full">
+          <Card className="w-full p-4 md:p-6 text-center shadow-xl h-full min-h-[400px] flex flex-col justify-start">
             <CardHeader className="flex flex-col items-center gap-2 border-b pb-4">
               {editMode ? (
                 <PerfilAvatarEdit
@@ -621,7 +573,7 @@ function PerfilContent() {
             </CardHeader>
             <CardContent className="flex flex-col gap-4 mt-4">
               {/* Info de perfil */}
-              <div className="w-full max-w-xs mx-auto text-left mb-6">
+              <div className="w-full text-left mb-6">
                 <div className="text-left">
                   <Label>Email</Label>
                   <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
@@ -647,14 +599,14 @@ function PerfilContent() {
                 </div>
                 <div className="text-left mt-4">
                   <Label>Notificaciones</Label>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-1">
                     <Switch checked={notifEnabled} onCheckedChange={(checked, e) => onNotifChange(checked, e)} />
                     <span className="text-xs text-muted-foreground">{notifEnabled ? "Activadas" : "Desactivadas"}</span>
                   </div>
                 </div>
                 <div className="text-left mt-2">
                   <Label>Suscripción</Label>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-1">
                     <Switch checked={subsEnabled} onCheckedChange={(checked, e) => onSubsChange(checked, e)} />
                     <span className="text-xs text-muted-foreground">{subsEnabled ? "Activa" : "Inactiva"}</span>
                   </div>
@@ -714,8 +666,8 @@ function PerfilContent() {
           </Card>
         </div>
         {/* Main content: Estadísticas y Colección */}
-        <div className="md:col-span-2 flex flex-col gap-8">
-          <Card className="w-full max-w-2xl mx-auto p-8 mb-4">
+        <div className="md:col-span-1 flex flex-col gap-8 w-full">
+          <Card className="w-full p-8 mb-4">
             <CardHeader className="mb-4">
               <CardTitle className="text-lg font-semibold">Estadísticas del museo</CardTitle>
             </CardHeader>
@@ -806,7 +758,7 @@ function PerfilContent() {
               )}
             </CardContent>
           </Card>
-          <Card className="w-full max-w-2xl mx-auto p-8">
+          <Card className="w-full p-8">
             <CardHeader className="mb-4">
               <CardTitle className="text-lg font-semibold">Mi colección personal</CardTitle>
             </CardHeader>

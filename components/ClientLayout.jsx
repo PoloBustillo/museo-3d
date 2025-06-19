@@ -97,7 +97,7 @@ export default function ClientLayout({ children }) {
               <Footer />
             </footer>
           ) : (
-            <footer className="block w-full z-[15] pt-8">
+            <footer className="block w-full z-[15]">
               <Footer />
             </footer>
           )}
