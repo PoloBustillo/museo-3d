@@ -122,6 +122,7 @@
   body {
     height: 100%;
     overflow-x: hidden;
+    cursor: url('/assets/cursor-museum-bw.png') 8 8, auto;
   }
   body {
     @apply bg-background text-foreground;
@@ -1105,4 +1106,16 @@ body.home-active {
 }
 .animate-progressBar {
   animation: progressBarIndeterminate 0.1s cubic-bezier(0.4,0,0.2,1) infinite;
+}
+
+.mouse-trail-dot {
+  position: fixed;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.35;
+  transition: opacity 0.5s, transform 0.5s;
+  will-change: opacity, transform;
 }
