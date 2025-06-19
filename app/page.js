@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import AnimatedTriangleOverlay from "../components/TriangleOverlay";
 import LandingMobile from "./landing-mobile";
 import AppProviders from "./AppProviders";
+import { useModal } from "../providers/ModalProvider";
 
 const AuthModal = dynamic(() => import("../components/AuthModal"), {
   ssr: false,
@@ -25,8 +26,8 @@ const steps = [
   },
 ];
 
-export default function Home() {
-  const [authModal, setAuthModal] = useState(null);
+function HomeContent() {
+  const { openModal } = useModal();
   const [current, setCurrent] = useState(0);
   const [isClient, setIsClient] = useState(false);
   const [scrollOpacity, setScrollOpacity] = useState(1);
@@ -413,14 +414,22 @@ export default function Home() {
             {current + 1} / {steps.length}
           </span>
         </div>
-        {authModal && (
-          <AuthModal
-            open={!!authModal}
-            mode={authModal}
-            onClose={(mode) => setAuthModal(mode || null)}
-          />
-        )}
+        {/* Botón de ejemplo para ModalProvider */}
+        <button
+          onClick={() =>
+            openModal("info-modal", {
+              title: "Información del Museo",
+              content:
+                "Este es un ejemplo de cómo usar el ModalProvider en cualquier parte de la aplicación.",
+            })
+          }
+          className="fixed top-4 right-4 z-[60] bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
+        >
+          ℹ️ Info
+        </button>
       </div>
     </AppProviders>
   );
 }
+
+export default HomeContent;

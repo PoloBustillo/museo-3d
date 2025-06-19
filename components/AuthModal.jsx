@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { signIn } from "next-auth/react";
+import { useModal } from "../providers/ModalProvider";
 import {
   X,
   Mail,
@@ -14,7 +15,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function AuthModal({ open, onClose, mode = "login" }) {
+export default function AuthModal() {
+  const { modal, modalData, closeModal, isModalOpen } = useModal();
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -24,24 +26,23 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [localMode, setLocalMode] = useState(mode);
+  const [localMode, setLocalMode] = useState("login");
   const [success, setSuccess] = useState(false);
   const modalRef = useRef();
+
+  // Determinar el modo basado en el modal abierto
+  const isOpen = isModalOpen("auth-login") || isModalOpen("auth-register");
+  const mode = isModalOpen("auth-register") ? "register" : "login";
 
   useEffect(() => {
     setLocalMode(mode);
   }, [mode]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
     const handleKey = (e) => {
       if (e.key === "Escape" && !success) {
-        setLocalMode("login");
-        setForm({ email: "", password: "", name: "", confirmPassword: "" });
-        setError("");
-        setLoading(false);
-        setShowPassword(false);
-        onClose(null);
+        handleClose();
       }
     };
     window.addEventListener("keydown", handleKey);
@@ -50,7 +51,7 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
       window.removeEventListener("keydown", handleKey);
       document.body.style.overflow = "unset";
     };
-  }, [open, success]);
+  }, [isOpen, success]);
 
   const handleClose = (e) => {
     if (e) {
@@ -66,9 +67,7 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
     setShowPassword(false);
 
     // Cerrar el modal
-    if (onClose) {
-      onClose(null);
-    }
+    closeModal();
   };
 
   const handleChange = (e) => {
@@ -176,15 +175,15 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
     if (success) {
       const timeout = setTimeout(() => {
         setSuccess(false);
-        onClose("success");
+        closeModal();
       }, 1000);
       return () => clearTimeout(timeout);
     }
-  }, [success, onClose]);
+  }, [success, closeModal]);
 
   return (
     <AnimatePresence>
-      {open && (
+      {isOpen && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

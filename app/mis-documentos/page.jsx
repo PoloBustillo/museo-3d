@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useCollection } from "../../providers/CollectionProvider";
+import { useModal } from "../../providers/ModalProvider";
+import { ModalWrapper } from "../../components/ui/Modal";
 
 export default function MisDocumentos() {
   const { data: session, status } = useSession();
@@ -17,6 +19,7 @@ export default function MisDocumentos() {
     lastSync,
     isAuthenticated,
   } = useCollection();
+  const { openModal, closeModal } = useModal();
   const [filteredCollection, setFilteredCollection] = useState([]);
   const [collectionStats, setCollectionStats] = useState({});
 
@@ -500,659 +503,919 @@ export default function MisDocumentos() {
   };
 
   const handleClearCollectionLocal = () => {
-    if (
-      window.confirm(
-        "¿Estás seguro de que quieres eliminar toda tu colección? Esta acción no se puede deshacer."
-      )
-    ) {
-      handleClearCollection();
-    }
+    openModal("confirm-clear", {
+      title: "Limpiar Colección",
+      message:
+        "¿Estás seguro de que quieres eliminar toda tu colección? Esta acción no se puede deshacer.",
+      onConfirm: () => {
+        handleClearCollection();
+        closeModal();
+      },
+    });
   };
 
   const handleRemoveFromCollectionLocal = (artworkId) => {
-    handleRemoveFromCollection(artworkId);
+    const artwork = personalCollection.find((item) => item.id === artworkId);
+    openModal("confirm-remove", {
+      title: "Eliminar Obra",
+      message: `¿Estás seguro de que quieres eliminar "${
+        artwork?.title || "esta obra"
+      }" de tu colección?`,
+      artwork,
+      onConfirm: () => {
+        handleRemoveFromCollection(artworkId);
+        closeModal();
+      },
+    });
   };
 
+  const handleShowArtworkDetails = (artwork) => {
+    openModal("artwork-details", { artwork });
+  };
+
+  const handleShowCollectionStats = () => {
+    openModal("collection-stats", {
+      stats: collectionStats,
+      collection: personalCollection,
+    });
+  };
+
+  // Renderizar la página
   if (status === "loading") {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p>Cargando documentos...</p>
-          </div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Cargando...</p>
         </div>
       </div>
     );
   }
 
-  if (status === "unauthenticated") {
+  if (!session) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto text-center">
-          <h1 className="text-3xl font-bold mb-6">Acceso Requerido</h1>
-          <p className="text-muted-foreground mb-6">
-            Debes iniciar sesión para ver tus documentos y colección personal.
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-6xl mb-6 opacity-20">🔒</div>
+          <h2 className="text-2xl font-light text-gray-600 mb-4">
+            Acceso Requerido
+          </h2>
+          <p className="text-gray-500 mb-8 max-w-md mx-auto">
+            Necesitas iniciar sesión para acceder a tus documentos personales.
           </p>
-          <button
-            onClick={() => (window.location.href = "/")}
-            className="bg-primary text-primary-foreground px-6 py-3 rounded-md hover:bg-primary/90 transition-colors"
+          <Link
+            href="/"
+            className="inline-block bg-slate-600 text-white px-8 py-4 rounded-xl font-medium hover:bg-slate-700 transition-all duration-300"
           >
-            Ir al Inicio
-          </button>
+            🏠 Volver al Inicio
+          </Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-gradient-to-br from-slate-50 via-gray-100 to-stone-100">
-      {/* Header elegante */}
-      <div className="relative bg-gradient-to-r from-slate-900 via-gray-900 to-stone-900 overflow-hidden">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-
-        {/* Patrón decorativo */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-white/5 to-transparent"></div>
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-radial from-white/10 to-transparent rounded-full blur-3xl"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-radial from-white/10 to-transparent rounded-full blur-3xl"></div>
-        </div>
-
-        <div className="mt-6 relative z-10 container mx-auto px-8 py-16 max-w-7xl">
-          <div className="text-center mb-8">
-            <h1 className="text-5xl font-light text-white mb-4 tracking-wide">
-              Mis Documentos
-            </h1>
-            <p className="text-xl text-gray-300 font-light">
-              Gestiona y explora tu colección personal con herramientas
-              avanzadas
-            </p>
-          </div>
-
-          {/* Navegación de breadcrumb */}
-          <div className="flex items-center justify-center gap-2 text-gray-300 text-sm">
-            <Link href="/perfil" className="hover:text-white transition-colors">
-              Mi Perfil
-            </Link>
-            <span>→</span>
-            <span className="text-white">Mis Documentos</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-8 py-12 max-w-7xl">
-        {personalCollection.length === 0 ? (
-          <div className="bg-white/70 backdrop-blur-sm p-16 rounded-2xl border border-white/50 shadow-xl text-center">
-            <div className="text-8xl mb-6 opacity-20">📄</div>
-            <h3 className="text-2xl font-light text-gray-600 mb-4">
-              No tienes documentos aún
-            </h3>
-            <p className="text-gray-500 mb-8 max-w-md mx-auto leading-relaxed">
-              Comienza agregando obras a tu colección personal desde el museo
-              virtual.
-            </p>
-            <Link
-              href="/museo"
-              className="inline-block bg-slate-600 text-white px-8 py-4 rounded-xl font-medium hover:bg-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-            >
-              🏛️ Explorar Museo
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {/* Panel de gestión y exportación */}
-            <div className="bg-white/70 backdrop-blur-sm p-8 rounded-2xl border border-white/50 shadow-xl">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-3xl font-light text-gray-800 flex items-center gap-3">
-                  <span className="text-2xl">📊</span>
-                  Gestión de Colección
-                </h2>
-
-                <div className="flex items-center gap-2">
-                  {collectionLoading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
-                      <span className="text-sm text-gray-600 font-medium">
-                        Sincronizando...
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                      <span className="text-sm text-gray-600 font-medium">
-                        {personalCollection.length} obras
-                      </span>
-                    </div>
-                  )}
-                  {lastSync && (
-                    <span className="text-xs text-gray-500">
-                      Última sincronización:{" "}
-                      {new Date(lastSync).toLocaleTimeString()}
-                    </span>
-                  )}
-                </div>
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100">
+        {/* Header */}
+        <div className="bg-white/70 backdrop-blur-sm border-b border-white/50 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-light text-gray-800 flex items-center gap-3">
+                  <span className="text-2xl">📄</span>
+                  Mis Documentos
+                </h1>
+                <p className="text-gray-600 mt-2">
+                  Tu colección personal de obras de arte
+                </p>
               </div>
 
-              {/* Estadísticas rápidas */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="text-center p-4 bg-gradient-to-b from-slate-50 to-slate-100/50 rounded-xl border border-slate-200/50">
-                  <div className="text-3xl font-light text-slate-700 mb-1">
-                    {collectionStats.totalArtworks || 0}
-                  </div>
-                  <div className="text-sm text-slate-600 font-medium">
-                    Total obras
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={handleShowCollectionStats}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                >
+                  📊 Ver Estadísticas
+                </button>
+                <Link
+                  href="/museo"
+                  className="bg-slate-600 text-white px-4 py-2 rounded-lg hover:bg-slate-700 transition-colors font-medium"
+                >
+                  🏛️ Explorar Museo
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Contenido principal */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {personalCollection.length === 0 ? (
+            <div className="bg-white/70 backdrop-blur-sm p-16 rounded-2xl border border-white/50 shadow-xl text-center">
+              <div className="text-8xl mb-6 opacity-20">📄</div>
+              <h3 className="text-2xl font-light text-gray-600 mb-4">
+                No tienes documentos aún
+              </h3>
+              <p className="text-gray-500 mb-8 max-w-md mx-auto leading-relaxed">
+                Comienza agregando obras a tu colección personal desde el museo
+                virtual.
+              </p>
+              <Link
+                href="/museo"
+                className="inline-block bg-slate-600 text-white px-8 py-4 rounded-xl font-medium hover:bg-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              >
+                🏛️ Explorar Museo
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {/* Panel de gestión y exportación */}
+              <div className="bg-white/70 backdrop-blur-sm p-8 rounded-2xl border border-white/50 shadow-xl">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-3xl font-light text-gray-800 flex items-center gap-3">
+                    <span className="text-2xl">📊</span>
+                    Gestión de Colección
+                  </h2>
+
+                  <div className="flex items-center gap-2">
+                    {collectionLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
+                        <span className="text-sm text-gray-600 font-medium">
+                          Sincronizando...
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                        <span className="text-sm text-gray-600 font-medium">
+                          {personalCollection.length} obras
+                        </span>
+                      </div>
+                    )}
+                    {lastSync && (
+                      <span className="text-xs text-gray-500">
+                        Última sincronización:{" "}
+                        {new Date(lastSync).toLocaleTimeString()}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                <div className="text-center p-4 bg-gradient-to-b from-gray-50 to-gray-100/50 rounded-xl border border-gray-200/50">
-                  <div className="text-3xl font-light text-gray-700 mb-1">
-                    {collectionStats.uniqueArtists || 0}
-                  </div>
-                  <div className="text-sm text-gray-600 font-medium">
-                    Artistas
-                  </div>
-                </div>
-
-                <div className="text-center p-4 bg-gradient-to-b from-stone-50 to-stone-100/50 rounded-xl border border-stone-200/50">
-                  <div className="text-3xl font-light text-stone-700 mb-1">
-                    {collectionStats.uniqueTechniques || 0}
-                  </div>
-                  <div className="text-sm text-stone-600 font-medium">
-                    Técnicas
-                  </div>
-                </div>
-
-                {collectionStats.oldestYear && (
-                  <div className="text-center p-4 bg-gradient-to-b from-zinc-50 to-zinc-100/50 rounded-xl border border-zinc-200/50">
-                    <div className="text-lg font-light text-zinc-700 mb-1">
-                      {collectionStats.oldestYear} -{" "}
-                      {collectionStats.newestYear}
+                {/* Estadísticas rápidas */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                  <div className="text-center p-4 bg-gradient-to-b from-slate-50 to-slate-100/50 rounded-xl border border-slate-200/50">
+                    <div className="text-3xl font-light text-slate-700 mb-1">
+                      {collectionStats.totalArtworks || 0}
                     </div>
-                    <div className="text-sm text-zinc-600 font-medium">
-                      Período
+                    <div className="text-sm text-slate-600 font-medium">
+                      Total obras
+                    </div>
+                  </div>
+
+                  <div className="text-center p-4 bg-gradient-to-b from-gray-50 to-gray-100/50 rounded-xl border border-gray-200/50">
+                    <div className="text-3xl font-light text-gray-700 mb-1">
+                      {collectionStats.uniqueArtists || 0}
+                    </div>
+                    <div className="text-sm text-gray-600 font-medium">
+                      Artistas
+                    </div>
+                  </div>
+
+                  <div className="text-center p-4 bg-gradient-to-b from-stone-50 to-stone-100/50 rounded-xl border border-stone-200/50">
+                    <div className="text-3xl font-light text-stone-700 mb-1">
+                      {collectionStats.uniqueTechniques || 0}
+                    </div>
+                    <div className="text-sm text-stone-600 font-medium">
+                      Técnicas
+                    </div>
+                  </div>
+
+                  {collectionStats.oldestYear && (
+                    <div className="text-center p-4 bg-gradient-to-b from-zinc-50 to-zinc-100/50 rounded-xl border border-zinc-200/50">
+                      <div className="text-lg font-light text-zinc-700 mb-1">
+                        {collectionStats.oldestYear} -{" "}
+                        {collectionStats.newestYear}
+                      </div>
+                      <div className="text-sm text-zinc-600 font-medium">
+                        Período
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Acciones de gestión */}
+                <div className="flex flex-wrap gap-3 justify-center">
+                  <button
+                    onClick={() => setShowExportOptions(!showExportOptions)}
+                    className="bg-slate-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+                  >
+                    {showExportOptions
+                      ? "📁 Ocultar Opciones"
+                      : "📤 Opciones de Gestión"}
+                  </button>
+                </div>
+
+                {/* Opciones de exportación */}
+                {showExportOptions && (
+                  <div className="mt-6 p-6 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl border border-gray-200/50">
+                    <h3 className="text-lg font-medium text-gray-800 mb-4">
+                      Herramientas de gestión
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                      <button
+                        onClick={handleExportCollection}
+                        className="bg-slate-500 text-white px-4 py-3 rounded-lg hover:bg-slate-600 transition-colors font-medium"
+                      >
+                        💾 Exportar JSON
+                      </button>
+
+                      <button
+                        onClick={handleExportToPDF}
+                        className="bg-red-500 text-white px-4 py-3 rounded-lg hover:bg-red-600 transition-colors font-medium"
+                      >
+                        📄 Exportar PDF
+                      </button>
+
+                      <label className="bg-gray-500 text-white px-4 py-3 rounded-lg hover:bg-gray-600 transition-colors font-medium cursor-pointer text-center">
+                        📁 Importar colección
+                        <input
+                          type="file"
+                          accept=".json"
+                          onChange={handleImportCollection}
+                          className="hidden"
+                        />
+                      </label>
+
+                      <button
+                        onClick={handleShareCollection}
+                        className="bg-stone-500 text-white px-4 py-3 rounded-lg hover:bg-stone-600 transition-colors font-medium"
+                      >
+                        📋 Compartir resumen
+                      </button>
+                    </div>
+
+                    <div className="mt-4 p-4 bg-white/50 rounded-lg border border-gray-200/30">
+                      <div className="text-xs text-gray-600 space-y-1">
+                        <p>
+                          • <strong>Exportar JSON:</strong> Descarga tu
+                          colección en formato JSON
+                        </p>
+                        <p>
+                          • <strong>Exportar PDF:</strong> Genera un documento
+                          PDF con imágenes y detalles
+                        </p>
+                        <p>
+                          • <strong>Importar:</strong> Carga una colección desde
+                          un archivo JSON
+                        </p>
+                        <p>
+                          • <strong>Compartir:</strong> Genera un resumen de tu
+                          colección
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <button
+                        onClick={handleClearCollectionLocal}
+                        className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors font-medium text-sm"
+                      >
+                        🗑️ Limpiar toda la colección
+                      </button>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Acciones de gestión */}
-              <div className="flex flex-wrap gap-3 justify-center">
-                <button
-                  onClick={() => setShowExportOptions(!showExportOptions)}
-                  className="bg-slate-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-                >
-                  {showExportOptions
-                    ? "📁 Ocultar Opciones"
-                    : "📤 Opciones de Gestión"}
-                </button>
-              </div>
-
-              {/* Opciones de exportación */}
-              {showExportOptions && (
-                <div className="mt-6 p-6 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl border border-gray-200/50">
-                  <h3 className="text-lg font-medium text-gray-800 mb-4">
-                    Herramientas de gestión
+              {/* Galería de obras con filtros integrados */}
+              <div className="bg-white/70 backdrop-blur-sm p-8 rounded-2xl border border-white/50 shadow-xl">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-2xl font-light text-gray-800 flex items-center gap-3">
+                    <span className="text-xl">🎨</span>
+                    Galería de Documentos
+                    <span className="text-lg font-normal text-gray-500 ml-2">
+                      ({filterStats.totalFiltered} de{" "}
+                      {filterStats.totalOriginal})
+                    </span>
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="flex gap-3">
                     <button
-                      onClick={handleExportCollection}
-                      className="bg-slate-500 text-white px-4 py-3 rounded-lg hover:bg-slate-600 transition-colors font-medium"
+                      onClick={() =>
+                        setShowAdvancedFilters(!showAdvancedFilters)
+                      }
+                      className="text-slate-600 hover:text-slate-800 font-medium px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors border border-slate-200"
                     >
-                      💾 Exportar JSON
+                      {showAdvancedFilters
+                        ? "Filtros básicos"
+                        : "Filtros avanzados"}
                     </button>
-
-                    <button
-                      onClick={handleExportToPDF}
-                      className="bg-red-500 text-white px-4 py-3 rounded-lg hover:bg-red-600 transition-colors font-medium"
-                    >
-                      📄 Exportar PDF
-                    </button>
-
-                    <label className="bg-gray-500 text-white px-4 py-3 rounded-lg hover:bg-gray-600 transition-colors font-medium cursor-pointer text-center">
-                      📁 Importar colección
-                      <input
-                        type="file"
-                        accept=".json"
-                        onChange={handleImportCollection}
-                        className="hidden"
-                      />
-                    </label>
-
-                    <button
-                      onClick={handleShareCollection}
-                      className="bg-stone-500 text-white px-4 py-3 rounded-lg hover:bg-stone-600 transition-colors font-medium"
-                    >
-                      📋 Compartir resumen
-                    </button>
-                  </div>
-
-                  <div className="mt-4 p-4 bg-white/50 rounded-lg border border-gray-200/30">
-                    <div className="text-xs text-gray-600 space-y-1">
-                      <p>
-                        • <strong>Exportar JSON:</strong> Descarga tu colección
-                        en formato JSON
-                      </p>
-                      <p>
-                        • <strong>Exportar PDF:</strong> Genera un documento PDF
-                        con imágenes y detalles
-                      </p>
-                      <p>
-                        • <strong>Importar:</strong> Carga una colección desde
-                        un archivo JSON
-                      </p>
-                      <p>
-                        • <strong>Compartir:</strong> Genera un resumen de tu
-                        colección
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <button
-                      onClick={handleClearCollectionLocal}
-                      className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors font-medium text-sm"
-                    >
-                      🗑️ Limpiar toda la colección
-                    </button>
+                    {hasActiveFilters() && (
+                      <button
+                        onClick={clearAllFilters}
+                        className="text-red-600 hover:text-red-800 font-medium px-4 py-2 rounded-lg hover:bg-red-50 transition-colors border border-red-200"
+                      >
+                        Limpiar filtros
+                      </button>
+                    )}
                   </div>
                 </div>
-              )}
-            </div>
 
-            {/* Galería de obras con filtros integrados */}
-            <div className="bg-white/70 backdrop-blur-sm p-8 rounded-2xl border border-white/50 shadow-xl">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-light text-gray-800 flex items-center gap-3">
-                  <span className="text-xl">🎨</span>
-                  Galería de Documentos
-                  <span className="text-lg font-normal text-gray-500 ml-2">
-                    ({filterStats.totalFiltered} de {filterStats.totalOriginal})
-                  </span>
-                </h3>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                    className="text-slate-600 hover:text-slate-800 font-medium px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors border border-slate-200"
-                  >
-                    {showAdvancedFilters
-                      ? "Filtros básicos"
-                      : "Filtros avanzados"}
-                  </button>
-                  {hasActiveFilters() && (
+                {/* Filtros básicos */}
+                <div className="mb-6">
+                  <div className="flex flex-wrap gap-4">
+                    {/* Búsqueda */}
+                    <div className="flex-1 min-w-[200px]">
+                      <input
+                        type="text"
+                        placeholder="Buscar por título, artista o técnica..."
+                        value={filters.search}
+                        onChange={(e) =>
+                          handleFilterChange("search", e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
+                      />
+                    </div>
+
+                    {/* Ordenamiento */}
+                    <div className="min-w-[150px]">
+                      <select
+                        value={filters.sortBy}
+                        onChange={(e) =>
+                          handleFilterChange("sortBy", e.target.value)
+                        }
+                        className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
+                      >
+                        <option value="newest">Más recientes</option>
+                        <option value="oldest">Más antiguos</option>
+                        <option value="title">Por título</option>
+                        <option value="artist">Por artista</option>
+                        <option value="year">Por año</option>
+                        <option value="technique">Por técnica</option>
+                        <option value="sala">Por sala</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Filtros avanzados */}
+                {showAdvancedFilters && (
+                  <div className="mb-6 p-6 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl border border-gray-200/30">
+                    <h4 className="text-lg font-medium text-gray-800 mb-4">
+                      Filtros Avanzados
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {/* Técnica */}
+                      {filterOptions.techniques.length > 0 && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Técnica
+                          </label>
+                          <select
+                            value={filters.technique}
+                            onChange={(e) =>
+                              handleFilterChange("technique", e.target.value)
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
+                          >
+                            <option value="">Todas las técnicas</option>
+                            {filterOptions.techniques.map((technique) => (
+                              <option key={technique} value={technique}>
+                                {technique}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Artista */}
+                      {filterOptions.artists.length > 0 && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Artista
+                          </label>
+                          <select
+                            value={filters.artist}
+                            onChange={(e) =>
+                              handleFilterChange("artist", e.target.value)
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
+                          >
+                            <option value="">Todos los artistas</option>
+                            {filterOptions.artists.map((artist) => (
+                              <option key={artist} value={artist}>
+                                {artist}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Año */}
+                      {filterOptions.years.length > 0 && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Año
+                          </label>
+                          <select
+                            value={filters.year}
+                            onChange={(e) =>
+                              handleFilterChange("year", e.target.value)
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
+                          >
+                            <option value="">Todos los años</option>
+                            {filterOptions.years.map((year) => (
+                              <option key={year} value={year}>
+                                {year}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Sala */}
+                      {filterOptions.salas.length > 0 && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Sala
+                          </label>
+                          <select
+                            value={filters.sala}
+                            onChange={(e) =>
+                              handleFilterChange("sala", e.target.value)
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
+                          >
+                            <option value="">Todas las salas</option>
+                            {filterOptions.salas.map((sala) => (
+                              <option key={sala} value={sala}>
+                                {sala}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {/* Rango de años */}
+                      {filterOptions.yearRange.min &&
+                        filterOptions.yearRange.max && (
+                          <>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Año desde
+                              </label>
+                              <select
+                                value={filters.yearFrom}
+                                onChange={(e) =>
+                                  handleFilterChange("yearFrom", e.target.value)
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
+                              >
+                                <option value="">Desde...</option>
+                                {filterOptions.years.map((year) => (
+                                  <option key={year} value={year}>
+                                    {year}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Año hasta
+                              </label>
+                              <select
+                                value={filters.yearTo}
+                                onChange={(e) =>
+                                  handleFilterChange("yearTo", e.target.value)
+                                }
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
+                              >
+                                <option value="">Hasta...</option>
+                                {filterOptions.years.map((year) => (
+                                  <option key={year} value={year}>
+                                    {year}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </>
+                        )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Estadísticas de filtros */}
+                <div className="mb-6 p-4 bg-gradient-to-r from-blue-50/70 to-indigo-50/70 rounded-xl border border-blue-200/30 backdrop-blur-sm">
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-4">
+                      <span className="text-blue-800 font-medium">
+                        📊 Mostrando {filterStats.totalFiltered} de{" "}
+                        {filterStats.totalOriginal} obras
+                        {filterStats.percentage < 100 && (
+                          <span className="text-blue-600 ml-1">
+                            ({filterStats.percentage}%)
+                          </span>
+                        )}
+                      </span>
+
+                      {filterStats.totalFiltered > 0 && (
+                        <div className="flex gap-3 text-blue-700">
+                          <span>🎨 {filterStats.uniqueArtists} artistas</span>
+                          <span>
+                            🛠️ {filterStats.uniqueTechniques} técnicas
+                          </span>
+                          {filterStats.uniqueSalas > 0 && (
+                            <span>🏛️ {filterStats.uniqueSalas} salas</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {hasActiveFilters() && (
+                      <span className="text-blue-600 font-medium text-xs">
+                        Filtros activos:{" "}
+                        {[
+                          filters.search && "Búsqueda",
+                          filters.technique && "Técnica",
+                          filters.artist && "Artista",
+                          filters.year && "Año",
+                          filters.sala && "Sala",
+                          (filters.yearFrom || filters.yearTo) &&
+                            "Rango de años",
+                        ]
+                          .filter(Boolean)
+                          .join(", ")}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Grid de obras */}
+                {filteredCollection.length === 0 ? (
+                  <div className="text-center py-16">
+                    <div className="text-6xl mb-6 opacity-30">🔍</div>
+                    <h4 className="text-xl font-light text-gray-600 mb-4">
+                      No se encontraron obras
+                    </h4>
+                    <p className="text-gray-500 mb-8 max-w-md mx-auto">
+                      No hay obras que coincidan con los filtros aplicados.
+                      Prueba ajustando los criterios de búsqueda.
+                    </p>
                     <button
                       onClick={clearAllFilters}
-                      className="text-gray-600 hover:text-gray-800 font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200"
+                      className="bg-gray-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-gray-700 transition-all duration-300"
                     >
-                      Limpiar filtros
+                      Limpiar todos los filtros
                     </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Filtros básicos integrados */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 p-4 bg-gradient-to-r from-gray-50/50 to-gray-100/50 rounded-xl border border-gray-200/50">
-                {/* Búsqueda por texto */}
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    🔍 Búsqueda general
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Buscar por título, artista, técnica..."
-                    value={filters.search}
-                    onChange={(e) =>
-                      handleFilterChange("search", e.target.value)
-                    }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 shadow-sm"
-                  />
-                </div>
-
-                {/* Ordenar por */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    📊 Ordenar por
-                  </label>
-                  <select
-                    value={filters.sortBy}
-                    onChange={(e) =>
-                      handleFilterChange("sortBy", e.target.value)
-                    }
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
-                  >
-                    <option value="newest">Más recientes</option>
-                    <option value="oldest">Más antiguos</option>
-                    <option value="title">Título A-Z</option>
-                    <option value="artist">Artista A-Z</option>
-                    <option value="year">Año (desc)</option>
-                    <option value="technique">Técnica A-Z</option>
-                    <option value="sala">Sala A-Z</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Filtros avanzados */}
-              {showAdvancedFilters && (
-                <div className="p-6 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 rounded-xl border border-blue-200/50 backdrop-blur-sm mb-6">
-                  <h4 className="text-lg font-medium text-gray-700 mb-4">
-                    🎛️ Filtros avanzados
-                  </h4>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* Filtro por técnica */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Técnica
-                      </label>
-                      <select
-                        value={filters.technique}
-                        onChange={(e) =>
-                          handleFilterChange("technique", e.target.value)
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {filteredCollection.map((artwork, index) => (
+                      <div
+                        key={artwork.id}
+                        className="group bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden transform hover:-translate-y-2"
                       >
-                        <option value="">Todas las técnicas</option>
-                        {filterOptions.techniques.map((technique) => (
-                          <option key={technique} value={technique}>
-                            {technique}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Filtro por artista */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Artista
-                      </label>
-                      <select
-                        value={filters.artist}
-                        onChange={(e) =>
-                          handleFilterChange("artist", e.target.value)
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
-                      >
-                        <option value="">Todos los artistas</option>
-                        {filterOptions.artists.map((artist) => (
-                          <option key={artist} value={artist}>
-                            {artist}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Filtro por año específico */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Año específico
-                      </label>
-                      <select
-                        value={filters.year}
-                        onChange={(e) =>
-                          handleFilterChange("year", e.target.value)
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
-                      >
-                        <option value="">Todos los años</option>
-                        {filterOptions.years.map((year) => (
-                          <option key={year} value={year}>
-                            {year}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Filtro por sala */}
-                    {filterOptions.salas.length > 0 && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Sala
-                        </label>
-                        <select
-                          value={filters.sala}
-                          onChange={(e) =>
-                            handleFilterChange("sala", e.target.value)
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
-                        >
-                          <option value="">Todas las salas</option>
-                          {filterOptions.salas.map((sala) => (
-                            <option key={sala} value={sala}>
-                              {sala}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    {/* Rango de años */}
-                    {filterOptions.yearRange.min &&
-                      filterOptions.yearRange.max && (
-                        <>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Año desde
-                            </label>
-                            <select
-                              value={filters.yearFrom}
-                              onChange={(e) =>
-                                handleFilterChange("yearFrom", e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
-                            >
-                              <option value="">Desde...</option>
-                              {filterOptions.years.map((year) => (
-                                <option key={year} value={year}>
-                                  {year}
-                                </option>
-                              ))}
-                            </select>
+                        <div className="relative">
+                          <img
+                            src={artwork.src}
+                            alt={artwork.title}
+                            className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105"
+                            onError={(e) => {
+                              e.target.style.display = "none";
+                              e.target.nextSibling.style.display = "flex";
+                            }}
+                          />
+                          <div className="w-full h-48 bg-gradient-to-br from-gray-200 to-gray-300 hidden items-center justify-center">
+                            <div className="text-center text-gray-500">
+                              <div className="text-3xl mb-2">🎨</div>
+                              <span className="text-sm">
+                                Imagen no disponible
+                              </span>
+                            </div>
                           </div>
 
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Año hasta
-                            </label>
-                            <select
-                              value={filters.yearTo}
-                              onChange={(e) =>
-                                handleFilterChange("yearTo", e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
-                            >
-                              <option value="">Hasta...</option>
-                              {filterOptions.years.map((year) => (
-                                <option key={year} value={year}>
-                                  {year}
-                                </option>
-                              ))}
-                            </select>
+                          {/* Indicador de sala */}
+                          {artwork.sala && (
+                            <div className="absolute top-3 right-3 bg-black/70 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm">
+                              🏛️ {artwork.sala}
+                            </div>
+                          )}
+
+                          {/* Overlay con información adicional */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                            <div className="text-white text-sm">
+                              {artwork.dimensions && (
+                                <p className="mb-1">📏 {artwork.dimensions}</p>
+                              )}
+                              <p>
+                                ➕{" "}
+                                {new Date(artwork.addedAt).toLocaleDateString(
+                                  "es-ES"
+                                )}
+                              </p>
+                            </div>
                           </div>
-                        </>
-                      )}
-                  </div>
-                </div>
-              )}
+                        </div>
 
-              {/* Estadísticas de filtros */}
-              <div className="mb-6 p-4 bg-gradient-to-r from-blue-50/70 to-indigo-50/70 rounded-xl border border-blue-200/30 backdrop-blur-sm">
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center gap-4">
-                    <span className="text-blue-800 font-medium">
-                      📊 Mostrando {filterStats.totalFiltered} de{" "}
-                      {filterStats.totalOriginal} obras
-                      {filterStats.percentage < 100 && (
-                        <span className="text-blue-600 ml-1">
-                          ({filterStats.percentage}%)
-                        </span>
-                      )}
-                    </span>
+                        <div className="p-5 space-y-3">
+                          <h4 className="font-semibold text-gray-800 text-sm leading-tight line-clamp-2">
+                            {artwork.title}
+                          </h4>
+                          <p className="text-gray-600 font-medium text-sm">
+                            {artwork.artist}
+                          </p>
 
-                    {filterStats.totalFiltered > 0 && (
-                      <div className="flex gap-3 text-blue-700">
-                        <span>🎨 {filterStats.uniqueArtists} artistas</span>
-                        <span>🛠️ {filterStats.uniqueTechniques} técnicas</span>
-                        {filterStats.uniqueSalas > 0 && (
-                          <span>🏛️ {filterStats.uniqueSalas} salas</span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {hasActiveFilters() && (
-                    <span className="text-blue-600 font-medium text-xs">
-                      Filtros activos:{" "}
-                      {[
-                        filters.search && "Búsqueda",
-                        filters.technique && "Técnica",
-                        filters.artist && "Artista",
-                        filters.year && "Año",
-                        filters.sala && "Sala",
-                        (filters.yearFrom || filters.yearTo) && "Rango de años",
-                      ]
-                        .filter(Boolean)
-                        .join(", ")}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Grid de obras */}
-              {filteredCollection.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="text-6xl mb-6 opacity-30">🔍</div>
-                  <h4 className="text-xl font-light text-gray-600 mb-4">
-                    No se encontraron obras
-                  </h4>
-                  <p className="text-gray-500 mb-8 max-w-md mx-auto">
-                    No hay obras que coincidan con los filtros aplicados. Prueba
-                    ajustando los criterios de búsqueda.
-                  </p>
-                  <button
-                    onClick={clearAllFilters}
-                    className="bg-gray-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-gray-700 transition-all duration-300"
-                  >
-                    Limpiar todos los filtros
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {filteredCollection.map((artwork, index) => (
-                    <div
-                      key={artwork.id}
-                      className="group bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden transform hover:-translate-y-2"
-                    >
-                      <div className="relative">
-                        <img
-                          src={artwork.src}
-                          alt={artwork.title}
-                          className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105"
-                          onError={(e) => {
-                            e.target.style.display = "none";
-                            e.target.nextSibling.style.display = "flex";
-                          }}
-                        />
-                        <div className="w-full h-48 bg-gradient-to-br from-gray-200 to-gray-300 hidden items-center justify-center">
-                          <div className="text-center text-gray-500">
-                            <div className="text-3xl mb-2">🎨</div>
-                            <span className="text-sm">
-                              Imagen no disponible
+                          <div className="flex items-center gap-3 text-xs text-gray-500">
+                            <span className="flex items-center gap-1">
+                              <span>📅</span>
+                              {artwork.year}
+                            </span>
+                            <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
+                            <span className="flex items-center gap-1">
+                              <span>🛠️</span>
+                              {artwork.technique}
                             </span>
                           </div>
-                        </div>
 
-                        {/* Indicador de sala */}
-                        {artwork.sala && (
-                          <div className="absolute top-3 right-3 bg-black/70 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm">
-                            🏛️ {artwork.sala}
-                          </div>
-                        )}
-
-                        {/* Overlay con información adicional */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                          <div className="text-white text-sm">
-                            {artwork.dimensions && (
-                              <p className="mb-1">📏 {artwork.dimensions}</p>
-                            )}
-                            <p>
-                              ➕{" "}
-                              {new Date(artwork.addedAt).toLocaleDateString(
-                                "es-ES"
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="p-5 space-y-3">
-                        <h4 className="font-semibold text-gray-800 text-sm leading-tight line-clamp-2">
-                          {artwork.title}
-                        </h4>
-                        <p className="text-gray-600 font-medium text-sm">
-                          {artwork.artist}
-                        </p>
-
-                        <div className="flex items-center gap-3 text-xs text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <span>📅</span>
-                            {artwork.year}
-                          </span>
-                          <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
-                          <span className="flex items-center gap-1">
-                            <span>🛠️</span>
-                            {artwork.technique}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                          <span className="text-xs text-gray-400">
-                            #{index + 1}
-                          </span>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => {
-                                const details = `🎨 "${
-                                  artwork.title
-                                }"\n\n👨‍🎨 Artista: ${artwork.artist}\n📅 Año: ${
-                                  artwork.year
-                                }\n🛠️ Técnica: ${artwork.technique}${
-                                  artwork.description
-                                    ? `\n📝 Descripción: ${artwork.description}`
-                                    : ""
-                                }${
-                                  artwork.sala
-                                    ? `\n🏛️ Sala: ${artwork.sala}`
-                                    : ""
-                                }${
-                                  artwork.dimensions
-                                    ? `\n📏 Dimensiones: ${artwork.dimensions}`
-                                    : ""
-                                }`;
-                                alert(details);
-                              }}
-                              className="bg-slate-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-slate-600 transition-all duration-300 font-medium"
-                            >
-                              👁️
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleRemoveFromCollectionLocal(artwork.id)
-                              }
-                              className="bg-gray-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-gray-600 transition-all duration-300 font-medium"
-                            >
-                              🗑️
-                            </button>
+                          <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                            <span className="text-xs text-gray-400">
+                              #{index + 1}
+                            </span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() =>
+                                  handleShowArtworkDetails(artwork)
+                                }
+                                className="text-blue-600 hover:text-blue-800 text-xs font-medium hover:bg-blue-50 px-2 py-1 rounded transition-colors"
+                              >
+                                👁️ Ver
+                              </button>
+                              <button
+                                onClick={() =>
+                                  handleRemoveFromCollectionLocal(artwork.id)
+                                }
+                                className="text-red-600 hover:text-red-800 text-xs font-medium hover:bg-red-50 px-2 py-1 rounded transition-colors"
+                              >
+                                🗑️ Quitar
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modales */}
+      <ModalWrapper
+        modalName="confirm-clear"
+        title="Confirmar Acción"
+        size="sm"
+      >
+        {(data) => (
+          <div className="text-center">
+            <div className="text-6xl mb-4">⚠️</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {data?.title || "Confirmar Acción"}
+            </h3>
+            <p className="text-gray-600 mb-6">
+              {data?.message ||
+                "¿Estás seguro de que quieres realizar esta acción?"}
+            </p>
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={closeModal}
+                className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={data?.onConfirm}
+                className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors"
+              >
+                Confirmar
+              </button>
             </div>
           </div>
         )}
-      </div>
-    </div>
+      </ModalWrapper>
+
+      <ModalWrapper modalName="confirm-remove" title="Eliminar Obra" size="sm">
+        {(data) => (
+          <div className="text-center">
+            <div className="text-6xl mb-4">🗑️</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {data?.title || "Eliminar Obra"}
+            </h3>
+            <p className="text-gray-600 mb-6">
+              {data?.message ||
+                "¿Estás seguro de que quieres eliminar esta obra?"}
+            </p>
+            {data?.artwork && (
+              <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                <img
+                  src={data.artwork.src}
+                  alt={data.artwork.title}
+                  className="w-16 h-16 object-cover rounded mx-auto mb-2"
+                />
+                <p className="text-sm font-medium text-gray-800">
+                  {data.artwork.title}
+                </p>
+                <p className="text-xs text-gray-600">{data.artwork.artist}</p>
+              </div>
+            )}
+            <div className="flex gap-3 justify-center">
+              <button
+                onClick={closeModal}
+                className="bg-gray-500 text-white px-6 py-2 rounded-lg hover:bg-gray-600 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={data?.onConfirm}
+                className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        )}
+      </ModalWrapper>
+
+      <ModalWrapper
+        modalName="artwork-details"
+        title="Detalles de la Obra"
+        size="lg"
+      >
+        {(data) => (
+          <div className="space-y-6">
+            {data?.artwork && (
+              <>
+                <div className="flex gap-6">
+                  <img
+                    src={data.artwork.src}
+                    alt={data.artwork.title}
+                    className="w-48 h-48 object-cover rounded-lg"
+                  />
+                  <div className="flex-1">
+                    <h3 className="text-2xl font-semibold text-gray-900 mb-2">
+                      {data.artwork.title}
+                    </h3>
+                    <p className="text-lg text-gray-600 mb-4">
+                      {data.artwork.artist}
+                    </p>
+                    <div className="space-y-2 text-sm text-gray-600">
+                      <p>
+                        <span className="font-medium">Año:</span>{" "}
+                        {data.artwork.year}
+                      </p>
+                      <p>
+                        <span className="font-medium">Técnica:</span>{" "}
+                        {data.artwork.technique}
+                      </p>
+                      {data.artwork.sala && (
+                        <p>
+                          <span className="font-medium">Sala:</span>{" "}
+                          {data.artwork.sala}
+                        </p>
+                      )}
+                      {data.artwork.dimensions && (
+                        <p>
+                          <span className="font-medium">Dimensiones:</span>{" "}
+                          {data.artwork.dimensions}
+                        </p>
+                      )}
+                      <p>
+                        <span className="font-medium">Agregado:</span>{" "}
+                        {new Date(data.artwork.addedAt).toLocaleDateString(
+                          "es-ES"
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {data.artwork.description && (
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">
+                      Descripción
+                    </h4>
+                    <p className="text-gray-600">{data.artwork.description}</p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </ModalWrapper>
+
+      <ModalWrapper
+        modalName="collection-stats"
+        title="Estadísticas de la Colección"
+        size="xl"
+      >
+        {(data) => (
+          <div className="space-y-6">
+            {data?.stats && data?.collection && (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">
+                      {data.stats.totalArtworks}
+                    </div>
+                    <div className="text-sm text-blue-800">Total Obras</div>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">
+                      {data.stats.uniqueArtists}
+                    </div>
+                    <div className="text-sm text-green-800">
+                      Artistas Únicos
+                    </div>
+                  </div>
+                  <div className="text-center p-4 bg-purple-50 rounded-lg">
+                    <div className="text-2xl font-bold text-purple-600">
+                      {data.stats.uniqueTechniques}
+                    </div>
+                    <div className="text-sm text-purple-800">
+                      Técnicas Únicas
+                    </div>
+                  </div>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg">
+                    <div className="text-2xl font-bold text-orange-600">
+                      {data.stats.oldestYear} - {data.stats.newestYear}
+                    </div>
+                    <div className="text-sm text-orange-800">Período</div>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-3">
+                    Distribución por Técnica
+                  </h4>
+                  <div className="space-y-2">
+                    {Object.entries(
+                      data.collection.reduce((acc, artwork) => {
+                        acc[artwork.technique] =
+                          (acc[artwork.technique] || 0) + 1;
+                        return acc;
+                      }, {})
+                    ).map(([technique, count]) => (
+                      <div
+                        key={technique}
+                        className="flex justify-between items-center"
+                      >
+                        <span className="text-sm text-gray-700">
+                          {technique}
+                        </span>
+                        <span className="text-sm font-medium text-gray-900">
+                          {count}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-gray-900 mb-3">
+                    Artistas Más Representados
+                  </h4>
+                  <div className="space-y-2">
+                    {Object.entries(
+                      data.collection.reduce((acc, artwork) => {
+                        acc[artwork.artist] = (acc[artwork.artist] || 0) + 1;
+                        return acc;
+                      }, {})
+                    )
+                      .sort(([, a], [, b]) => b - a)
+                      .slice(0, 5)
+                      .map(([artist, count]) => (
+                        <div
+                          key={artist}
+                          className="flex justify-between items-center"
+                        >
+                          <span className="text-sm text-gray-700">
+                            {artist}
+                          </span>
+                          <span className="text-sm font-medium text-gray-900">
+                            {count} obras
+                          </span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </ModalWrapper>
+    </>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import AuthModal from "./AuthModal";
 import ThemeSwitch from "./ThemeSwitch";
+import { useModal } from "../providers/ModalProvider";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
@@ -73,7 +74,7 @@ function TypewriterText({
 }
 
 export default function MainMenu({ onSubirArchivo }) {
-  const [authModal, setAuthModal] = useState(null); // null | 'login' | 'register'
+  const { openModal } = useModal();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // Estado para menú móvil
   const [mobileArchivoOpen, setMobileArchivoOpen] = useState(false); // Estado para dropdown de Archivo
   const router = useRouter();
@@ -143,6 +144,10 @@ export default function MainMenu({ onSubirArchivo }) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
+  const handleAuthClick = (mode) => {
+    openModal(mode === "register" ? "auth-register" : "auth-login");
+  };
 
   return (
     <>
@@ -346,7 +351,7 @@ export default function MainMenu({ onSubirArchivo }) {
               </NavigationMenu>
             ) : (
               <button
-                onClick={() => setAuthModal("login")}
+                onClick={() => handleAuthClick("login")}
                 className="hidden md:inline-block rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-all duration-200 shadow-sm hover:shadow-md"
               >
                 Iniciar sesión
@@ -623,7 +628,7 @@ export default function MainMenu({ onSubirArchivo }) {
                   <div className="space-y-3">
                     <button
                       onClick={() => {
-                        setAuthModal("login");
+                        handleAuthClick("login");
                         setMobileMenuOpen(false);
                       }}
                       className="block w-full text-left py-2 text-base font-medium text-primary hover:text-primary/80 transition-colors"
@@ -632,7 +637,7 @@ export default function MainMenu({ onSubirArchivo }) {
                     </button>
                     <button
                       onClick={() => {
-                        setAuthModal("register");
+                        handleAuthClick("register");
                         setMobileMenuOpen(false);
                       }}
                       className="block w-full text-left py-2 text-base font-medium hover:text-primary transition-colors"
@@ -647,11 +652,8 @@ export default function MainMenu({ onSubirArchivo }) {
         )}
       </AnimatePresence>
 
-      <AuthModal
-        open={!!authModal}
-        mode={authModal}
-        onClose={() => setAuthModal(null)}
-      />
+      {/* AuthModal ahora se maneja a través del ModalProvider */}
+      <AuthModal />
     </>
   );
 }
