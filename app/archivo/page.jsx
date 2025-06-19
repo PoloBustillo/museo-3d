@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import  Search from '../../components/archive/Search';
 import Carousel from '../../components/archive/Carousel';
 import Gallery from '../../components/archive/Galery';
-import { object } from "yup";
 import styles from './archive.module.css';
 
 function agruparMuralesPorFiltrosNumericos(murales, filtrosSeleccionados) {

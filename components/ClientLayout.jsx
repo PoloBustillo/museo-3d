@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
 import { ParallaxProvider } from "react-scroll-parallax";
 import AuthProvider from "../providers/AuthProvider";
 import MainMenu from "./MainMenu";

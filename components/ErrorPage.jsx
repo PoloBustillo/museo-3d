@@ -5,8 +5,7 @@ import { motion } from "framer-motion";
 import { 
   AlertTriangle, 
   RefreshCw, 
-  Home, 
-  ArrowLeft, 
+  Home,  
   Wifi,
   WifiOff,
   Server,

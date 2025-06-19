@@ -1,4 +1,4 @@
-import { useLoader, useThree } from '@react-three/fiber'
+import {  useThree } from '@react-three/fiber'
 import { AudioListener, AudioLoader, PositionalAudio } from 'three'
 import { useEffect, useRef, useCallback, useState } from 'react'
 
