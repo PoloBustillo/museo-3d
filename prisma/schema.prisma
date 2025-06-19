@@ -12,17 +12,19 @@ datasource db {
 
 // Example model
 model User {
-    id            Int       @id @default(autoincrement())
-    email         String    @unique
+    id            Int           @id @default(autoincrement())
+    email         String        @unique
     password      String? // Nullable para usuarios OAuth
     name          String? // Nombre del usuario
     image         String? // URL de imagen del usuario
     emailVerified DateTime? // Para NextAuth
-    creadoEn      DateTime  @default(now())
-    role          String    @default("user")
+    creadoEn      DateTime      @default(now())
+    role          String        @default("user")
     provider      String? // OAuth provider
-    salasPropias  Sala[]    @relation("SalaOwner")
-    salasColabora Sala[]    @relation("SalaColaboradores")
+    salasPropias  Sala[]        @relation("SalaOwner")
+    salasColabora Sala[]        @relation("SalaColaboradores")
+    settings      UserSetting[]
+    roles         UserRole[]
 }
 
 model Mural {
@@ -46,4 +48,36 @@ model Sala {
     owner         User    @relation("SalaOwner", fields: [ownerId], references: [id])
     colaboradores User[]  @relation("SalaColaboradores")
     murales       Mural[]
+}
+
+// Configuraciones de usuario (clave-valor)
+model UserSetting {
+    id        Int      @id @default(autoincrement())
+    user      User     @relation(fields: [userId], references: [id])
+    userId    Int
+    key       String
+    value     String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([userId, key])
+}
+
+// Roles disponibles
+model Role {
+    id    Int        @id @default(autoincrement())
+    name  String     @unique
+    users UserRole[]
+}
+
+// Relación muchos a muchos entre User y Role
+model UserRole {
+    id         Int      @id @default(autoincrement())
+    user       User     @relation(fields: [userId], references: [id])
+    userId     Int
+    role       Role     @relation(fields: [roleId], references: [id])
+    roleId     Int
+    assignedAt DateTime @default(now())
+
+    @@unique([userId, roleId])
 }

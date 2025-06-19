@@ -6,7 +6,9 @@ const prisma = new PrismaClient();
 export async function POST(req) {
   try {
     const data = await req.json();
-    // data: { email, password?, name?, image?, emailVerified?, role?, provider? }
+    // data: { email, password?, name?, image?, emailVerified?, provider?, settings?, roles? }
+
+    // 1. Crear el usuario
     const user = await prisma.user.create({
       data: {
         email: data.email,
@@ -14,11 +16,40 @@ export async function POST(req) {
         name: data.name || null,
         image: data.image || null,
         emailVerified: data.emailVerified ? new Date(data.emailVerified) : null,
-        role: data.role || "user",
         provider: data.provider || null,
       },
     });
-    return new Response(JSON.stringify(user), {
+
+    // 2. Asignar roles (por nombre, ej: ["user"])
+    const roles = data.roles || ["user"];
+    for (const roleName of roles) {
+      const role = await prisma.role.findUnique({ where: { name: roleName } });
+      if (role) {
+        await prisma.userRole.create({
+          data: {
+            userId: user.id,
+            roleId: role.id,
+          },
+        });
+      }
+    }
+
+    // 3. Guardar configuraciones personalizadas (opcional)
+    if (data.settings) {
+      for (const [key, value] of Object.entries(data.settings)) {
+        await prisma.userSetting.create({
+          data: {
+            userId: user.id,
+            key,
+            value: String(value),
+          },
+        });
+      }
+    }
+
+    // Devuelve el usuario sin password
+    const { password, ...userWithoutPassword } = user;
+    return new Response(JSON.stringify(userWithoutPassword), {
       status: 201,
       headers: { "Content-Type": "application/json" },
     });

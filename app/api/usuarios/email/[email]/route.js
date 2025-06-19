@@ -8,8 +8,18 @@ export async function GET(request, { params }) {
     const email = decodeURIComponent(params.email);
 
     const user = await prisma.user.findUnique({
-      where: {
-        email: email,
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        image: true,
+        emailVerified: true,
+        creadoEn: true,
+        provider: true,
+        password: true,
+        roles: { select: { role: { select: { name: true } } } },
+        settings: { select: { key: true, value: true } },
       },
     });
 
@@ -20,10 +30,19 @@ export async function GET(request, { params }) {
       });
     }
 
-    return new Response(JSON.stringify(user), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
+    // Formatea los roles y settings para que sean arrays simples
+    const roles = user.roles.map((r) => r.role.name);
+    const settings = Object.fromEntries(
+      user.settings.map((s) => [s.key, s.value])
+    );
+    const { password, ...userWithoutPassword } = user;
+    return new Response(
+      JSON.stringify({ ...userWithoutPassword, roles, settings }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   } catch (error) {
     console.error("Error fetching user by email:", error);
     return new Response(JSON.stringify({ error: error.message }), {

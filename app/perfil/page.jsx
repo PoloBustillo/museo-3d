@@ -178,8 +178,92 @@ function AvatarTooltip({ src, alt, anchorRef, show }) {
   );
 }
 
+function PerfilAvatarEdit({ imagePreview, newName, handleImageChange, handleNameChange, checkingName, nameAvailable, saving, updating, updateError, updateSuccess, setEditMode, handleSave, fileInputRef }) {
+  const avatarRef = useRef();
+  const [hovered, setHovered] = useState(false);
+  return (
+    <>
+      <div className="relative mb-2">
+        <span
+          ref={avatarRef}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          style={{ display: 'inline-block' }}
+        >
+          <Avatar className="size-32">
+            <AvatarImage src={imagePreview} alt={newName || 'Avatar'} />
+            <AvatarFallback>{newName?.[0] || 'U'}</AvatarFallback>
+          </Avatar>
+          <AvatarTooltip src={imagePreview} alt={newName || 'Avatar'} anchorRef={avatarRef} show={hovered} />
+        </span>
+        <button
+          className="absolute bottom-2 right-2 rounded-full p-2 shadow-lg border border-white bg-black text-white hover:bg-black/90"
+          onClick={() => fileInputRef.current?.click()}
+          type="button"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path d="M15.232 5.232l3.536 3.536M9 13l6-6m2 2l-6 6m-2 2h6" stroke="currentColor" />
+          </svg>
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleImageChange}
+        />
+      </div>
+      <input
+        type="text"
+        className="border rounded-lg px-3 py-2 text-center w-full mb-2"
+        value={newName}
+        onChange={handleNameChange}
+        disabled={checkingName || saving || updating}
+        maxLength={32}
+      />
+      {checkingName && <div className="text-xs text-muted-foreground">Comprobando disponibilidad...</div>}
+      {nameAvailable === false && <div className="text-xs text-red-500">Nombre no disponible</div>}
+      {nameAvailable === true && <div className="text-xs text-green-600">¡Nombre disponible!</div>}
+      {updateError && <div className="text-xs text-red-500">{updateError}</div>}
+      {updateSuccess && <div className="text-xs text-green-600">¡Perfil actualizado!</div>}
+      <div className="flex gap-2 mt-2">
+        <Button size="sm" variant="outline" onClick={() => setEditMode(false)} disabled={saving || updating}>Cancelar</Button>
+        <Button size="sm" onClick={handleSave} disabled={saving || updating || nameAvailable === false || newName.length < 3}>
+          {(saving || updating) ? "Guardando..." : "Guardar"}
+        </Button>
+      </div>
+    </>
+  );
+}
+
+function PerfilAvatarView({ image, name, onEdit }) {
+  const avatarRef = useRef();
+  const [hovered, setHovered] = useState(false);
+  return (
+    <>
+      <span
+        ref={avatarRef}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        style={{ display: 'inline-block' }}
+      >
+        <Avatar className="size-32 mb-2">
+          <AvatarImage src={image || undefined} alt={name || 'Avatar'} />
+          <AvatarFallback>{name?.[0] || 'U'}</AvatarFallback>
+        </Avatar>
+        <AvatarTooltip src={image || undefined} alt={name || 'Avatar'} anchorRef={avatarRef} show={hovered} />
+      </span>
+      <CardTitle className="text-lg font-semibold">{name || 'Usuario'}</CardTitle>
+      <Badge variant="secondary" className="mt-1">Usuario</Badge>
+      <Button size="sm" className="mt-2" onClick={onEdit}>
+        Editar perfil
+      </Button>
+    </>
+  );
+}
+
 function PerfilContent() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const [personalCollection, setPersonalCollection] = useState([]);
   const [collectionStats, setCollectionStats] = useState({});
   const [museumStats, setMuseumStats] = useState({
@@ -207,15 +291,37 @@ function PerfilContent() {
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef();
   const { updateProfile, loading: updating, error: updateError, success: updateSuccess } = useUpdateProfile();
-  const [notifEnabled, setNotifEnabled] = useState(true);
+  const [notifEnabled, setNotifEnabled] = useState(false);
   const [subsEnabled, setSubsEnabled] = useState(false);
+  const [emailValidated, setEmailValidated] = useState(false);
+  const switchesInitialized = useRef(false);
+  const [verifLoading, setVerifLoading] = useState(false);
+  const [verifMsg, setVerifMsg] = useState("");
+  const [initialLoading, setInitialLoading] = useState(true);
   const [showDelete, setShowDelete] = useState(false);
   const [deleteEmail, setDeleteEmail] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
+  const debounceRef = useRef();
 
   const userId = session?.user?.id || null;
+
+  useEffect(() => {
+    if (
+      session?.user?.settings &&
+      !switchesInitialized.current
+    ) {
+      setNotifEnabled(session.user.settings.notificaciones === "true");
+      setSubsEnabled(session.user.settings.subscripcion === "true");
+      setEmailValidated(session.user.settings.emailValidated === "true");
+      switchesInitialized.current = true;
+    }
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (status !== "loading") setInitialLoading(false);
+  }, [status]);
 
   // Cargar estadísticas del museo
   useEffect(() => {
@@ -327,19 +433,40 @@ function PerfilContent() {
   // Simulación de validación de nombre (reemplazar con API real)
   async function checkNameAvailability(name) {
     setCheckingName(true);
-    setTimeout(() => {
-      setNameAvailable(name.length > 2 && name !== "usuario"); // Simula que "usuario" está ocupado
-      setCheckingName(false);
-    }, 700);
+    try {
+      const res = await fetch(`/api/usuarios?name=${encodeURIComponent(name)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setNameAvailable(data.available);
+      } else {
+        setNameAvailable(null);
+      }
+    } catch (e) {
+      setNameAvailable(null);
+    }
+    setCheckingName(false);
   }
 
   function handleNameChange(e) {
     setNewName(e.target.value);
     setNameAvailable(null);
-    if (e.target.value.length > 2) {
-      checkNameAvailability(e.target.value);
-    }
   }
+
+  useEffect(() => {
+    if (newName.length > 2) {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      const valueToCheck = newName;
+      debounceRef.current = setTimeout(() => {
+        setCheckingName(true);
+        checkNameAvailability(valueToCheck);
+      }, 1200);
+    } else {
+      setNameAvailable(null);
+      setCheckingName(false);
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [newName]);
 
   function handleImageChange(e) {
     const file = e.target.files[0];
@@ -382,7 +509,58 @@ function PerfilContent() {
     }, 1200);
   }
 
-  if (status === "loading") {
+  async function handleSettingsChange(newSettings) {
+    if (!session?.user?.id) return;
+    await fetch(`/api/usuarios/${session.user.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ settings: newSettings }),
+    });
+    if (typeof update === "function") {
+      await update();
+    }
+  }
+
+  const onNotifChange = async (checked, e) => {
+    if (e && typeof e.preventDefault === "function") e.preventDefault();
+    setNotifEnabled(checked);
+    await handleSettingsChange({
+      ...session.user.settings,
+      notificaciones: checked ? "true" : "false",
+      subscripcion: subsEnabled ? "true" : "false",
+      emailValidated: emailValidated ? "true" : "false",
+    });
+  };
+  const onSubsChange = async (checked, e) => {
+    if (e && typeof e.preventDefault === "function") e.preventDefault();
+    setSubsEnabled(checked);
+    await handleSettingsChange({
+      ...session.user.settings,
+      notificaciones: notifEnabled ? "true" : "false",
+      subscripcion: checked ? "true" : "false",
+      emailValidated: emailValidated ? "true" : "false",
+    });
+  };
+
+  // Simulación de verificación de email
+  const handleVerifyEmail = async () => {
+    setVerifLoading(true);
+    setVerifMsg("");
+    // Simula un proceso de verificación
+    setTimeout(async () => {
+      setEmailValidated(true);
+      await handleSettingsChange({
+        ...session.user.settings,
+        notificaciones: notifEnabled ? "true" : "false",
+        subscripcion: subsEnabled ? "true" : "false",
+        emailValidated: "true",
+      });
+      setVerifMsg("¡Email verificado!");
+      setVerifLoading(false);
+    }, 1200);
+  };
+
+  if (initialLoading) {
     return (
       <div className="relative min-h-screen flex items-center justify-center">
         <RainbowBackground />
@@ -418,87 +596,27 @@ function PerfilContent() {
           <Card className="w-full max-w-xs p-8 text-center shadow-xl h-full min-h-[400px] flex flex-col justify-start">
             <CardHeader className="flex flex-col items-center gap-2 border-b pb-4">
               {editMode ? (
-                (() => {
-                  const avatarRef = useRef();
-                  const [hovered, setHovered] = useState(false);
-                  return (
-                    <>
-                      <div className="relative mb-2">
-                        <span
-                          ref={avatarRef}
-                          onMouseEnter={() => setHovered(true)}
-                          onMouseLeave={() => setHovered(false)}
-                          style={{ display: 'inline-block' }}
-                        >
-                          <Avatar className="size-32">
-                            <AvatarImage src={imagePreview} alt={newName || 'Avatar'} />
-                            <AvatarFallback>{newName?.[0] || 'U'}</AvatarFallback>
-                          </Avatar>
-                          <AvatarTooltip src={imagePreview} alt={newName || 'Avatar'} anchorRef={avatarRef} show={hovered} />
-                        </span>
-                        <button
-                          className="absolute bottom-2 right-2 bg-primary text-white rounded-full p-2 shadow hover:bg-primary/80 transition"
-                          onClick={() => fileInputRef.current?.click()}
-                          type="button"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M15.232 5.232l3.536 3.536M9 13l6-6m2 2l-6 6m-2 2h6"/></svg>
-                        </button>
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleImageChange}
-                        />
-                      </div>
-                      <input
-                        type="text"
-                        className="border rounded-lg px-3 py-2 text-center w-full mb-2"
-                        value={newName}
-                        onChange={handleNameChange}
-                        disabled={checkingName || saving || updating}
-                        maxLength={32}
-                      />
-                      {checkingName && <div className="text-xs text-muted-foreground">Comprobando disponibilidad...</div>}
-                      {nameAvailable === false && <div className="text-xs text-red-500">Nombre no disponible</div>}
-                      {nameAvailable === true && <div className="text-xs text-green-600">¡Nombre disponible!</div>}
-                      {updateError && <div className="text-xs text-red-500">{updateError}</div>}
-                      {updateSuccess && <div className="text-xs text-green-600">¡Perfil actualizado!</div>}
-                      <div className="flex gap-2 mt-2">
-                        <Button size="sm" variant="outline" onClick={() => setEditMode(false)} disabled={saving || updating}>Cancelar</Button>
-                        <Button size="sm" onClick={handleSave} disabled={saving || updating || nameAvailable === false || newName.length < 3}>
-                          {(saving || updating) ? "Guardando..." : "Guardar"}
-                        </Button>
-                      </div>
-                    </>
-                  );
-                })()
+                <PerfilAvatarEdit
+                  imagePreview={imagePreview}
+                  newName={newName}
+                  handleImageChange={handleImageChange}
+                  handleNameChange={handleNameChange}
+                  checkingName={checkingName}
+                  nameAvailable={nameAvailable}
+                  saving={saving}
+                  updating={updating}
+                  updateError={updateError}
+                  updateSuccess={updateSuccess}
+                  setEditMode={setEditMode}
+                  handleSave={handleSave}
+                  fileInputRef={fileInputRef}
+                />
               ) : (
-                (() => {
-                  const avatarRef = useRef();
-                  const [hovered, setHovered] = useState(false);
-                  return (
-                    <>
-                      <span
-                        ref={avatarRef}
-                        onMouseEnter={() => setHovered(true)}
-                        onMouseLeave={() => setHovered(false)}
-                        style={{ display: 'inline-block' }}
-                      >
-                        <Avatar className="size-32 mb-2">
-                          <AvatarImage src={session?.user?.image || undefined} alt={session?.user?.name || 'Avatar'} />
-                          <AvatarFallback>{session?.user?.name?.[0] || 'U'}</AvatarFallback>
-                        </Avatar>
-                        <AvatarTooltip src={session?.user?.image || undefined} alt={session?.user?.name || 'Avatar'} anchorRef={avatarRef} show={hovered} />
-                      </span>
-                      <CardTitle className="text-lg font-semibold">{session?.user?.name || 'Usuario'}</CardTitle>
-                      <Badge variant="secondary" className="mt-1">Usuario</Badge>
-                      <Button size="sm" className="mt-2" onClick={() => setEditMode(true)}>
-                        Editar perfil
-                      </Button>
-                    </>
-                  );
-                })()
+                <PerfilAvatarView
+                  image={session?.user?.image}
+                  name={session?.user?.name}
+                  onEdit={() => setEditMode(true)}
+                />
               )}
             </CardHeader>
             <CardContent className="flex flex-col gap-4 mt-4">
@@ -506,64 +624,88 @@ function PerfilContent() {
               <div className="w-full max-w-xs mx-auto text-left mb-6">
                 <div className="text-left">
                   <Label>Email</Label>
-                  <div className="text-sm text-muted-foreground mt-1">{session?.user?.email || 'No disponible'}</div>
+                  <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                    {session?.user?.email || 'No disponible'}
+                    {emailValidated ? (
+                      <Badge variant="success">Verificado</Badge>
+                    ) : (
+                      <a
+                        href="#"
+                        className="text-primary underline text-xs font-medium hover:text-primary/80 transition"
+                        onClick={e => { e.preventDefault(); handleVerifyEmail(); }}
+                        disabled={verifLoading}
+                      >
+                        {verifLoading ? "Verificando..." : "Verificar email"}
+                      </a>
+                    )}
+                  </div>
+                  {verifMsg && <div className="text-xs text-green-600 mt-1">{verifMsg}</div>}
                 </div>
                 <div className="text-left mt-2">
                   <Label>ID de usuario</Label>
                   <div className="text-xs font-mono text-muted-foreground mt-1">{userId || 'No disponible'}</div>
                 </div>
-              </div>
-              <div className="my-2 border-t border-muted-foreground/10 dark:border-neutral-800" />
-              {/* Preferencias */}
-              <div className="mb-4 text-left">
-                <div className="flex items-center gap-2 mb-3 text-lg font-bold tracking-tight">
-                  <SettingsIcon className="w-6 h-6 text-primary" />
-                  Preferencias
-                </div>
-                <div className="rounded-2xl shadow-lg bg-white/80 dark:bg-neutral-900/80 border border-muted-foreground/10 dark:border-neutral-800 p-6">
-                  <div className="flex flex-col divide-y divide-muted-foreground/10 dark:divide-neutral-800">
-                    <div className="flex items-center justify-between py-3 group">
-                      <span className="text-base font-medium">Recibir notificaciones</span>
-                      <span className="transition-transform group-hover:scale-110">
-                        <Switch checked={notifEnabled} onCheckedChange={setNotifEnabled} />
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between py-3 group">
-                      <span className="text-base font-medium">Suscripciones</span>
-                      <span className="transition-transform group-hover:scale-110">
-                        <Switch checked={subsEnabled} onCheckedChange={setSubsEnabled} />
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between py-3 group">
-                      <span className="text-base font-medium text-red-700 dark:text-red-300">Eliminar cuenta</span>
-                      <Button size="sm" variant="destructive" onClick={() => setShowDelete((v) => !v)}>
-                        Eliminar
-                      </Button>
-                    </div>
-                    {showDelete && (
-                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4 mt-4 flex flex-col gap-2">
-                        <div className="text-sm text-red-700 dark:text-red-300 font-medium">¿Estás seguro? Esta acción es irreversible.</div>
-                        <div className="text-xs text-muted-foreground">Escribe tu email para confirmar:</div>
-                        <Input
-                          type="email"
-                          value={deleteEmail}
-                          onChange={e => setDeleteEmail(e.target.value)}
-                          placeholder="Tu email"
-                          disabled={deleteLoading || deleteSuccess}
-                        />
-                        {deleteError && <div className="text-xs text-red-500">{deleteError}</div>}
-                        {deleteSuccess && <div className="text-xs text-green-600">Cuenta eliminada (simulado)</div>}
-                        <div className="flex gap-2 mt-2">
-                          <Button size="sm" variant="outline" onClick={() => setShowDelete(false)} disabled={deleteLoading || deleteSuccess}>Cancelar</Button>
-                          <Button size="sm" variant="destructive" onClick={handleDeleteAccount} disabled={deleteLoading || deleteSuccess || !deleteEmail}>
-                            {deleteLoading ? "Eliminando..." : "Confirmar eliminación"}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
+                <div className="text-left mt-4">
+                  <Label>Notificaciones</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Switch checked={notifEnabled} onCheckedChange={(checked, e) => onNotifChange(checked, e)} />
+                    <span className="text-xs text-muted-foreground">{notifEnabled ? "Activadas" : "Desactivadas"}</span>
                   </div>
                 </div>
+                <div className="text-left mt-2">
+                  <Label>Suscripción</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Switch checked={subsEnabled} onCheckedChange={(checked, e) => onSubsChange(checked, e)} />
+                    <span className="text-xs text-muted-foreground">{subsEnabled ? "Activa" : "Inactiva"}</span>
+                  </div>
+                </div>
+                <div className="text-left mt-2">
+                  <Label>Email verificado</Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Switch checked={emailValidated} disabled />
+                    {emailValidated ? (
+                      <Badge variant="success">Verificado</Badge>
+                    ) : (
+                      <a
+                        href="#"
+                        className="text-primary underline text-xs font-medium hover:text-primary/80 transition"
+                        onClick={e => { e.preventDefault(); handleVerifyEmail(); }}
+                        disabled={verifLoading}
+                      >
+                        {verifLoading ? "Verificando..." : "Verificar email"}
+                      </a>
+                    )}
+                  </div>
+                  {verifMsg && <div className="text-xs text-green-600 mt-1">{verifMsg}</div>}
+                </div>
+                <div className="text-left mt-4">
+                  <Button size="sm" variant="destructive" className="w-full" onClick={() => setShowDelete((v) => !v)}>
+                    Eliminar cuenta
+                  </Button>
+                </div>
+                {showDelete && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4 mt-4 flex flex-col gap-2">
+                    <div className="text-sm text-red-700 dark:text-red-300 font-medium">¿Estás seguro? Esta acción es irreversible.</div>
+                    <div className="text-xs text-muted-foreground">Escribe tu email para confirmar:</div>
+                    <Input
+                      type="email"
+                      value={deleteEmail}
+                      onChange={e => setDeleteEmail(e.target.value)}
+                      placeholder="Tu email"
+                      disabled={deleteLoading || deleteSuccess}
+                    />
+                    {deleteError && <div className="text-xs text-red-500">{deleteError}</div>}
+                    {deleteSuccess && <div className="text-xs text-green-600">Cuenta eliminada (simulado)</div>}
+                    <div className="flex gap-2 mt-2">
+                      <Button size="sm" variant="outline" onClick={() => setShowDelete(false)} disabled={deleteLoading || deleteSuccess}>Cancelar</Button>
+                      <Button size="sm" variant="destructive" onClick={handleDeleteAccount} disabled={deleteLoading || deleteSuccess || !deleteEmail}>
+                        {deleteLoading ? "Eliminando..." : "Confirmar eliminación"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
+              <div className="my-2 border-t border-muted-foreground/10 dark:border-neutral-800" />
               {/* Mensaje de proveedor */}
               <div className="mt-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
                 La información se obtiene de tu proveedor de autenticación.<br />Para cambios, contacta al administrador.
