@@ -1,11 +1,26 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { signIn } from "next-auth/react";
-import { X, Mail, Lock, User, Eye, EyeOff, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import {
+  X,
+  Mail,
+  Lock,
+  User,
+  Eye,
+  EyeOff,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function AuthModal({ open, onClose, mode = "login" }) {
-  const [form, setForm] = useState({ email: "", password: "", name: "", confirmPassword: "" });
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+    name: "",
+    confirmPassword: "",
+  });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -30,10 +45,10 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
       }
     };
     window.addEventListener("keydown", handleKey);
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
     return () => {
       window.removeEventListener("keydown", handleKey);
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = "unset";
     };
   }, [open, success]);
 
@@ -42,14 +57,14 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     // Limpiar el estado del modal
     setLocalMode("login");
     setForm({ email: "", password: "", name: "", confirmPassword: "" });
     setError("");
     setLoading(false);
     setShowPassword(false);
-    
+
     // Cerrar el modal
     if (onClose) {
       onClose(null);
@@ -70,7 +85,8 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
       setError("Por favor, completa todos los campos");
       setLoading(false);
       return;
-    }    if (localMode === "register" && !form.name) {
+    }
+    if (localMode === "register" && !form.name) {
       setError("Por favor, ingresa tu nombre");
       setLoading(false);
       return;
@@ -111,7 +127,9 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
         });
 
         if (result?.error) {
-          setError("Cuenta creada, pero error al iniciar sesión. Intenta hacer login.");
+          setError(
+            "Cuenta creada, pero error al iniciar sesión. Intenta hacer login."
+          );
         } else {
           setSuccess(true);
         }
@@ -144,9 +162,13 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
   };
 
   // Validaciones inteligentes
-  const isEmailValid = form.email.length > 3 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
+  const isEmailValid =
+    form.email.length > 3 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
   const isPasswordValid = form.password.length >= 6;
-  const isConfirmValid = localMode === "register" && form.confirmPassword.length > 0 && form.password === form.confirmPassword;
+  const isConfirmValid =
+    localMode === "register" &&
+    form.confirmPassword.length > 0 &&
+    form.password === form.confirmPassword;
   const isNameValid = localMode === "register" ? form.name.length > 2 : true;
 
   // Cierra el modal tras mostrar el éxito
@@ -190,13 +212,14 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
               </button>
               <div className="text-center">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {localMode === "login" ? "Bienvenido de vuelta" : "Crear cuenta"}
+                  {localMode === "login"
+                    ? "Bienvenido de vuelta"
+                    : "Crear cuenta"}
                 </h2>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  {localMode === "login" 
-                    ? "Inicia sesión para continuar" 
-                    : "Únete para explorar el museo virtual"
-                  }
+                  {localMode === "login"
+                    ? "Inicia sesión para continuar"
+                    : "Únete para explorar el museo virtual"}
                 </p>
               </div>
             </div>
@@ -210,22 +233,28 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -30 }}
-                    transition={{ duration: 0.4, ease: 'easeInOut' }}
+                    transition={{ duration: 0.4, ease: "easeInOut" }}
                     className="flex flex-col items-center justify-center h-full min-h-[200px]"
                   >
                     <CheckCircle2 className="w-16 h-16 text-green-500 mb-4 animate-soft-pulse" />
-                    <h3 className="text-xl font-semibold text-green-600 mb-2">¡Éxito!</h3>
-                    <p className="text-gray-600 dark:text-gray-300 text-center">Tu autenticación fue exitosa.<br/>Redirigiendo...</p>
+                    <h3 className="text-xl font-semibold text-green-600 mb-2">
+                      ¡Éxito!
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-300 text-center">
+                      Tu autenticación fue exitosa.
+                      <br />
+                      Redirigiendo...
+                    </p>
                   </motion.div>
                 ) : (
                   <motion.form
                     key={localMode}
                     onSubmit={handleSubmit}
                     className="space-y-4"
-                    initial={{ y: localMode === 'login' ? 40 : -40 }}
+                    initial={{ y: localMode === "login" ? 40 : -40 }}
                     animate={{ y: 0 }}
-                    exit={{ y: localMode === 'login' ? -40 : 40 }}
-                    transition={{ duration: 0.25, ease: 'easeInOut' }}
+                    exit={{ y: localMode === "login" ? -40 : 40 }}
+                    transition={{ duration: 0.25, ease: "easeInOut" }}
                   >
                     {/* Nombre (solo registro) */}
                     {localMode === "register" && (
@@ -233,13 +262,21 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
                         initial={{ y: 16 }}
                         animate={{ y: 0 }}
                         exit={{ y: -16 }}
-                        transition={{ duration: 0.5, ease: 'easeOut' }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
                       >
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Nombre completo
                         </label>
                         <div>
-                          <div className={`flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full ${form.name.length === 0 ? 'border-gray-200 dark:border-gray-700' : isNameValid ? 'border-green-400 dark:border-green-500' : 'border-red-400 dark:border-red-500'}`}>
+                          <div
+                            className={`flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full ${
+                              form.name.length === 0
+                                ? "border-gray-200 dark:border-gray-700"
+                                : isNameValid
+                                ? "border-green-400 dark:border-green-500"
+                                : "border-red-400 dark:border-red-500"
+                            }`}
+                          >
                             <User className="w-5 h-5 text-gray-300 dark:text-gray-500 mr-2" />
                             <input
                               type="text"
@@ -252,16 +289,24 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
                               autoComplete="name"
                             />
                             {form.name.length > 0 && (
-                              <>{isNameValid ? (
-                                <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
-                              ) : (
-                                <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
-                              )}</>
+                              <>
+                                {isNameValid ? (
+                                  <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
+                                ) : (
+                                  <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
+                                )}
+                              </>
                             )}
                           </div>
                           {form.name.length > 0 && (
-                            <p className={`text-xs mt-1 ${isNameValid ? 'text-green-600' : 'text-red-500'}`}>
-                              {isNameValid ? 'Nombre válido' : 'Introduce tu nombre completo'}
+                            <p
+                              className={`text-xs mt-1 ${
+                                isNameValid ? "text-green-600" : "text-red-500"
+                              }`}
+                            >
+                              {isNameValid
+                                ? "Nombre válido"
+                                : "Introduce tu nombre completo"}
                             </p>
                           )}
                         </div>
@@ -273,13 +318,21 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
                       initial={{ y: 16 }}
                       animate={{ y: 0 }}
                       exit={{ y: -16 }}
-                      transition={{ duration: 0.5, ease: 'easeOut' }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
                     >
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Correo electrónico
                       </label>
                       <div>
-                        <div className={`flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full ${form.email.length === 0 ? 'border-gray-200 dark:border-gray-700' : isEmailValid ? 'border-green-400 dark:border-green-500' : 'border-red-400 dark:border-red-500'}`}>
+                        <div
+                          className={`flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full ${
+                            form.email.length === 0
+                              ? "border-gray-200 dark:border-gray-700"
+                              : isEmailValid
+                              ? "border-green-400 dark:border-green-500"
+                              : "border-red-400 dark:border-red-500"
+                          }`}
+                        >
                           <Mail className="w-5 h-5 text-gray-300 dark:text-gray-500 mr-2" />
                           <input
                             type="email"
@@ -292,16 +345,24 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
                             autoComplete="email"
                           />
                           {form.email.length > 0 && (
-                            <>{isEmailValid ? (
-                              <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
-                            ) : (
-                              <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
-                            )}</>
+                            <>
+                              {isEmailValid ? (
+                                <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
+                              ) : (
+                                <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
+                              )}
+                            </>
                           )}
                         </div>
                         {form.email.length > 0 && (
-                          <p className={`text-xs mt-1 ${isEmailValid ? 'text-green-600' : 'text-red-500'}`}>
-                            {isEmailValid ? 'Correo válido' : 'Introduce un correo válido'}
+                          <p
+                            className={`text-xs mt-1 ${
+                              isEmailValid ? "text-green-600" : "text-red-500"
+                            }`}
+                          >
+                            {isEmailValid
+                              ? "Correo válido"
+                              : "Introduce un correo válido"}
                           </p>
                         )}
                       </div>
@@ -312,13 +373,21 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
                       initial={{ y: 16 }}
                       animate={{ y: 0 }}
                       exit={{ y: -16 }}
-                      transition={{ duration: 0.5, ease: 'easeOut' }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
                     >
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Contraseña
                       </label>
                       <div>
-                        <div className={`flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full ${form.password.length === 0 ? 'border-gray-200 dark:border-gray-700' : isPasswordValid ? 'border-green-400 dark:border-green-500' : 'border-red-400 dark:border-red-500'}`}>
+                        <div
+                          className={`flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full ${
+                            form.password.length === 0
+                              ? "border-gray-200 dark:border-gray-700"
+                              : isPasswordValid
+                              ? "border-green-400 dark:border-green-500"
+                              : "border-red-400 dark:border-red-500"
+                          }`}
+                        >
                           <Lock className="w-5 h-5 text-gray-300 dark:text-gray-500 mr-2" />
                           <input
                             type={showPassword ? "text" : "password"}
@@ -344,16 +413,26 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
                             )}
                           </button>
                           {form.password.length > 0 && (
-                            <>{isPasswordValid ? (
-                              <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
-                            ) : (
-                              <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
-                            )}</>
+                            <>
+                              {isPasswordValid ? (
+                                <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
+                              ) : (
+                                <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
+                              )}
+                            </>
                           )}
                         </div>
                         {form.password.length > 0 && (
-                          <p className={`text-xs mt-1 ${isPasswordValid ? 'text-green-600' : 'text-red-500'}`}>
-                            {isPasswordValid ? 'Contraseña válida' : 'Mínimo 6 caracteres'}
+                          <p
+                            className={`text-xs mt-1 ${
+                              isPasswordValid
+                                ? "text-green-600"
+                                : "text-red-500"
+                            }`}
+                          >
+                            {isPasswordValid
+                              ? "Contraseña válida"
+                              : "Mínimo 6 caracteres"}
                           </p>
                         )}
                       </div>
@@ -365,13 +444,21 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
                         initial={{ y: 16 }}
                         animate={{ y: 0 }}
                         exit={{ y: -16 }}
-                        transition={{ duration: 0.5, ease: 'easeOut' }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
                       >
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                           Confirmar contraseña
                         </label>
                         <div>
-                          <div className={`flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full ${form.confirmPassword.length === 0 ? 'border-gray-200 dark:border-gray-700' : isConfirmValid ? 'border-green-400 dark:border-green-500' : 'border-red-400 dark:border-red-500'}`}>
+                          <div
+                            className={`flex items-center border rounded-lg bg-white dark:bg-gray-800 transition-all duration-200 px-2 py-1.5 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-full ${
+                              form.confirmPassword.length === 0
+                                ? "border-gray-200 dark:border-gray-700"
+                                : isConfirmValid
+                                ? "border-green-400 dark:border-green-500"
+                                : "border-red-400 dark:border-red-500"
+                            }`}
+                          >
                             <Lock className="w-5 h-5 text-gray-300 dark:text-gray-500 mr-2" />
                             <input
                               type={showPassword ? "text" : "password"}
@@ -385,16 +472,26 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
                               autoComplete="new-password"
                             />
                             {form.confirmPassword.length > 0 && (
-                              <>{isConfirmValid ? (
-                                <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
-                              ) : (
-                                <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
-                              )}</>
+                              <>
+                                {isConfirmValid ? (
+                                  <CheckCircle2 className="w-6 h-6 text-green-500 ml-2 pointer-events-none" />
+                                ) : (
+                                  <XCircle className="w-6 h-6 text-red-500 ml-2 pointer-events-none" />
+                                )}
+                              </>
                             )}
                           </div>
                           {form.confirmPassword.length > 0 && (
-                            <p className={`text-xs mt-1 ${isConfirmValid ? 'text-green-600' : 'text-red-500'}`}>
-                              {isConfirmValid ? 'Las contraseñas coinciden' : 'Las contraseñas no coinciden'}
+                            <p
+                              className={`text-xs mt-1 ${
+                                isConfirmValid
+                                  ? "text-green-600"
+                                  : "text-red-500"
+                              }`}
+                            >
+                              {isConfirmValid
+                                ? "Las contraseñas coinciden"
+                                : "Las contraseñas no coinciden"}
                             </p>
                           )}
                         </div>
@@ -404,7 +501,9 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
                     {/* Error */}
                     {error && (
                       <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                        <p className="text-sm text-red-600 dark:text-red-400">
+                          {error}
+                        </p>
                       </div>
                     )}
 
@@ -423,8 +522,10 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
                           </span>
                           Procesando...
                         </>
+                      ) : localMode === "login" ? (
+                        "Iniciar sesión"
                       ) : (
-                        localMode === "login" ? "Iniciar sesión" : "Crear cuenta"
+                        "Crear cuenta"
                       )}
                     </button>
                   </motion.form>
@@ -434,20 +535,22 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
               {/* Divider */}
               <div className="my-6 flex items-center">
                 <div className="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
-                <span className="px-4 text-sm text-gray-500 dark:text-gray-400">o</span>
+                <span className="px-4 text-sm text-gray-500 dark:text-gray-400">
+                  o
+                </span>
                 <div className="flex-1 border-t border-gray-200 dark:border-gray-700"></div>
               </div>
 
               {/* Google Sign In */}
               <button
                 type="button"
-                onClick={() => signIn('google')}
+                onClick={() => signIn("google")}
                 className="w-full py-3 px-4 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200 flex items-center justify-center gap-3 font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
               >
-                <img 
-                  src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" 
-                  alt="Google" 
-                  className="w-5 h-5" 
+                <img
+                  src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
+                  alt="Google"
+                  className="w-5 h-5"
                 />
                 Continuar con Google
               </button>
@@ -457,10 +560,10 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   {localMode === "login" ? (
                     <>
-                      ¿No tienes cuenta?{' '}
+                      ¿No tienes cuenta?{" "}
                       <button
                         onClick={() => {
-                          setLocalMode('register');
+                          setLocalMode("register");
                           setError("");
                         }}
                         className="text-blue-600 dark:text-blue-400 font-medium hover:underline transition-all duration-200 cursor-pointer"
@@ -470,10 +573,10 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
                     </>
                   ) : (
                     <>
-                      ¿Ya tienes cuenta?{' '}
+                      ¿Ya tienes cuenta?{" "}
                       <button
                         onClick={() => {
-                          setLocalMode('login');
+                          setLocalMode("login");
                           setError("");
                         }}
                         className="text-blue-600 dark:text-blue-400 font-medium hover:underline transition-all duration-200 cursor-pointer"
@@ -494,7 +597,9 @@ export default function AuthModal({ open, onClose, mode = "login" }) {
                   <span className="block w-3 h-3 rounded-full bg-white dark:bg-gray-200 animate-bounce [animation-delay:0.15s]"></span>
                   <span className="block w-3 h-3 rounded-full bg-white dark:bg-gray-200 animate-bounce [animation-delay:0.3s]"></span>
                 </div>
-                <span className="mt-6 text-white dark:text-gray-200 font-medium text-lg tracking-wide">Cargando...</span>
+                <span className="mt-6 text-white dark:text-gray-200 font-medium text-lg tracking-wide">
+                  Cargando...
+                </span>
               </div>
             )}
           </motion.div>

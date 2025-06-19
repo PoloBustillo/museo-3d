@@ -1,50 +1,46 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useSession } from 'next-auth/react';
-import { useEffect, useState } from 'react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import { 
-  getPersonalCollection, 
-  removeFromPersonalCollection, 
-  getCollectionStats,
-  clearPersonalCollection,
-  filterPersonalCollection,
-  getFilterOptions,
-  getFilterStats,
-  exportPersonalCollection,
-  importPersonalCollection,
-  generateCollectionSummary
-} from '../../lib/personalCollection.js';
+import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { useCollection } from "../../providers/CollectionProvider";
 
 export default function MisDocumentos() {
   const { data: session, status } = useSession();
-  const [personalCollection, setPersonalCollection] = useState([]);
+  const {
+    collection: personalCollection,
+    removeFromCollection: handleRemoveFromCollection,
+    clearCollection: handleClearCollection,
+    isLoading: collectionLoading,
+    lastSync,
+    isAuthenticated,
+  } = useCollection();
   const [filteredCollection, setFilteredCollection] = useState([]);
   const [collectionStats, setCollectionStats] = useState({});
-  
+
   // Estados para filtros
   const [filters, setFilters] = useState({
-    search: '',
-    technique: '',
-    artist: '',
-    year: '',
-    sortBy: 'newest', // newest, oldest, title, artist, year, technique, sala
-    sala: '',
-    yearFrom: '',
-    yearTo: ''
+    search: "",
+    technique: "",
+    artist: "",
+    year: "",
+    sortBy: "newest", // newest, oldest, title, artist, year, technique, sala
+    sala: "",
+    yearFrom: "",
+    yearTo: "",
   });
-  
+
   // Estados para opciones de filtros y estadísticas
   const [filterOptions, setFilterOptions] = useState({
     techniques: [],
     artists: [],
     years: [],
     salas: [],
-    yearRange: { min: null, max: null }
+    yearRange: { min: null, max: null },
   });
-  
+
   const [filterStats, setFilterStats] = useState({
     totalFiltered: 0,
     totalOriginal: 0,
@@ -52,37 +48,169 @@ export default function MisDocumentos() {
     uniqueArtists: 0,
     uniqueTechniques: 0,
     uniqueSalas: 0,
-    yearRange: null
+    yearRange: null,
   });
-  
+
   // Estado para controlar la vista de filtros
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  
+
   // Estados para importación/exportación
   const [showExportOptions, setShowExportOptions] = useState(false);
-  
+
   const userId = session?.user?.id || null;
 
-  // Cargar colección personal
+  // Calcular estadísticas de la colección
   useEffect(() => {
-    if (status !== 'loading' && userId) {
-      const collection = getPersonalCollection(userId);
-      const stats = getCollectionStats(userId);
-      const options = getFilterOptions(userId);
-      
-      setPersonalCollection(collection);
+    if (personalCollection.length > 0) {
+      const stats = {
+        totalArtworks: personalCollection.length,
+        uniqueArtists: new Set(personalCollection.map((item) => item.artist))
+          .size,
+        uniqueTechniques: new Set(
+          personalCollection.map((item) => item.technique)
+        ).size,
+        oldestYear: Math.min(
+          ...personalCollection.map((item) => parseInt(item.year) || 0)
+        ),
+        newestYear: Math.max(
+          ...personalCollection.map((item) => parseInt(item.year) || 0)
+        ),
+        mostRecentAddition:
+          personalCollection[personalCollection.length - 1]?.addedAt,
+      };
       setCollectionStats(stats);
+
+      // Calcular opciones de filtros
+      const options = {
+        techniques: [
+          ...new Set(
+            personalCollection.map((item) => item.technique).filter(Boolean)
+          ),
+        ],
+        artists: [
+          ...new Set(
+            personalCollection.map((item) => item.artist).filter(Boolean)
+          ),
+        ],
+        years: [
+          ...new Set(
+            personalCollection.map((item) => item.year).filter(Boolean)
+          ),
+        ].sort((a, b) => b - a),
+        salas: [
+          ...new Set(
+            personalCollection.map((item) => item.sala).filter(Boolean)
+          ),
+        ],
+        yearRange: {
+          min: Math.min(
+            ...personalCollection.map((item) => parseInt(item.year) || 0)
+          ),
+          max: Math.max(
+            ...personalCollection.map((item) => parseInt(item.year) || 0)
+          ),
+        },
+      };
       setFilterOptions(options);
     }
-  }, [userId, status]);
+  }, [personalCollection]);
 
   // Filtrar y ordenar colección
   useEffect(() => {
     if (personalCollection.length > 0) {
-      const filtered = filterPersonalCollection(personalCollection, filters);
-      const stats = getFilterStats(filtered, personalCollection);
-      
+      let filtered = [...personalCollection];
+
+      // Aplicar filtros
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        filtered = filtered.filter(
+          (item) =>
+            item.title?.toLowerCase().includes(searchLower) ||
+            item.artist?.toLowerCase().includes(searchLower) ||
+            item.technique?.toLowerCase().includes(searchLower)
+        );
+      }
+
+      if (filters.technique) {
+        filtered = filtered.filter(
+          (item) => item.technique === filters.technique
+        );
+      }
+
+      if (filters.artist) {
+        filtered = filtered.filter((item) => item.artist === filters.artist);
+      }
+
+      if (filters.year) {
+        filtered = filtered.filter((item) => item.year === filters.year);
+      }
+
+      if (filters.sala) {
+        filtered = filtered.filter((item) => item.sala === filters.sala);
+      }
+
+      if (filters.yearFrom || filters.yearTo) {
+        filtered = filtered.filter((item) => {
+          const year = parseInt(item.year);
+          const from = filters.yearFrom ? parseInt(filters.yearFrom) : 0;
+          const to = filters.yearTo ? parseInt(filters.yearTo) : 9999;
+          return year >= from && year <= to;
+        });
+      }
+
+      // Aplicar ordenamiento
+      switch (filters.sortBy) {
+        case "newest":
+          filtered.sort((a, b) => new Date(b.addedAt) - new Date(a.addedAt));
+          break;
+        case "oldest":
+          filtered.sort((a, b) => new Date(a.addedAt) - new Date(b.addedAt));
+          break;
+        case "title":
+          filtered.sort((a, b) => (a.title || "").localeCompare(b.title || ""));
+          break;
+        case "artist":
+          filtered.sort((a, b) =>
+            (a.artist || "").localeCompare(b.artist || "")
+          );
+          break;
+        case "year":
+          filtered.sort((a, b) => parseInt(b.year) - parseInt(a.year));
+          break;
+        case "technique":
+          filtered.sort((a, b) =>
+            (a.technique || "").localeCompare(b.technique || "")
+          );
+          break;
+        case "sala":
+          filtered.sort((a, b) => (a.sala || "").localeCompare(b.sala || ""));
+          break;
+      }
+
       setFilteredCollection(filtered);
+
+      // Calcular estadísticas de filtros
+      const stats = {
+        totalFiltered: filtered.length,
+        totalOriginal: personalCollection.length,
+        percentage: Math.round(
+          (filtered.length / personalCollection.length) * 100
+        ),
+        uniqueArtists: new Set(filtered.map((item) => item.artist)).size,
+        uniqueTechniques: new Set(filtered.map((item) => item.technique)).size,
+        uniqueSalas: new Set(filtered.map((item) => item.sala)).size,
+        yearRange:
+          filtered.length > 0
+            ? {
+                min: Math.min(
+                  ...filtered.map((item) => parseInt(item.year) || 0)
+                ),
+                max: Math.max(
+                  ...filtered.map((item) => parseInt(item.year) || 0)
+                ),
+              }
+            : null,
+      };
       setFilterStats(stats);
     } else {
       setFilteredCollection([]);
@@ -93,127 +221,108 @@ export default function MisDocumentos() {
         uniqueArtists: 0,
         uniqueTechniques: 0,
         uniqueSalas: 0,
-        yearRange: null
+        yearRange: null,
       });
     }
   }, [personalCollection, filters]);
 
   // Funciones para manejar filtros
   const handleFilterChange = (filterType, value) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
-      [filterType]: value
+      [filterType]: value,
     }));
   };
 
   const clearAllFilters = () => {
     setFilters({
-      search: '',
-      technique: '',
-      artist: '',
-      year: '',
-      sortBy: 'newest',
-      sala: '',
-      yearFrom: '',
-      yearTo: ''
+      search: "",
+      technique: "",
+      artist: "",
+      year: "",
+      sortBy: "newest",
+      sala: "",
+      yearFrom: "",
+      yearTo: "",
     });
   };
 
   const hasActiveFilters = () => {
-    return filters.search || filters.technique || filters.artist || filters.year || 
-           filters.sala || filters.yearFrom || filters.yearTo;
-  };
-
-  const handleRemoveFromCollection = (artworkId) => {
-    const success = removeFromPersonalCollection(artworkId, userId);
-    if (success) {
-      const updatedCollection = getPersonalCollection(userId);
-      const updatedStats = getCollectionStats(userId);
-      setPersonalCollection(updatedCollection);
-      setCollectionStats(updatedStats);
-    }
-  };
-
-  const handleClearCollection = () => {
-    if (window.confirm('¿Estás seguro de que quieres eliminar toda tu colección? Esta acción no se puede deshacer.')) {
-      const success = clearPersonalCollection(userId);
-      if (success) {
-        setPersonalCollection([]);
-        setCollectionStats({
-          totalArtworks: 0,
-          uniqueArtists: 0,
-          uniqueTechniques: 0,
-          oldestYear: null,
-          newestYear: null,
-          mostRecentAddition: null
-        });
-      }
-    }
+    return (
+      filters.search ||
+      filters.technique ||
+      filters.artist ||
+      filters.year ||
+      filters.sala ||
+      filters.yearFrom ||
+      filters.yearTo
+    );
   };
 
   const handleExportCollection = () => {
-    const success = exportPersonalCollection(userId);
-    if (success) {
-      alert('¡Colección exportada exitosamente! El archivo se ha descargado.');
-    } else {
-      alert('Error al exportar la colección. Inténtalo de nuevo.');
-    }
+    const dataStr = JSON.stringify(personalCollection, null, 2);
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `mi-coleccion-${
+      new Date().toISOString().split("T")[0]
+    }.json`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleImportCollection = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    const result = await importPersonalCollection(file, userId, true);
-    
-    if (result.success) {
-      // Recargar la colección
-      const updatedCollection = getPersonalCollection(userId);
-      const updatedStats = getCollectionStats(userId);
-      const updatedOptions = getFilterOptions(userId);
-      
-      setPersonalCollection(updatedCollection);
-      setCollectionStats(updatedStats);
-      setFilterOptions(updatedOptions);
-      
-      alert(`¡Importación exitosa!\n\nObras importadas: ${result.imported}\nDuplicados omitidos: ${result.duplicates}\nTotal en colección: ${result.total}`);
-    } else {
-      alert(`Error al importar: ${result.error}`);
+    try {
+      const text = await file.text();
+      const importedData = JSON.parse(text);
+
+      if (Array.isArray(importedData)) {
+        // Aquí podrías implementar la lógica para fusionar con la colección actual
+        alert(`Archivo cargado con ${importedData.length} obras`);
+      } else {
+        alert("Formato de archivo inválido");
+      }
+    } catch (error) {
+      alert("Error al procesar el archivo");
     }
-    
-    // Limpiar el input
-    event.target.value = '';
+
+    event.target.value = "";
   };
 
   const handleShareCollection = () => {
-    const summary = generateCollectionSummary(userId);
-    
+    const summary = `Mi colección del Museo Virtual 3D\n\nTotal de obras: ${personalCollection.length}\nArtistas únicos: ${collectionStats.uniqueArtists}\nTécnicas únicas: ${collectionStats.uniqueTechniques}\n\n${window.location.origin}`;
+
     if (navigator.share) {
       navigator.share({
-        title: 'Mi Colección del Museo Virtual 3D',
+        title: "Mi Colección del Museo Virtual 3D",
         text: summary,
-        url: window.location.origin
+        url: window.location.origin,
       });
     } else {
-      // Fallback: copiar al portapapeles
-      navigator.clipboard.writeText(summary).then(() => {
-        alert('¡Resumen copiado al portapapeles! Puedes pegarlo donde quieras compartirlo.');
-      }).catch(() => {
-        // Mostrar en una ventana modal o alert
-        alert(summary);
-      });
+      navigator.clipboard
+        .writeText(summary)
+        .then(() => {
+          alert("¡Resumen copiado al portapapeles!");
+        })
+        .catch(() => {
+          alert(summary);
+        });
     }
   };
 
   const handleExportToPDF = async () => {
     try {
-      console.log('Exporting to PDF. Collection data:', filteredCollection);
-      console.log('Sample artwork:', filteredCollection[0]);
-      
+      console.log("Exporting to PDF. Collection data:", filteredCollection);
+
       // Mostrar mensaje de carga
-      const loadingMessage = document.createElement('div');
-      loadingMessage.id = 'pdf-loading';
-      loadingMessage.className = 'fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center z-50';
+      const loadingMessage = document.createElement("div");
+      loadingMessage.id = "pdf-loading";
+      loadingMessage.className =
+        "fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center z-50";
       loadingMessage.innerHTML = `
         <div class="bg-white p-6 rounded-lg shadow-xl text-center">
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
@@ -224,154 +333,187 @@ export default function MisDocumentos() {
       document.body.appendChild(loadingMessage);
 
       // Crear el PDF
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdf = new jsPDF("p", "mm", "a4");
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const margin = 20;
       const contentWidth = pageWidth - 2 * margin;
-      
+
       // Título del documento
       pdf.setFontSize(20);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('Mi Colección Personal', margin, 30);
-      
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Mi Colección Personal", margin, 30);
+
       // Información del usuario
       pdf.setFontSize(12);
-      pdf.setFont('helvetica', 'normal');
-      pdf.text(`Usuario: ${session?.user?.name || 'Usuario'}`, margin, 45);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Usuario: ${session?.user?.name || "Usuario"}`, margin, 45);
       pdf.text(`Total de obras: ${filteredCollection.length}`, margin, 55);
-      pdf.text(`Fecha de exportación: ${new Date().toLocaleDateString('es-ES')}`, margin, 65);
-      
+      pdf.text(
+        `Fecha de exportación: ${new Date().toLocaleDateString("es-ES")}`,
+        margin,
+        65
+      );
+
       let currentY = 80;
-      
+
       // Procesar cada obra
       for (let i = 0; i < filteredCollection.length; i++) {
         const artwork = filteredCollection[i];
-        
+
         // Verificar si necesitamos una nueva página
         if (currentY > pageHeight - 100) {
           pdf.addPage();
           currentY = 30;
         }
-        
+
         try {
           // Cargar la imagen
           const img = new Image();
-          img.crossOrigin = 'anonymous';
-          
+          img.crossOrigin = "anonymous";
+
           await new Promise((resolve, reject) => {
             img.onload = resolve;
             img.onerror = () => {
               // Si falla, usar una imagen placeholder
-              img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQwIiBoZWlnaHQ9IjI0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMjQwIiBoZWlnaHQ9IjI0MCIgZmlsbD0iI2Y1ZjVmNSIgc3Ryb2tlPSIjZGRkZGRkIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI1MCUiIHk9IjQ1JSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiPkltYWdlbjwvdGV4dD4KICA8dGV4dCB4PSI1MCUiIHk9IjU1JSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiPm5vIGRpc3BvbmlibGU8L3RleHQ+Cjwvc3ZnPgo=';
+              img.src =
+                "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQwIiBoZWlnaHQ9IjI0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMjQwIiBoZWlnaHQ9IjI0MCIgZmlsbD0iI2Y1ZjVmNSIgc3Ryb2tlPSIjZGRkZGRkIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI1MCUiIHk9IjQ1JSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiPkltYWdlbjwvdGV4dD4KICA8dGV4dCB4PSI1MCUiIHk9IjU1JSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiPm5vIGRpc3BvbmlibGU8L3RleHQ+Cjwvc3ZnPgo=";
               img.onload = resolve;
               img.onerror = reject;
             };
-            // Usar la estructura correcta de la colección personal
-            img.src = artwork.src || artwork.url_imagen || artwork.image || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQwIiBoZWlnaHQ9IjI0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMjQwIiBoZWlnaHQ9IjI0MCIgZmlsbD0iI2Y1ZjVmNSIgc3Ryb2tlPSIjZGRkZGRkIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8dGV4dCB4PSI1MCUiIHk9IjQ1JSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiPkltYWdlbjwvdGV4dD4KICA8dGV4dCB4PSI1MCUiIHk9IjU1JSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMTQiIGZpbGw9IiM5OTk5OTkiPm5vIGRpc3BvbmlibGU8L3RleHQ+Cjwvc3ZnPgo=';
+            img.src = artwork.src || artwork.url_imagen || "";
           });
-          
-          // Crear canvas para la imagen
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          
-          // Calcular dimensiones proporcionales
-          const maxWidth = 60;
-          const maxHeight = 60;
-          const aspectRatio = img.width / img.height;
-          
-          let imgWidth, imgHeight;
-          if (aspectRatio > 1) {
-            imgWidth = maxWidth;
-            imgHeight = maxWidth / aspectRatio;
-          } else {
-            imgHeight = maxHeight;
-            imgWidth = maxHeight * aspectRatio;
-          }
-          
-          canvas.width = imgWidth * 2; // Factor de escala para mejor calidad
-          canvas.height = imgHeight * 2;
-          
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          
-          // Agregar imagen al PDF
-          const imgData = canvas.toDataURL('image/jpeg', 0.8);
-          pdf.addImage(imgData, 'JPEG', margin, currentY, imgWidth, imgHeight);
-          
-          // Información de la obra al lado de la imagen
+
+          // Calcular dimensiones de la imagen
+          const imgWidth = 60;
+          const imgHeight = (img.height * imgWidth) / img.width;
           const textX = margin + imgWidth + 10;
-          
+
+          // Agregar imagen al PDF
+          pdf.addImage(img, "JPEG", margin, currentY, imgWidth, imgHeight);
+
+          // Agregar información de la obra
           pdf.setFontSize(14);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text(artwork.title || 'Sin título', textX, currentY + 8);
-          
+          pdf.setFont("helvetica", "bold");
+          pdf.text(artwork.title || "Sin título", textX, currentY + 8);
+
           pdf.setFontSize(10);
-          pdf.setFont('helvetica', 'normal');
-          pdf.text(`Artista: ${artwork.artist || 'Desconocido'}`, textX, currentY + 18);
-          pdf.text(`Técnica: ${artwork.technique || 'No especificada'}`, textX, currentY + 28);
-          pdf.text(`Año: ${artwork.year || 'No especificado'}`, textX, currentY + 38);
-          
+          pdf.setFont("helvetica", "normal");
+          pdf.text(
+            `Artista: ${artwork.artist || "Desconocido"}`,
+            textX,
+            currentY + 18
+          );
+          pdf.text(
+            `Técnica: ${artwork.technique || "No especificada"}`,
+            textX,
+            currentY + 28
+          );
+          pdf.text(
+            `Año: ${artwork.year || "No especificado"}`,
+            textX,
+            currentY + 38
+          );
+
           if (artwork.sala) {
             pdf.text(`Sala: ${artwork.sala}`, textX, currentY + 48);
           }
-          
+
           if (artwork.dimensions) {
-            pdf.text(`Dimensiones: ${artwork.dimensions}`, textX, currentY + 58);
+            pdf.text(
+              `Dimensiones: ${artwork.dimensions}`,
+              textX,
+              currentY + 58
+            );
           }
-          
+
           currentY += Math.max(imgHeight, 50) + 15;
-          
         } catch (error) {
-          console.error('Error processing image for artwork:', artwork.title, error);
-          
+          console.error(
+            "Error processing image for artwork:",
+            artwork.title,
+            error
+          );
+
           // Si falla la imagen, agregar solo el texto
           pdf.setFontSize(14);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text(artwork.title || 'Sin título', margin, currentY + 8);
-          
+          pdf.setFont("helvetica", "bold");
+          pdf.text(artwork.title || "Sin título", margin, currentY + 8);
+
           pdf.setFontSize(10);
-          pdf.setFont('helvetica', 'normal');
-          pdf.text(`Artista: ${artwork.artist || 'Desconocido'}`, margin, currentY + 18);
-          pdf.text(`Técnica: ${artwork.technique || 'No especificada'}`, margin, currentY + 28);
-          pdf.text(`Año: ${artwork.year || 'No especificado'}`, margin, currentY + 38);
-          
+          pdf.setFont("helvetica", "normal");
+          pdf.text(
+            `Artista: ${artwork.artist || "Desconocido"}`,
+            margin,
+            currentY + 18
+          );
+          pdf.text(
+            `Técnica: ${artwork.technique || "No especificada"}`,
+            margin,
+            currentY + 28
+          );
+          pdf.text(
+            `Año: ${artwork.year || "No especificado"}`,
+            margin,
+            currentY + 38
+          );
+
           if (artwork.sala) {
             pdf.text(`Sala: ${artwork.sala}`, margin, currentY + 48);
           }
-          
+
           if (artwork.dimensions) {
-            pdf.text(`Dimensiones: ${artwork.dimensions}`, margin, currentY + 58);
+            pdf.text(
+              `Dimensiones: ${artwork.dimensions}`,
+              margin,
+              currentY + 58
+            );
           }
-          
-          pdf.text('[Imagen no disponible]', margin, currentY + 68);
-          
+
+          pdf.text("[Imagen no disponible]", margin, currentY + 68);
+
           currentY += 80;
         }
       }
-      
+
       // Guardar el PDF
-      const fileName = `mi-coleccion-${new Date().toISOString().split('T')[0]}.pdf`;
+      const fileName = `mi-coleccion-${
+        new Date().toISOString().split("T")[0]
+      }.pdf`;
       pdf.save(fileName);
-      
+
       // Remover mensaje de carga
       document.body.removeChild(loadingMessage);
-      
+
       alert(`¡PDF generado exitosamente! Se ha descargado como "${fileName}"`);
-      
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      
+      console.error("Error generating PDF:", error);
+
       // Remover mensaje de carga si existe
-      const loadingMessage = document.getElementById('pdf-loading');
+      const loadingMessage = document.getElementById("pdf-loading");
       if (loadingMessage) {
         document.body.removeChild(loadingMessage);
       }
-      
-      alert('Error al generar el PDF. Inténtalo de nuevo.');
+
+      alert("Error al generar el PDF. Inténtalo de nuevo.");
     }
   };
 
-  if (status === 'loading') {
+  const handleClearCollectionLocal = () => {
+    if (
+      window.confirm(
+        "¿Estás seguro de que quieres eliminar toda tu colección? Esta acción no se puede deshacer."
+      )
+    ) {
+      handleClearCollection();
+    }
+  };
+
+  const handleRemoveFromCollectionLocal = (artworkId) => {
+    handleRemoveFromCollection(artworkId);
+  };
+
+  if (status === "loading") {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-center min-h-[400px]">
@@ -382,9 +524,9 @@ export default function MisDocumentos() {
         </div>
       </div>
     );
-  };
+  }
 
-  if (status === 'unauthenticated') {
+  if (status === "unauthenticated") {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto text-center">
@@ -392,8 +534,8 @@ export default function MisDocumentos() {
           <p className="text-muted-foreground mb-6">
             Debes iniciar sesión para ver tus documentos y colección personal.
           </p>
-          <button 
-            onClick={() => window.location.href = '/'}
+          <button
+            onClick={() => (window.location.href = "/")}
             className="bg-primary text-primary-foreground px-6 py-3 rounded-md hover:bg-primary/90 transition-colors"
           >
             Ir al Inicio
@@ -404,32 +546,35 @@ export default function MisDocumentos() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-100 to-stone-100">
+    <div className="min-h-[calc(100vh-64px)] bg-gradient-to-br from-slate-50 via-gray-100 to-stone-100">
       {/* Header elegante */}
       <div className="relative bg-gradient-to-r from-slate-900 via-gray-900 to-stone-900 overflow-hidden">
         <div className="absolute inset-0 bg-black/20"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-        
+
         {/* Patrón decorativo */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-transparent via-white/5 to-transparent"></div>
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-radial from-white/10 to-transparent rounded-full blur-3xl"></div>
           <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-gradient-radial from-white/10 to-transparent rounded-full blur-3xl"></div>
         </div>
-        
+
         <div className="mt-6 relative z-10 container mx-auto px-8 py-16 max-w-7xl">
           <div className="text-center mb-8">
             <h1 className="text-5xl font-light text-white mb-4 tracking-wide">
               Mis Documentos
             </h1>
             <p className="text-xl text-gray-300 font-light">
-              Gestiona y explora tu colección personal con herramientas avanzadas
+              Gestiona y explora tu colección personal con herramientas
+              avanzadas
             </p>
           </div>
-          
+
           {/* Navegación de breadcrumb */}
           <div className="flex items-center justify-center gap-2 text-gray-300 text-sm">
-            <Link href="/perfil" className="hover:text-white transition-colors">Mi Perfil</Link>
+            <Link href="/perfil" className="hover:text-white transition-colors">
+              Mi Perfil
+            </Link>
             <span>→</span>
             <span className="text-white">Mis Documentos</span>
           </div>
@@ -440,11 +585,14 @@ export default function MisDocumentos() {
         {personalCollection.length === 0 ? (
           <div className="bg-white/70 backdrop-blur-sm p-16 rounded-2xl border border-white/50 shadow-xl text-center">
             <div className="text-8xl mb-6 opacity-20">📄</div>
-            <h3 className="text-2xl font-light text-gray-600 mb-4">No tienes documentos aún</h3>
+            <h3 className="text-2xl font-light text-gray-600 mb-4">
+              No tienes documentos aún
+            </h3>
             <p className="text-gray-500 mb-8 max-w-md mx-auto leading-relaxed">
-              Comienza agregando obras a tu colección personal desde el museo virtual.
+              Comienza agregando obras a tu colección personal desde el museo
+              virtual.
             </p>
-            <Link 
+            <Link
               href="/museo"
               className="inline-block bg-slate-600 text-white px-8 py-4 rounded-xl font-medium hover:bg-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
             >
@@ -460,60 +608,92 @@ export default function MisDocumentos() {
                   <span className="text-2xl">📊</span>
                   Gestión de Colección
                 </h2>
-                
+
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                  <span className="text-sm text-gray-600 font-medium">{personalCollection.length} obras</span>
+                  {collectionLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
+                      <span className="text-sm text-gray-600 font-medium">
+                        Sincronizando...
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-sm text-gray-600 font-medium">
+                        {personalCollection.length} obras
+                      </span>
+                    </div>
+                  )}
+                  {lastSync && (
+                    <span className="text-xs text-gray-500">
+                      Última sincronización:{" "}
+                      {new Date(lastSync).toLocaleTimeString()}
+                    </span>
+                  )}
                 </div>
               </div>
-              
+
               {/* Estadísticas rápidas */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <div className="text-center p-4 bg-gradient-to-b from-slate-50 to-slate-100/50 rounded-xl border border-slate-200/50">
                   <div className="text-3xl font-light text-slate-700 mb-1">
                     {collectionStats.totalArtworks || 0}
                   </div>
-                  <div className="text-sm text-slate-600 font-medium">Total obras</div>
+                  <div className="text-sm text-slate-600 font-medium">
+                    Total obras
+                  </div>
                 </div>
-                
+
                 <div className="text-center p-4 bg-gradient-to-b from-gray-50 to-gray-100/50 rounded-xl border border-gray-200/50">
                   <div className="text-3xl font-light text-gray-700 mb-1">
                     {collectionStats.uniqueArtists || 0}
                   </div>
-                  <div className="text-sm text-gray-600 font-medium">Artistas</div>
+                  <div className="text-sm text-gray-600 font-medium">
+                    Artistas
+                  </div>
                 </div>
-                
+
                 <div className="text-center p-4 bg-gradient-to-b from-stone-50 to-stone-100/50 rounded-xl border border-stone-200/50">
                   <div className="text-3xl font-light text-stone-700 mb-1">
                     {collectionStats.uniqueTechniques || 0}
                   </div>
-                  <div className="text-sm text-stone-600 font-medium">Técnicas</div>
+                  <div className="text-sm text-stone-600 font-medium">
+                    Técnicas
+                  </div>
                 </div>
-                
+
                 {collectionStats.oldestYear && (
                   <div className="text-center p-4 bg-gradient-to-b from-zinc-50 to-zinc-100/50 rounded-xl border border-zinc-200/50">
                     <div className="text-lg font-light text-zinc-700 mb-1">
-                      {collectionStats.oldestYear} - {collectionStats.newestYear}
+                      {collectionStats.oldestYear} -{" "}
+                      {collectionStats.newestYear}
                     </div>
-                    <div className="text-sm text-zinc-600 font-medium">Período</div>
+                    <div className="text-sm text-zinc-600 font-medium">
+                      Período
+                    </div>
                   </div>
                 )}
               </div>
-              
+
               {/* Acciones de gestión */}
               <div className="flex flex-wrap gap-3 justify-center">
                 <button
                   onClick={() => setShowExportOptions(!showExportOptions)}
                   className="bg-slate-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-slate-700 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
                 >
-                  {showExportOptions ? '📁 Ocultar Opciones' : '📤 Opciones de Gestión'}
+                  {showExportOptions
+                    ? "📁 Ocultar Opciones"
+                    : "📤 Opciones de Gestión"}
                 </button>
               </div>
-              
+
               {/* Opciones de exportación */}
               {showExportOptions && (
                 <div className="mt-6 p-6 bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-xl border border-gray-200/50">
-                  <h3 className="text-lg font-medium text-gray-800 mb-4">Herramientas de gestión</h3>
+                  <h3 className="text-lg font-medium text-gray-800 mb-4">
+                    Herramientas de gestión
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
                     <button
                       onClick={handleExportCollection}
@@ -521,14 +701,14 @@ export default function MisDocumentos() {
                     >
                       💾 Exportar JSON
                     </button>
-                    
+
                     <button
                       onClick={handleExportToPDF}
                       className="bg-red-500 text-white px-4 py-3 rounded-lg hover:bg-red-600 transition-colors font-medium"
                     >
                       📄 Exportar PDF
                     </button>
-                    
+
                     <label className="bg-gray-500 text-white px-4 py-3 rounded-lg hover:bg-gray-600 transition-colors font-medium cursor-pointer text-center">
                       📁 Importar colección
                       <input
@@ -538,7 +718,7 @@ export default function MisDocumentos() {
                         className="hidden"
                       />
                     </label>
-                    
+
                     <button
                       onClick={handleShareCollection}
                       className="bg-stone-500 text-white px-4 py-3 rounded-lg hover:bg-stone-600 transition-colors font-medium"
@@ -546,19 +726,31 @@ export default function MisDocumentos() {
                       📋 Compartir resumen
                     </button>
                   </div>
-                  
+
                   <div className="mt-4 p-4 bg-white/50 rounded-lg border border-gray-200/30">
                     <div className="text-xs text-gray-600 space-y-1">
-                      <p>• <strong>Exportar JSON:</strong> Descarga tu colección en formato JSON</p>
-                      <p>• <strong>Exportar PDF:</strong> Genera un documento PDF con imágenes y detalles</p>
-                      <p>• <strong>Importar:</strong> Carga una colección desde un archivo JSON</p>
-                      <p>• <strong>Compartir:</strong> Genera un resumen de tu colección</p>
+                      <p>
+                        • <strong>Exportar JSON:</strong> Descarga tu colección
+                        en formato JSON
+                      </p>
+                      <p>
+                        • <strong>Exportar PDF:</strong> Genera un documento PDF
+                        con imágenes y detalles
+                      </p>
+                      <p>
+                        • <strong>Importar:</strong> Carga una colección desde
+                        un archivo JSON
+                      </p>
+                      <p>
+                        • <strong>Compartir:</strong> Genera un resumen de tu
+                        colección
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <button
-                      onClick={handleClearCollection}
+                      onClick={handleClearCollectionLocal}
                       className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors font-medium text-sm"
                     >
                       🗑️ Limpiar toda la colección
@@ -572,7 +764,7 @@ export default function MisDocumentos() {
             <div className="bg-white/70 backdrop-blur-sm p-8 rounded-2xl border border-white/50 shadow-xl">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-2xl font-light text-gray-800 flex items-center gap-3">
-                  <span className="text-xl">�</span>
+                  <span className="text-xl">🎨</span>
                   Galería de Documentos
                   <span className="text-lg font-normal text-gray-500 ml-2">
                     ({filterStats.totalFiltered} de {filterStats.totalOriginal})
@@ -583,7 +775,9 @@ export default function MisDocumentos() {
                     onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                     className="text-slate-600 hover:text-slate-800 font-medium px-4 py-2 rounded-lg hover:bg-slate-50 transition-colors border border-slate-200"
                   >
-                    {showAdvancedFilters ? 'Filtros básicos' : 'Filtros avanzados'}
+                    {showAdvancedFilters
+                      ? "Filtros básicos"
+                      : "Filtros avanzados"}
                   </button>
                   {hasActiveFilters() && (
                     <button
@@ -600,22 +794,30 @@ export default function MisDocumentos() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 p-4 bg-gradient-to-r from-gray-50/50 to-gray-100/50 rounded-xl border border-gray-200/50">
                 {/* Búsqueda por texto */}
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">🔍 Búsqueda general</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    🔍 Búsqueda general
+                  </label>
                   <input
                     type="text"
                     placeholder="Buscar por título, artista, técnica..."
                     value={filters.search}
-                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange("search", e.target.value)
+                    }
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500 shadow-sm"
                   />
                 </div>
 
                 {/* Ordenar por */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">📊 Ordenar por</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    📊 Ordenar por
+                  </label>
                   <select
                     value={filters.sortBy}
-                    onChange={(e) => handleFilterChange('sortBy', e.target.value)}
+                    onChange={(e) =>
+                      handleFilterChange("sortBy", e.target.value)
+                    }
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
                   >
                     <option value="newest">Más recientes</option>
@@ -632,50 +834,70 @@ export default function MisDocumentos() {
               {/* Filtros avanzados */}
               {showAdvancedFilters && (
                 <div className="p-6 bg-gradient-to-r from-blue-50/50 to-indigo-50/50 rounded-xl border border-blue-200/50 backdrop-blur-sm mb-6">
-                  <h4 className="text-lg font-medium text-gray-700 mb-4">🎛️ Filtros avanzados</h4>
-                  
+                  <h4 className="text-lg font-medium text-gray-700 mb-4">
+                    🎛️ Filtros avanzados
+                  </h4>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     {/* Filtro por técnica */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Técnica</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Técnica
+                      </label>
                       <select
                         value={filters.technique}
-                        onChange={(e) => handleFilterChange('technique', e.target.value)}
+                        onChange={(e) =>
+                          handleFilterChange("technique", e.target.value)
+                        }
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
                       >
                         <option value="">Todas las técnicas</option>
-                        {filterOptions.techniques.map(technique => (
-                          <option key={technique} value={technique}>{technique}</option>
+                        {filterOptions.techniques.map((technique) => (
+                          <option key={technique} value={technique}>
+                            {technique}
+                          </option>
                         ))}
                       </select>
                     </div>
 
                     {/* Filtro por artista */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Artista</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Artista
+                      </label>
                       <select
                         value={filters.artist}
-                        onChange={(e) => handleFilterChange('artist', e.target.value)}
+                        onChange={(e) =>
+                          handleFilterChange("artist", e.target.value)
+                        }
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
                       >
                         <option value="">Todos los artistas</option>
-                        {filterOptions.artists.map(artist => (
-                          <option key={artist} value={artist}>{artist}</option>
+                        {filterOptions.artists.map((artist) => (
+                          <option key={artist} value={artist}>
+                            {artist}
+                          </option>
                         ))}
                       </select>
                     </div>
 
                     {/* Filtro por año específico */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Año específico</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Año específico
+                      </label>
                       <select
                         value={filters.year}
-                        onChange={(e) => handleFilterChange('year', e.target.value)}
+                        onChange={(e) =>
+                          handleFilterChange("year", e.target.value)
+                        }
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
                       >
                         <option value="">Todos los años</option>
-                        {filterOptions.years.map(year => (
-                          <option key={year} value={year}>{year}</option>
+                        {filterOptions.years.map((year) => (
+                          <option key={year} value={year}>
+                            {year}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -683,52 +905,71 @@ export default function MisDocumentos() {
                     {/* Filtro por sala */}
                     {filterOptions.salas.length > 0 && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Sala</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Sala
+                        </label>
                         <select
                           value={filters.sala}
-                          onChange={(e) => handleFilterChange('sala', e.target.value)}
+                          onChange={(e) =>
+                            handleFilterChange("sala", e.target.value)
+                          }
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
                         >
                           <option value="">Todas las salas</option>
-                          {filterOptions.salas.map(sala => (
-                            <option key={sala} value={sala}>{sala}</option>
+                          {filterOptions.salas.map((sala) => (
+                            <option key={sala} value={sala}>
+                              {sala}
+                            </option>
                           ))}
                         </select>
                       </div>
                     )}
 
                     {/* Rango de años */}
-                    {filterOptions.yearRange.min && filterOptions.yearRange.max && (
-                      <>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Año desde</label>
-                          <select
-                            value={filters.yearFrom}
-                            onChange={(e) => handleFilterChange('yearFrom', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
-                          >
-                            <option value="">Desde...</option>
-                            {filterOptions.years.map(year => (
-                              <option key={year} value={year}>{year}</option>
-                            ))}
-                          </select>
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Año hasta</label>
-                          <select
-                            value={filters.yearTo}
-                            onChange={(e) => handleFilterChange('yearTo', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
-                          >
-                            <option value="">Hasta...</option>
-                            {filterOptions.years.map(year => (
-                              <option key={year} value={year}>{year}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </>
-                    )}
+                    {filterOptions.yearRange.min &&
+                      filterOptions.yearRange.max && (
+                        <>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Año desde
+                            </label>
+                            <select
+                              value={filters.yearFrom}
+                              onChange={(e) =>
+                                handleFilterChange("yearFrom", e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
+                            >
+                              <option value="">Desde...</option>
+                              {filterOptions.years.map((year) => (
+                                <option key={year} value={year}>
+                                  {year}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Año hasta
+                            </label>
+                            <select
+                              value={filters.yearTo}
+                              onChange={(e) =>
+                                handleFilterChange("yearTo", e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 shadow-sm"
+                            >
+                              <option value="">Hasta...</option>
+                              {filterOptions.years.map((year) => (
+                                <option key={year} value={year}>
+                                  {year}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </>
+                      )}
                   </div>
                 </div>
               )}
@@ -738,12 +979,15 @@ export default function MisDocumentos() {
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-4">
                     <span className="text-blue-800 font-medium">
-                      📊 Mostrando {filterStats.totalFiltered} de {filterStats.totalOriginal} obras
+                      📊 Mostrando {filterStats.totalFiltered} de{" "}
+                      {filterStats.totalOriginal} obras
                       {filterStats.percentage < 100 && (
-                        <span className="text-blue-600 ml-1">({filterStats.percentage}%)</span>
+                        <span className="text-blue-600 ml-1">
+                          ({filterStats.percentage}%)
+                        </span>
                       )}
                     </span>
-                    
+
                     {filterStats.totalFiltered > 0 && (
                       <div className="flex gap-3 text-blue-700">
                         <span>🎨 {filterStats.uniqueArtists} artistas</span>
@@ -754,29 +998,35 @@ export default function MisDocumentos() {
                       </div>
                     )}
                   </div>
-                  
+
                   {hasActiveFilters() && (
                     <span className="text-blue-600 font-medium text-xs">
-                      Filtros activos: {[
-                        filters.search && 'Búsqueda',
-                        filters.technique && 'Técnica',
-                        filters.artist && 'Artista',
-                        filters.year && 'Año',
-                        filters.sala && 'Sala',
-                        (filters.yearFrom || filters.yearTo) && 'Rango de años'
-                      ].filter(Boolean).join(', ')}
+                      Filtros activos:{" "}
+                      {[
+                        filters.search && "Búsqueda",
+                        filters.technique && "Técnica",
+                        filters.artist && "Artista",
+                        filters.year && "Año",
+                        filters.sala && "Sala",
+                        (filters.yearFrom || filters.yearTo) && "Rango de años",
+                      ]
+                        .filter(Boolean)
+                        .join(", ")}
                     </span>
                   )}
                 </div>
               </div>
-              
+
               {/* Grid de obras */}
               {filteredCollection.length === 0 ? (
                 <div className="text-center py-16">
                   <div className="text-6xl mb-6 opacity-30">🔍</div>
-                  <h4 className="text-xl font-light text-gray-600 mb-4">No se encontraron obras</h4>
+                  <h4 className="text-xl font-light text-gray-600 mb-4">
+                    No se encontraron obras
+                  </h4>
                   <p className="text-gray-500 mb-8 max-w-md mx-auto">
-                    No hay obras que coincidan con los filtros aplicados. Prueba ajustando los criterios de búsqueda.
+                    No hay obras que coincidan con los filtros aplicados. Prueba
+                    ajustando los criterios de búsqueda.
                   </p>
                   <button
                     onClick={clearAllFilters}
@@ -788,50 +1038,60 @@ export default function MisDocumentos() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {filteredCollection.map((artwork, index) => (
-                    <div key={artwork.id} className="group bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden transform hover:-translate-y-2">
+                    <div
+                      key={artwork.id}
+                      className="group bg-white/80 backdrop-blur-sm rounded-2xl border border-white/50 shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden transform hover:-translate-y-2"
+                    >
                       <div className="relative">
-                        <img 
-                          src={artwork.src} 
+                        <img
+                          src={artwork.src}
                           alt={artwork.title}
                           className="w-full h-48 object-cover transition-transform duration-500 group-hover:scale-105"
                           onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
+                            e.target.style.display = "none";
+                            e.target.nextSibling.style.display = "flex";
                           }}
                         />
-                        <div 
-                          className="w-full h-48 bg-gradient-to-br from-gray-200 to-gray-300 hidden items-center justify-center"
-                        >
+                        <div className="w-full h-48 bg-gradient-to-br from-gray-200 to-gray-300 hidden items-center justify-center">
                           <div className="text-center text-gray-500">
                             <div className="text-3xl mb-2">🎨</div>
-                            <span className="text-sm">Imagen no disponible</span>
+                            <span className="text-sm">
+                              Imagen no disponible
+                            </span>
                           </div>
                         </div>
-                        
+
                         {/* Indicador de sala */}
                         {artwork.sala && (
                           <div className="absolute top-3 right-3 bg-black/70 text-white text-xs px-3 py-1 rounded-full backdrop-blur-sm">
                             🏛️ {artwork.sala}
                           </div>
                         )}
-                        
+
                         {/* Overlay con información adicional */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
                           <div className="text-white text-sm">
                             {artwork.dimensions && (
                               <p className="mb-1">📏 {artwork.dimensions}</p>
                             )}
-                            <p>➕ {new Date(artwork.addedAt).toLocaleDateString('es-ES')}</p>
+                            <p>
+                              ➕{" "}
+                              {new Date(artwork.addedAt).toLocaleDateString(
+                                "es-ES"
+                              )}
+                            </p>
                           </div>
                         </div>
                       </div>
-                      
+
                       <div className="p-5 space-y-3">
                         <h4 className="font-semibold text-gray-800 text-sm leading-tight line-clamp-2">
                           {artwork.title}
                         </h4>
-                        <p className="text-gray-600 font-medium text-sm">{artwork.artist}</p>
-                        
+                        <p className="text-gray-600 font-medium text-sm">
+                          {artwork.artist}
+                        </p>
+
                         <div className="flex items-center gap-3 text-xs text-gray-500">
                           <span className="flex items-center gap-1">
                             <span>📅</span>
@@ -843,13 +1103,31 @@ export default function MisDocumentos() {
                             {artwork.technique}
                           </span>
                         </div>
-                        
+
                         <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                          <span className="text-xs text-gray-400">#{index + 1}</span>
+                          <span className="text-xs text-gray-400">
+                            #{index + 1}
+                          </span>
                           <div className="flex gap-2">
                             <button
                               onClick={() => {
-                                const details = `🎨 "${artwork.title}"\n\n👨‍🎨 Artista: ${artwork.artist}\n📅 Año: ${artwork.year}\n🛠️ Técnica: ${artwork.technique}${artwork.description ? `\n📝 Descripción: ${artwork.description}` : ''}${artwork.sala ? `\n🏛️ Sala: ${artwork.sala}` : ''}${artwork.dimensions ? `\n📏 Dimensiones: ${artwork.dimensions}` : ''}`;
+                                const details = `🎨 "${
+                                  artwork.title
+                                }"\n\n👨‍🎨 Artista: ${artwork.artist}\n📅 Año: ${
+                                  artwork.year
+                                }\n🛠️ Técnica: ${artwork.technique}${
+                                  artwork.description
+                                    ? `\n📝 Descripción: ${artwork.description}`
+                                    : ""
+                                }${
+                                  artwork.sala
+                                    ? `\n🏛️ Sala: ${artwork.sala}`
+                                    : ""
+                                }${
+                                  artwork.dimensions
+                                    ? `\n📏 Dimensiones: ${artwork.dimensions}`
+                                    : ""
+                                }`;
                                 alert(details);
                               }}
                               className="bg-slate-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-slate-600 transition-all duration-300 font-medium"
@@ -857,7 +1135,9 @@ export default function MisDocumentos() {
                               👁️
                             </button>
                             <button
-                              onClick={() => handleRemoveFromCollection(artwork.id)}
+                              onClick={() =>
+                                handleRemoveFromCollectionLocal(artwork.id)
+                              }
                               className="bg-gray-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-gray-600 transition-all duration-300 font-medium"
                             >
                               🗑️

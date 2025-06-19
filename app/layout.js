@@ -1,9 +1,7 @@
 import { Geist, Geist_Mono, Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import ClientLayout from "../components/ClientLayout";
-import { ThemeProvider } from "../providers/ThemeProvider";
-import ColorCursorEffect from "./components/ColorCursorEffect";
-import MouseTrail from "./components/MouseTrail";
+import AppProviders from "../components/AppProviders";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,11 +36,9 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${playfair.variable} antialiased`}
       >
-        <ColorCursorEffect />
-        <MouseTrail />
-        <ThemeProvider>
+        <AppProviders>
           <ClientLayout>{children}</ClientLayout>
-        </ThemeProvider>
+        </AppProviders>
       </body>
     </html>
   );

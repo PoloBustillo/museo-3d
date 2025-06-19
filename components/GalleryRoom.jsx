@@ -24,7 +24,6 @@ import {
 import { GalleryLighting } from "./gallery/GalleryLighting.jsx";
 import { GalleryEnvironment } from "./gallery/GalleryEnvironment.jsx";
 import { GalleryBenches } from "./gallery/GalleryBenches.jsx";
-import { RoomSelectorModal } from "./gallery/RoomSelectorModal.jsx";
 import { GalleryWalls } from "./gallery/GalleryWalls.jsx";
 import { useProximityDetection } from "./gallery/useProximityDetection.js";
 
@@ -39,6 +38,13 @@ import {
 // Extraer constantes para facilitar el uso
 const { HALL_WIDTH, WALL_HEIGHT, CEILING_HEIGHT, PICTURE_SPACING } =
   GALLERY_CONFIG;
+
+import dynamic from "next/dynamic";
+const RoomSelectorModal = dynamic(
+  () =>
+    import("./gallery/RoomSelectorModal").then((mod) => mod.RoomSelectorModal),
+  { ssr: false }
+);
 
 function Picture({
   src,
@@ -1312,7 +1318,15 @@ export default function GalleryRoom({
     if (!showList) setListIndex(0);
   }, [showList]);
 
-  if (!isClient) return null;
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  if (isMobile) {
+    return (
+      <div className="flex items-center justify-center h-full text-center text-lg text-gray-500">
+        La galería 3D no está disponible en mobile. Usa un dispositivo de
+        escritorio para la experiencia completa.
+      </div>
+    );
+  }
 
   return (
     <>

@@ -5,10 +5,11 @@ const prisma = new PrismaClient();
 // GET /api/usuarios/email/[email]
 export async function GET(request, { params }) {
   try {
-    const email = decodeURIComponent(params.email);
+    const { email } = await params;
+    const decodedEmail = decodeURIComponent(email);
 
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: decodedEmail },
       select: {
         id: true,
         email: true,

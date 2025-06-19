@@ -12,19 +12,20 @@ datasource db {
 
 // Example model
 model User {
-    id            Int           @id @default(autoincrement())
-    email         String        @unique
+    id            Int                 @id @default(autoincrement())
+    email         String              @unique
     password      String? // Nullable para usuarios OAuth
     name          String? // Nombre del usuario
     image         String? // URL de imagen del usuario
     emailVerified DateTime? // Para NextAuth
-    creadoEn      DateTime      @default(now())
-    role          String        @default("user")
+    creadoEn      DateTime            @default(now())
+    role          String              @default("user")
     provider      String? // OAuth provider
-    salasPropias  Sala[]        @relation("SalaOwner")
-    salasColabora Sala[]        @relation("SalaColaboradores")
+    salasPropias  Sala[]              @relation("SalaOwner")
+    salasColabora Sala[]              @relation("SalaColaboradores")
     settings      UserSetting[]
     roles         UserRole[]
+    collection    PersonalCollection?
 }
 
 model Mural {
@@ -80,4 +81,16 @@ model UserRole {
     assignedAt DateTime @default(now())
 
     @@unique([userId, roleId])
+}
+
+// Colección personal de cada usuario
+model PersonalCollection {
+    id        String   @id @default(uuid())
+    userId    Int
+    user      User     @relation(fields: [userId], references: [id])
+    data      Json // Array de objetos de la colección
+    updatedAt DateTime @updatedAt
+    createdAt DateTime @default(now())
+
+    @@unique([userId])
 }

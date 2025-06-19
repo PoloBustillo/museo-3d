@@ -44,7 +44,7 @@ const equipo = [
 
 export default function AcercaDe() {
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-primary/5 via-secondary/10 to-muted/30 flex flex-col items-center justify-start pt-8 md:pt-12 pb-8 md:pb-12 overflow-x-hidden">
+    <div className="relative min-h-[calc(100vh-64px)] bg-gradient-to-br from-primary/5 via-secondary/10 to-muted/30 flex flex-col items-center justify-start pt-8 md:pt-12 pb-8 md:pb-12 overflow-x-hidden">
       <div className="absolute inset-0 z-[-1]">
         <GraffitiBackground />
       </div>

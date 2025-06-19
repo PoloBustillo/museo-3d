@@ -120,7 +120,8 @@
   }
   html,
   body {
-    height: 100%;
+    height: auto;
+    min-height: 100vh;
     overflow-x: hidden;
     cursor: url('/assets/cursor-museum-bw.webp') 8 8, auto;
   }

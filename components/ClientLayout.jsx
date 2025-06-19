@@ -71,7 +71,7 @@ export default function ClientLayout({ children }) {
   return (
     <ParallaxProvider>
       <AuthProvider>
-        <div className="min-h-screen bg-white dark:bg-black text-black dark:text-white flex flex-col relative transition-colors duration-300">
+        <div className="bg-white dark:bg-black text-black dark:text-white flex flex-col relative transition-colors duration-300">
           <header className="sticky top-0 z-[60]">
             <MainMenu />
           </header>
@@ -79,18 +79,16 @@ export default function ClientLayout({ children }) {
             ref={mainRef}
             className={`flex-1 relative ${
               needsTopPadding ? "pt-16 md:pt-20" : ""
-            } ${
-              pathname === "/" && isMobile
-                ? "overflow-y-auto min-h-screen"
-                : "overflow-hidden"
-            }`}
+            } ${pathname === "/" && isMobile ? "overflow-y-auto" : ""}`}
           >
             {children}
-            <div
-              className="absolute bottom-0 left-0 w-full h-[100px]"
-              onMouseEnter={() => setHoveringBottom(true)}
-              onMouseLeave={() => setHoveringBottom(false)}
-            />
+            {isMainOrMuseo && (
+              <div
+                className="absolute bottom-0 left-0 w-full h-[100px]"
+                onMouseEnter={() => setHoveringBottom(true)}
+                onMouseLeave={() => setHoveringBottom(false)}
+              />
+            )}
           </main>
           {isMainOrMuseo ? (
             <footer
