@@ -7,17 +7,27 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useCollection } from "../../providers/CollectionProvider";
 import { useModal } from "../../providers/ModalProvider";
+import { useUser } from "../../providers/UserProvider";
 import { ModalWrapper } from "../../components/ui/Modal";
 
 export default function MisDocumentos() {
   const { data: session, status } = useSession();
+  const {
+    user,
+    userProfile,
+    isAuthenticated,
+    isAdmin,
+    isModerator,
+    getUserRole,
+    getUserSetting,
+  } = useUser();
   const {
     collection: personalCollection,
     removeFromCollection: handleRemoveFromCollection,
     clearCollection: handleClearCollection,
     isLoading: collectionLoading,
     lastSync,
-    isAuthenticated,
+    isAuthenticated: collectionAuthenticated,
   } = useCollection();
   const { openModal, closeModal } = useModal();
   const [filteredCollection, setFilteredCollection] = useState([]);
@@ -552,7 +562,7 @@ export default function MisDocumentos() {
     );
   }
 
-  if (!session) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
@@ -589,6 +599,31 @@ export default function MisDocumentos() {
                 <p className="text-gray-600 mt-2">
                   Tu colección personal de obras de arte
                 </p>
+                {userProfile && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-sm text-gray-500">
+                      Usuario: {user?.name || user?.email}
+                    </span>
+                    {userProfile.roles && (
+                      <div className="flex gap-1">
+                        {userProfile.roles.map((role, index) => (
+                          <span
+                            key={index}
+                            className={`text-xs px-2 py-1 rounded-full ${
+                              role === "admin"
+                                ? "bg-red-100 text-red-800"
+                                : role === "moderator"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-blue-100 text-blue-800"
+                            }`}
+                          >
+                            {role}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-4">

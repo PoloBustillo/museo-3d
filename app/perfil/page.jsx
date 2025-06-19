@@ -25,6 +25,9 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Settings as SettingsIcon } from "lucide-react";
 import useSWR from "swr";
+import { useUser } from "../../providers/UserProvider";
+import { useModal } from "../../providers/ModalProvider";
+import { ModalWrapper } from "../../components/ui/Modal";
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
@@ -45,9 +48,13 @@ function ImageTooltip({ src, alt, anchorRef, show }) {
         // Si se sale por la izquierda
         if (left < padding) left = padding;
         // Si se sale por la derecha
-        if (left + tooltipWidth > window.innerWidth - padding) left = window.innerWidth - tooltipWidth - padding;
+        if (left + tooltipWidth > window.innerWidth - padding)
+          left = window.innerWidth - tooltipWidth - padding;
         // Si se sale por abajo, mostrar arriba
-        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding) {
+        if (
+          top + tooltipHeight >
+          window.innerHeight + window.scrollY - padding
+        ) {
           top = rect.top - tooltipHeight - padding + window.scrollY;
         }
       } else {
@@ -55,13 +62,15 @@ function ImageTooltip({ src, alt, anchorRef, show }) {
         left = rect.right + padding + window.scrollX;
         top = rect.top + rect.height / 2 - tooltipHeight / 2 + window.scrollY;
         // Si se sale por la derecha
-        if (left + tooltipWidth > window.innerWidth - padding) left = rect.left - tooltipWidth - padding + window.scrollX;
+        if (left + tooltipWidth > window.innerWidth - padding)
+          left = rect.left - tooltipWidth - padding + window.scrollX;
         // Si se sale por la izquierda
         if (left < padding) left = padding;
         // Si se sale por arriba
         if (top < padding) top = padding;
         // Si se sale por abajo
-        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding) top = window.innerHeight + window.scrollY - tooltipHeight - padding;
+        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding)
+          top = window.innerHeight + window.scrollY - tooltipHeight - padding;
       }
       setPos({ top, left });
     }
@@ -81,7 +90,11 @@ function ImageTooltip({ src, alt, anchorRef, show }) {
       }}
       className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-2 flex items-center justify-center"
     >
-      <img src={src} alt={alt} className="w-56 h-56 object-contain rounded-lg" />
+      <img
+        src={src}
+        alt={alt}
+        className="w-56 h-56 object-contain rounded-lg"
+      />
     </div>,
     typeof window !== "undefined" ? document.body : null
   );
@@ -102,12 +115,19 @@ function CollectionItem({ item, allItems }) {
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
           />
-          <ImageTooltip src={item.src} alt={item.title} anchorRef={imgRef} show={hovered} />
+          <ImageTooltip
+            src={item.src}
+            alt={item.title}
+            anchorRef={imgRef}
+            show={hovered}
+          />
         </>
       )}
       <div className="flex-1 text-left">
         <div className="font-medium">{item.title}</div>
-        <div className="text-xs text-muted-foreground">{item.artist} · {item.year} · {item.technique}</div>
+        <div className="text-xs text-muted-foreground">
+          {item.artist} · {item.year} · {item.technique}
+        </div>
       </div>
     </div>
   );
@@ -127,18 +147,24 @@ function TagPreviewTooltip({ anchorRef, show, images }) {
         left = rect.left + rect.width / 2 - tooltipWidth / 2 + window.scrollX;
         top = rect.bottom + padding + window.scrollY;
         if (left < padding) left = padding;
-        if (left + tooltipWidth > window.innerWidth - padding) left = window.innerWidth - tooltipWidth - padding;
-        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding) {
+        if (left + tooltipWidth > window.innerWidth - padding)
+          left = window.innerWidth - tooltipWidth - padding;
+        if (
+          top + tooltipHeight >
+          window.innerHeight + window.scrollY - padding
+        ) {
           top = rect.top - tooltipHeight - padding + window.scrollY;
         }
       } else {
         // Desktop: mostrar a la derecha
         left = rect.right + padding + window.scrollX;
         top = rect.top + rect.height / 2 - tooltipHeight / 2 + window.scrollY;
-        if (left + tooltipWidth > window.innerWidth - padding) left = rect.left - tooltipWidth - padding + window.scrollX;
+        if (left + tooltipWidth > window.innerWidth - padding)
+          left = rect.left - tooltipWidth - padding + window.scrollX;
         if (left < padding) left = padding;
         if (top < padding) top = padding;
-        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding) top = window.innerHeight + window.scrollY - tooltipHeight - padding;
+        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding)
+          top = window.innerHeight + window.scrollY - tooltipHeight - padding;
       }
       setPos({ top, left });
     }
@@ -167,7 +193,11 @@ function TagPreviewTooltip({ anchorRef, show, images }) {
           if (i === maxPreview - 1 && extra > 0) {
             return (
               <div key={img.id || i} className="relative w-16 h-16">
-                <img src={img.url_imagen} alt={img.nombre} className="w-16 h-16 object-cover rounded-md border border-gray-200 dark:border-gray-700 opacity-60" />
+                <img
+                  src={img.url_imagen}
+                  alt={img.nombre}
+                  className="w-16 h-16 object-cover rounded-md border border-gray-200 dark:border-gray-700 opacity-60"
+                />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md">
                   <span className="text-white font-bold text-lg">+{extra}</span>
                 </div>
@@ -175,7 +205,12 @@ function TagPreviewTooltip({ anchorRef, show, images }) {
             );
           }
           return (
-            <img key={img.id || i} src={img.url_imagen} alt={img.nombre} className="w-16 h-16 object-cover rounded-md border border-gray-200 dark:border-gray-700" />
+            <img
+              key={img.id || i}
+              src={img.url_imagen}
+              alt={img.nombre}
+              className="w-16 h-16 object-cover rounded-md border border-gray-200 dark:border-gray-700"
+            />
           );
         })}
       </div>
@@ -192,15 +227,11 @@ function TagWithPreview({ label, variant, images, children }) {
       ref={ref}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{ display: 'inline-block' }}
+      style={{ display: "inline-block" }}
     >
       <Badge variant={variant}>{label}</Badge>
       {hovered && (
-        <TagPreviewTooltip
-          anchorRef={ref}
-          show={true}
-          images={images}
-        />
+        <TagPreviewTooltip anchorRef={ref} show={true} images={images} />
       )}
       {children}
     </span>
@@ -221,18 +252,24 @@ function AvatarTooltip({ src, alt, anchorRef, show }) {
         left = rect.left + rect.width / 2 - tooltipWidth / 2 + window.scrollX;
         top = rect.bottom + padding + window.scrollY;
         if (left < padding) left = padding;
-        if (left + tooltipWidth > window.innerWidth - padding) left = window.innerWidth - tooltipWidth - padding;
-        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding) {
+        if (left + tooltipWidth > window.innerWidth - padding)
+          left = window.innerWidth - tooltipWidth - padding;
+        if (
+          top + tooltipHeight >
+          window.innerHeight + window.scrollY - padding
+        ) {
           top = rect.top - tooltipHeight - padding + window.scrollY;
         }
       } else {
         // Desktop: mostrar a la derecha
         left = rect.right + padding + window.scrollX;
         top = rect.top + rect.height / 2 - tooltipHeight / 2 + window.scrollY;
-        if (left + tooltipWidth > window.innerWidth - padding) left = rect.left - tooltipWidth - padding + window.scrollX;
+        if (left + tooltipWidth > window.innerWidth - padding)
+          left = rect.left - tooltipWidth - padding + window.scrollX;
         if (left < padding) left = padding;
         if (top < padding) top = padding;
-        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding) top = window.innerHeight + window.scrollY - tooltipHeight - padding;
+        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding)
+          top = window.innerHeight + window.scrollY - tooltipHeight - padding;
       }
       setPos({ top, left });
     }
@@ -252,13 +289,31 @@ function AvatarTooltip({ src, alt, anchorRef, show }) {
       }}
       className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-2 flex items-center justify-center"
     >
-      <img src={src} alt={alt} className="w-56 h-56 object-contain rounded-lg" />
+      <img
+        src={src}
+        alt={alt}
+        className="w-56 h-56 object-contain rounded-lg"
+      />
     </div>,
     typeof window !== "undefined" ? document.body : null
   );
 }
 
-function PerfilAvatarEdit({ imagePreview, newName, handleImageChange, handleNameChange, checkingName, nameAvailable, saving, updating, updateError, updateSuccess, setEditMode, handleSave, fileInputRef }) {
+function PerfilAvatarEdit({
+  imagePreview,
+  newName,
+  handleImageChange,
+  handleNameChange,
+  checkingName,
+  nameAvailable,
+  saving,
+  updating,
+  updateError,
+  updateSuccess,
+  setEditMode,
+  handleSave,
+  fileInputRef,
+}) {
   const avatarRef = useRef();
   const [hovered, setHovered] = useState(false);
   return (
@@ -268,21 +323,35 @@ function PerfilAvatarEdit({ imagePreview, newName, handleImageChange, handleName
           ref={avatarRef}
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
-          style={{ display: 'inline-block' }}
+          style={{ display: "inline-block" }}
         >
           <Avatar className="size-32">
-            <AvatarImage src={imagePreview} alt={newName || 'Avatar'} />
-            <AvatarFallback>{newName?.[0] || 'U'}</AvatarFallback>
+            <AvatarImage src={imagePreview} alt={newName || "Avatar"} />
+            <AvatarFallback>{newName?.[0] || "U"}</AvatarFallback>
           </Avatar>
-          <AvatarTooltip src={imagePreview} alt={newName || 'Avatar'} anchorRef={avatarRef} show={hovered} />
+          <AvatarTooltip
+            src={imagePreview}
+            alt={newName || "Avatar"}
+            anchorRef={avatarRef}
+            show={hovered}
+          />
         </span>
         <button
           className="absolute bottom-2 right-2 rounded-full p-2 shadow-lg border border-white bg-black text-white hover:bg-black/90"
           onClick={() => fileInputRef.current?.click()}
           type="button"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path d="M15.232 5.232l3.536 3.536M9 13l6-6m2 2l-6 6m-2 2h6" stroke="currentColor" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            viewBox="0 0 24 24"
+          >
+            <path
+              d="M15.232 5.232l3.536 3.536M9 13l6-6m2 2l-6 6m-2 2h6"
+              stroke="currentColor"
+            />
           </svg>
         </button>
         <input
@@ -301,15 +370,38 @@ function PerfilAvatarEdit({ imagePreview, newName, handleImageChange, handleName
         disabled={checkingName || saving || updating}
         maxLength={32}
       />
-      {checkingName && <div className="text-xs text-muted-foreground">Comprobando disponibilidad...</div>}
-      {nameAvailable === false && <div className="text-xs text-red-500">Nombre no disponible</div>}
-      {nameAvailable === true && <div className="text-xs text-green-600">¡Nombre disponible!</div>}
+      {checkingName && (
+        <div className="text-xs text-muted-foreground">
+          Comprobando disponibilidad...
+        </div>
+      )}
+      {nameAvailable === false && (
+        <div className="text-xs text-red-500">Nombre no disponible</div>
+      )}
+      {nameAvailable === true && (
+        <div className="text-xs text-green-600">¡Nombre disponible!</div>
+      )}
       {updateError && <div className="text-xs text-red-500">{updateError}</div>}
-      {updateSuccess && <div className="text-xs text-green-600">¡Perfil actualizado!</div>}
+      {updateSuccess && (
+        <div className="text-xs text-green-600">¡Perfil actualizado!</div>
+      )}
       <div className="flex gap-2 mt-2">
-        <Button size="sm" variant="outline" onClick={() => setEditMode(false)} disabled={saving || updating}>Cancelar</Button>
-        <Button size="sm" onClick={handleSave} disabled={saving || updating || nameAvailable !== true || newName.length < 3}>
-          {(saving || updating) ? "Guardando..." : "Guardar"}
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setEditMode(false)}
+          disabled={saving || updating}
+        >
+          Cancelar
+        </Button>
+        <Button
+          size="sm"
+          onClick={handleSave}
+          disabled={
+            saving || updating || nameAvailable !== true || newName.length < 3
+          }
+        >
+          {saving || updating ? "Guardando..." : "Guardar"}
         </Button>
       </div>
     </>
@@ -325,16 +417,25 @@ function PerfilAvatarView({ image, name, onEdit }) {
         ref={avatarRef}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        style={{ display: 'inline-block' }}
+        style={{ display: "inline-block" }}
       >
         <Avatar className="size-32 mb-2">
-          <AvatarImage src={image || undefined} alt={name || 'Avatar'} />
-          <AvatarFallback>{name?.[0] || 'U'}</AvatarFallback>
+          <AvatarImage src={image || undefined} alt={name || "Avatar"} />
+          <AvatarFallback>{name?.[0] || "U"}</AvatarFallback>
         </Avatar>
-        <AvatarTooltip src={image || undefined} alt={name || 'Avatar'} anchorRef={avatarRef} show={hovered} />
+        <AvatarTooltip
+          src={image || undefined}
+          alt={name || "Avatar"}
+          anchorRef={avatarRef}
+          show={hovered}
+        />
       </span>
-      <CardTitle className="text-lg font-semibold">{name || 'Usuario'}</CardTitle>
-      <Badge variant="secondary" className="mt-1">Usuario</Badge>
+      <CardTitle className="text-lg font-semibold">
+        {name || "Usuario"}
+      </CardTitle>
+      <Badge variant="secondary" className="mt-1">
+        Usuario
+      </Badge>
       <Button size="sm" className="mt-2" onClick={onEdit}>
         Editar perfil
       </Button>
@@ -360,7 +461,11 @@ function PerfilContent() {
     porAnio: {},
   });
   const [isLoadingStats, setIsLoadingStats] = useState(true);
-  const [hoveredTag, setHoveredTag] = React.useState({ type: null, value: null, anchor: null });
+  const [hoveredTag, setHoveredTag] = React.useState({
+    type: null,
+    value: null,
+    anchor: null,
+  });
   const [murales, setMurales] = React.useState([]);
   const [editMode, setEditMode] = useState(false);
   const [newName, setNewName] = useState(session?.user?.name || "");
@@ -370,7 +475,12 @@ function PerfilContent() {
   const [nameAvailable, setNameAvailable] = useState(null); // null | true | false
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef();
-  const { updateProfile, loading: updating, error: updateError, success: updateSuccess } = useUpdateProfile();
+  const {
+    updateProfile,
+    loading: updating,
+    error: updateError,
+    success: updateSuccess,
+  } = useUpdateProfile();
   const [notifEnabled, setNotifEnabled] = useState(false);
   const [subsEnabled, setSubsEnabled] = useState(false);
   const [emailValidated, setEmailValidated] = useState(false);
@@ -384,14 +494,26 @@ function PerfilContent() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
   const debounceRef = useRef();
+  const {
+    user,
+    userProfile,
+    isAuthenticated,
+    isAdmin,
+    isModerator,
+    getUserRole,
+    getUserSetting,
+    updateUserSetting,
+    updateUserProfile,
+    isLoadingProfile,
+  } = useUser();
+  const { openModal } = useModal();
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState({});
 
   const userId = session?.user?.id || null;
 
   useEffect(() => {
-    if (
-      session?.user?.settings &&
-      !switchesInitialized.current
-    ) {
+    if (session?.user?.settings && !switchesInitialized.current) {
       setNotifEnabled(session.user.settings.notificaciones === "true");
       setSubsEnabled(session.user.settings.subscripcion === "true");
       setEmailValidated(session.user.settings.emailValidated === "true");
@@ -404,20 +526,26 @@ function PerfilContent() {
   }, [status]);
 
   // SWR para estadísticas del museo
-  const { data: salasData, isLoading: salasLoading, error: salasError } = useSWR("/api/salas", fetcher);
-  const { data: muralesData, isLoading: muralesLoading, error: muralesError } = useSWR("/api/murales", fetcher);
+  const {
+    data: salasData,
+    isLoading: salasLoading,
+    error: salasError,
+  } = useSWR("/api/salas", fetcher);
+  const {
+    data: muralesData,
+    isLoading: muralesLoading,
+    error: muralesError,
+  } = useSWR("/api/murales", fetcher);
 
   useEffect(() => {
-    if (
-      salasData &&
-      muralesData &&
-      salasData.salas &&
-      muralesData.murales
-    ) {
+    if (salasData && muralesData && salasData.salas && muralesData.murales) {
       const salas = salasData.salas || [];
       const murales = muralesData.murales || [];
-      const uniqueArtists = new Set(murales.map((m) => m.autor).filter(Boolean)).size;
-      const uniqueTechniques = new Set(murales.map((m) => m.tecnica).filter(Boolean)).size;
+      const uniqueArtists = new Set(murales.map((m) => m.autor).filter(Boolean))
+        .size;
+      const uniqueTechniques = new Set(
+        murales.map((m) => m.tecnica).filter(Boolean)
+      ).size;
       setMuseumStats({
         totalArtworks: murales.length,
         totalSalas: salas.length,
@@ -442,7 +570,14 @@ function PerfilContent() {
     } else if (salasLoading || muralesLoading) {
       setIsLoadingStats(true);
     }
-  }, [salasData, muralesData, salasLoading, muralesLoading, salasError, muralesError]);
+  }, [
+    salasData,
+    muralesData,
+    salasLoading,
+    muralesLoading,
+    salasError,
+    muralesError,
+  ]);
 
   // Debug: Monitor changes in museumStats
   useEffect(() => {
@@ -589,6 +724,42 @@ function PerfilContent() {
     }, 1200);
   };
 
+  const handleEditProfile = () => {
+    setFormData({
+      nombre: userProfile?.nombre || user?.name || "",
+      bio: userProfile?.bio || "",
+      ubicacion: userProfile?.ubicacion || "",
+      website: userProfile?.website || "",
+    });
+    setIsEditing(true);
+  };
+
+  const handleSaveProfile = async () => {
+    const success = await updateUserProfile(formData);
+    if (success) {
+      setIsEditing(false);
+      openModal("success-modal", {
+        title: "Perfil Actualizado",
+        content: "Tu perfil se ha actualizado correctamente.",
+      });
+    } else {
+      openModal("error-modal", {
+        title: "Error",
+        content: "No se pudo actualizar el perfil. Inténtalo de nuevo.",
+      });
+    }
+  };
+
+  const handleUpdateSetting = async (key, value) => {
+    const success = await updateUserSetting(key, value);
+    if (success) {
+      openModal("success-modal", {
+        title: "Configuración Actualizada",
+        content: `La configuración "${key}" se ha actualizado correctamente.`,
+      });
+    }
+  };
+
   if (initialLoading) {
     return (
       <div className="relative min-h-screen flex items-center justify-center">
@@ -610,7 +781,9 @@ function PerfilContent() {
           <p className="text-muted-foreground mb-6">
             Debes iniciar sesión para ver tu perfil y colección personal.
           </p>
-          <Button onClick={() => (window.location.href = "/")}>Ir al inicio</Button>
+          <Button onClick={() => (window.location.href = "/")}>
+            Ir al inicio
+          </Button>
         </Card>
       </div>
     );
@@ -626,7 +799,7 @@ function PerfilContent() {
         <div className="md:col-span-1 flex flex-col h-full md:max-w-md mx-auto w-full">
           <Card className="w-full p-4 md:p-6 text-center shadow-xl h-full min-h-[400px] flex flex-col justify-start">
             <CardHeader className="flex flex-col items-center gap-2 border-b pb-4">
-              {editMode ? (
+              {isEditing ? (
                 <PerfilAvatarEdit
                   imagePreview={imagePreview}
                   newName={newName}
@@ -638,15 +811,15 @@ function PerfilContent() {
                   updating={updating}
                   updateError={updateError}
                   updateSuccess={updateSuccess}
-                  setEditMode={setEditMode}
-                  handleSave={handleSave}
+                  setEditMode={setIsEditing}
+                  handleSave={handleSaveProfile}
                   fileInputRef={fileInputRef}
                 />
               ) : (
                 <PerfilAvatarView
                   image={session?.user?.image}
                   name={session?.user?.name}
-                  onEdit={() => setEditMode(true)}
+                  onEdit={handleEditProfile}
                 />
               )}
             </CardHeader>
@@ -656,38 +829,59 @@ function PerfilContent() {
                 <div className="text-left">
                   <Label>Email</Label>
                   <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
-                    {session?.user?.email || 'No disponible'}
+                    {session?.user?.email || "No disponible"}
                     {emailValidated ? (
                       <Badge variant="success">Verificado</Badge>
                     ) : (
                       <a
                         href="#"
                         className="text-primary underline text-xs font-medium hover:text-primary/80 transition"
-                        onClick={e => { e.preventDefault(); handleVerifyEmail(); }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleVerifyEmail();
+                        }}
                         disabled={verifLoading}
                       >
                         {verifLoading ? "Verificando..." : "Verificar email"}
                       </a>
                     )}
                   </div>
-                  {verifMsg && <div className="text-xs text-green-600 mt-1">{verifMsg}</div>}
+                  {verifMsg && (
+                    <div className="text-xs text-green-600 mt-1">
+                      {verifMsg}
+                    </div>
+                  )}
                 </div>
                 <div className="text-left mt-2">
                   <Label>ID de usuario</Label>
-                  <div className="text-xs font-mono text-muted-foreground mt-1">{userId || 'No disponible'}</div>
+                  <div className="text-xs font-mono text-muted-foreground mt-1">
+                    {userId || "No disponible"}
+                  </div>
                 </div>
                 <div className="text-left mt-4">
                   <Label>Notificaciones</Label>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-1">
-                    <Switch checked={notifEnabled} onCheckedChange={(checked, e) => onNotifChange(checked, e)} />
-                    <span className="text-xs text-muted-foreground">{notifEnabled ? "Activadas" : "Desactivadas"}</span>
+                    <Switch
+                      checked={notifEnabled}
+                      onCheckedChange={(checked, e) =>
+                        onNotifChange(checked, e)
+                      }
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      {notifEnabled ? "Activadas" : "Desactivadas"}
+                    </span>
                   </div>
                 </div>
                 <div className="text-left mt-2">
                   <Label>Suscripción</Label>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-1">
-                    <Switch checked={subsEnabled} onCheckedChange={(checked, e) => onSubsChange(checked, e)} />
-                    <span className="text-xs text-muted-foreground">{subsEnabled ? "Activa" : "Inactiva"}</span>
+                    <Switch
+                      checked={subsEnabled}
+                      onCheckedChange={(checked, e) => onSubsChange(checked, e)}
+                    />
+                    <span className="text-xs text-muted-foreground">
+                      {subsEnabled ? "Activa" : "Inactiva"}
+                    </span>
                   </div>
                 </div>
                 <div className="text-left mt-2">
@@ -700,37 +894,75 @@ function PerfilContent() {
                       <a
                         href="#"
                         className="text-primary underline text-xs font-medium hover:text-primary/80 transition"
-                        onClick={e => { e.preventDefault(); handleVerifyEmail(); }}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          handleVerifyEmail();
+                        }}
                         disabled={verifLoading}
                       >
                         {verifLoading ? "Verificando..." : "Verificar email"}
                       </a>
                     )}
                   </div>
-                  {verifMsg && <div className="text-xs text-green-600 mt-1">{verifMsg}</div>}
+                  {verifMsg && (
+                    <div className="text-xs text-green-600 mt-1">
+                      {verifMsg}
+                    </div>
+                  )}
                 </div>
                 <div className="text-left mt-4">
-                  <Button size="sm" variant="destructive" className="w-full" onClick={() => setShowDelete((v) => !v)}>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="w-full"
+                    onClick={() => setShowDelete((v) => !v)}
+                  >
                     Eliminar cuenta
                   </Button>
                 </div>
                 {showDelete && (
                   <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4 mt-4 flex flex-col gap-2">
-                    <div className="text-sm text-red-700 dark:text-red-300 font-medium">¿Estás seguro? Esta acción es irreversible.</div>
-                    <div className="text-xs text-muted-foreground">Escribe tu email para confirmar:</div>
+                    <div className="text-sm text-red-700 dark:text-red-300 font-medium">
+                      ¿Estás seguro? Esta acción es irreversible.
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Escribe tu email para confirmar:
+                    </div>
                     <Input
                       type="email"
                       value={deleteEmail}
-                      onChange={e => setDeleteEmail(e.target.value)}
+                      onChange={(e) => setDeleteEmail(e.target.value)}
                       placeholder="Tu email"
                       disabled={deleteLoading || deleteSuccess}
                     />
-                    {deleteError && <div className="text-xs text-red-500">{deleteError}</div>}
-                    {deleteSuccess && <div className="text-xs text-green-600">Cuenta eliminada (simulado)</div>}
+                    {deleteError && (
+                      <div className="text-xs text-red-500">{deleteError}</div>
+                    )}
+                    {deleteSuccess && (
+                      <div className="text-xs text-green-600">
+                        Cuenta eliminada (simulado)
+                      </div>
+                    )}
                     <div className="flex gap-2 mt-2">
-                      <Button size="sm" variant="outline" onClick={() => setShowDelete(false)} disabled={deleteLoading || deleteSuccess}>Cancelar</Button>
-                      <Button size="sm" variant="destructive" onClick={handleDeleteAccount} disabled={deleteLoading || deleteSuccess || !deleteEmail}>
-                        {deleteLoading ? "Eliminando..." : "Confirmar eliminación"}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowDelete(false)}
+                        disabled={deleteLoading || deleteSuccess}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={handleDeleteAccount}
+                        disabled={
+                          deleteLoading || deleteSuccess || !deleteEmail
+                        }
+                      >
+                        {deleteLoading
+                          ? "Eliminando..."
+                          : "Confirmar eliminación"}
                       </Button>
                     </div>
                   </div>
@@ -739,7 +971,9 @@ function PerfilContent() {
               <div className="my-2 border-t border-muted-foreground/10 dark:border-neutral-800" />
               {/* Mensaje de proveedor */}
               <div className="mt-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
-                La información se obtiene de tu proveedor de autenticación.<br />Para cambios, contacta al administrador.
+                La información se obtiene de tu proveedor de autenticación.
+                <br />
+                Para cambios, contacta al administrador.
               </div>
             </CardContent>
           </Card>
@@ -748,41 +982,59 @@ function PerfilContent() {
         <div className="md:col-span-1 flex flex-col gap-8 w-full">
           <Card className="w-full p-8 mb-4">
             <CardHeader className="mb-4">
-              <CardTitle className="text-lg font-semibold">Estadísticas del museo</CardTitle>
+              <CardTitle className="text-lg font-semibold">
+                Estadísticas del museo
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {isLoadingStats ? (
-                <div className="text-center text-muted-foreground">Cargando estadísticas...</div>
+                <div className="text-center text-muted-foreground">
+                  Cargando estadísticas...
+                </div>
               ) : (
                 <div className="flex flex-col gap-6">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <SalaIcon className="w-10 h-10 text-blue-500" />
-                        <span className="text-2xl font-bold">{museumStats.totalSalas}</span>
+                        <span className="text-2xl font-bold">
+                          {museumStats.totalSalas}
+                        </span>
                       </div>
                       <div className="text-xs text-muted-foreground">Salas</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <MuralIcon className="w-10 h-10 text-indigo-500" />
-                        <span className="text-2xl font-bold">{museumStats.totalArtworks}</span>
+                        <span className="text-2xl font-bold">
+                          {museumStats.totalArtworks}
+                        </span>
                       </div>
-                      <div className="text-xs text-muted-foreground">Murales</div>
+                      <div className="text-xs text-muted-foreground">
+                        Murales
+                      </div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <ArtistaIcon className="w-10 h-10 text-rose-500" />
-                        <span className="text-2xl font-bold">{museumStats.totalArtists}</span>
+                        <span className="text-2xl font-bold">
+                          {museumStats.totalArtists}
+                        </span>
                       </div>
-                      <div className="text-xs text-muted-foreground">Artistas</div>
+                      <div className="text-xs text-muted-foreground">
+                        Artistas
+                      </div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <TecnicaIcon className="w-10 h-10 text-green-500" />
-                        <span className="text-2xl font-bold">{museumStats.totalTechniques}</span>
+                        <span className="text-2xl font-bold">
+                          {museumStats.totalTechniques}
+                        </span>
                       </div>
-                      <div className="text-xs text-muted-foreground">Técnicas</div>
+                      <div className="text-xs text-muted-foreground">
+                        Técnicas
+                      </div>
                     </div>
                   </div>
                   <div>
@@ -795,14 +1047,20 @@ function PerfilContent() {
                           <TagWithPreview
                             key={tecnica}
                             label={`${tecnica} (${count})`}
-                            variant={i === 0 ? 'blue' : i === 1 ? 'green' : 'violet'}
-                            images={murales.filter(m => m.tecnica === tecnica && m.url_imagen)}
+                            variant={
+                              i === 0 ? "blue" : i === 1 ? "green" : "violet"
+                            }
+                            images={murales.filter(
+                              (m) => m.tecnica === tecnica && m.url_imagen
+                            )}
                           />
                         ))}
                     </div>
                   </div>
                   <div>
-                    <div className="font-medium mb-2">Murales por año (últimos 5)</div>
+                    <div className="font-medium mb-2">
+                      Murales por año (últimos 5)
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(muralesStats.porAnio || {})
                         .sort((a, b) => b[0] - a[0])
@@ -811,14 +1069,19 @@ function PerfilContent() {
                           <TagWithPreview
                             key={anio}
                             label={`${anio}: ${count}`}
-                            variant={i % 2 === 0 ? 'yellow' : 'pink'}
-                            images={murales.filter(m => String(m.anio) === String(anio) && m.url_imagen)}
+                            variant={i % 2 === 0 ? "yellow" : "pink"}
+                            images={murales.filter(
+                              (m) =>
+                                String(m.anio) === String(anio) && m.url_imagen
+                            )}
                           />
                         ))}
                     </div>
                   </div>
                   <div>
-                    <div className="font-medium mb-2">Salas con más murales</div>
+                    <div className="font-medium mb-2">
+                      Salas con más murales
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       {Object.entries(muralesStats.porSala || {})
                         .sort((a, b) => b[1] - a[1])
@@ -827,8 +1090,14 @@ function PerfilContent() {
                           <TagWithPreview
                             key={sala}
                             label={`${sala}: ${count}`}
-                            variant={i === 0 ? 'violet' : i === 1 ? 'blue' : 'green'}
-                            images={murales.filter(m => (m.sala?.nombre || 'Sin sala') === sala && m.url_imagen)}
+                            variant={
+                              i === 0 ? "violet" : i === 1 ? "blue" : "green"
+                            }
+                            images={murales.filter(
+                              (m) =>
+                                (m.sala?.nombre || "Sin sala") === sala &&
+                                m.url_imagen
+                            )}
                           />
                         ))}
                     </div>
@@ -839,54 +1108,86 @@ function PerfilContent() {
           </Card>
           <Card className="w-full p-8">
             <CardHeader className="mb-4">
-              <CardTitle className="text-lg font-semibold">Mi colección personal</CardTitle>
+              <CardTitle className="text-lg font-semibold">
+                Mi colección personal
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {personalCollection.length === 0 ? (
-                <div className="text-center text-muted-foreground">No tienes obras guardadas en tu colección.</div>
+                <div className="text-center text-muted-foreground">
+                  No tienes obras guardadas en tu colección.
+                </div>
               ) : (
                 <div className="flex flex-col gap-6">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <MuralIcon className="w-10 h-10 text-indigo-500" />
-                        <span className="text-2xl font-bold">{collectionStats.totalArtworks}</span>
+                        <span className="text-2xl font-bold">
+                          {collectionStats.totalArtworks}
+                        </span>
                       </div>
                       <div className="text-xs text-muted-foreground">Obras</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <ArtistaIcon className="w-10 h-10 text-rose-500" />
-                        <span className="text-2xl font-bold">{collectionStats.uniqueArtists}</span>
+                        <span className="text-2xl font-bold">
+                          {collectionStats.uniqueArtists}
+                        </span>
                       </div>
-                      <div className="text-xs text-muted-foreground">Artistas</div>
+                      <div className="text-xs text-muted-foreground">
+                        Artistas
+                      </div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-1">
                         <TecnicaIcon className="w-10 h-10 text-green-500" />
-                        <span className="text-2xl font-bold">{collectionStats.uniqueTechniques}</span>
+                        <span className="text-2xl font-bold">
+                          {collectionStats.uniqueTechniques}
+                        </span>
                       </div>
-                      <div className="text-xs text-muted-foreground">Técnicas</div>
+                      <div className="text-xs text-muted-foreground">
+                        Técnicas
+                      </div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-1">
-                        <svg className="w-10 h-10 text-gray-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 17l4 4 4-4m-4-5v9"/></svg>
-                        <span className="text-2xl font-bold">{collectionStats.oldestYear || '-'}</span>
+                        <svg
+                          className="w-10 h-10 text-gray-500"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M8 17l4 4 4-4m-4-5v9" />
+                        </svg>
+                        <span className="text-2xl font-bold">
+                          {collectionStats.oldestYear || "-"}
+                        </span>
                       </div>
-                      <div className="text-xs text-muted-foreground">Año más antiguo</div>
+                      <div className="text-xs text-muted-foreground">
+                        Año más antiguo
+                      </div>
                     </div>
                   </div>
                   <div>
                     <div className="font-medium mb-2">Obras guardadas</div>
                     <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
                       {personalCollection.map((item) => (
-                        <CollectionItem key={item.id} item={item} allItems={personalCollection} />
+                        <CollectionItem
+                          key={item.id}
+                          item={item}
+                          allItems={personalCollection}
+                        />
                       ))}
                     </div>
                   </div>
                   <div className="text-center mt-4">
                     <Button asChild>
-                      <Link href="/mis-documentos">Gestionar colección avanzada</Link>
+                      <Link href="/mis-documentos">
+                        Gestionar colección avanzada
+                      </Link>
                     </Button>
                   </div>
                 </div>
@@ -895,6 +1196,56 @@ function PerfilContent() {
           </Card>
         </div>
       </div>
+
+      {/* Modales */}
+      <ModalWrapper
+        modalName="admin-panel-modal"
+        title="Panel de Administración"
+        size="md"
+      >
+        {(data) => (
+          <div className="space-y-4">
+            <div className="text-center">
+              <div className="text-4xl mb-4">👑</div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Panel de Administración
+              </h3>
+              <p className="text-gray-600 mb-4">
+                Acceso a funciones administrativas y de moderación
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {data?.isAdmin && (
+                <button
+                  onClick={() => (window.location.href = "/admin/usuarios")}
+                  className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  👥 Gestionar Usuarios
+                </button>
+              )}
+              {(data?.isAdmin || data?.isModerator) && (
+                <button
+                  onClick={() => (window.location.href = "/admin/contenido")}
+                  className="w-full bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors"
+                >
+                  📝 Moderar Contenido
+                </button>
+              )}
+              {data?.isAdmin && (
+                <button
+                  onClick={() =>
+                    (window.location.href = "/admin/configuracion")
+                  }
+                  className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  ⚙️ Configuración del Sistema
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </ModalWrapper>
     </div>
   );
 }

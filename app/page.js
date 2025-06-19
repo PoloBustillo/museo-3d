@@ -6,6 +6,7 @@ import AnimatedTriangleOverlay from "../components/TriangleOverlay";
 import LandingMobile from "./landing-mobile";
 import AppProviders from "./AppProviders";
 import { useModal } from "../providers/ModalProvider";
+import { useUser } from "../providers/UserProvider";
 
 const AuthModal = dynamic(() => import("../components/AuthModal"), {
   ssr: false,
@@ -28,6 +29,14 @@ const steps = [
 
 function HomeContent() {
   const { openModal } = useModal();
+  const {
+    user,
+    userProfile,
+    isAuthenticated,
+    isAdmin,
+    isModerator,
+    getUserRole,
+  } = useUser();
   const [current, setCurrent] = useState(0);
   const [isClient, setIsClient] = useState(false);
   const [scrollOpacity, setScrollOpacity] = useState(1);
@@ -427,6 +436,23 @@ function HomeContent() {
         >
           ℹ️ Info
         </button>
+        {/* Botón de ejemplo para UserProvider */}
+        {isAuthenticated && (
+          <button
+            onClick={() =>
+              openModal("user-info-modal", {
+                user,
+                userProfile,
+                role: getUserRole(),
+                isAdmin,
+                isModerator,
+              })
+            }
+            className="fixed top-4 right-20 z-[60] bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-lg"
+          >
+            👤 Usuario
+          </button>
+        )}
       </div>
     </AppProviders>
   );

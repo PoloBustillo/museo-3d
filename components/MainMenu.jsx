@@ -1,10 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import AuthModal from "./AuthModal";
 import ThemeSwitch from "./ThemeSwitch";
 import { useModal } from "../providers/ModalProvider";
+import { useUser } from "../providers/UserProvider";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
@@ -75,11 +76,19 @@ function TypewriterText({
 
 export default function MainMenu({ onSubirArchivo }) {
   const { openModal } = useModal();
+  const {
+    user,
+    userProfile,
+    status,
+    isAuthenticated,
+    isAdmin,
+    isModerator,
+    isLoading,
+  } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // Estado para menú móvil
   const [mobileArchivoOpen, setMobileArchivoOpen] = useState(false); // Estado para dropdown de Archivo
   const router = useRouter();
   const pathname = usePathname();
-  const { data: session, status } = useSession();
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
   const lastHideY = useRef(0);
@@ -292,35 +301,50 @@ export default function MainMenu({ onSubirArchivo }) {
           <div className="flex items-center gap-4">
             {status === "loading" ? (
               <div className="w-8 h-8 rounded-full bg-muted animate-pulse"></div>
-            ) : session ? (
+            ) : isAuthenticated ? (
               <NavigationMenu>
                 <NavigationMenuList>
                   <NavigationMenuItem>
                     <NavigationMenuTrigger className="flex items-center gap-2 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
                       <img
-                        src={
-                          session.user?.image || "/assets/default-avatar.svg"
-                        }
-                        alt={session.user?.name || "Usuario"}
+                        src={user?.image || "/assets/default-avatar.svg"}
+                        alt={user?.name || "Usuario"}
                         className="w-8 h-8 rounded-full object-cover border-2 border-primary/20"
                         onError={(e) => {
                           e.target.src = "/assets/default-avatar.svg";
                         }}
                       />
                       <span className="hidden md:inline text-sm font-medium">
-                        {session.user?.name ||
-                          session.user?.email?.split("@")[0]}
+                        {user?.name || user?.email?.split("@")[0]}
                       </span>
                     </NavigationMenuTrigger>
                     <NavigationMenuContent className="bg-card p-4 rounded-lg shadow-lg border min-w-[180px]">
                       <div className="flex flex-col gap-2">
                         <div className="px-3 py-2 border-b border-border">
                           <p className="text-sm font-medium text-foreground">
-                            {session.user?.name || "Usuario"}
+                            {user?.name || "Usuario"}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {session.user?.email}
+                            {user?.email}
                           </p>
+                          {userProfile?.roles && (
+                            <div className="flex gap-1 mt-1">
+                              {userProfile.roles.map((role, index) => (
+                                <span
+                                  key={index}
+                                  className={`text-xs px-2 py-1 rounded-full ${
+                                    role === "admin"
+                                      ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                      : role === "moderator"
+                                      ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                                      : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                                  }`}
+                                >
+                                  {role}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                         <NavigationMenuLink asChild>
                           <Link
@@ -338,6 +362,61 @@ export default function MainMenu({ onSubirArchivo }) {
                             Mis documentos
                           </Link>
                         </NavigationMenuLink>
+
+                        {/* Opciones para moderadores y administradores */}
+                        {(isModerator || isAdmin) && (
+                          <>
+                            <div className="px-3 py-1 border-t border-border">
+                              <p className="text-xs text-muted-foreground font-medium">
+                                Panel de Moderación
+                              </p>
+                            </div>
+                            <NavigationMenuLink asChild>
+                              <Link
+                                href="/admin/usuarios"
+                                className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm"
+                              >
+                                Gestionar Usuarios
+                              </Link>
+                            </NavigationMenuLink>
+                            <NavigationMenuLink asChild>
+                              <Link
+                                href="/admin/contenido"
+                                className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm"
+                              >
+                                Moderar Contenido
+                              </Link>
+                            </NavigationMenuLink>
+                          </>
+                        )}
+
+                        {/* Opciones solo para administradores */}
+                        {isAdmin && (
+                          <>
+                            <div className="px-3 py-1 border-t border-border">
+                              <p className="text-xs text-muted-foreground font-medium">
+                                Panel de Administración
+                              </p>
+                            </div>
+                            <NavigationMenuLink asChild>
+                              <Link
+                                href="/admin/configuracion"
+                                className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm"
+                              >
+                                Configuración del Sistema
+                              </Link>
+                            </NavigationMenuLink>
+                            <NavigationMenuLink asChild>
+                              <Link
+                                href="/admin/logs"
+                                className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm"
+                              >
+                                Ver Logs
+                              </Link>
+                            </NavigationMenuLink>
+                          </>
+                        )}
+
                         <button
                           onClick={() => signOut()}
                           className="block w-full text-left px-3 py-2 rounded-md transition-all text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/30 focus:outline-none focus:ring-2 focus:ring-red-500/20"
@@ -578,14 +657,12 @@ export default function MainMenu({ onSubirArchivo }) {
                 <div className="border-t border-gray-200 dark:border-gray-700 my-4"></div>
 
                 {/* Área de usuario */}
-                {session ? (
+                {isAuthenticated ? (
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 py-2">
                       <img
-                        src={
-                          session.user?.image || "/assets/default-avatar.svg"
-                        }
-                        alt={session.user?.name || "Usuario"}
+                        src={user?.image || "/assets/default-avatar.svg"}
+                        alt={user?.name || "Usuario"}
                         className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
                         onError={(e) => {
                           e.target.src = "/assets/default-avatar.svg";
@@ -593,11 +670,29 @@ export default function MainMenu({ onSubirArchivo }) {
                       />
                       <div>
                         <p className="text-sm font-medium">
-                          {session.user?.name || "Usuario"}
+                          {user?.name || "Usuario"}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {session.user?.email}
+                          {user?.email}
                         </p>
+                        {userProfile?.roles && (
+                          <div className="flex gap-1 mt-1">
+                            {userProfile.roles.map((role, index) => (
+                              <span
+                                key={index}
+                                className={`text-xs px-2 py-1 rounded-full ${
+                                  role === "admin"
+                                    ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
+                                    : role === "moderator"
+                                    ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                                    : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                                }`}
+                              >
+                                {role}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <Link
