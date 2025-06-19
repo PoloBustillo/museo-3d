@@ -49,6 +49,15 @@ export default function ClientLayout({ children }) {
   const needsTopPadding = !noTopPaddingPages.includes(pathname);
   const isMainOrMuseo = noTopPaddingPages.includes(pathname);
 
+  // Detectar si es mobile
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   // Inicializar imagen y frase al montar el componente
   useEffect(() => {
     setFrase(
@@ -68,8 +77,12 @@ export default function ClientLayout({ children }) {
           </header>
           <main
             ref={mainRef}
-            className={`flex-1 overflow-hidden relative ${
+            className={`flex-1 relative ${
               needsTopPadding ? "pt-16 md:pt-20" : ""
+            } ${
+              pathname === "/" && isMobile
+                ? "overflow-y-auto min-h-screen"
+                : "overflow-hidden"
             }`}
           >
             {children}

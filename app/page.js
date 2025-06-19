@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 import AuthModal from "../components/AuthModal";
 import AnimatedTriangleOverlay from "../components/TriangleOverlay";
+import LandingMobile from "./landing-mobile";
 
 const steps = [
   {
@@ -40,9 +41,14 @@ export default function Home() {
     checkDesktop();
     window.addEventListener("resize", checkDesktop);
 
-    // Agregar clase para prevenir scroll del body
-    document.body.classList.add("home-active");
-    document.documentElement.classList.add("home-page");
+    // Solo agregar clase para prevenir scroll del body en desktop
+    if (window.innerWidth >= 768) {
+      document.body.classList.add("home-active");
+      document.documentElement.classList.add("home-page");
+    } else {
+      document.body.classList.remove("home-active");
+      document.documentElement.classList.remove("home-page");
+    }
 
     // Detectar interacción del usuario para ocultar hints
     const handleUserInteraction = () => {
@@ -198,12 +204,15 @@ export default function Home() {
         <div className="text-white text-lg font-medium tracking-wide">
           Cargando
         </div>
-        <div className="mt-6 w-40 h-1.5 bg-white/10 rounded-full overflow-hidden relative">
-          <div className="absolute left-0 top-0 h-full w-1/3 bg-gradient-to-r from-blue-400 via-purple-500 to-blue-400 rounded-full animate-progressBar" />
-        </div>
       </div>
     );
   }
+
+  // Mostrar landing mobile si no es desktop
+  if (!isDesktop) {
+    return <LandingMobile />;
+  }
+
   return (
     <div className="home-page">
       <div
