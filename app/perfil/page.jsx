@@ -30,13 +30,40 @@ const fetcher = (url) => fetch(url).then((res) => res.json());
 
 function ImageTooltip({ src, alt, anchorRef, show }) {
   const [pos, setPos] = useState({ top: 0, left: 0 });
+  const tooltipWidth = 260;
+  const tooltipHeight = 260;
   useEffect(() => {
     if (show && anchorRef.current) {
       const rect = anchorRef.current.getBoundingClientRect();
-      setPos({
-        top: rect.top + rect.height / 2 - 112 + window.scrollY,
-        left: rect.right + 16 + window.scrollX,
-      });
+      let top, left;
+      const padding = 8;
+      // Mobile: centrar abajo, Desktop: derecha
+      if (window.innerWidth < 600) {
+        // Centrar horizontalmente sobre el elemento, mostrar abajo
+        left = rect.left + rect.width / 2 - tooltipWidth / 2 + window.scrollX;
+        top = rect.bottom + padding + window.scrollY;
+        // Si se sale por la izquierda
+        if (left < padding) left = padding;
+        // Si se sale por la derecha
+        if (left + tooltipWidth > window.innerWidth - padding) left = window.innerWidth - tooltipWidth - padding;
+        // Si se sale por abajo, mostrar arriba
+        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding) {
+          top = rect.top - tooltipHeight - padding + window.scrollY;
+        }
+      } else {
+        // Desktop: mostrar a la derecha
+        left = rect.right + padding + window.scrollX;
+        top = rect.top + rect.height / 2 - tooltipHeight / 2 + window.scrollY;
+        // Si se sale por la derecha
+        if (left + tooltipWidth > window.innerWidth - padding) left = rect.left - tooltipWidth - padding + window.scrollX;
+        // Si se sale por la izquierda
+        if (left < padding) left = padding;
+        // Si se sale por arriba
+        if (top < padding) top = padding;
+        // Si se sale por abajo
+        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding) top = window.innerHeight + window.scrollY - tooltipHeight - padding;
+      }
+      setPos({ top, left });
     }
   }, [show, anchorRef]);
   if (!show) return null;
@@ -47,8 +74,12 @@ function ImageTooltip({ src, alt, anchorRef, show }) {
         top: pos.top,
         left: pos.left,
         zIndex: 1000,
+        width: tooltipWidth,
+        height: tooltipHeight,
+        maxWidth: "90vw",
+        maxHeight: "90vw",
       }}
-      className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-2 min-w-[160px] max-w-[260px] max-h-[260px] flex items-center justify-center"
+      className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-2 flex items-center justify-center"
     >
       <img src={src} alt={alt} className="w-56 h-56 object-contain rounded-lg" />
     </div>,
@@ -84,13 +115,32 @@ function CollectionItem({ item, allItems }) {
 
 function TagPreviewTooltip({ anchorRef, show, images }) {
   const [pos, setPos] = React.useState({ top: 0, left: 0 });
+  const tooltipWidth = 320;
+  const tooltipHeight = 120;
   React.useEffect(() => {
     if (show && anchorRef.current) {
       const rect = anchorRef.current.getBoundingClientRect();
-      setPos({
-        top: rect.bottom + 8 + window.scrollY,
-        left: rect.left + window.scrollX,
-      });
+      let top, left;
+      const padding = 8;
+      if (window.innerWidth < 600) {
+        // Mobile: centrar horizontalmente sobre el tag, mostrar abajo
+        left = rect.left + rect.width / 2 - tooltipWidth / 2 + window.scrollX;
+        top = rect.bottom + padding + window.scrollY;
+        if (left < padding) left = padding;
+        if (left + tooltipWidth > window.innerWidth - padding) left = window.innerWidth - tooltipWidth - padding;
+        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding) {
+          top = rect.top - tooltipHeight - padding + window.scrollY;
+        }
+      } else {
+        // Desktop: mostrar a la derecha
+        left = rect.right + padding + window.scrollX;
+        top = rect.top + rect.height / 2 - tooltipHeight / 2 + window.scrollY;
+        if (left + tooltipWidth > window.innerWidth - padding) left = rect.left - tooltipWidth - padding + window.scrollX;
+        if (left < padding) left = padding;
+        if (top < padding) top = padding;
+        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding) top = window.innerHeight + window.scrollY - tooltipHeight - padding;
+      }
+      setPos({ top, left });
     }
   }, [show, anchorRef]);
   if (!show || images.length === 0) return null;
@@ -104,8 +154,12 @@ function TagPreviewTooltip({ anchorRef, show, images }) {
         top: pos.top,
         left: pos.left,
         zIndex: 1000,
+        width: tooltipWidth,
+        height: tooltipHeight,
+        maxWidth: "90vw",
+        maxHeight: "90vw",
       }}
-      className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-2 min-w-[180px] max-w-[320px] max-h-[120px] flex items-center justify-center"
+      className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-2 flex items-center justify-center"
     >
       <div className="flex gap-2">
         {previewImages.map((img, i) => {
@@ -155,13 +209,32 @@ function TagWithPreview({ label, variant, images, children }) {
 
 function AvatarTooltip({ src, alt, anchorRef, show }) {
   const [pos, setPos] = useState({ top: 0, left: 0 });
+  const tooltipWidth = 260;
+  const tooltipHeight = 260;
   useEffect(() => {
     if (show && anchorRef.current) {
       const rect = anchorRef.current.getBoundingClientRect();
-      setPos({
-        top: rect.top + rect.height / 2 - 112 + window.scrollY,
-        left: rect.right + 16 + window.scrollX,
-      });
+      let top, left;
+      const padding = 8;
+      if (window.innerWidth < 600) {
+        // Mobile: centrar horizontalmente sobre el avatar, mostrar abajo
+        left = rect.left + rect.width / 2 - tooltipWidth / 2 + window.scrollX;
+        top = rect.bottom + padding + window.scrollY;
+        if (left < padding) left = padding;
+        if (left + tooltipWidth > window.innerWidth - padding) left = window.innerWidth - tooltipWidth - padding;
+        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding) {
+          top = rect.top - tooltipHeight - padding + window.scrollY;
+        }
+      } else {
+        // Desktop: mostrar a la derecha
+        left = rect.right + padding + window.scrollX;
+        top = rect.top + rect.height / 2 - tooltipHeight / 2 + window.scrollY;
+        if (left + tooltipWidth > window.innerWidth - padding) left = rect.left - tooltipWidth - padding + window.scrollX;
+        if (left < padding) left = padding;
+        if (top < padding) top = padding;
+        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding) top = window.innerHeight + window.scrollY - tooltipHeight - padding;
+      }
+      setPos({ top, left });
     }
   }, [show, anchorRef]);
   if (!show) return null;
@@ -172,8 +245,12 @@ function AvatarTooltip({ src, alt, anchorRef, show }) {
         top: pos.top,
         left: pos.left,
         zIndex: 1000,
+        width: tooltipWidth,
+        height: tooltipHeight,
+        maxWidth: "90vw",
+        maxHeight: "90vw",
       }}
-      className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-2 min-w-[160px] max-w-[260px] max-h-[260px] flex items-center justify-center"
+      className="bg-white dark:bg-neutral-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl p-2 flex items-center justify-center"
     >
       <img src={src} alt={alt} className="w-56 h-56 object-contain rounded-lg" />
     </div>,
