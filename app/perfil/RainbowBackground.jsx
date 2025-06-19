@@ -10,7 +10,7 @@ const ANIMATION_TIME = 45;
 
 export default function RainbowBackground() {
   return (
-    <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none", overflow: "hidden" }}>
+    <div style={{ position: "absolute", inset: 0, minHeight: "100%", height: "100%", width: "100%", zIndex: 0, pointerEvents: "none", overflow: "hidden" }}>
       {Array.from({ length: NUM_BARS }).map((_, i) => {
         const colorOrder = COLORS.slice();
         // Shuffle colors for each bar
@@ -28,7 +28,7 @@ export default function RainbowBackground() {
               top: 0,
               right: 0,
               width: "8vw",
-              height: "110vh",
+              height: "100%",
               borderRadius: "40vw",
               filter: "blur(32px)",
               background: `linear-gradient(120deg, ${colorOrder[0]}, ${colorOrder[1]}, ${colorOrder[2]})`,

@@ -617,8 +617,10 @@ function PerfilContent() {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center pt-8 md:pt-12">
-      <RainbowBackground />
+    <div className="relative min-h-screen flex items-center justify-center pt-8 md:pt-12 pb-8 md:pb-12">
+      <div className="absolute inset-0 z-0">
+        <RainbowBackground />
+      </div>
       <div className="z-10 w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-[350px_1fr] gap-8 px-4 sm:px-8 h-full">
         {/* Sidebar Perfil */}
         <div className="md:col-span-1 flex flex-col h-full md:max-w-md mx-auto w-full">

@@ -130,6 +130,15 @@ export default function MainMenu({ onSubirArchivo }) {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Cerrar menú móvil automáticamente al cambiar de página
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      setMobileMenuOpen(false);
+      setMobileArchivoOpen(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
   return (
     <>
       {/* Navigation Menu with auto-hide on scroll */}
