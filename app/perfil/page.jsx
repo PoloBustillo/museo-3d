@@ -381,7 +381,7 @@ function PerfilAvatarEdit({
         className="border rounded-lg px-3 py-2 text-center w-full mb-2"
         value={newName}
         onChange={handleNameChange}
-        disabled={checkingName || updating}
+        disabled={updating}
         maxLength={32}
         placeholder="Ingresa tu nombre"
       />
@@ -644,13 +644,11 @@ function PerfilContent() {
       debounceRef.current = setTimeout(() => {
         setCheckingName(true);
         checkNameAvailability(valueToCheck);
-        nameInputRef.current?.focus();
       }, 1200);
     } else {
       setNameAvailable(null);
       setCheckingName(false);
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      nameInputRef.current?.focus();
     }
   }
 
@@ -836,14 +834,21 @@ function PerfilContent() {
 
   // Sincronizar todos los estados cuando la sesión cambie
   useEffect(() => {
-    if (session?.user) {
+    if (session?.user && !editMode) {
       setNewName(session.user.name || "");
       setNewImage(session.user.image || "");
       setImagePreview(session.user.image || "");
       setNameAvailable(null);
       setCheckingName(false);
     }
-  }, [session?.user?.id, session?.user?.name, session?.user?.image]);
+  }, [session?.user?.id, session?.user?.name, session?.user?.image, editMode]);
+
+  // Forzar el foco al input cuando termina la comprobación de nombre
+  useEffect(() => {
+    if (!checkingName && editMode) {
+      nameInputRef.current?.focus();
+    }
+  }, [checkingName, editMode]);
 
   if (initialLoading) {
     return (
