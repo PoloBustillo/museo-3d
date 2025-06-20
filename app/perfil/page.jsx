@@ -509,6 +509,7 @@ function PerfilContent() {
     getUserSetting,
     updateUserSetting,
     updateUserProfile,
+    loadUserProfile,
     isLoadingProfile,
   } = useUser();
   const {
@@ -722,16 +723,26 @@ function PerfilContent() {
   async function handleSettingsChange(newSettings) {
     if (!session?.user?.id) return;
     try {
-      const response = await fetch(`/api/usuarios/${session.user.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ settings: newSettings }),
-      });
+      const response = await fetch(
+        `/api/usuarios/${session.user.id}?t=${Date.now()}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ settings: newSettings }),
+        }
+      );
 
       if (response.ok) {
+        // Actualizar la sesión
         if (typeof update === "function") {
           await update();
         }
+
+        // Actualizar el UserProvider
+        if (typeof loadUserProfile === "function" && session.user.email) {
+          await loadUserProfile(session.user.email);
+        }
+
         toast.success("Configuración actualizada");
       } else {
         console.error("Error updating settings");
