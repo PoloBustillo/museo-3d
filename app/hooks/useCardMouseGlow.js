@@ -10,12 +10,13 @@ export function useCardMouseGlow() {
     const y = e.clientY - rect.top;
     if (blobRef.current) {
       blobRef.current.style.transform = `translate(${x - 130}px, ${y - 130}px)`; // 130 = blob radius/2
+      blobRef.current.style.opacity = "0.7";
     }
   }
 
   function handleMouseLeave() {
     if (blobRef.current) {
-      blobRef.current.style.transform = `translate(-50%,-50%)`;
+      blobRef.current.style.opacity = "0";
     }
   }
 

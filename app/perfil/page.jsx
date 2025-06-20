@@ -1495,8 +1495,8 @@ export default function Perfil() {
       <div className="relative min-h-screen w-full">
         {/* Fondo de blobs animados como el footer */}
         <div className="pointer-events-none absolute inset-0 w-full h-full z-0">
-          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-300 dark:bg-blue-700 rounded-full mix-blend-multiply filter blur-2xl opacity-60 animate-blob"></div>
-          <div className="absolute -top-20 -right-24 w-96 h-96 bg-purple-200 dark:bg-purple-800 rounded-full mix-blend-multiply filter blur-2xl opacity-60 animate-blob animation-delay-2000"></div>
+          <div className="absolute -top-24 -right-24 w-[500px] h-[500px] bg-blue-300/60 dark:bg-blue-700/30 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe"></div>
+          <div className="absolute -bottom-20 -left-24 w-[500px] h-[500px] bg-purple-200/60 dark:bg-purple-800/30 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe-delayed"></div>
         </div>
         <div className="relative z-10">
           <PerfilContent />
