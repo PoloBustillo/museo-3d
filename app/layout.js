@@ -46,32 +46,19 @@ export default function RootLayout({ children }) {
           reverseOrder={true}
           limit={1}
           toastOptions={{
-            style: {
-              background: "rgba(255,255,255,0.95)",
-              color: "#1e293b",
-              border: "1px solid #e5e7eb",
-              boxShadow:
-                "0 10px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)",
-              borderRadius: "12px",
-              fontSize: "14px",
-              fontWeight: 500,
-              maxWidth: "400px",
-              minWidth: "300px",
-              backdropFilter: "blur(4px)",
-            },
+            className: "toast-badge",
+            duration: 3500,
             success: {
-              style: {
-                background: "rgba(34,197,94,0.95)",
-                color: "#fff",
-                border: "1px solid #22c55e",
-              },
+              className: "toast-badge toast-badge-success",
+              icon: <span className="toast-animated-icon">✅</span>,
             },
             error: {
-              style: {
-                background: "rgba(239,68,68,0.95)",
-                color: "#fff",
-                border: "1px solid #ef4444",
-              },
+              className: "toast-badge toast-badge-error",
+              icon: <span className="toast-animated-icon">❌</span>,
+            },
+            info: {
+              className: "toast-badge toast-badge-info",
+              icon: <span className="toast-animated-icon">ℹ️</span>,
             },
           }}
         />
