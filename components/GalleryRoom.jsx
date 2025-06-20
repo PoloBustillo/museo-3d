@@ -35,6 +35,9 @@ import {
   isInPersonalCollection,
 } from "../lib/personalCollection.js";
 
+// Sound provider
+import { useSound } from "../providers/SoundProvider";
+
 // Extraer constantes para facilitar el uso
 const { HALL_WIDTH, WALL_HEIGHT, CEILING_HEIGHT, PICTURE_SPACING } =
   GALLERY_CONFIG;
@@ -649,9 +652,13 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.35 }}
+      className="motion-div-modal"
       style={{
         position: "fixed",
-        inset: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         background: "rgba(0,0,0,0.95)",
         zIndex: 1000,
         display: "flex",
@@ -661,6 +668,7 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
         padding: 20,
         pointerEvents: "auto", // Asegurar que el modal capture eventos
         userSelect: "none", // Prevenir selección de texto
+        overflow: "visible !important",
       }}
       onClick={handleClose}
       onContextMenu={(e) => e.preventDefault()} // Prevenir menú contextual
@@ -1016,7 +1024,7 @@ export default function GalleryRoom({
   }));
 
   // Estados del componente
-  const [soundEnabled, setSoundEnabled] = useState(false);
+  const { soundEnabled, enableAudio, toggleMute, muted } = useSound();
   const [showList, setShowList] = useState(false);
   const [showCollection, setShowCollection] = useState(false);
   const [personalCollection, setPersonalCollection] = useState([]);
@@ -1081,7 +1089,7 @@ export default function GalleryRoom({
     const enableAudioOnInteraction = () => {
       if (!soundEnabled) {
         console.log("Activando audio por interacción del usuario");
-        setSoundEnabled(true);
+        enableAudio();
       }
     };
 
@@ -1114,7 +1122,7 @@ export default function GalleryRoom({
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("click", handleClick);
     };
-  }, [soundEnabled]);
+  }, [soundEnabled, enableAudio]);
 
   useEffect(() => {
     setIsClient(true);
@@ -1615,12 +1623,12 @@ export default function GalleryRoom({
         <button
           onClick={(e) => {
             e.stopPropagation();
-            setSoundEnabled((v) => !v);
+            toggleMute();
           }}
           onMouseDown={(e) => e.stopPropagation()}
           onMouseUp={(e) => e.stopPropagation()}
           style={{
-            background: soundEnabled ? "#ffe082" : "#fff",
+            background: !muted ? "#ffe082" : "#fff",
             border: "2px solid #222",
             borderRadius: "50%",
             width: 54,
@@ -1629,16 +1637,16 @@ export default function GalleryRoom({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: soundEnabled ? "0 0 0 3px #ffd54f" : "0 2px 8px #0002",
+            boxShadow: !muted ? "0 0 0 3px #ffd54f" : "0 2px 8px #0002",
             cursor: "pointer",
             transition: "background 0.2s, box-shadow 0.2s",
             outline: "none",
             padding: 0,
             pointerEvents: "all",
           }}
-          aria-label={soundEnabled ? "Desactivar sonido" : "Activar sonido"}
+          aria-label={!muted ? "Desactivar sonido" : "Activar sonido"}
         >
-          {soundEnabled ? "🔊" : "🔇"}
+          {!muted ? "🔊" : "🔇"}
         </button>
       </div>
       {/* Hotkeys visuales en la esquina inferior izquierda */}
@@ -1724,7 +1732,9 @@ export default function GalleryRoom({
             shadows
             gl={{ antialias: true }}
           >
-            {soundEnabled && <BackGroundSound url="/assets/audio.mp3" />}
+            {soundEnabled && !muted && (
+              <BackGroundSound url="/assets/audio.mp3" />
+            )}
             <Room
               passedInitialWall={passedInitialWall}
               setSelectedArtwork={setSelectedArtwork}

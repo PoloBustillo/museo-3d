@@ -11,6 +11,8 @@ import { ThemeProvider } from "../providers/ThemeProvider";
 import ClientLayout from "../components/ClientLayout";
 import ColorCursorEffect from "./components/ColorCursorEffect";
 import MouseTrail from "./components/MouseTrail";
+import GalleryImageModal from "../components/GalleryImageModal";
+import { ModalWrapper } from "../components/ui/Modal";
 
 export default function AppProviders({ children }) {
   return (
@@ -26,6 +28,29 @@ export default function AppProviders({ children }) {
                   <CollectionProvider>
                     <ThemeProvider>
                       <ClientLayout>{children}</ClientLayout>
+                      <GalleryImageModal />
+
+                      {/* Modal de información */}
+                      <ModalWrapper
+                        modalName="info-modal"
+                        title="Información"
+                        size="md"
+                      >
+                        {(data) => (
+                          <div className="space-y-4">
+                            <p className="text-gray-700">
+                              {data?.content || "Información del modal"}
+                            </p>
+                            {data?.title && (
+                              <div className="bg-blue-50 p-3 rounded-lg">
+                                <p className="text-sm text-blue-800">
+                                  <strong>Título:</strong> {data.title}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </ModalWrapper>
                     </ThemeProvider>
                   </CollectionProvider>
                 </GalleryProvider>

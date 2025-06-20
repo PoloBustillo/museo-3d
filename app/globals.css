@@ -452,6 +452,25 @@ body.home-active {
   max-height: 100vh !important;
 }
 
+/* Excepciones para modales - sobrescribir overflow hidden */
+.home-page .fixed.inset-0.z-50,
+.home-page .fixed.inset-0.z-\[50\],
+.home-page .fixed.inset-0.z-\[9999\],
+.home-page .fixed.inset-0.z-\[1000\],
+.home-page [class*="modal"],
+.home-page [class*="Modal"] {
+  overflow: visible !important;
+}
+
+body.home-active .fixed.inset-0.z-50,
+body.home-active .fixed.inset-0.z-\[50\],
+body.home-active .fixed.inset-0.z-\[9999\],
+body.home-active .fixed.inset-0.z-\[1000\],
+body.home-active [class*="modal"],
+body.home-active [class*="Modal"] {
+  overflow: visible !important;
+}
+
 @media (max-width: 768px) {
   .section {
     /* Mejor rendimiento en móviles */

@@ -6,6 +6,7 @@ import AuthModal from "./AuthModal";
 import ThemeSwitch from "./ThemeSwitch";
 import { useModal } from "../providers/ModalProvider";
 import { useUser } from "../providers/UserProvider";
+import { useSessionData } from "../providers/SessionProvider";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
@@ -85,6 +86,13 @@ export default function MainMenu({ onSubirArchivo }) {
     isModerator,
     isLoading,
   } = useUser();
+  const {
+    session,
+    sessionDuration,
+    sessionTimeRemaining,
+    isSessionExpiringSoon,
+    isSessionExpired,
+  } = useSessionData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // Estado para menú móvil
   const [mobileArchivoOpen, setMobileArchivoOpen] = useState(false); // Estado para dropdown de Archivo
   const router = useRouter();
@@ -295,6 +303,21 @@ export default function MainMenu({ onSubirArchivo }) {
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
+
+              <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                  <Link
+                    href="/galeria"
+                    className={`hover:text-primary transition-all px-3 py-2 rounded-lg ${
+                      pathname.startsWith("/galeria")
+                        ? "elegant-active-menu"
+                        : ""
+                    }`}
+                  >
+                    Galería
+                  </Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
             </NavigationMenuList>
           </NavigationMenu>
           {/* Usuario autenticado o botón de login */}
@@ -343,6 +366,32 @@ export default function MainMenu({ onSubirArchivo }) {
                                   {role}
                                 </span>
                               ))}
+                            </div>
+                          )}
+                          {/* Información de la sesión */}
+                          {session && (
+                            <div className="mt-2 pt-2 border-t border-border">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="text-muted-foreground">
+                                  Sesión:
+                                </span>
+                                <span
+                                  className={`font-medium ${
+                                    isSessionExpiringSoon
+                                      ? "text-yellow-600 dark:text-yellow-400"
+                                      : isSessionExpired
+                                      ? "text-red-600 dark:text-red-400"
+                                      : "text-green-600 dark:text-green-400"
+                                  }`}
+                                >
+                                  {sessionDuration}
+                                </span>
+                              </div>
+                              {isSessionExpiringSoon && (
+                                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                                  ⚠️ Sesión por expirar
+                                </p>
+                              )}
                             </div>
                           )}
                         </div>
@@ -554,6 +603,16 @@ export default function MainMenu({ onSubirArchivo }) {
                   Museo Virtual
                 </Link>
 
+                <Link
+                  href="/galeria"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block py-2 text-base font-medium hover:text-primary transition-colors ${
+                    pathname.startsWith("/galeria") ? "elegant-active-menu" : ""
+                  }`}
+                >
+                  Galería
+                </Link>
+
                 {/* Dropdown de Archivo */}
                 <div className="space-y-2">
                   <button
@@ -691,6 +750,32 @@ export default function MainMenu({ onSubirArchivo }) {
                                 {role}
                               </span>
                             ))}
+                          </div>
+                        )}
+                        {/* Información de la sesión */}
+                        {session && (
+                          <div className="mt-2 pt-2 border-t border-border">
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="text-muted-foreground">
+                                Sesión:
+                              </span>
+                              <span
+                                className={`font-medium ${
+                                  isSessionExpiringSoon
+                                    ? "text-yellow-600 dark:text-yellow-400"
+                                    : isSessionExpired
+                                    ? "text-red-600 dark:text-red-400"
+                                    : "text-green-600 dark:text-green-400"
+                                }`}
+                              >
+                                {sessionDuration}
+                              </span>
+                            </div>
+                            {isSessionExpiringSoon && (
+                              <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                                ⚠️ Sesión por expirar
+                              </p>
+                            )}
                           </div>
                         )}
                       </div>

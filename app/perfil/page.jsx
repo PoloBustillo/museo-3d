@@ -7,27 +7,33 @@ import {
   getPersonalCollection,
   getCollectionStats,
 } from "../../lib/personalCollection.js";
-import { ProtectedRoute } from "../../components/ProtectedRoute";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
+import ProtectedRoute from "../../components/ProtectedRoute";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "../components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "../components/ui/avatar";
+import { Button } from "../components/ui/button";
+import { Badge } from "../components/ui/badge";
+import { Label } from "../components/ui/label";
 import RainbowBackground from "./RainbowBackground";
-import MuralIcon from "@/components/ui/icons/MuralIcon";
-import SalaIcon from "@/components/ui/icons/SalaIcon";
-import ArtistaIcon from "@/components/ui/icons/ArtistaIcon";
-import TecnicaIcon from "@/components/ui/icons/TecnicaIcon";
+import MuralIcon from "../components/ui/icons/MuralIcon";
+import SalaIcon from "../components/ui/icons/SalaIcon";
+import ArtistaIcon from "../components/ui/icons/ArtistaIcon";
+import TecnicaIcon from "../components/ui/icons/TecnicaIcon";
 import ReactDOM from "react-dom";
 import React from "react";
 import { useUpdateProfile } from "../hooks/useUpdateProfile";
-import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
+import { Switch } from "../components/ui/switch";
+import { Input } from "../components/ui/input";
 import { Settings as SettingsIcon } from "lucide-react";
 import useSWR from "swr";
 import { useUser } from "../../providers/UserProvider";
 import { useModal } from "../../providers/ModalProvider";
 import { ModalWrapper } from "../../components/ui/Modal";
+import { useSessionData } from "../../providers/SessionProvider";
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
@@ -506,6 +512,14 @@ function PerfilContent() {
     updateUserProfile,
     isLoadingProfile,
   } = useUser();
+  const {
+    session: sessionData,
+    sessionDuration,
+    sessionTimeRemaining,
+    isSessionExpiringSoon,
+    isSessionExpired,
+    lastActivity,
+  } = useSessionData();
   const { openModal } = useModal();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
@@ -1194,6 +1208,92 @@ function PerfilContent() {
               )}
             </CardContent>
           </Card>
+          {/* Estadísticas */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-white/50 p-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">
+              Estadísticas
+            </h3>
+            <div className="space-y-3">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Rol principal:</span>
+                <span className="font-medium">{getUserRole()}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Es administrador:</span>
+                <span
+                  className={
+                    isAdmin ? "text-green-600 font-medium" : "text-gray-400"
+                  }
+                >
+                  {isAdmin ? "Sí" : "No"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Es moderador:</span>
+                <span
+                  className={
+                    isModerator
+                      ? "text-yellow-600 font-medium"
+                      : "text-gray-400"
+                  }
+                >
+                  {isModerator ? "Sí" : "No"}
+                </span>
+              </div>
+
+              {/* Información de la sesión */}
+              {sessionData && (
+                <>
+                  <div className="pt-3 border-t border-gray-200">
+                    <h4 className="text-sm font-medium text-gray-900 mb-2">
+                      Información de Sesión
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 text-sm">Duración:</span>
+                        <span
+                          className={`text-sm font-medium ${
+                            isSessionExpiringSoon
+                              ? "text-yellow-600"
+                              : isSessionExpired
+                              ? "text-red-600"
+                              : "text-green-600"
+                          }`}
+                        >
+                          {sessionDuration}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 text-sm">
+                          Tiempo restante:
+                        </span>
+                        <span className="text-sm font-medium">
+                          {sessionTimeRemaining} min
+                        </span>
+                      </div>
+                      {lastActivity && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 text-sm">
+                            Última actividad:
+                          </span>
+                          <span className="text-sm font-medium">
+                            {new Date(lastActivity).toLocaleTimeString("es-ES")}
+                          </span>
+                        </div>
+                      )}
+                      {isSessionExpiringSoon && (
+                        <div className="bg-yellow-50 p-2 rounded-lg">
+                          <p className="text-xs text-yellow-800">
+                            ⚠️ Tu sesión expirará pronto. Considera renovarla.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1252,7 +1352,7 @@ function PerfilContent() {
 
 export default function Perfil() {
   return (
-    <ProtectedRoute requireAuth={true}>
+    <ProtectedRoute>
       <PerfilContent />
     </ProtectedRoute>
   );

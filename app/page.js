@@ -7,6 +7,8 @@ import LandingMobile from "./landing-mobile";
 import AppProviders from "./AppProviders";
 import { useModal } from "../providers/ModalProvider";
 import { useUser } from "../providers/UserProvider";
+import { useSessionData } from "../providers/SessionProvider";
+import { useGallery } from "../providers/GalleryProvider";
 
 const AuthModal = dynamic(() => import("../components/AuthModal"), {
   ssr: false,
@@ -37,6 +39,8 @@ function HomeContent() {
     isModerator,
     getUserRole,
   } = useUser();
+  const { sessionData } = useSessionData();
+  const { openImageModal } = useGallery();
   const [current, setCurrent] = useState(0);
   const [isClient, setIsClient] = useState(false);
   const [scrollOpacity, setScrollOpacity] = useState(1);
@@ -208,6 +212,63 @@ function HomeContent() {
       top: targetScrollTop,
       behavior: "smooth",
     });
+  };
+
+  // Ejemplo de uso del GalleryProvider
+  const showGalleryExample = () => {
+    openModal("info", {
+      title: "Ejemplo de GalleryProvider",
+      content: (
+        <div className="space-y-4">
+          <p>
+            El <strong>GalleryProvider</strong> está integrado globalmente y
+            proporciona:
+          </p>
+          <ul className="list-disc list-inside space-y-2 text-sm">
+            <li>
+              <strong>Gestión de obras de arte:</strong> Carga y filtra obras
+              por sala
+            </li>
+            <li>
+              <strong>Modal de imagen:</strong> Visualización mejorada con zoom,
+              rotación y navegación
+            </li>
+            <li>
+              <strong>Filtros avanzados:</strong> Por artista, técnica y año
+            </li>
+            <li>
+              <strong>Estadísticas:</strong> Información detallada de la
+              colección
+            </li>
+            <li>
+              <strong>Vistas múltiples:</strong> Grid y lista
+            </li>
+          </ul>
+          <div className="mt-4 p-3 bg-primary/10 rounded-lg">
+            <p className="text-sm">
+              <strong>¿Cómo usar?</strong> Ve a la página de{" "}
+              <a href="/galeria" className="text-primary underline">
+                Galería
+              </a>{" "}
+              para ver el GalleryProvider en acción.
+            </p>
+          </div>
+        </div>
+      ),
+    });
+  };
+
+  // Probar modal de imagen
+  const testImageModal = () => {
+    const testArtwork = {
+      id: "test-1",
+      titulo: "Obra de Arte de Prueba",
+      artista: "Artista Ejemplo",
+      tecnica: "Pintura Digital",
+      año: "2024",
+      imagen: "/assets/artworks/cuadro1.webp",
+    };
+    openImageModal(testArtwork, 0);
   };
 
   // Evitar renderizado hasta que el cliente esté listo
@@ -453,6 +514,66 @@ function HomeContent() {
             👤 Usuario
           </button>
         )}
+        {/* Botón de ejemplo para SessionProvider */}
+        {sessionData && (
+          <button
+            onClick={() =>
+              openModal("session-info-modal", {
+                session: sessionData,
+                user,
+                userProfile,
+              })
+            }
+            className="fixed top-4 right-36 z-[60] bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors shadow-lg"
+          >
+            ⏱️ Sesión
+          </button>
+        )}
+        {/* Botón para mostrar ejemplo de GalleryProvider */}
+        <button
+          onClick={showGalleryExample}
+          className="fixed top-4 right-52 z-[60] bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors shadow-lg"
+        >
+          🖼️ GalleryProvider
+        </button>
+        {/* Botón para probar modal de imagen */}
+        <button
+          onClick={testImageModal}
+          className="fixed top-4 right-80 z-[60] bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
+        >
+          🖼️ Test Modal
+        </button>
+        {/* Botón para probar modal de colección */}
+        <button
+          onClick={() =>
+            openModal("collection-stats", {
+              stats: {
+                totalArtworks: 25,
+                uniqueArtists: 15,
+                uniqueTechniques: 8,
+                oldestYear: 1990,
+                newestYear: 2024,
+              },
+              collection: [],
+            })
+          }
+          className="fixed top-4 right-96 z-[60] bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-lg"
+        >
+          📊 Test Collection
+        </button>
+        {/* Botón para probar modal de información */}
+        <button
+          onClick={() =>
+            openModal("info-modal", {
+              title: "Modal de Prueba",
+              content:
+                "Este es un modal de prueba para verificar el centrado correcto.",
+            })
+          }
+          className="fixed top-4 right-112 z-[60] bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors shadow-lg"
+        >
+          ℹ️ Test Info
+        </button>
       </div>
     </AppProviders>
   );

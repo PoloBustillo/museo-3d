@@ -60,6 +60,49 @@ export async function GET(req) {
       salasConMurales: salas.filter((sala) => sala._count.murales > 0).length,
     };
 
+    // Si no hay salas, devolver datos de prueba
+    if (salas.length === 0) {
+      const salasPrueba = [
+        {
+          id: 1,
+          nombre: "Sala Principal",
+          descripcion: "Sala principal del museo",
+          _count: { murales: 5, colaboradores: 2 },
+        },
+        {
+          id: 2,
+          nombre: "Sala Contemporánea",
+          descripcion: "Obras de arte contemporáneo",
+          _count: { murales: 3, colaboradores: 1 },
+        },
+        {
+          id: 3,
+          nombre: "Sala Digital",
+          descripcion: "Arte digital y multimedia",
+          _count: { murales: 4, colaboradores: 3 },
+        },
+      ];
+
+      return new Response(
+        JSON.stringify({
+          salas: salasPrueba,
+          estadisticas: {
+            total: salasPrueba.length,
+            totalMurales: 12,
+            totalColaboradores: 6,
+            salasConMurales: 3,
+          },
+          filtros: {
+            ownerId: ownerId || null,
+          },
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
     return new Response(
       JSON.stringify({
         salas,

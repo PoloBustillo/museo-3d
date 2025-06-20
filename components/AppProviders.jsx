@@ -1,5 +1,5 @@
 "use client";
-import { SessionProvider } from "next-auth/react";
+import { SessionProvider } from "../providers/SessionProvider";
 import { ThemeProvider } from "../providers/ThemeProvider";
 import { UserProvider } from "../providers/UserProvider";
 import { ModalProvider } from "../providers/ModalProvider";
@@ -10,6 +10,7 @@ import { DeviceProvider } from "../providers/DeviceProvider";
 import { CollectionProvider } from "../providers/CollectionProvider";
 import AuthModal from "./AuthModal";
 import { ModalWrapper } from "./ui/Modal";
+import SessionIndicator from "./SessionIndicator";
 
 export default function AppProviders({ children }) {
   return (
@@ -237,7 +238,112 @@ export default function AppProviders({ children }) {
                           </div>
                         )}
                       </ModalWrapper>
+
+                      {/* Modal de información de sesión */}
+                      <ModalWrapper
+                        modalName="session-info-modal"
+                        title="Información de Sesión"
+                        size="lg"
+                      >
+                        {(data) => (
+                          <div className="space-y-6">
+                            {data?.session && (
+                              <>
+                                <div className="flex items-center gap-4">
+                                  <div className="text-4xl">⏱️</div>
+                                  <div>
+                                    <h3 className="text-xl font-semibold text-gray-900">
+                                      Información de Sesión
+                                    </h3>
+                                    <p className="text-gray-600">
+                                      Detalles de tu sesión actual
+                                    </p>
+                                  </div>
+                                </div>
+
+                                <div className="bg-gray-50 p-4 rounded-lg">
+                                  <h4 className="font-medium text-gray-900 mb-3">
+                                    Datos de Sesión
+                                  </h4>
+                                  <div className="space-y-2 text-sm">
+                                    <p>
+                                      <span className="font-medium">
+                                        Proveedor:
+                                      </span>{" "}
+                                      {data.session.provider || "N/A"}
+                                    </p>
+                                    <p>
+                                      <span className="font-medium">Tipo:</span>{" "}
+                                      {data.session.type || "N/A"}
+                                    </p>
+                                    <p>
+                                      <span className="font-medium">
+                                        Creada:
+                                      </span>{" "}
+                                      {data.session.created
+                                        ? new Date(
+                                            data.session.created
+                                          ).toLocaleString("es-ES")
+                                        : "N/A"}
+                                    </p>
+                                    <p>
+                                      <span className="font-medium">
+                                        Expira:
+                                      </span>{" "}
+                                      {data.session.expires
+                                        ? new Date(
+                                            data.session.expires
+                                          ).toLocaleString("es-ES")
+                                        : "N/A"}
+                                    </p>
+                                    <p>
+                                      <span className="font-medium">
+                                        Actualizada:
+                                      </span>{" "}
+                                      {data.session.updatedAt
+                                        ? new Date(
+                                            data.session.updatedAt
+                                          ).toLocaleString("es-ES")
+                                        : "N/A"}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {data?.user && (
+                                  <div className="bg-blue-50 p-4 rounded-lg">
+                                    <h4 className="font-medium text-blue-900 mb-3">
+                                      Usuario de Sesión
+                                    </h4>
+                                    <div className="space-y-2 text-sm">
+                                      <p>
+                                        <span className="font-medium">
+                                          Nombre:
+                                        </span>{" "}
+                                        {data.user.name || "N/A"}
+                                      </p>
+                                      <p>
+                                        <span className="font-medium">
+                                          Email:
+                                        </span>{" "}
+                                        {data.user.email || "N/A"}
+                                      </p>
+                                      <p>
+                                        <span className="font-medium">
+                                          Imagen:
+                                        </span>{" "}
+                                        {data.user.image ? "Sí" : "No"}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </ModalWrapper>
                     </CollectionProvider>
+                    {/* Indicador de sesión global */}
+                    <SessionIndicator />
                   </DeviceProvider>
                 </GalleryProvider>
               </SoundProvider>
