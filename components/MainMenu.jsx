@@ -330,22 +330,28 @@ export default function MainMenu({ onSubirArchivo }) {
                   <NavigationMenuItem>
                     <NavigationMenuTrigger className="flex items-center gap-2 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
                       <img
-                        src={user?.image || "/assets/default-avatar.svg"}
-                        alt={user?.name || "Usuario"}
+                        src={
+                          userProfile?.image ||
+                          user?.image ||
+                          "/assets/default-avatar.svg"
+                        }
+                        alt={userProfile?.name || user?.name || "Usuario"}
                         className="w-8 h-8 rounded-full object-cover border-2 border-primary/20"
                         onError={(e) => {
                           e.target.src = "/assets/default-avatar.svg";
                         }}
                       />
                       <span className="hidden md:inline text-sm font-medium">
-                        {user?.name || user?.email?.split("@")[0]}
+                        {userProfile?.name ||
+                          user?.name ||
+                          user?.email?.split("@")[0]}
                       </span>
                     </NavigationMenuTrigger>
                     <NavigationMenuContent className="bg-card p-4 rounded-lg shadow-lg border min-w-[180px]">
                       <div className="flex flex-col gap-2">
                         <div className="px-3 py-2 border-b border-border">
                           <p className="text-sm font-medium text-foreground">
-                            {user?.name || "Usuario"}
+                            {userProfile?.name || user?.name || "Usuario"}
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {user?.email}
@@ -720,8 +726,12 @@ export default function MainMenu({ onSubirArchivo }) {
                   <div className="space-y-3">
                     <div className="flex items-center gap-3 py-2">
                       <img
-                        src={user?.image || "/assets/default-avatar.svg"}
-                        alt={user?.name || "Usuario"}
+                        src={
+                          userProfile?.image ||
+                          user?.image ||
+                          "/assets/default-avatar.svg"
+                        }
+                        alt={userProfile?.name || user?.name || "Usuario"}
                         className="w-10 h-10 rounded-full object-cover border-2 border-primary/20"
                         onError={(e) => {
                           e.target.src = "/assets/default-avatar.svg";
@@ -729,7 +739,7 @@ export default function MainMenu({ onSubirArchivo }) {
                       />
                       <div>
                         <p className="text-sm font-medium">
-                          {user?.name || "Usuario"}
+                          {userProfile?.name || user?.name || "Usuario"}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {user?.email}

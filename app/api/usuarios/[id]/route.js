@@ -133,6 +133,11 @@ export async function PUT(req, context) {
     const params = await context.params;
     const { id } = params;
 
+    console.log("🔄 PUT /api/usuarios/[id]: Updating user", {
+      id,
+      sessionUser: session?.user?.email,
+    });
+
     if (!session || !session.user) {
       return new Response(JSON.stringify({ error: "No autorizado" }), {
         status: 401,
@@ -149,6 +154,7 @@ export async function PUT(req, context) {
     }
 
     const data = await req.json();
+    console.log("📊 PUT /api/usuarios/[id]: Update data received", data);
 
     // Preparar datos de actualización
     const updateData = {};
@@ -169,6 +175,8 @@ export async function PUT(req, context) {
       }
     }
 
+    console.log("🔄 PUT /api/usuarios/[id]: Update data to save", updateData);
+
     const usuario = await prisma.user.update({
       where: { id },
       data: updateData,
@@ -183,6 +191,11 @@ export async function PUT(req, context) {
       },
     });
 
+    console.log(
+      "✅ PUT /api/usuarios/[id]: User updated successfully",
+      usuario
+    );
+
     return new Response(
       JSON.stringify({
         message: "Usuario actualizado exitosamente",
@@ -190,11 +203,18 @@ export async function PUT(req, context) {
       }),
       {
         status: 200,
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control":
+            "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+          "Surrogate-Control": "no-store",
+        },
       }
     );
   } catch (error) {
-    console.error("Error al actualizar usuario:", error);
+    console.error("❌ PUT /api/usuarios/[id]: Error updating user:", error);
     return new Response(
       JSON.stringify({
         error: "Error interno del servidor al actualizar el usuario",

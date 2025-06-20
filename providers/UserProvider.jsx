@@ -8,6 +8,7 @@ export function UserProvider({ children }) {
   const { data: session, status } = useSession();
   const [userProfile, setUserProfile] = useState(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [userName, setUserName] = useState("");
 
   // Cargar perfil del usuario cuando la sesión esté disponible
   useEffect(() => {
@@ -18,17 +19,26 @@ export function UserProvider({ children }) {
     }
   }, [session?.user?.email, status]);
 
+  useEffect(() => {
+    if (userProfile?.name) {
+      setUserName(userProfile.name);
+    } else if (session?.user?.name) {
+      setUserName(session.user.name);
+    }
+  }, [userProfile?.name, session?.user?.name]);
+
   const loadUserProfile = async (email) => {
     if (!email) return;
 
+    setUserProfile(null); // Limpiar antes de cargar
     setIsLoadingProfile(true);
     try {
       const response = await fetch(
-        `/api/usuarios/email/${encodeURIComponent(email)}`
+        `/api/usuarios/email/${encodeURIComponent(email)}?t=${Date.now()}` // Forzar no-cache
       );
       if (response.ok) {
         const userData = await response.json();
-        setUserProfile(userData);
+        setUserProfile(userData.user); // Solo guardar el objeto user
       } else {
         console.error("Error loading user profile:", response.statusText);
         setUserProfile(null);
@@ -90,6 +100,7 @@ export function UserProvider({ children }) {
         // Datos básicos
         user: session?.user,
         userProfile,
+        userName,
         status,
 
         // Estados de carga

@@ -8,6 +8,8 @@ export async function GET(req, context) {
     const params = await context.params;
     const { email } = params;
 
+    console.log("🔄 GET /api/usuarios/email/[email]: Querying user", { email });
+
     if (!email) {
       return new Response(
         JSON.stringify({
@@ -25,6 +27,11 @@ export async function GET(req, context) {
     const { searchParams } = new URL(req.url);
     const includePassword = searchParams.get("includePassword") === "true";
 
+    console.log(
+      "🔄 GET /api/usuarios/email/[email]: Querying database for email:",
+      email
+    );
+
     const usuario = await prisma.user.findUnique({
       where: { email },
       select: {
@@ -39,20 +46,36 @@ export async function GET(req, context) {
       },
     });
 
-    return new Response(
-      JSON.stringify({
-        email,
-        available: !usuario,
-        exists: !!usuario,
-        user: usuario || null,
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
+    console.log(
+      "📊 GET /api/usuarios/email/[email]: Database result:",
+      usuario
     );
+
+    const response = {
+      email,
+      available: !usuario,
+      exists: !!usuario,
+      user: usuario || null,
+    };
+
+    console.log(
+      "📤 GET /api/usuarios/email/[email]: Sending response:",
+      response
+    );
+
+    return new Response(JSON.stringify(response), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control":
+          "no-store, no-cache, must-revalidate, proxy-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
+        "Surrogate-Control": "no-store",
+      },
+    });
   } catch (error) {
-    console.error("Error al verificar email:", error);
+    console.error("❌ GET /api/usuarios/email/[email]: Error:", error);
     return new Response(
       JSON.stringify({
         error: "Error interno del servidor al verificar email",

@@ -360,7 +360,11 @@ export default function MisDocumentos() {
       // Información del usuario
       pdf.setFontSize(12);
       pdf.setFont("helvetica", "normal");
-      pdf.text(`Usuario: ${session?.user?.name || "Usuario"}`, margin, 45);
+      pdf.text(
+        `Usuario: ${userProfile?.name || session?.user?.name || "Usuario"}`,
+        margin,
+        45
+      );
       pdf.text(`Total de obras: ${filteredCollection.length}`, margin, 55);
       pdf.text(
         `Fecha de exportación: ${new Date().toLocaleDateString("es-ES")}`,
@@ -602,7 +606,7 @@ export default function MisDocumentos() {
                 {userProfile && (
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-sm text-gray-500">
-                      Usuario: {user?.name || user?.email}
+                      Usuario: {userProfile?.name || user?.name || user?.email}
                     </span>
                     {userProfile.roles && (
                       <div className="flex gap-1">

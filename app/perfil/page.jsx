@@ -693,6 +693,10 @@ function PerfilContent() {
         error: "Error al actualizar el perfil",
       }
     );
+    // Forzar recarga del perfil en el contexto global y esperar a que termine
+    if (typeof loadUserProfile === "function" && session?.user?.email) {
+      await loadUserProfile(session.user.email);
+    }
     setEditMode(false);
     setUpdating(false);
   }

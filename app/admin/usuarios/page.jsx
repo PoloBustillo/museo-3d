@@ -25,7 +25,8 @@ export default function AdminUsuariosPage() {
                 </p>
                 <div className="flex items-center gap-2 mt-2">
                   <span className="text-sm text-gray-500">
-                    Administrador: {user?.name || user?.email}
+                    Administrador:{" "}
+                    {userProfile?.name || user?.name || user?.email}
                   </span>
                   <span className="text-xs px-2 py-1 rounded-full bg-red-100 text-red-800">
                     {getUserRole()}
