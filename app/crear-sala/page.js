@@ -5,9 +5,11 @@ import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
-import toast, { Toaster } from "react-hot-toast";
 import { motion } from "framer-motion";
 import { useAuth } from "../hooks/useAuth";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useToast } from "../../components/ui/toast";
 
 const schema = yup.object().shape({
   nombre: yup.string().required("El nombre de la sala es obligatorio"),
@@ -16,6 +18,9 @@ const schema = yup.object().shape({
 
 export default function CrearSala() {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { data: session } = useSession();
+  const router = useRouter();
+  const { toast } = useToast();
   const {
     register,
     handleSubmit,
@@ -43,8 +48,9 @@ export default function CrearSala() {
   const [loadingSalas, setLoadingSalas] = useState(false);
   const [murales, setMurales] = useState([]);
   const [loadingMurales, setLoadingMurales] = useState(false);
+  const [selectedMurales, setSelectedMurales] = useState([]);
 
-  const selectedMurales = watch("murales") || [];
+  const watchedMurales = watch("murales");
 
   const onDrop = useCallback(
     (acceptedFiles) => {
@@ -82,68 +88,13 @@ export default function CrearSala() {
     return res.json();
   };
 
-  // Crear sala y asociar murales
-  const onSubmit = async (data) => {
-    if (!isAuthenticated || !user?.id) {
+  useEffect(() => {
+    if (!session) {
       toast.error("Debes iniciar sesión para crear una sala");
+      router.push("/");
       return;
     }
-    try {
-      // Subir murales nuevos primero
-      let nuevosMuralesIds = [];
-      for (const file of files) {
-        const muralData = { ...muralForm, imagen: file, nombre: file.name };
-        const mural = await uploadMural(muralData);
-        nuevosMuralesIds.push(mural.id);
-      }
-      // Combinar con murales seleccionados existentes
-      const allMurales = [...(data.murales || []), ...nuevosMuralesIds];
-      // Crear sala
-      const response = await fetch("/api/salas", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nombre: data.nombre,
-          ownerId: user.id,
-          murales: allMurales,
-        }),
-      });
-      if (response.ok) {
-        toast.success("¡Sala creada exitosamente!");
-        reset();
-        setFiles([]);
-        setMuralForm({
-          nombre: "",
-          tecnica: "",
-          anio: "",
-          autor: "",
-          imagen: null,
-        });
-        if (view === "mis-salas") setView("mis-salas");
-      } else {
-        const errorData = await response.json();
-        toast.error(errorData.message || "Error al crear la sala");
-      }
-    } catch (error) {
-      toast.error("Error al crear la sala o subir murales");
-    }
-  };
-
-  // Función para agregar o quitar murales a una sala existente
-  const addMuralesToSala = async (salaId, muralesIds) => {
-    try {
-      const response = await fetch(`/api/salas/${salaId}/murales`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ murales: muralesIds }),
-      });
-      if (!response.ok)
-        throw new Error("Error al actualizar murales de la sala");
-      toast.success("Murales actualizados en la sala");
-    } catch (error) {
-      toast.error("Error al actualizar murales en la sala");
-    }
-  };
+  }, [session, router, toast]);
 
   // Cargar murales disponibles
   useEffect(() => {
@@ -162,21 +113,95 @@ export default function CrearSala() {
       }
     };
     fetchMurales();
-  }, []);
+  }, [toast]);
 
   // Alternar selección de murales existentes
   const handleMuralToggle = (muralId) => {
     const currentMurales = selectedMurales || [];
     const isSelected = currentMurales.includes(muralId);
     if (isSelected) {
-      setValue(
-        "murales",
-        currentMurales.filter((id) => id !== muralId)
-      );
+      const newMurales = currentMurales.filter((id) => id !== muralId);
+      setSelectedMurales(newMurales);
+      setValue("murales", newMurales);
     } else {
-      setValue("murales", [...currentMurales, muralId]);
+      const newMurales = [...currentMurales, muralId];
+      setSelectedMurales(newMurales);
+      setValue("murales", newMurales);
     }
   };
+
+  const onSubmit = async (data) => {
+    if (!session?.user?.id) {
+      toast.error("Debes iniciar sesión para crear una sala");
+      return;
+    }
+
+    setLoadingSalas(true);
+    try {
+      // Crear la sala
+      const response = await fetch("/api/salas", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nombre: data.nombre,
+          descripcion: data.descripcion,
+          publica: data.publica || false,
+          creadorId: session.user.id,
+          murales: selectedMurales,
+          colaboradores: [],
+        }),
+      });
+
+      if (response.ok) {
+        const salaData = await response.json();
+        toast.success("Sala creada exitosamente");
+
+        // Si hay murales seleccionados, agregarlos a la sala
+        if (selectedMurales.length > 0) {
+          const muralResponse = await fetch(
+            `/api/salas/${salaData.id}/murales`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                murales: selectedMurales,
+              }),
+            }
+          );
+
+          if (muralResponse.ok) {
+            toast.success(
+              `${selectedMurales.length} murales agregados a la sala`
+            );
+          }
+        }
+
+        router.push(`/museo`);
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || "Error al crear la sala");
+      }
+    } catch (error) {
+      console.error("Error creating sala:", error);
+      toast.error("Error de conexión");
+    } finally {
+      setLoadingSalas(false);
+    }
+  };
+
+  if (!session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col items-center py-8">
@@ -222,7 +247,7 @@ export default function CrearSala() {
                   }`}
                   onClick={() => handleMuralToggle(mural.id)}
                 >
-                  {mural.nombre}
+                  {mural.titulo}
                 </button>
               ))}
             </div>
@@ -362,7 +387,7 @@ export default function CrearSala() {
                         key={mural.id}
                         className="inline-block bg-indigo-100 text-indigo-800 px-2 py-1 rounded text-xs font-semibold shadow-sm"
                       >
-                        {mural.nombre}
+                        {mural.titulo}
                       </span>
                     ))}
                   </div>
@@ -400,7 +425,7 @@ export default function CrearSala() {
                                 await addMuralesToSala(sala.id, nuevosMurales);
                               }}
                             >
-                              {mural.nombre}
+                              {mural.titulo}
                             </button>
                           );
                         })}

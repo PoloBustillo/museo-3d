@@ -1,159 +1,14 @@
 "use client";
-import { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { useSession } from "next-auth/react";
 
 const CollectionContext = createContext();
-
-export function CollectionProvider({ children }) {
-  const { data: session, status } = useSession();
-  const [collection, setCollection] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [lastSync, setLastSync] = useState(null);
-
-  // Cargar colección desde la API al iniciar sesión
-  useEffect(() => {
-    if (status === "authenticated" && session?.user?.id) {
-      loadCollectionFromAPI();
-    } else if (status === "unauthenticated") {
-      // Cargar de localStorage si no hay sesión
-      loadCollectionFromLocalStorage();
-    }
-  }, [status, session?.user?.id]);
-
-  // Función para cargar desde la API
-  const loadCollectionFromAPI = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch("/api/collection");
-
-      if (response.ok) {
-        const data = await response.json();
-        setCollection(data);
-        setLastSync(new Date());
-
-        // También guardar en localStorage como caché
-        localStorage.setItem("collection", JSON.stringify(data));
-        localStorage.setItem("collection_last_sync", new Date().toISOString());
-      } else {
-        console.error("Error al cargar colección desde API:", response.status);
-        // Fallback a localStorage si la API falla
-        loadCollectionFromLocalStorage();
-      }
-    } catch (error) {
-      console.error("Error al cargar colección:", error);
-      // Fallback a localStorage si hay error de red
-      loadCollectionFromLocalStorage();
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Función para cargar desde localStorage
-  const loadCollectionFromLocalStorage = () => {
-    try {
-      const stored = localStorage.getItem("collection");
-      if (stored) {
-        const data = JSON.parse(stored);
-        setCollection(data);
-        setLastSync(
-          new Date(localStorage.getItem("collection_last_sync") || Date.now())
-        );
-      }
-    } catch (error) {
-      console.error("Error al cargar colección desde localStorage:", error);
-      setCollection([]);
-    }
-  };
-
-  // Función para guardar en la API
-  const saveCollectionToAPI = async (newCollection) => {
-    if (status !== "authenticated" || !session?.user?.id) {
-      return false;
-    }
-
-    try {
-      const response = await fetch("/api/collection", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newCollection),
-      });
-
-      if (response.ok) {
-        setLastSync(new Date());
-        localStorage.setItem("collection_last_sync", new Date().toISOString());
-        return true;
-      } else {
-        console.error("Error al guardar colección en API:", response.status);
-        return false;
-      }
-    } catch (error) {
-      console.error("Error al guardar colección:", error);
-      return false;
-    }
-  };
-
-  // Función para actualizar la colección
-  const updateCollection = async (newCollection) => {
-    setCollection(newCollection);
-
-    // Guardar en localStorage inmediatamente
-    localStorage.setItem("collection", JSON.stringify(newCollection));
-
-    // Intentar guardar en la API (asíncrono)
-    if (status === "authenticated") {
-      saveCollectionToAPI(newCollection);
-    }
-  };
-
-  // Función para agregar una obra
-  const addToCollection = async (artwork) => {
-    const newCollection = [
-      ...collection,
-      {
-        ...artwork,
-        id: Date.now().toString(),
-        addedAt: new Date().toISOString(),
-      },
-    ];
-    await updateCollection(newCollection);
-  };
-
-  // Función para remover una obra
-  const removeFromCollection = async (artworkId) => {
-    const newCollection = collection.filter((item) => item.id !== artworkId);
-    await updateCollection(newCollection);
-  };
-
-  // Función para limpiar la colección
-  const clearCollection = async () => {
-    await updateCollection([]);
-  };
-
-  // Función para sincronizar manualmente
-  const syncCollection = async () => {
-    if (status === "authenticated") {
-      await loadCollectionFromAPI();
-    }
-  };
-
-  return (
-    <CollectionContext.Provider
-      value={{
-        collection,
-        setCollection: updateCollection,
-        addToCollection,
-        removeFromCollection,
-        clearCollection,
-        syncCollection,
-        isLoading,
-        lastSync,
-        isAuthenticated: status === "authenticated",
-      }}
-    >
-      {children}
-    </CollectionContext.Provider>
-  );
-}
 
 export const useCollection = () => {
   const context = useContext(CollectionContext);
@@ -161,4 +16,180 @@ export const useCollection = () => {
     throw new Error("useCollection must be used within a CollectionProvider");
   }
   return context;
+};
+
+export const CollectionProvider = ({ children }) => {
+  const { data: session } = useSession();
+  const [collection, setCollection] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  // Cargar colección del usuario
+  const loadCollection = useCallback(async () => {
+    if (!session?.user?.id) {
+      setCollection([]);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/collection");
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setCollection(data.items || []);
+    } catch (err) {
+      console.error("Error loading collection:", err);
+      setError(err.message);
+      setCollection([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [session?.user?.id]);
+
+  // Agregar obra a la colección
+  const addToCollection = useCallback(
+    async (artworkId, artworkType = "mural", artworkData = {}) => {
+      if (!session?.user?.id) {
+        throw new Error(
+          "Debes iniciar sesión para agregar obras a tu colección"
+        );
+      }
+
+      try {
+        const response = await fetch("/api/collection", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            artworkId: artworkId.toString(),
+            artworkType,
+            artworkData: {
+              id: artworkId,
+              type: artworkType,
+              addedAt: new Date().toISOString(),
+              ...artworkData,
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || "Error al agregar obra a la colección"
+          );
+        }
+
+        const result = await response.json();
+
+        // Actualizar la colección local
+        setCollection((prev) => [...prev, result.item]);
+
+        return result;
+      } catch (error) {
+        console.error("Error adding to collection:", error);
+        throw error;
+      }
+    },
+    [session?.user?.id]
+  );
+
+  // Remover obra de la colección
+  const removeFromCollection = useCallback(
+    async (itemId) => {
+      if (!session?.user?.id) {
+        throw new Error("Debes iniciar sesión para modificar tu colección");
+      }
+
+      try {
+        const response = await fetch(`/api/collection?itemId=${itemId}`, {
+          method: "DELETE",
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(
+            errorData.message || "Error al remover obra de la colección"
+          );
+        }
+
+        // Actualizar la colección local
+        setCollection((prev) => prev.filter((item) => item.id !== itemId));
+
+        return await response.json();
+      } catch (error) {
+        console.error("Error removing from collection:", error);
+        throw error;
+      }
+    },
+    [session?.user?.id]
+  );
+
+  // Verificar si una obra está en la colección
+  const isInCollection = useCallback(
+    (artworkId) => {
+      return collection.some((item) => item.artworkId === artworkId.toString());
+    },
+    [collection]
+  );
+
+  // Obtener estadísticas de la colección
+  const getCollectionStats = useCallback(() => {
+    if (collection.length === 0) {
+      return {
+        totalItems: 0,
+        byType: {},
+        oldestItem: null,
+        newestItem: null,
+      };
+    }
+
+    const byType = collection.reduce((acc, item) => {
+      const type = item.artworkType || "unknown";
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {});
+
+    const sortedByDate = collection
+      .map((item) => ({
+        ...item,
+        addedAt: new Date(item.addedAt || item.createdAt),
+      }))
+      .sort((a, b) => a.addedAt - b.addedAt);
+
+    return {
+      totalItems: collection.length,
+      byType,
+      oldestItem: sortedByDate[0] || null,
+      newestItem: sortedByDate[sortedByDate.length - 1] || null,
+    };
+  }, [collection]);
+
+  // Cargar colección cuando cambie la sesión
+  useEffect(() => {
+    loadCollection();
+  }, [loadCollection]);
+
+  const value = {
+    collection,
+    loading,
+    error,
+    addToCollection,
+    removeFromCollection,
+    isInCollection,
+    getCollectionStats,
+    refreshCollection: loadCollection,
+  };
+
+  return (
+    <CollectionContext.Provider value={value}>
+      {children}
+    </CollectionContext.Provider>
+  );
 };

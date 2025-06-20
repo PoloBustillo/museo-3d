@@ -1,0 +1,334 @@
+{
+  "info": {
+    "name": "Museo 3D - API Completa v5.0",
+    "description": "Colección completa con APIs de artistas, autenticación Bearer Token y endpoints actualizados",
+    "version": "5.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3002",
+      "type": "string"
+    },
+    {
+      "key": "auth_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT token obtenido del login"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Autenticación",
+      "description": "Endpoints para obtener token de autenticación",
+      "item": [
+        {
+          "name": "📋 Obtener Session (para obtener token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has session data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('user');",
+                  "});",
+                  "",
+                  "// Extraer token si está disponible",
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    if (jsonData.user && jsonData.user.id) {",
+                  "        pm.environment.set('user_id', jsonData.user.id);",
+                  "        console.log('User ID:', jsonData.user.id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/session",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "session"]
+            },
+            "description": "Obtiene la sesión actual del usuario (requiere cookies de login)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🎨 Artistas",
+      "description": "Endpoints para gestionar artistas",
+      "item": [
+        {
+          "name": "📋 Obtener todos los artistas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has artists array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('artists');",
+                  "    pm.expect(jsonData.artists).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/artists",
+              "host": ["{{base_url}}"],
+              "path": ["api", "artists"]
+            },
+            "description": "Obtiene todos los artistas (no requiere autenticación)"
+          }
+        },
+        {
+          "name": "🆕 Crear artista",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has artist data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('artist');",
+                  "    pm.expect(jsonData.artist).to.have.property('id');",
+                  "});",
+                  "",
+                  "// Guardar ID para uso posterior",
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.environment.set('created_artist_id', jsonData.artist.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"bio\": \"Artista urbano especializado en murales comunitarios\",\n  \"website\": \"https://ejemplo.com\",\n  \"instagram\": \"@artista_ejemplo\",\n  \"especialidad\": \"Muralismo urbano\",\n  \"experiencia\": \"5 años\",\n  \"formacion\": \"Escuela de Bellas Artes\",\n  \"premios\": \"Premio Nacional de Muralismo 2023\",\n  \"exposiciones\": \"Exposición Colectiva CCU 2024\",\n  \"publicaciones\": \"Catálogo ARPA 2024\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/artists",
+              "host": ["{{base_url}}"],
+              "path": ["api", "artists"]
+            },
+            "description": "Crea un nuevo artista (requiere autenticación)"
+          }
+        },
+        {
+          "name": "🔍 Obtener artista por ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has artist data\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('id');",
+                  "    pm.expect(jsonData).to.have.property('user');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/artists/{{created_artist_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "artists", "{{created_artist_id}}"]
+            },
+            "description": "Obtiene un artista específico por su ID"
+          }
+        },
+        {
+          "name": "✏️ Actualizar artista",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bio\": \"Artista urbano actualizado con nueva información\",\n  \"website\": \"https://nuevo-ejemplo.com\",\n  \"instagram\": \"@artista_actualizado\",\n  \"especialidad\": \"Muralismo contemporáneo\",\n  \"experiencia\": \"7 años\",\n  \"premios\": \"Premio Nacional de Muralismo 2023, Mención Honorífica 2024\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/artists/{{created_artist_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "artists", "{{created_artist_id}}"]
+            },
+            "description": "Actualiza un artista existente (requiere autenticación)"
+          }
+        },
+        {
+          "name": "🗑️ Eliminar artista",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/artists/{{created_artist_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "artists", "{{created_artist_id}}"]
+            },
+            "description": "Elimina un artista (solo admin)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🎨 Murales (Actualizado)",
+      "description": "Endpoints para gestionar murales con relación a artistas",
+      "item": [
+        {
+          "name": "📋 Obtener todos los murales",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test(\"Response has murales array\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('murales');",
+                  "    pm.expect(jsonData.murales).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/murales",
+              "host": ["{{base_url}}"],
+              "path": ["api", "murales"]
+            },
+            "description": "Obtiene todos los murales con información de artistas"
+          }
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Script global que se ejecuta antes de cada request",
+          "console.log('🚀 Ejecutando request a:', pm.request.url.toString());",
+          "",
+          "// Agregar timestamp para debugging",
+          "pm.environment.set('timestamp', new Date().toISOString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Script global que se ejecuta después de cada response",
+          "console.log('✅ Response recibida en:', pm.environment.get('timestamp'));",
+          "console.log('📊 Status:', pm.response.status, pm.response.code);",
+          "",
+          "// Log de errores si el status no es exitoso",
+          "if (pm.response.code >= 400) {",
+          "    console.error('❌ Error detectado:', pm.response.text());",
+          "}"
+        ]
+      }
+    }
+  ]
+}

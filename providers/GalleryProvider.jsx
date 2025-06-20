@@ -1,166 +1,157 @@
 "use client";
-import { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback } from "react";
 
 const GalleryContext = createContext();
-
-export function GalleryProvider({ children }) {
-  const [room, setRoom] = useState(null);
-  const [artworks, setArtworks] = useState([]);
-  const [selectedArtwork, setSelectedArtwork] = useState(null);
-  const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-  const [imageModalPosition, setImageModalPosition] = useState({ x: 0, y: 0 });
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [galleryView, setGalleryView] = useState("grid"); // 'grid', 'list', 'carousel'
-
-  // Abrir modal de imagen
-  const openImageModal = useCallback((artwork, index = 0, position = null) => {
-    console.log("GalleryProvider: Abriendo modal", {
-      artwork,
-      index,
-      position,
-    });
-    setSelectedArtwork(artwork);
-    setCurrentImageIndex(index);
-    if (position) {
-      setImageModalPosition(position);
-    } else {
-      // Centrar en la pantalla
-      setImageModalPosition({
-        x: window.innerWidth / 2,
-        y: window.innerHeight / 2,
-      });
-    }
-    setIsImageModalOpen(true);
-    // Bloquear scroll del body
-    document.body.style.overflow = "hidden";
-  }, []);
-
-  // Cerrar modal de imagen
-  const closeImageModal = useCallback(() => {
-    console.log("GalleryProvider: Cerrando modal");
-    setIsImageModalOpen(false);
-    setSelectedArtwork(null);
-    setCurrentImageIndex(0);
-    // Restaurar scroll del body
-    document.body.style.overflow = "unset";
-  }, []);
-
-  // Navegar entre imágenes
-  const navigateImage = useCallback(
-    (direction) => {
-      if (!artworks.length) return;
-
-      let newIndex;
-      if (direction === "next") {
-        newIndex = (currentImageIndex + 1) % artworks.length;
-      } else {
-        newIndex =
-          currentImageIndex === 0 ? artworks.length - 1 : currentImageIndex - 1;
-      }
-
-      setCurrentImageIndex(newIndex);
-      setSelectedArtwork(artworks[newIndex]);
-    },
-    [artworks, currentImageIndex]
-  );
-
-  // Cargar obras de arte para una sala
-  const loadArtworksForRoom = useCallback(async (roomId) => {
-    try {
-      const response = await fetch(`/api/salas/${roomId}/murales`);
-      if (response.ok) {
-        const data = await response.json();
-        setArtworks(data);
-        setRoom({ id: roomId, artworks: data });
-      }
-    } catch (error) {
-      console.error("Error loading artworks for room:", error);
-    }
-  }, []);
-
-  // Filtrar obras de arte
-  const filterArtworks = useCallback(
-    (filters) => {
-      let filtered = [...artworks];
-
-      if (filters.artist) {
-        filtered = filtered.filter((artwork) =>
-          artwork.artista?.toLowerCase().includes(filters.artist.toLowerCase())
-        );
-      }
-
-      if (filters.technique) {
-        filtered = filtered.filter((artwork) =>
-          artwork.tecnica
-            ?.toLowerCase()
-            .includes(filters.technique.toLowerCase())
-        );
-      }
-
-      if (filters.year) {
-        filtered = filtered.filter((artwork) =>
-          artwork.año?.toString().includes(filters.year)
-        );
-      }
-
-      return filtered;
-    },
-    [artworks]
-  );
-
-  // Obtener estadísticas de la galería
-  const getGalleryStats = useCallback(() => {
-    const totalArtworks = artworks.length;
-    const artists = [...new Set(artworks.map((artwork) => artwork.artista))];
-    const techniques = [...new Set(artworks.map((artwork) => artwork.tecnica))];
-    const years = artworks.map((artwork) => artwork.año).filter((year) => year);
-
-    return {
-      totalArtworks,
-      uniqueArtists: artists.length,
-      uniqueTechniques: techniques.length,
-      oldestYear: years.length > 0 ? Math.min(...years) : null,
-      newestYear: years.length > 0 ? Math.max(...years) : null,
-    };
-  }, [artworks]);
-
-  return (
-    <GalleryContext.Provider
-      value={{
-        // Estado básico
-        room,
-        artworks,
-        selectedArtwork,
-        isImageModalOpen,
-        imageModalPosition,
-        currentImageIndex,
-        galleryView,
-
-        // Setters
-        setRoom,
-        setArtworks,
-        setGalleryView,
-
-        // Funciones de modal
-        openImageModal,
-        closeImageModal,
-        navigateImage,
-
-        // Funciones de galería
-        loadArtworksForRoom,
-        filterArtworks,
-        getGalleryStats,
-      }}
-    >
-      {children}
-    </GalleryContext.Provider>
-  );
-}
 
 export const useGallery = () => {
   const context = useContext(GalleryContext);
   if (!context) {
-    throw new Error("useGallery debe ser usado dentro de un GalleryProvider");
+    throw new Error("useGallery must be used within a GalleryProvider");
   }
   return context;
+};
+
+export const GalleryProvider = ({ children }) => {
+  const [artworks, setArtworks] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const loadArtworksForRoom = useCallback(async (roomId) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/salas/${roomId}/murales`);
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Transformar los datos del nuevo esquema
+      const transformedArtworks = data.murales.map((mural) => ({
+        id: mural.id,
+        title: mural.titulo,
+        artist: mural.artista,
+        technique: mural.tecnica,
+        year: mural.anio,
+        description: mural.descripcion,
+        imageUrl: mural.imagenUrl,
+        imageUrlWebp: mural.imagenUrlWebp,
+        location: mural.ubicacion,
+        dimensions: mural.dimensiones,
+        state: mural.estado,
+        latitude: mural.latitud,
+        longitude: mural.longitud,
+        createdAt: mural.createdAt,
+        updatedAt: mural.updatedAt,
+        // Campos adicionales para compatibilidad
+        url_imagen: mural.imagenUrl,
+        nombre: mural.titulo,
+        autor: mural.artista,
+        medidas: mural.dimensiones,
+      }));
+
+      setArtworks(transformedArtworks);
+    } catch (err) {
+      console.error("Error loading artworks:", err);
+      setError(err.message);
+      setArtworks([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const getGalleryStats = useCallback(() => {
+    if (artworks.length === 0) {
+      return {
+        totalArtworks: 0,
+        uniqueArtists: 0,
+        uniqueTechniques: 0,
+        oldestYear: null,
+        newestYear: null,
+      };
+    }
+
+    const artists = new Set(artworks.map((a) => a.artist).filter(Boolean));
+    const techniques = new Set(
+      artworks.map((a) => a.technique).filter(Boolean)
+    );
+    const years = artworks
+      .map((a) => a.year)
+      .filter(Boolean)
+      .sort((a, b) => a - b);
+
+    return {
+      totalArtworks: artworks.length,
+      uniqueArtists: artists.size,
+      uniqueTechniques: techniques.size,
+      oldestYear: years.length > 0 ? years[0] : null,
+      newestYear: years.length > 0 ? years[years.length - 1] : null,
+    };
+  }, [artworks]);
+
+  const addArtworkToCollection = useCallback(
+    async (artworkId, artworkType = "mural") => {
+      try {
+        const response = await fetch("/api/collection", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            artworkId: artworkId.toString(),
+            artworkType,
+            artworkData: {
+              id: artworkId,
+              type: artworkType,
+              addedAt: new Date().toISOString(),
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to add artwork to collection");
+        }
+
+        return await response.json();
+      } catch (error) {
+        console.error("Error adding artwork to collection:", error);
+        throw error;
+      }
+    },
+    []
+  );
+
+  const removeArtworkFromCollection = useCallback(async (itemId) => {
+    try {
+      const response = await fetch(`/api/collection?itemId=${itemId}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to remove artwork from collection");
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Error removing artwork from collection:", error);
+      throw error;
+    }
+  }, []);
+
+  const value = {
+    artworks,
+    loading,
+    error,
+    loadArtworksForRoom,
+    getGalleryStats,
+    addArtworkToCollection,
+    removeArtworkFromCollection,
+  };
+
+  return (
+    <GalleryContext.Provider value={value}>{children}</GalleryContext.Provider>
+  );
 };

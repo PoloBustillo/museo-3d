@@ -11,16 +11,30 @@ export async function GET(req, context) {
     const mural = await prisma.mural.findUnique({
       where: { id: Number(id) },
       include: {
-        sala: {
-          select: {
-            id: true,
-            nombre: true,
-            ownerId: true,
-            owner: {
+        salas: {
+          include: {
+            sala: {
               select: {
                 id: true,
-                email: true,
-                role: true,
+                nombre: true,
+                descripcion: true,
+                creadorId: true,
+                creador: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                  },
+                },
+                colaboradores: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                  },
+                },
               },
             },
           },
@@ -64,30 +78,65 @@ export async function GET(req, context) {
 export async function PUT(req, context) {
   const params = await context.params;
   const { id } = params;
+
   try {
     const data = await req.json();
-    // data puede incluir cualquier campo del mural
+
     const mural = await prisma.mural.update({
       where: { id: Number(id) },
       data: {
-        nombre: data.nombre,
+        titulo: data.titulo,
+        descripcion: data.descripcion,
+        artista: data.artista,
         tecnica: data.tecnica,
-        anio: data.anio,
+        fechaCreacion: data.fechaCreacion ? new Date(data.fechaCreacion) : null,
         ubicacion: data.ubicacion,
-        url_imagen: data.url_imagen,
-        autor: data.autor,
-        colaboradores: data.colaboradores,
-        medidas: data.medidas,
+        dimensiones: data.dimensiones,
+        estado: data.estado,
+        imagenUrl: data.imagenUrl,
+        imagenUrlWebp: data.imagenUrlWebp,
+        latitud: data.latitud ? parseFloat(data.latitud) : null,
+        longitud: data.longitud ? parseFloat(data.longitud) : null,
+        anio: data.anio ? Number(data.anio) : null,
+      },
+      include: {
+        salas: {
+          include: {
+            sala: {
+              select: {
+                id: true,
+                nombre: true,
+                descripcion: true,
+                creador: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
+
     return new Response(JSON.stringify(mural), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-    });
+    console.error("Error al actualizar mural:", error);
+    return new Response(
+      JSON.stringify({
+        error: "Error interno del servidor al actualizar el mural",
+        details: error.message,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }
 
@@ -95,12 +144,26 @@ export async function PUT(req, context) {
 export async function DELETE(req, context) {
   const params = await context.params;
   const { id } = params;
+
   try {
-    await prisma.mural.delete({ where: { id: Number(id) } });
-    return new Response(null, { status: 204 });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    await prisma.mural.delete({
+      where: { id: Number(id) },
     });
+
+    return new Response(null, {
+      status: 204,
+    });
+  } catch (error) {
+    console.error("Error al eliminar mural:", error);
+    return new Response(
+      JSON.stringify({
+        error: "Error interno del servidor al eliminar el mural",
+        details: error.message,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }

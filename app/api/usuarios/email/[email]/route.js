@@ -2,53 +2,66 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// GET /api/usuarios/email/[email]
-export async function GET(request, { params }) {
+// GET /api/usuarios/email/[email] - Verificar disponibilidad de email
+export async function GET(req, context) {
   try {
-    const { email } = await params;
-    const decodedEmail = decodeURIComponent(email);
+    const params = await context.params;
+    const { email } = params;
 
-    const user = await prisma.user.findUnique({
-      where: { email: decodedEmail },
+    if (!email) {
+      return new Response(
+        JSON.stringify({
+          error: "Email requerido",
+          message: "Debes proporcionar un email para verificar",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Buscar usuario con ese email
+    const { searchParams } = new URL(req.url);
+    const includePassword = searchParams.get("includePassword") === "true";
+
+    const usuario = await prisma.user.findUnique({
+      where: { email },
       select: {
         id: true,
         email: true,
         name: true,
-        image: true,
+        role: true,
         emailVerified: true,
-        creadoEn: true,
-        provider: true,
-        password: true,
-        roles: { select: { role: { select: { name: true } } } },
-        settings: { select: { key: true, value: true } },
+        image: true,
+        settings: true,
+        ...(includePassword && { password: true }),
       },
     });
 
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Usuario no encontrado" }), {
-        status: 404,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    // Formatea los roles y settings para que sean arrays simples
-    const roles = user.roles.map((r) => r.role.name);
-    const settings = Object.fromEntries(
-      user.settings.map((s) => [s.key, s.value])
-    );
-    const { password, ...userWithoutPassword } = user;
     return new Response(
-      JSON.stringify({ ...userWithoutPassword, roles, settings }),
+      JSON.stringify({
+        email,
+        available: !usuario,
+        exists: !!usuario,
+        user: usuario || null,
+      }),
       {
         status: 200,
         headers: { "Content-Type": "application/json" },
       }
     );
   } catch (error) {
-    console.error("Error fetching user by email:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    console.error("Error al verificar email:", error);
+    return new Response(
+      JSON.stringify({
+        error: "Error interno del servidor al verificar email",
+        details: error.message,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }

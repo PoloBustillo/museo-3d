@@ -1012,9 +1012,9 @@ export default function GalleryRoom({
 
   // Usar los murales reales pasados como props
   const artworkImages = murales.map((mural) => ({
-    src: mural.url_imagen,
-    title: mural.nombre,
-    artist: mural.autor || "Autor desconocido",
+    src: mural.imagenUrl,
+    title: mural.titulo,
+    artist: mural.artista || "Artista desconocido",
     year: mural.anio?.toString() || "Sin fecha",
     description: `${
       mural.tecnica || "Técnica mixta"

@@ -7,14 +7,17 @@ export async function GET() {
     const murales = await prisma.mural.findMany({
       select: {
         id: true,
-        nombre: true,
-        autor: true,
+        titulo: true,
+        artista: true,
         tecnica: true,
-        salaId: true,
-        sala: {
+        salas: {
           select: {
-            id: true,
-            nombre: true,
+            sala: {
+              select: {
+                id: true,
+                nombre: true,
+              },
+            },
           },
         },
       },
@@ -32,8 +35,15 @@ export async function GET() {
         murales: murales,
         ids: murales.map((m) => m.id),
         availableForSalas: murales
-          .filter((m) => !m.salaId)
-          .map((m) => ({ id: m.id, nombre: m.nombre })),
+          .filter((m) => m.salas.length === 0)
+          .map((m) => ({ id: m.id, titulo: m.titulo })),
+        muralesConSalas: murales
+          .filter((m) => m.salas.length > 0)
+          .map((m) => ({
+            id: m.id,
+            titulo: m.titulo,
+            salas: m.salas.map((s) => s.sala.nombre),
+          })),
       }),
       {
         status: 200,

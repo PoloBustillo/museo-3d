@@ -6,18 +6,19 @@ const prisma = new PrismaClient();
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
-    const ownerId = searchParams.get("ownerId");
+    const creadorId = searchParams.get("creadorId");
 
     // Construir filtros dinámicamente
     const where = {};
-    if (ownerId) where.ownerId = Number(ownerId);
+    if (creadorId) where.creadorId = creadorId;
 
     const salas = await prisma.sala.findMany({
       where,
       include: {
-        owner: {
+        creador: {
           select: {
             id: true,
+            name: true,
             email: true,
             role: true,
           },
@@ -25,18 +26,42 @@ export async function GET(req) {
         colaboradores: {
           select: {
             id: true,
+            name: true,
             email: true,
             role: true,
           },
         },
         murales: {
-          select: {
-            id: true,
-            nombre: true,
-            autor: true,
-            tecnica: true,
-            anio: true,
-            url_imagen: true,
+          include: {
+            mural: {
+              select: {
+                id: true,
+                titulo: true,
+                autor: true,
+                tecnica: true,
+                anio: true,
+                descripcion: true,
+                url_imagen: true,
+                latitud: true,
+                longitud: true,
+                ubicacion: true,
+                artistId: true,
+                artist: {
+                  select: {
+                    id: true,
+                    bio: true,
+                    especialidad: true,
+                    user: {
+                      select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
           },
         },
         _count: {
@@ -60,55 +85,12 @@ export async function GET(req) {
       salasConMurales: salas.filter((sala) => sala._count.murales > 0).length,
     };
 
-    // Si no hay salas, devolver datos de prueba
-    if (salas.length === 0) {
-      const salasPrueba = [
-        {
-          id: 1,
-          nombre: "Sala Principal",
-          descripcion: "Sala principal del museo",
-          _count: { murales: 5, colaboradores: 2 },
-        },
-        {
-          id: 2,
-          nombre: "Sala Contemporánea",
-          descripcion: "Obras de arte contemporáneo",
-          _count: { murales: 3, colaboradores: 1 },
-        },
-        {
-          id: 3,
-          nombre: "Sala Digital",
-          descripcion: "Arte digital y multimedia",
-          _count: { murales: 4, colaboradores: 3 },
-        },
-      ];
-
-      return new Response(
-        JSON.stringify({
-          salas: salasPrueba,
-          estadisticas: {
-            total: salasPrueba.length,
-            totalMurales: 12,
-            totalColaboradores: 6,
-            salasConMurales: 3,
-          },
-          filtros: {
-            ownerId: ownerId || null,
-          },
-        }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-    }
-
     return new Response(
       JSON.stringify({
         salas,
         estadisticas: stats,
         filtros: {
-          ownerId: ownerId || null,
+          creadorId: creadorId || null,
         },
       }),
       {
@@ -131,7 +113,7 @@ export async function GET(req) {
   }
 }
 
-// POST /api/salas - Crear una nueva sala
+// POST /api/salas - Crear nueva sala
 export async function POST(req) {
   try {
     const data = await req.json();
@@ -150,11 +132,11 @@ export async function POST(req) {
       );
     }
 
-    if (!data.ownerId) {
+    if (!data.creadorId) {
       return new Response(
         JSON.stringify({
           error: "Validación fallida",
-          message: "El ID del propietario es requerido",
+          message: "El ID del creador es requerido",
         }),
         {
           status: 400,
@@ -163,16 +145,16 @@ export async function POST(req) {
       );
     }
 
-    // Verificar que el usuario propietario exista
-    const owner = await prisma.user.findUnique({
-      where: { id: Number(data.ownerId) },
+    // Verificar que el usuario creador exista
+    const creador = await prisma.user.findUnique({
+      where: { id: data.creadorId },
     });
 
-    if (!owner) {
+    if (!creador) {
       return new Response(
         JSON.stringify({
           error: "Usuario no encontrado",
-          message: `No se encontró un usuario con ID ${data.ownerId}`,
+          message: `No se encontró un usuario con ID ${data.creadorId}`,
         }),
         {
           status: 404,
@@ -216,14 +198,14 @@ export async function POST(req) {
     if (data.colaboradores && data.colaboradores.length > 0) {
       const existingColaboradores = await prisma.user.findMany({
         where: {
-          id: { in: data.colaboradores.map((id) => Number(id)) },
+          id: { in: data.colaboradores },
         },
       });
 
       if (existingColaboradores.length !== data.colaboradores.length) {
         const foundIds = existingColaboradores.map((u) => u.id);
         const missingIds = data.colaboradores.filter(
-          (id) => !foundIds.includes(Number(id))
+          (id) => !foundIds.includes(id)
         );
 
         return new Response(
@@ -243,137 +225,81 @@ export async function POST(req) {
       }
     }
 
-    // Crear la sala con manejo de errores mejorado
-    let sala;
-    try {
-      sala = await prisma.sala.create({
-        data: {
-          nombre: data.nombre.trim(),
-          owner: { connect: { id: Number(data.ownerId) } },
-          colaboradores: {
-            connect:
-              data.colaboradores?.map((id) => ({ id: Number(id) })) || [],
-          },
-          murales: {
-            connect: data.murales?.map((id) => ({ id: Number(id) })) || [],
+    // Crear la sala
+    const sala = await prisma.sala.create({
+      data: {
+        nombre: data.nombre,
+        descripcion: data.descripcion || "",
+        publica: data.publica || false,
+        creador: { connect: { id: data.creadorId } },
+        colaboradores: {
+          connect: data.colaboradores?.map((id) => ({ id })) || [],
+        },
+        murales: {
+          create:
+            data.murales?.map((muralId) => ({
+              mural: { connect: { id: Number(muralId) } },
+            })) || [],
+        },
+      },
+      include: {
+        creador: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
           },
         },
-        include: {
-          owner: {
-            select: {
-              id: true,
-              email: true,
-              role: true,
-            },
+        colaboradores: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
           },
-          colaboradores: {
-            select: {
-              id: true,
-              email: true,
-              role: true,
-            },
-          },
-          murales: {
-            select: {
-              id: true,
-              nombre: true,
-              autor: true,
-              tecnica: true,
-              anio: true,
-              url_imagen: true,
-            },
-          },
-          _count: {
-            select: {
-              murales: true,
-              colaboradores: true,
+        },
+        murales: {
+          include: {
+            mural: {
+              select: {
+                id: true,
+                titulo: true,
+                autor: true,
+                tecnica: true,
+                anio: true,
+                descripcion: true,
+                url_imagen: true,
+                latitud: true,
+                longitud: true,
+                ubicacion: true,
+                artistId: true,
+                artist: {
+                  select: {
+                    id: true,
+                    bio: true,
+                    especialidad: true,
+                    user: {
+                      select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                      },
+                    },
+                  },
+                },
+              },
             },
           },
         },
-      });
-    } catch (connectError) {
-      console.error("Error al conectar relaciones:", connectError);
-
-      // Si es un error de registro no encontrado, verificar qué falló
-      if (connectError.code === "P2025") {
-        // Re-verificar murales en tiempo real
-        if (data.murales && data.murales.length > 0) {
-          const currentMurales = await prisma.mural.findMany({
-            where: {
-              id: { in: data.murales.map((id) => Number(id)) },
-            },
-          });
-
-          const foundIds = currentMurales.map((m) => m.id);
-          const missingIds = data.murales.filter(
-            (id) => !foundIds.includes(Number(id))
-          );
-
-          if (missingIds.length > 0) {
-            return new Response(
-              JSON.stringify({
-                error: "Error al crear sala - Murales no encontrados",
-                message: `Los siguientes murales no existen al momento de crear la sala: ${missingIds.join(
-                  ", "
-                )}`,
-                found: foundIds,
-                missing: missingIds,
-                totalRequested: data.murales.length,
-                totalFound: foundIds.length,
-              }),
-              {
-                status: 404,
-                headers: { "Content-Type": "application/json" },
-              }
-            );
-          }
-        }
-
-        // Re-verificar colaboradores si el error no fue por murales
-        if (data.colaboradores && data.colaboradores.length > 0) {
-          const currentColaboradores = await prisma.user.findMany({
-            where: {
-              id: { in: data.colaboradores.map((id) => Number(id)) },
-            },
-          });
-
-          const foundIds = currentColaboradores.map((u) => u.id);
-          const missingIds = data.colaboradores.filter(
-            (id) => !foundIds.includes(Number(id))
-          );
-
-          if (missingIds.length > 0) {
-            return new Response(
-              JSON.stringify({
-                error: "Error al crear sala - Colaboradores no encontrados",
-                message: `Los siguientes colaboradores no existen al momento de crear la sala: ${missingIds.join(
-                  ", "
-                )}`,
-                found: foundIds,
-                missing: missingIds,
-              }),
-              {
-                status: 404,
-                headers: { "Content-Type": "application/json" },
-              }
-            );
-          }
-        }
-      }
-
-      return new Response(
-        JSON.stringify({
-          error: "Error al crear sala",
-          message: connectError.message,
-          code: connectError.code,
-          details: "Error interno al establecer las relaciones",
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-    }
+        _count: {
+          select: {
+            murales: true,
+            colaboradores: true,
+          },
+        },
+      },
+    });
 
     return new Response(JSON.stringify(sala), {
       status: 201,
@@ -381,34 +307,6 @@ export async function POST(req) {
     });
   } catch (error) {
     console.error("Error al crear sala:", error);
-
-    // Manejo específico de errores de Prisma
-    if (error.code === "P2002") {
-      return new Response(
-        JSON.stringify({
-          error: "Conflicto de datos",
-          message: "Ya existe una sala con ese nombre para este propietario",
-        }),
-        {
-          status: 409,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    if (error.code === "P2025") {
-      return new Response(
-        JSON.stringify({
-          error: "Datos relacionados no encontrados",
-          message: "Uno o más usuarios/murales especificados no existen",
-        }),
-        {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-    }
-
     return new Response(
       JSON.stringify({
         error: "Error interno del servidor al crear la sala",

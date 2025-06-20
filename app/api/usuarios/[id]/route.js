@@ -1,116 +1,275 @@
 import { PrismaClient } from "@prisma/client";
+import { getServerSession } from "next-auth";
+import { authOptions } from "../../../../lib/auth.js";
 
 const prisma = new PrismaClient();
 
-// GET /api/usuarios/[id]
-export async function GET(req, { params }) {
-  const { id } = params;
+// GET /api/usuarios/[id] - Obtener usuario por ID
+export async function GET(req, context) {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: Number(id) },
+    const session = await getServerSession(authOptions);
+    const params = await context.params;
+    const { id } = params;
+
+    if (!session || !session.user) {
+      return new Response(JSON.stringify({ error: "No autorizado" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Verificar permisos: solo admin o el propio usuario
+    if (session.user.role !== "ADMIN" && session.user.id !== id) {
+      return new Response(JSON.stringify({ error: "Acceso denegado" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const usuario = await prisma.user.findUnique({
+      where: { id },
       select: {
         id: true,
-        email: true,
         name: true,
+        email: true,
+        role: true,
         image: true,
         emailVerified: true,
-        creadoEn: true,
-        provider: true,
-        roles: {
+        settings: true,
+        salasPropias: {
           select: {
-            role: { select: { name: true } },
+            id: true,
+            nombre: true,
+            descripcion: true,
+            publica: true,
+            createdAt: true,
+            _count: {
+              select: {
+                murales: true,
+                colaboradores: true,
+              },
+            },
           },
         },
-        settings: {
-          select: { key: true, value: true },
+        salasColabora: {
+          select: {
+            id: true,
+            nombre: true,
+            descripcion: true,
+            publica: true,
+            createdAt: true,
+            _count: {
+              select: {
+                murales: true,
+                colaboradores: true,
+              },
+            },
+          },
+        },
+        personalCollection: {
+          select: {
+            id: true,
+            items: {
+              select: {
+                id: true,
+                artworkId: true,
+                artworkType: true,
+                addedAt: true,
+              },
+            },
+            _count: {
+              select: {
+                items: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            salasPropias: true,
+            salasColabora: true,
+            personalCollection: true,
+          },
         },
       },
     });
-    if (!user) {
-      return new Response(JSON.stringify({ error: "Usuario no encontrado" }), {
-        status: 404,
+
+    if (!usuario) {
+      return new Response(
+        JSON.stringify({
+          error: "Usuario no encontrado",
+          message: `No se encontró un usuario con ID ${id}`,
+        }),
+        {
+          status: 404,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    return new Response(JSON.stringify(usuario), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error) {
+    console.error("Error al obtener usuario:", error);
+    return new Response(
+      JSON.stringify({
+        error: "Error interno del servidor al obtener el usuario",
+        details: error.message,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+}
+
+// PUT /api/usuarios/[id] - Actualizar usuario
+export async function PUT(req, context) {
+  try {
+    const session = await getServerSession(authOptions);
+    const params = await context.params;
+    const { id } = params;
+
+    if (!session || !session.user) {
+      return new Response(JSON.stringify({ error: "No autorizado" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
       });
     }
-    // Formatea los roles y settings para que sean arrays simples
-    const roles = user.roles.map((r) => r.role.name);
-    const settings = Object.fromEntries(
-      user.settings.map((s) => [s.key, s.value])
-    );
-    return new Response(JSON.stringify({ ...user, roles, settings }), {
-      status: 200,
-    });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-    });
-  }
-}
 
-// PUT /api/usuarios/[id]
-export async function PUT(req, { params }) {
-  const { id } = params;
-  try {
+    // Verificar permisos: solo admin o el propio usuario
+    if (session.user.role !== "ADMIN" && session.user.id !== id) {
+      return new Response(JSON.stringify({ error: "Acceso denegado" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const data = await req.json();
-    // data: { roles?, settings?, ...otrosCampos }
 
-    // Actualizar campos básicos del usuario si se envían
+    // Preparar datos de actualización
     const updateData = {};
-    if (data.name) updateData.name = data.name;
-    if (data.image) updateData.image = data.image;
-    if (data.email) updateData.email = data.email;
 
-    const user = await prisma.user.update({
-      where: { id: Number(id) },
+    // Campos que cualquier usuario puede actualizar
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.image !== undefined) updateData.image = data.image;
+    if (data.settings !== undefined) updateData.settings = data.settings;
+
+    // Campos que solo admin puede actualizar
+    if (session.user.role === "ADMIN") {
+      if (data.email !== undefined) updateData.email = data.email;
+      if (data.role !== undefined) updateData.role = data.role;
+      if (data.emailVerified !== undefined) {
+        updateData.emailVerified = data.emailVerified
+          ? new Date(data.emailVerified)
+          : null;
+      }
+    }
+
+    const usuario = await prisma.user.update({
+      where: { id },
       data: updateData,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        image: true,
+        emailVerified: true,
+        settings: true,
+      },
     });
 
-    // Actualizar roles si se envían
-    if (data.roles) {
-      // Elimina roles actuales
-      await prisma.userRole.deleteMany({ where: { userId: user.id } });
-      // Asigna nuevos roles
-      for (const roleName of data.roles) {
-        const role = await prisma.role.findUnique({
-          where: { name: roleName },
-        });
-        if (role) {
-          await prisma.userRole.create({
-            data: { userId: user.id, roleId: role.id },
-          });
-        }
+    return new Response(
+      JSON.stringify({
+        message: "Usuario actualizado exitosamente",
+        usuario,
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
       }
-    }
-
-    // Actualizar configuraciones si se envían
-    if (data.settings) {
-      for (const [key, value] of Object.entries(data.settings)) {
-        await prisma.userSetting.upsert({
-          where: { userId_key: { userId: user.id, key } },
-          update: { value: String(value) },
-          create: { userId: user.id, key, value: String(value) },
-        });
-      }
-    }
-
-    return new Response(JSON.stringify({ message: "Usuario actualizado" }), {
-      status: 200,
-    });
+    );
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-    });
+    console.error("Error al actualizar usuario:", error);
+    return new Response(
+      JSON.stringify({
+        error: "Error interno del servidor al actualizar el usuario",
+        details: error.message,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }
 
-// DELETE /api/usuarios/[id]
-export async function DELETE(req, { params }) {
-  const { id } = params;
+// DELETE /api/usuarios/[id] - Eliminar usuario (solo admin)
+export async function DELETE(req, context) {
   try {
-    await prisma.user.delete({ where: { id: Number(id) } });
-    return new Response(null, { status: 204 });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    const session = await getServerSession(authOptions);
+    const params = await context.params;
+    const { id } = params;
+
+    if (!session || !session.user) {
+      return new Response(JSON.stringify({ error: "No autorizado" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Solo admin puede eliminar usuarios
+    if (session.user.role !== "ADMIN") {
+      return new Response(
+        JSON.stringify({
+          error: "Acceso denegado - Se requieren permisos de administrador",
+        }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // No permitir que un admin se elimine a sí mismo
+    if (session.user.id === id) {
+      return new Response(
+        JSON.stringify({ error: "No puedes eliminar tu propia cuenta" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    await prisma.user.delete({
+      where: { id },
     });
+
+    return new Response(
+      JSON.stringify({
+        message: "Usuario eliminado exitosamente",
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    console.error("Error al eliminar usuario:", error);
+    return new Response(
+      JSON.stringify({
+        error: "Error interno del servidor al eliminar el usuario",
+        details: error.message,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }

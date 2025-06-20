@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { signIn } from "next-auth/react";
 import { useModal } from "../providers/ModalProvider";
+import { useToast } from "./ui/toast";
 import {
   X,
   Mail,
@@ -17,6 +18,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function AuthModal() {
   const { modal, modalData, closeModal, isModalOpen } = useModal();
+  const { toast } = useToast();
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -81,18 +83,24 @@ export default function AuthModal() {
     setLoading(true);
 
     if (!form.email || !form.password) {
-      setError("Por favor, completa todos los campos");
+      const errorMsg = "Por favor, completa todos los campos";
+      setError(errorMsg);
+      toast.error(errorMsg);
       setLoading(false);
       return;
     }
     if (localMode === "register" && !form.name) {
-      setError("Por favor, ingresa tu nombre");
+      const errorMsg = "Por favor, ingresa tu nombre";
+      setError(errorMsg);
+      toast.error(errorMsg);
       setLoading(false);
       return;
     }
 
     if (localMode === "register" && form.password !== form.confirmPassword) {
-      setError("Las contraseñas no coinciden");
+      const errorMsg = "Las contraseñas no coinciden";
+      setError(errorMsg);
+      toast.error(errorMsg);
       setLoading(false);
       return;
     }
@@ -113,7 +121,9 @@ export default function AuthModal() {
         const data = await response.json();
 
         if (!response.ok) {
-          setError(data.error || "Error al crear la cuenta");
+          const errorMsg = data.error || "Error al crear la cuenta";
+          setError(errorMsg);
+          toast.error(errorMsg);
           setLoading(false);
           return;
         }
@@ -126,10 +136,13 @@ export default function AuthModal() {
         });
 
         if (result?.error) {
-          setError(
-            "Cuenta creada, pero error al iniciar sesión. Intenta hacer login."
-          );
+          const errorMsg =
+            "Cuenta creada, pero error al iniciar sesión. Intenta hacer login.";
+          setError(errorMsg);
+          toast.warning(errorMsg);
+          setSuccess(true);
         } else {
+          toast.success("Cuenta creada e iniciada sesión correctamente");
           setSuccess(true);
         }
       } else {
@@ -141,14 +154,19 @@ export default function AuthModal() {
         });
 
         if (result?.error) {
-          setError("Credenciales incorrectas");
+          const errorMsg = "Credenciales incorrectas";
+          setError(errorMsg);
+          toast.error(errorMsg);
         } else {
+          toast.success("Sesión iniciada correctamente");
           setSuccess(true);
         }
       }
     } catch (error) {
       console.error("Error en autenticación:", error);
-      setError("Error de conexión. Intenta nuevamente.");
+      const errorMsg = "Error de conexión. Intenta nuevamente.";
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }

@@ -14,22 +14,56 @@ export async function GET(req) {
 
     // Construir filtros dinámicamente
     const where = {};
-    if (salaId) where.salaId = Number(salaId);
     if (autor) where.autor = { contains: autor, mode: "insensitive" };
     if (tecnica) where.tecnica = { contains: tecnica, mode: "insensitive" };
     if (anio) where.anio = Number(anio);
 
+    // Si se especifica salaId, buscar murales que pertenezcan a esa sala
+    if (salaId) {
+      where.salas = {
+        some: {
+          salaId: Number(salaId),
+        },
+      };
+    }
+
     const murales = await prisma.mural.findMany({
       where,
       include: {
-        sala: {
+        salas: {
+          include: {
+            sala: {
+              select: {
+                id: true,
+                nombre: true,
+                descripcion: true,
+                creador: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        artist: {
           select: {
             id: true,
-            nombre: true,
+            bio: true,
+            especialidad: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
           },
         },
       },
-      orderBy: [{ anio: "desc" }, { nombre: "asc" }],
+      orderBy: [{ anio: "desc" }, { titulo: "asc" }],
     });
 
     // Agregar estadísticas
@@ -42,8 +76,14 @@ export async function GET(req) {
 
     murales.forEach((mural) => {
       // Estadísticas por sala
-      const salaNombre = mural.sala?.nombre || "Sin sala";
-      stats.porSala[salaNombre] = (stats.porSala[salaNombre] || 0) + 1;
+      if (mural.salas.length > 0) {
+        mural.salas.forEach((salaMural) => {
+          const salaNombre = salaMural.sala.nombre;
+          stats.porSala[salaNombre] = (stats.porSala[salaNombre] || 0) + 1;
+        });
+      } else {
+        stats.porSala["Sin sala"] = (stats.porSala["Sin sala"] || 0) + 1;
+      }
 
       // Estadísticas por técnica
       if (mural.tecnica) {
@@ -93,6 +133,7 @@ export async function POST(req) {
     const contentType = req.headers.get("content-type") || "";
     let data;
     let file;
+
     if (contentType.includes("application/json")) {
       data = await req.json();
     } else if (contentType.includes("multipart/form-data")) {
@@ -109,7 +150,8 @@ export async function POST(req) {
       );
     }
 
-    let url_imagen = data.url_imagen;
+    let url_imagen = data.url_imagen || data.imagenUrl;
+
     // Si recibimos archivo, subimos a Cloudinary
     if (
       file &&
@@ -145,24 +187,28 @@ export async function POST(req) {
 
     const mural = await prisma.mural.create({
       data: {
-        nombre: data.nombre,
-        tecnica: data.tecnica,
-        anio: Number(data.anio),
-        ubicacion: data.ubicacion,
+        titulo: data.titulo,
+        descripcion: data.descripcion || "",
+        autor: data.autor || data.artista || "Artista desconocido",
+        tecnica: data.tecnica || "Técnica no especificada",
+        ubicacion: data.ubicacion || "",
         url_imagen,
-        autor: data.autor || undefined,
-        colaboradores: data.colaboradores || undefined,
-        medidas: data.medidas || undefined,
-        ...(data.salaId ? { salaId: Number(data.salaId) } : {}),
+        latitud: data.latitud ? parseFloat(data.latitud) : null,
+        longitud: data.longitud ? parseFloat(data.longitud) : null,
+        anio: data.anio ? Number(data.anio) : null,
+        artistId: data.artistId || null,
       },
     });
+
     return new Response(JSON.stringify(mural), {
       status: 201,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
+    console.error("Error al crear mural:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
+      headers: { "Content-Type": "application/json" },
     });
   }
 }

@@ -2,48 +2,100 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
 async function main() {
-  const roles = [{ name: "admin" }, { name: "editor" }, { name: "user" }];
-  for (const role of roles) {
-    await prisma.role.upsert({
-      where: { name: role.name },
-      update: {},
-      create: role,
-    });
-  }
-  console.log("Roles por defecto insertados.");
+  console.log("🌱 Starting database seed...");
 
-  const userRole = await prisma.role.findUnique({ where: { name: "user" } });
+  // Crear usuario admin por defecto
+  const adminUser = await prisma.user.upsert({
+    where: { email: "admin@museo3d.com" },
+    update: {},
+    create: {
+      email: "admin@museo3d.com",
+      name: "Administrador",
+      role: "ADMIN",
+      settings: {
+        theme: "dark",
+        notifications: true,
+        emailValidated: true,
+      },
+    },
+  });
 
-  const defaultSettings = [
-    { key: "notificaciones", value: "false" },
-    { key: "subscripcion", value: "false" },
-    { key: "emailValidated", value: "false" },
+  console.log("✅ Admin user created:", adminUser.email);
+
+  // Crear usuario de prueba
+  const testUser = await prisma.user.upsert({
+    where: { email: "test@museo3d.com" },
+    update: {},
+    create: {
+      email: "test@museo3d.com",
+      name: "Usuario de Prueba",
+      role: "USER",
+      settings: {
+        theme: "light",
+        notifications: false,
+        emailValidated: true,
+      },
+    },
+  });
+
+  console.log("✅ Test user created:", testUser.email);
+
+  // Crear algunos murales de ejemplo
+  const murales = [
+    {
+      titulo: "Mural de Bienvenida",
+      autor: "Artista Local",
+      tecnica: "Acrílico sobre muro",
+      descripcion: "Mural que da la bienvenida a los visitantes del museo",
+      anio: 2024,
+      url_imagen:
+        "https://res.cloudinary.com/daol1ohso/image/upload/v1749847137/ejemplo1.jpg",
+      latitud: -33.4489,
+      longitud: -70.6693,
+      ubicacion: "Entrada principal del museo",
+    },
+    {
+      titulo: "Historia de la Ciudad",
+      autor: "Muralista Urbano",
+      tecnica: "Spray y acrílico",
+      descripcion:
+        "Representación de la historia de la ciudad a través del arte",
+      anio: 2023,
+      url_imagen:
+        "https://res.cloudinary.com/daol1ohso/image/upload/v1749847137/ejemplo2.jpg",
+      latitud: -33.4489,
+      longitud: -70.6693,
+      ubicacion: "Pared exterior del museo",
+    },
   ];
 
-  const users = await prisma.user.findMany();
-  for (const user of users) {
-    const hasRole = await prisma.userRole.findFirst({
-      where: { userId: user.id, roleId: userRole.id },
+  for (const muralData of murales) {
+    const mural = await prisma.mural.create({
+      data: muralData,
     });
-    if (!hasRole) {
-      await prisma.userRole.create({
-        data: { userId: user.id, roleId: userRole.id },
-      });
-    }
-    for (const setting of defaultSettings) {
-      await prisma.userSetting.upsert({
-        where: { userId_key: { userId: user.id, key: setting.key } },
-        update: {},
-        create: { userId: user.id, key: setting.key, value: setting.value },
-      });
-    }
+    console.log("✅ Mural created:", mural.titulo);
   }
-  console.log("UserRole y UserSetting poblados para todos los usuarios.");
+
+  // Crear sala de ejemplo
+  const sala = await prisma.sala.upsert({
+    where: { nombre: "Sala Principal" },
+    update: {},
+    create: {
+      nombre: "Sala Principal",
+      descripcion: "Sala principal del museo con las obras más importantes",
+      publica: true,
+      creadorId: adminUser.id,
+    },
+  });
+
+  console.log("✅ Sala created:", sala.nombre);
+
+  console.log("🎉 Database seeding completed successfully!");
 }
 
 main()
   .catch((e) => {
-    console.error(e);
+    console.error("❌ Error during seeding:", e);
     process.exit(1);
   })
   .finally(async () => {

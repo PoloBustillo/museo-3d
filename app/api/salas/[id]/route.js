@@ -11,9 +11,10 @@ export async function GET(req, context) {
     const sala = await prisma.sala.findUnique({
       where: { id: Number(id) },
       include: {
-        owner: {
+        creador: {
           select: {
             id: true,
+            name: true,
             email: true,
             role: true,
           },
@@ -21,21 +22,28 @@ export async function GET(req, context) {
         colaboradores: {
           select: {
             id: true,
+            name: true,
             email: true,
             role: true,
           },
         },
         murales: {
-          select: {
-            id: true,
-            nombre: true,
-            autor: true,
-            colaboradores: true,
-            tecnica: true,
-            medidas: true,
-            anio: true,
-            ubicacion: true,
-            url_imagen: true,
+          include: {
+            mural: {
+              select: {
+                id: true,
+                titulo: true,
+                artista: true,
+                tecnica: true,
+                anio: true,
+                imagenUrl: true,
+                imagenUrlWebp: true,
+                latitud: true,
+                longitud: true,
+                ubicacion: true,
+                descripcion: true,
+              },
+            },
           },
         },
         _count: {
@@ -83,35 +91,104 @@ export async function GET(req, context) {
 export async function PUT(req, context) {
   const params = await context.params;
   const { id } = params;
+
   try {
     const data = await req.json();
-    // data puede incluir: nombre, ownerId, colaboradores (array de userId), murales (array de muralId)
+
+    // Preparar datos de actualización
+    const updateData = {
+      nombre: data.nombre,
+      descripcion: data.descripcion,
+      publica: data.publica,
+    };
+
+    // Actualizar creador si se proporciona
+    if (data.creadorId) {
+      updateData.creador = { connect: { id: data.creadorId } };
+    }
+
+    // Actualizar colaboradores si se proporcionan
+    if (data.colaboradores) {
+      updateData.colaboradores = {
+        set: data.colaboradores.map((id) => ({ id })),
+      };
+    }
+
+    // Actualizar murales si se proporcionan
+    if (data.murales) {
+      // Primero eliminar todas las relaciones existentes
+      await prisma.salaMural.deleteMany({
+        where: { salaId: Number(id) },
+      });
+
+      // Luego crear las nuevas relaciones
+      updateData.murales = {
+        create: data.murales.map((muralId) => ({
+          mural: { connect: { id: Number(muralId) } },
+        })),
+      };
+    }
+
     const sala = await prisma.sala.update({
       where: { id: Number(id) },
-      data: {
-        nombre: data.nombre,
-        owner: data.ownerId ? { connect: { id: data.ownerId } } : undefined,
-        colaboradores: data.colaboradores
-          ? { set: data.colaboradores.map((id) => ({ id })) }
-          : undefined,
-        murales: data.murales
-          ? { set: data.murales.map((id) => ({ id })) }
-          : undefined,
-      },
+      data: updateData,
       include: {
-        owner: true,
-        colaboradores: true,
-        murales: true,
+        creador: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+        colaboradores: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+        murales: {
+          include: {
+            mural: {
+              select: {
+                id: true,
+                titulo: true,
+                artista: true,
+                tecnica: true,
+                anio: true,
+                imagenUrl: true,
+                imagenUrlWebp: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            murales: true,
+            colaboradores: true,
+          },
+        },
       },
     });
+
     return new Response(JSON.stringify(sala), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-    });
+    console.error("Error al actualizar sala:", error);
+    return new Response(
+      JSON.stringify({
+        error: "Error interno del servidor al actualizar la sala",
+        details: error.message,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }
 
@@ -119,12 +196,27 @@ export async function PUT(req, context) {
 export async function DELETE(req, context) {
   const params = await context.params;
   const { id } = params;
+
   try {
-    await prisma.sala.delete({ where: { id: Number(id) } });
-    return new Response(null, { status: 204 });
-  } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    // Eliminar la sala (las relaciones se eliminan automáticamente por CASCADE)
+    await prisma.sala.delete({
+      where: { id: Number(id) },
     });
+
+    return new Response(null, {
+      status: 204,
+    });
+  } catch (error) {
+    console.error("Error al eliminar sala:", error);
+    return new Response(
+      JSON.stringify({
+        error: "Error interno del servidor al eliminar la sala",
+        details: error.message,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }

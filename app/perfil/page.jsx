@@ -34,6 +34,7 @@ import { useUser } from "../../providers/UserProvider";
 import { useModal } from "../../providers/ModalProvider";
 import { ModalWrapper } from "../../components/ui/Modal";
 import { useSessionData } from "../../providers/SessionProvider";
+import { useToast } from "../../components/ui/toast";
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
@@ -195,13 +196,16 @@ function TagPreviewTooltip({ anchorRef, show, images }) {
     >
       <div className="flex gap-2">
         {previewImages.map((img, i) => {
+          // Usar url_imagen en lugar de imagenUrl según el esquema actual
+          const imageUrl = img.url_imagen || img.imagenUrl;
+
           // Si es el último preview y hay extra, muestra overlay
           if (i === maxPreview - 1 && extra > 0) {
             return (
               <div key={img.id || i} className="relative w-16 h-16">
                 <img
-                  src={img.url_imagen}
-                  alt={img.nombre}
+                  src={imageUrl}
+                  alt={img.titulo}
                   className="w-16 h-16 object-cover rounded-md border border-gray-200 dark:border-gray-700 opacity-60"
                 />
                 <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md">
@@ -213,8 +217,8 @@ function TagPreviewTooltip({ anchorRef, show, images }) {
           return (
             <img
               key={img.id || i}
-              src={img.url_imagen}
-              alt={img.nombre}
+              src={imageUrl}
+              alt={img.titulo}
               className="w-16 h-16 object-cover rounded-md border border-gray-200 dark:border-gray-700"
             />
           );
@@ -322,6 +326,11 @@ function PerfilAvatarEdit({
 }) {
   const avatarRef = useRef();
   const [hovered, setHovered] = useState(false);
+
+  // Determinar si el botón guardar debe estar habilitado
+  const canSave =
+    !saving && !updating && nameAvailable === true && newName.length >= 3;
+
   return (
     <>
       <div className="relative mb-2">
@@ -346,6 +355,7 @@ function PerfilAvatarEdit({
           className="absolute bottom-2 right-2 rounded-full p-2 shadow-lg border border-white bg-black text-white hover:bg-black/90"
           onClick={() => fileInputRef.current?.click()}
           type="button"
+          disabled={saving || updating}
         >
           <svg
             className="w-5 h-5"
@@ -375,6 +385,7 @@ function PerfilAvatarEdit({
         onChange={handleNameChange}
         disabled={checkingName || saving || updating}
         maxLength={32}
+        placeholder="Ingresa tu nombre"
       />
       {checkingName && (
         <div className="text-xs text-muted-foreground">
@@ -400,13 +411,7 @@ function PerfilAvatarEdit({
         >
           Cancelar
         </Button>
-        <Button
-          size="sm"
-          onClick={handleSave}
-          disabled={
-            saving || updating || nameAvailable !== true || newName.length < 3
-          }
-        >
+        <Button size="sm" onClick={handleSave} disabled={!canSave}>
           {saving || updating ? "Guardando..." : "Guardar"}
         </Button>
       </div>
@@ -500,6 +505,7 @@ function PerfilContent() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteSuccess, setDeleteSuccess] = useState(false);
   const debounceRef = useRef();
+  const [accountInfo, setAccountInfo] = useState(null);
   const {
     user,
     userProfile,
@@ -523,6 +529,7 @@ function PerfilContent() {
   const { openModal } = useModal();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
+  const { toast } = useToast();
 
   const userId = session?.user?.id || null;
 
@@ -555,6 +562,16 @@ function PerfilContent() {
     if (salasData && muralesData && salasData.salas && muralesData.murales) {
       const salas = salasData.salas || [];
       const murales = muralesData.murales || [];
+
+      // Debug: Log de datos cargados
+      console.log("📊 Datos cargados:", {
+        salas: salas.length,
+        murales: murales.length,
+        primerMural: murales[0],
+        muralesConImagen: murales.filter((m) => m.url_imagen || m.imagenUrl)
+          .length,
+      });
+
       const uniqueArtists = new Set(murales.map((m) => m.autor).filter(Boolean))
         .size;
       const uniqueTechniques = new Set(
@@ -571,6 +588,7 @@ function PerfilContent() {
       setMurales(murales);
       setIsLoadingStats(false);
     } else if (salasError || muralesError) {
+      console.error("❌ Error cargando datos:", { salasError, muralesError });
       setMuseumStats({
         totalArtworks: 0,
         totalSalas: 0,
@@ -626,8 +644,12 @@ function PerfilContent() {
   }
 
   function handleNameChange(e) {
-    setNewName(e.target.value);
+    const value = e.target.value;
+    setNewName(value);
     setNameAvailable(null);
+
+    // Mantener el focus en el input
+    e.target.focus();
   }
 
   useEffect(() => {
@@ -657,16 +679,31 @@ function PerfilContent() {
   }
 
   function handleSave() {
+    console.log("Guardando perfil:", { newName, newImage });
     setSaving(true);
     updateProfile({
       name: newName,
-      imageFile: newImage instanceof File ? newImage : null,
+      image: newImage instanceof File ? newImage : null,
     })
-      .then(() => {
-        setEditMode(false);
+      .then((success) => {
+        console.log("Resultado de guardado:", success);
+        if (success) {
+          setEditMode(false);
+          // Limpiar estados
+          setNewName(session?.user?.name || "");
+          setNewImage(session?.user?.image || "");
+          setImagePreview(session?.user?.image || "");
+          setNameAvailable(null);
+          setCheckingName(false);
+          toast.success("Perfil actualizado correctamente");
+        } else {
+          toast.error("Error al actualizar el perfil");
+        }
         setSaving(false);
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("Error saving profile:", error);
+        toast.error("Error al actualizar el perfil");
         setSaving(false);
       });
   }
@@ -678,24 +715,38 @@ function PerfilContent() {
     setTimeout(() => {
       if (deleteEmail !== session?.user?.email) {
         setDeleteError("El email no coincide");
+        toast.error("El email no coincide");
         setDeleteLoading(false);
         return;
       }
       setDeleteSuccess(true);
       setDeleteLoading(false);
+      toast.success("Cuenta eliminada correctamente");
       // Aquí iría signOut y redirección
     }, 1200);
   }
 
   async function handleSettingsChange(newSettings) {
     if (!session?.user?.id) return;
-    await fetch(`/api/usuarios/${session.user.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ settings: newSettings }),
-    });
-    if (typeof update === "function") {
-      await update();
+    try {
+      const response = await fetch(`/api/usuarios/${session.user.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings: newSettings }),
+      });
+
+      if (response.ok) {
+        if (typeof update === "function") {
+          await update();
+        }
+        toast.success("Configuración actualizada");
+      } else {
+        console.error("Error updating settings");
+        toast.error("Error al actualizar configuración");
+      }
+    } catch (error) {
+      console.error("Error updating settings:", error);
+      toast.error("Error al actualizar configuración");
     }
   }
 
@@ -734,6 +785,7 @@ function PerfilContent() {
         emailValidated: "true",
       });
       setVerifMsg("¡Email verificado!");
+      toast.success("Email verificado correctamente");
       setVerifLoading(false);
     }, 1200);
   };
@@ -752,27 +804,49 @@ function PerfilContent() {
     const success = await updateUserProfile(formData);
     if (success) {
       setIsEditing(false);
-      openModal("success-modal", {
-        title: "Perfil Actualizado",
-        content: "Tu perfil se ha actualizado correctamente.",
-      });
+      toast.success("Perfil actualizado correctamente");
     } else {
-      openModal("error-modal", {
-        title: "Error",
-        content: "No se pudo actualizar el perfil. Inténtalo de nuevo.",
-      });
+      toast.error("Error al actualizar el perfil");
     }
   };
 
   const handleUpdateSetting = async (key, value) => {
     const success = await updateUserSetting(key, value);
     if (success) {
-      openModal("success-modal", {
-        title: "Configuración Actualizada",
-        content: `La configuración "${key}" se ha actualizado correctamente.`,
-      });
+      toast.success(`Configuración "${key}" actualizada`);
+    } else {
+      toast.error(`Error al actualizar configuración "${key}"`);
     }
   };
+
+  // Cargar información de Account
+  useEffect(() => {
+    if (userId) {
+      fetch(`/api/usuarios/${userId}/account`)
+        .then((res) => res.json())
+        .then((data) => {
+          setAccountInfo(data);
+        })
+        .catch((error) => {
+          console.error("Error cargando información de cuenta:", error);
+        });
+    }
+  }, [userId]);
+
+  // Sincronizar el estado del nombre con la sesión
+  useEffect(() => {
+    if (session?.user?.name) {
+      setNewName(session.user.name);
+    }
+  }, [session?.user?.name]);
+
+  // Sincronizar el estado de la imagen con la sesión
+  useEffect(() => {
+    if (session?.user?.image) {
+      setNewImage(session.user.image);
+      setImagePreview(session.user.image);
+    }
+  }, [session?.user?.image]);
 
   if (initialLoading) {
     return (
@@ -1065,7 +1139,9 @@ function PerfilContent() {
                               i === 0 ? "blue" : i === 1 ? "green" : "violet"
                             }
                             images={murales.filter(
-                              (m) => m.tecnica === tecnica && m.url_imagen
+                              (m) =>
+                                m.tecnica === tecnica &&
+                                (m.url_imagen || m.imagenUrl)
                             )}
                           />
                         ))}
@@ -1086,7 +1162,8 @@ function PerfilContent() {
                             variant={i % 2 === 0 ? "yellow" : "pink"}
                             images={murales.filter(
                               (m) =>
-                                String(m.anio) === String(anio) && m.url_imagen
+                                String(m.anio) === String(anio) &&
+                                (m.url_imagen || m.imagenUrl)
                             )}
                           />
                         ))}
@@ -1110,7 +1187,7 @@ function PerfilContent() {
                             images={murales.filter(
                               (m) =>
                                 (m.sala?.nombre || "Sin sala") === sala &&
-                                m.url_imagen
+                                (m.url_imagen || m.imagenUrl)
                             )}
                           />
                         ))}
@@ -1250,6 +1327,24 @@ function PerfilContent() {
                     </h4>
                     <div className="space-y-2">
                       <div className="flex justify-between">
+                        <span className="text-gray-600 text-sm">
+                          Proveedor:
+                        </span>
+                        <span className="text-sm font-medium">
+                          {accountInfo?.primaryProvider ||
+                            sessionData.user?.provider ||
+                            "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600 text-sm">Tipo:</span>
+                        <span className="text-sm font-medium">
+                          {accountInfo?.accountType ||
+                            sessionData.user?.accountType ||
+                            "N/A"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
                         <span className="text-gray-600 text-sm">Duración:</span>
                         <span
                           className={`text-sm font-medium ${
@@ -1278,6 +1373,16 @@ function PerfilContent() {
                           </span>
                           <span className="text-sm font-medium">
                             {new Date(lastActivity).toLocaleTimeString("es-ES")}
+                          </span>
+                        </div>
+                      )}
+                      {accountInfo?.expiresAt && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-600 text-sm">Expira:</span>
+                          <span className="text-sm font-medium">
+                            {new Date(accountInfo.expiresAt).toLocaleString(
+                              "es-ES"
+                            )}
                           </span>
                         </div>
                       )}

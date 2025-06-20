@@ -26,11 +26,12 @@ export default function MuseoPage() {
           nombre: sala.nombre,
           descripcion: `Sala del Museo Virtual con ${sala._count.murales} murales`,
           imagen:
-            sala.murales[0]?.url_imagen || "/assets/artworks/cuadro1.webp",
+            sala.murales[0]?.mural?.imagenUrl ||
+            "/assets/artworks/cuadro1.webp",
           color: getColorBySalaId(sala.id),
           cantidadMurales: sala._count.murales,
-          propietario: sala.owner?.email || "Sin propietario",
-          murales: sala.murales || [],
+          propietario: sala.creador?.email || "Sin propietario",
+          murales: sala.murales.map((salaMural) => salaMural.mural) || [],
         }));
 
         setSalas(salasFormateadas);
@@ -124,11 +125,10 @@ export default function MuseoPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-700 via-gray-600 to-gray-500 flex items-center justify-center">
-        <div className="text-center text-white">
-          <div className="text-5xl mb-4 animate-pulse">🎨</div>
-          <h2>Cargando salas del museo...</h2>
-          <p>Conectando con la base de datos</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-lg">Cargando salas del museo...</p>
         </div>
       </div>
     );
@@ -136,230 +136,75 @@ export default function MuseoPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-700 via-gray-600 to-gray-500 flex items-center justify-center">
-        <div className="text-center text-white bg-white/10 p-8 rounded-2xl max-w-lg backdrop-blur-lg border border-white/20">
-          <div className="text-5xl mb-4">⚠️</div>
-          <h2>Error al cargar las salas</h2>
-          <p className="mb-4">{error}</p>
-          <p className="text-sm opacity-80">
-            Mostrando salas de ejemplo. Verifica que el servidor esté
-            ejecutándose.
-          </p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 text-lg mb-4">Error al cargar las salas</p>
+          <p className="text-gray-600">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-100 via-gray-200 to-gray-300 dark:from-gray-700 dark:via-gray-600 dark:to-gray-500 p-10 relative transition-colors duration-300">
-      {/* Efectos de fondo refinados */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: `
-            radial-gradient(circle at 25% 55%, rgba(90, 90, 120, 0.25) 0%, transparent 50%),
-            radial-gradient(circle at 75% 25%, rgba(160, 120, 200, 0.2) 0%, transparent 50%),
-            radial-gradient(circle at 45% 85%, rgba(100, 160, 220, 0.2) 0%, transparent 50%)
-          `,
-        }}
-      />
-
-      <div className="pt-15 max-w-6xl mx-auto relative z-10">
-        <h1
-          className="text-center text-gray-900 dark:text-white text-5xl mb-4 font-bold transition-colors duration-300"
-          style={{ textShadow: "0 6px 12px rgba(0,0,0,0.7)" }}
-        >
-          Museo Virtual 3D
-        </h1>
-        <p
-          className="text-center text-gray-800 dark:text-white/95 text-xl mb-4 transition-colors duration-300"
-          style={{ textShadow: "0 2px 4px rgba(0,0,0,0.3)" }}
-        >
-          Explora nuestras salas virtuales y sumérgete en el arte
-        </p>
-
-        {/* Estadísticas del museo */}
-        <div
-          className="text-center text-gray-800 dark:text-white/95 text-base mb-12 flex justify-center gap-8 flex-wrap rounded-3xl p-5 max-w-4xl mx-auto shadow-2xl border border-gray-300 dark:border-white/20 transition-colors duration-300"
-          style={{
-            background: "rgba(255, 255, 255, 0.8)",
-            backdropFilter: "blur(15px)",
-          }}
-        >
-          <span className="font-semibold">
-            🏛️ {salas.length} salas disponibles
-          </span>
-          <span className="font-semibold">
-            🎨 {salas.reduce((total, sala) => total + sala.cantidadMurales, 0)}{" "}
-            murales totales
-          </span>
-          <span className="font-semibold">
-            👥 {new Set(salas.map((sala) => sala.propietario)).size} curadores
-          </span>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4">
+            Museo Virtual 3D
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Explora las salas del museo y descubre obras de arte únicas en un
+            entorno virtual inmersivo
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {salas.map((sala) => (
             <div
               key={sala.id}
               onClick={() => setSalaSeleccionada(sala.id)}
-              className="bg-white/95 backdrop-blur-xl rounded-3xl cursor-pointer shadow-2xl overflow-hidden relative border border-white/30 transition-all duration-300 hover:transform hover:-translate-y-2 hover:scale-105 hover:shadow-3xl"
+              className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105"
+              style={{ backgroundColor: sala.color }}
             >
-              {/* Imagen de preview de la sala */}
-              <div
-                style={{
-                  height: 200,
-                  background:
-                    sala.murales.length > 0
-                      ? `linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.3)), url(${sala.imagen}) center/cover`
-                      : `linear-gradient(45deg, ${sala.color}, rgba(255,255,255,0.1))`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontSize: "4rem",
-                  color: sala.murales.length > 0 ? "white" : "#666",
-                  position: "relative",
-                }}
-              >
-                {sala.murales.length > 0 ? (
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 10,
-                      right: 10,
-                      background: "rgba(255,255,255,0.9)",
-                      padding: "4px 8px",
-                      borderRadius: 8,
-                      fontSize: "0.8rem",
-                      color: "#333",
-                      fontWeight: "bold",
-                    }}
-                  >
-                    {sala.cantidadMurales} murales
-                  </div>
-                ) : (
-                  <>
-                    🎨
-                    <div
-                      style={{
-                        position: "absolute",
-                        bottom: 10,
-                        right: 10,
-                        background: "rgba(255,255,255,0.8)",
-                        padding: "4px 8px",
-                        borderRadius: 8,
-                        fontSize: "0.8rem",
-                        color: "#666",
-                      }}
-                    >
-                      Sala vacía
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div style={{ padding: "1.5rem" }}>
-                <h3
-                  style={{
-                    margin: "0 0 0.5rem 0",
-                    color: "#333",
-                    fontSize: "1.5rem",
-                  }}
-                >
-                  {sala.nombre}
-                </h3>
-                <p
-                  style={{
-                    margin: "0 0 0.8rem 0",
-                    color: "#666",
-                    lineHeight: 1.5,
-                  }}
-                >
-                  {sala.descripcion}
-                </p>
-
-                {/* Información adicional */}
-                <div style={{ marginBottom: "1rem" }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      marginBottom: "0.5rem",
-                      color: "#888",
-                      fontSize: "0.9rem",
-                    }}
-                  >
-                    <span>🎨</span>
-                    <span>
-                      {sala.cantidadMurales}{" "}
-                      {sala.cantidadMurales === 1 ? "pieza" : "piezas"}
-                    </span>
-                  </div>
-
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      color: "#888",
-                      fontSize: "0.9rem",
-                    }}
-                  >
-                    <span>👤</span>
-                    <span>Curador: {sala.propietario}</span>
-                  </div>
+              <div className="relative h-48 rounded-t-2xl overflow-hidden">
+                <img
+                  src={sala.imagen}
+                  alt={sala.nombre}
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+                <div className="absolute top-4 right-4 bg-white/90 rounded-full px-3 py-1 text-sm font-bold">
+                  {sala.cantidadMurales} obras
                 </div>
-
-                <div
-                  style={{
-                    marginTop: "1rem",
-                    padding: "0.75rem 1rem",
-                    background:
-                      sala.cantidadMurales > 0 ? sala.color : "#f5f5f5",
-                    borderRadius: 8,
-                    display: "inline-block",
-                    fontSize: "0.9rem",
-                    fontWeight: "bold",
-                    color: "#555",
-                    border:
-                      sala.cantidadMurales === 0 ? "2px dashed #ccc" : "none",
-                  }}
-                >
-                  {sala.cantidadMurales > 0
-                    ? "Explorar sala →"
-                    : "Sala en construcción"}
+              </div>
+              <div className="p-6">
+                <div className="flex items-center mb-3">
+                  <span className="text-3xl mr-3">
+                    {getIconBySalaId(sala.id)}
+                  </span>
+                  <h3 className="text-2xl font-bold text-gray-900">
+                    {sala.nombre}
+                  </h3>
+                </div>
+                <p className="text-gray-700 mb-4">{sala.descripcion}</p>
+                <div className="flex justify-between items-center text-sm text-gray-600">
+                  <span>Propietario: {sala.propietario}</span>
+                  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    Entrar →
+                  </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Información adicional */}
-        <div
-          style={{
-            marginTop: "3rem",
-            textAlign: "center",
-            color: "rgb(255, 255, 255)",
-            fontSize: "1rem",
-            background: "rgba(255, 255, 255, 0.12)",
-            backdropFilter: "blur(16px) saturate(180%)",
-            WebkitBackdropFilter: "blur(16px) saturate(180%)",
-            border: "1px solid rgba(255, 255, 255, 0.25)",
-            borderRadius: "20px",
-            padding: "1.5rem 2rem",
-            maxWidth: "650px",
-            margin: "3rem auto 0 auto",
-            boxShadow: "0px 8px 32px rgba(0, 0, 0, 0.3)",
-          }}
-        >
-          <p style={{ marginBottom: "0.5rem", fontWeight: "500" }}>
-            🔄 Las salas se actualizan automáticamente desde la base de datos
-          </p>
-          <p style={{ opacity: 0.7 }}>
-            Última actualización: {new Date().toLocaleString()}
-          </p>
-        </div>
+        {salas.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-600 text-lg">
+              No hay salas disponibles en este momento.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

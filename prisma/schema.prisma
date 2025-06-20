@@ -1,6 +1,3 @@
-// Prisma schema for Museo 3D
-// Adjust the datasource url as needed
-
 generator client {
     provider = "prisma-client-js"
 }
@@ -10,87 +7,166 @@ datasource db {
     url      = env("DATABASE_URL")
 }
 
-// Example model
+model Account {
+    id                String  @id @default(cuid())
+    userId            String
+    type              String
+    provider          String
+    providerAccountId String
+    refresh_token     String? @db.Text
+    access_token      String? @db.Text
+    expires_at        Int?
+    token_type        String?
+    scope             String?
+    id_token          String? @db.Text
+    session_state     String?
+    user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    @@unique([provider, providerAccountId])
+}
+
+model Session {
+    id           String   @id @default(cuid())
+    sessionToken String   @unique
+    userId       String
+    expires      DateTime
+    user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum UserRole {
+    USER
+    ADMIN
+    ARTIST
+    CURATOR
+}
+
 model User {
-    id            Int                 @id @default(autoincrement())
-    email         String              @unique
-    password      String? // Nullable para usuarios OAuth
-    name          String? // Nombre del usuario
-    image         String? // URL de imagen del usuario
-    emailVerified DateTime? // Para NextAuth
-    creadoEn      DateTime            @default(now())
-    role          String              @default("user")
-    provider      String? // OAuth provider
-    salasPropias  Sala[]              @relation("SalaOwner")
-    salasColabora Sala[]              @relation("SalaColaboradores")
-    settings      UserSetting[]
-    roles         UserRole[]
-    collection    PersonalCollection?
+    id                 String              @id @default(cuid())
+    name               String?
+    email              String?             @unique
+    emailVerified      DateTime?
+    image              String?
+    password           String? // Campo para contraseñas hasheadas
+    role               UserRole            @default(USER)
+    accounts           Account[]
+    sessions           Session[]
+    settings           Json?
+    personalCollection PersonalCollection?
+    salasPropias       Sala[]              @relation("SalaOwner")
+    salasColabora      Sala[]              @relation("SalaColaboradores")
+    pushSubscriptions  PushSubscription[]
+    artist             Artist? // Relación opcional con Artist
+}
+
+model VerificationToken {
+    identifier String
+    token      String   @unique
+    expires    DateTime
+
+    @@unique([identifier, token])
 }
 
 model Mural {
-    id            Int     @id @default(autoincrement())
-    nombre        String
-    autor         String? // Puede ser nulo
-    colaboradores String? // Puede ser nulo
-    tecnica       String
-    medidas       String? // Puede ser nulo
-    anio          Int
-    ubicacion     String
-    url_imagen    String
-    salaId        Int?
-    sala          Sala?   @relation(fields: [salaId], references: [id])
+    id          Int     @id @default(autoincrement())
+    titulo      String
+    autor       String? // Campo legacy para compatibilidad
+    tecnica     String?
+    descripcion String?
+    anio        Int?
+    url_imagen  String?
+    latitud     Float? // Coordenada de latitud
+    longitud    Float? // Coordenada de longitud
+    ubicacion   String? // Dirección o descripción de ubicación
+
+    // Relaciones
+    salas    SalaMural[]
+    artistId String? // ID del artista (opcional)
+    artist   Artist?     @relation(fields: [artistId], references: [id])
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 model Sala {
-    id            Int     @id @default(autoincrement())
+    id            Int         @id @default(autoincrement())
     nombre        String
-    ownerId       Int
-    owner         User    @relation("SalaOwner", fields: [ownerId], references: [id])
-    colaboradores User[]  @relation("SalaColaboradores")
-    murales       Mural[]
+    descripcion   String?
+    murales       SalaMural[]
+    colaboradores User[]      @relation("SalaColaboradores")
+    publica       Boolean     @default(false)
+    creadorId     String
+    creador       User        @relation("SalaOwner", fields: [creadorId], references: [id])
+    createdAt     DateTime    @default(now())
+    updatedAt     DateTime    @updatedAt
 }
 
-// Configuraciones de usuario (clave-valor)
-model UserSetting {
-    id        Int      @id @default(autoincrement())
-    user      User     @relation(fields: [userId], references: [id])
-    userId    Int
-    key       String
-    value     String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+model SalaMural {
+    id      Int   @id @default(autoincrement())
+    sala    Sala  @relation(fields: [salaId], references: [id])
+    salaId  Int
+    mural   Mural @relation(fields: [muralId], references: [id])
+    muralId Int
 
-    @@unique([userId, key])
+    @@unique([salaId, muralId])
 }
 
-// Roles disponibles
-model Role {
-    id    Int        @id @default(autoincrement())
-    name  String     @unique
-    users UserRole[]
+model PersonalCollectionItem {
+    id           Int                @id @default(autoincrement())
+    artworkId    String
+    artworkType  String
+    artworkData  Json
+    addedAt      DateTime           @default(now())
+    collectionId String
+    collection   PersonalCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
 }
 
-// Relación muchos a muchos entre User y Role
-model UserRole {
-    id         Int      @id @default(autoincrement())
-    user       User     @relation(fields: [userId], references: [id])
-    userId     Int
-    role       Role     @relation(fields: [roleId], references: [id])
-    roleId     Int
-    assignedAt DateTime @default(now())
-
-    @@unique([userId, roleId])
-}
-
-// Colección personal de cada usuario
 model PersonalCollection {
-    id        String   @id @default(uuid())
-    userId    Int
-    user      User     @relation(fields: [userId], references: [id])
-    data      Json // Array de objetos de la colección
-    updatedAt DateTime @updatedAt
+    id        String                   @id @default(cuid())
+    userId    String                   @unique
+    user      User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    items     PersonalCollectionItem[]
+    createdAt DateTime                 @default(now())
+    updatedAt DateTime                 @updatedAt
+}
+
+model PushSubscription {
+    id        String   @id @default(cuid())
+    endpoint  String   @unique
+    p256dh    String
+    auth      String
+    userId    String
+    user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
     createdAt DateTime @default(now())
 
-    @@unique([userId])
+    @@index([userId])
+}
+
+model Artist {
+    id     String @id @default(cuid())
+    userId String @unique
+    user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    // Información del artista
+    bio       String? // Biografía del artista
+    website   String? // Sitio web personal
+    instagram String? // Instagram
+    twitter   String? // Twitter/X
+    facebook  String? // Facebook
+
+    // Información profesional
+    especialidad String? // Técnica o estilo principal
+    experiencia  String? // Años de experiencia
+    formacion    String? // Formación académica
+
+    // Información adicional
+    premios       String? // Premios y reconocimientos
+    exposiciones  String? // Exposiciones importantes
+    publicaciones String? // Publicaciones o catálogos
+
+    // Relaciones
+    murales Mural[] // Murales creados por este artista
+
+    // Timestamps
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }

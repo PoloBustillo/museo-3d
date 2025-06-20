@@ -1,0 +1,417 @@
+{
+  "timestamp": "2025-06-20T02:49:32.371Z",
+  "total_murales": 24,
+  "murales_con_imagen": 20,
+  "murales_sin_imagen": 4,
+  "total_imagenes_cloudinary": 27,
+  "murales": [
+    {
+      "titulo": "Saturnino-Moon",
+      "autor": "Miguel Fernando Lima Rodríguez, Pamela Sánchez Hernández",
+      "tecnica": "Acrílico sobre muro",
+      "descripcion": "Colaboradores: Xally Domínguez Ahuatl | Medidas: 2.46 x 3.8m",
+      "anio": 2024,
+      "ubicacion": "ARPA 3 descanso escaleras primer piso",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847152/Saturnino-Moon_smag4l.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": "Xally Domínguez Ahuatl",
+        "medidas": "2.46 x 3.8m",
+        "imagen_original": "saturnino-moon_smag4l",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "Metamorfosis Marina",
+      "autor": "Vanessa Flores “Flores en el Mar”",
+      "tecnica": "Pintura vinílica sobre muro",
+      "descripcion": "Colaboradores: José Ángel Jiménez Cuaquentzi | Medidas: 5 m x 4.30 m",
+      "anio": 2024,
+      "ubicacion": "ARPA 3 muro escaleras planta baja",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847147/Metamorfosis_Marina_odfkh9.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": "José Ángel Jiménez Cuaquentzi",
+        "medidas": "5 m x 4.30 m",
+        "imagen_original": "metamorfosis_marina_odfkh9",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "Cansancio Colectivo",
+      "autor": "Tania Sánchez “Tania de Cartón”, Coco Quiroz, Jorge Medina",
+      "tecnica": "Pintura vinílica sobre muro",
+      "descripcion": "Colaboradores: Vanessa Cano, Belén Flores | Medidas: 6.19 x 2.55 m",
+      "anio": 2024,
+      "ubicacion": "ARPA 3 muro exterior taller 103",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847137/Cansancio_Colectivo_avhg0z.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": "Vanessa Cano, Belén Flores",
+        "medidas": "6.19 x 2.55 m",
+        "imagen_original": "cansancio_colectivo_avhg0z",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "Naturaleza Híbrida",
+      "autor": "Alejandro Teutli",
+      "tecnica": "Acrílico sobre muro",
+      "descripcion": "Colaboradores: Ana Lizbeth Fuentes Calderón, Daniel Contreras Durán, Maryel Vázquez Fuentes, Josefina Domínguez de la Cruz, María Fernanda Pantoja Velásquez | Medidas: 4.50 x 3 m",
+      "anio": 2024,
+      "ubicacion": "ARPA 3 muro exterior planta baja",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847151/Naturaleza_H%C3%ADbrida_zzwe0v.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": "Ana Lizbeth Fuentes Calderón, Daniel Contreras Durán, Maryel Vázquez Fuentes, Josefina Domínguez de la Cruz, María Fernanda Pantoja Velásquez",
+        "medidas": "4.50 x 3 m",
+        "imagen_original": "naturaleza_híbrida_zzwe0v",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "¡Viva, Viva!",
+      "autor": "Vanessa Flores Carillo",
+      "tecnica": "Pintura Acrílica sobre muro",
+      "descripcion": "Colaboradores: Tania Alejandra Sánchez Hernández | Medidas: 2.2 x 2.80 m",
+      "anio": 2024,
+      "ubicacion": "ARPA 3 muro exterior planta baja",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847136/Viva_Viva_reqbi5.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": "Tania Alejandra Sánchez Hernández",
+        "medidas": "2.2 x 2.80 m",
+        "imagen_original": null,
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "Asientos Preferentes",
+      "autor": "Juliette Hernández, Pau Artem, Ricardo Meza Mora, Caro Achebe, Jukari Pedraza, Angelina Monroy, Vanna Torres, Tania Alavez, Julia Flores, Alfredo Márquez Specia",
+      "tecnica": "Acrílico sobre muro",
+      "descripcion": "| Medidas: 4.39 x 2.79 m",
+      "anio": 2024,
+      "ubicacion": "ARPA 3 muro exterior planta baja",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847137/Asientos_Preferentes_kbk6ra.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": null,
+        "medidas": "4.39 x 2.79 m",
+        "imagen_original": "asientos_preferentes_kbk6ra",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "Cumbia te voy a olvidar",
+      "autor": "Nohemí Flores, Margarita Morales Hernández, Estefanía Castillo Lemus, Berenice Alejandra Palomino Gómez, Mariana Sosa Sánchez, María Fernanda Daniela González Cruz, Milagros Guevara Badillo, Fernanda Cortés Rivadeneira",
+      "tecnica": "Acrílico sobre muro",
+      "descripcion": "| Medidas: 4.41 x 2.82 m",
+      "anio": 2024,
+      "ubicacion": "ARPA 3 muro exterior planta baja",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847138/Cumbia_te_voy_a_olvidar_g9wdm6.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": null,
+        "medidas": "4.41 x 2.82 m",
+        "imagen_original": "cumbia_te_voy_a_olvidar_g9wdm6",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "La Rebeldía del Bohemio",
+      "autor": "José Ángel Dinamares Barrales, Magda Karina Contreras Marín (coautora)",
+      "tecnica": null,
+      "descripcion": "Colaboradores: Ixchel Sepúlveda Flores, Edgar Uriel Vega Tapia, Mateo Pineda Calerón, César Said Rojas Aquino | Medidas: 3.40 x 2.45 m",
+      "anio": 2025,
+      "ubicacion": "ARPA 3 Sala “Alice Guy”",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847144/La_Rebeld%C3%ADa_del_Bohemio_unpxmw.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": "Ixchel Sepúlveda Flores, Edgar Uriel Vega Tapia, Mateo Pineda Calerón, César Said Rojas Aquino",
+        "medidas": "3.40 x 2.45 m",
+        "imagen_original": "la_rebeldía_del_bohemio_unpxmw",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "Impulso Humano Creador",
+      "autor": "Miguel Fernando Lima Rodríguez",
+      "tecnica": "Acrílico sobre muro",
+      "descripcion": "Colaboradores: Maryel Vázquez Fuentes",
+      "anio": 2025,
+      "ubicacion": "Sur 1 descanso primer piso",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847143/Impulso_Humano_Creador_jnmbod.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": "Maryel Vázquez Fuentes",
+        "medidas": null,
+        "imagen_original": "impulso_humano_creador_jnmbod",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "¡Eternamente 19! Mural conmemorativo",
+      "autor": "Ingrid Coca Páez, Diana Reyes Vansteengerghe",
+      "tecnica": "Vinil sobre muro",
+      "descripcion": "Colaboradores: Abigail Pani Palacios, Nayeli Morales Ramírez, Alan Josué Vite Torres, Ana Lizbeth Fuentes Calderón | Medidas: 4.40 x 2.80 m",
+      "anio": 2024,
+      "ubicacion": "ARPA 3 muro exterior",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847136/Eternamente_19_Mural_conmemorativo_t9mr0q.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": "Abigail Pani Palacios, Nayeli Morales Ramírez, Alan Josué Vite Torres, Ana Lizbeth Fuentes Calderón",
+        "medidas": "4.40 x 2.80 m",
+        "imagen_original": null,
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "De los Cimientos, Crecerás",
+      "autor": "Brenda Romero Ramírez, Camila Esquivel Álvarez, Ruth Rocha Monterrosas, Azucena Leticia Gómez Rodríguez",
+      "tecnica": "Acrílico sobre muro",
+      "descripcion": "| Medidas: 3.20 x 5.45 m",
+      "anio": 2025,
+      "ubicacion": "Acceso del edificio Multiaulas 1 CCU",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847138/De_los_Cimientos_Crecer%C3%A1s_pwi7j5.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": null,
+        "medidas": "3.20 x 5.45 m",
+        "imagen_original": null,
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "Mil Voces",
+      "autor": "Alheli Regina Rodríguez Palestino, Ana Karen Fernando Morales, Gabriela del Carmen Fraga Ruiz, Andrés Aburto Ramírez, Samara Jasem Abundez Ortiz",
+      "tecnica": "Acrílico sobre muro",
+      "descripcion": "| Medidas: 3.20 x 5.45 m",
+      "anio": 2024,
+      "ubicacion": "Acceso del edificio Multiaulas 1 CCU",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847148/mil_voces_ol3kwj.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": null,
+        "medidas": "3.20 x 5.45 m",
+        "imagen_original": "mil_voces_ol3kwj",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "ARPA OG (Original Grafitti)",
+      "autor": "Diego Iván Martínez Marín",
+      "tecnica": "Pintura en aerosol sobre muro",
+      "descripcion": "| Medidas: 2.80 x 2.60 m",
+      "anio": 2025,
+      "ubicacion": "Exterior Aula 204 ARPA 3",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847137/ARPA_OG_Original_Grafitti_jerob6.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": null,
+        "medidas": "2.80 x 2.60 m",
+        "imagen_original": null,
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "El Performance",
+      "autor": "Nayeli Morales Ramírez, Alan Josué Vite Torres",
+      "tecnica": "Acrílico sobre muro",
+      "descripcion": "| Medidas: 7.44 x 2.95 m",
+      "anio": 2025,
+      "ubicacion": "Aula 201 ARPA 3",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847143/El_Performance_xbzbvr.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": null,
+        "medidas": "7.44 x 2.95 m",
+        "imagen_original": "el_performance_xbzbvr",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "Mujeres Olvidadas en la Historia del Arte",
+      "autor": "Daniela Toral Marroquín, Mtro. José Lazcarro",
+      "tecnica": "Acrílico sobre muro",
+      "descripcion": "| Medidas: 6.19  x 2.55 m",
+      "anio": 2025,
+      "ubicacion": "ARPA 3 muro exterior planta baja",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847149/Mujeres_Olvidadas_en_la_Historia_del_Arte_cr7no8.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": null,
+        "medidas": "6.19  x 2.55 m",
+        "imagen_original": "mujeres_olvidadas_en_la_historia_del_arte_cr7no8",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "Toda la Energía al Corazón",
+      "autor": "Aby White",
+      "tecnica": "Acrílico sobre muro",
+      "descripcion": "| Medidas: 1.40 x 1.40 m",
+      "anio": 2017,
+      "ubicacion": "Cubículo Dirección 115, SUR 1",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847152/Toda_la_Energ%C3%ADa_al_Coraz%C3%B3n_hser8j.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": null,
+        "medidas": "1.40 x 1.40 m",
+        "imagen_original": "toda_la_energía_al_corazón_hser8j",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "Confía",
+      "autor": "Vanessa Flores Carillo",
+      "tecnica": "Acrílico sobre muro",
+      "descripcion": "| Medidas: 3.4 x 2.98 m",
+      "anio": 2023,
+      "ubicacion": "Sala de espera SUR 1",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847137/Conf%C3%ADa_vdlgxh.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": null,
+        "medidas": "3.4 x 2.98 m",
+        "imagen_original": "confía_vdlgxh",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "Lazo",
+      "autor": "Nayerli Gaspariano Baez, Óscar Sergio Gutiérrez Hernández, José Ángel Jiménez Cuaquentzi",
+      "tecnica": "Acrílica sobre muro",
+      "descripcion": "| Medidas: 2.00 x 3.60 m",
+      "anio": 2024,
+      "ubicacion": "Sala de Lactancia EMA 1",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847146/Lazo_hwwz94.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": null,
+        "medidas": "2.00 x 3.60 m",
+        "imagen_original": "lazo_hwwz94",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "Origen",
+      "autor": "César Cepeda, Daniela Paola Romero, Tanya F. Meléndez",
+      "tecnica": "Vinil sobre muro",
+      "descripcion": "| Medidas: 3.98 x 2.67 m",
+      "anio": 2023,
+      "ubicacion": "Instituto de Ciencias CU",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847151/Origen_vmgnia.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": null,
+        "medidas": "3.98 x 2.67 m",
+        "imagen_original": "origen_vmgnia",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "Mi corazón está lleno de huellas",
+      "autor": "Belén Salas Santiago, Vanessa Flores Carillo, Allison Peralta Sánchez",
+      "tecnica": "Vinil sobre muro",
+      "descripcion": "| Medidas: 5.7 x 2.8 m",
+      "anio": 2022,
+      "ubicacion": "Centro de Apoyo Emocional (CAETO) CU",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847147/Mi_coraz%C3%B3n_est%C3%A1_lleno_de_huellas_f7j1v7.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": null,
+        "medidas": "5.7 x 2.8 m",
+        "imagen_original": "mi_corazón_está_lleno_de_huellas_f7j1v7",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "Historia de la Radio y TV BUAP",
+      "autor": "Nayeli Gaspariano Báez",
+      "tecnica": "Vinil sobre muro",
+      "descripcion": "| Medidas: 2.91 x 3.65 m",
+      "anio": 2021,
+      "ubicacion": "Dirección de Radio y TV BUAP",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847143/Historia_de_la_Radio_y_TV_BUAP_rk8mp6.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": null,
+        "medidas": "2.91 x 3.65 m",
+        "imagen_original": "historia_de_la_radio_y_tv_buap_rk8mp6",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "CCU 15 años de Arte y Cultura",
+      "autor": "Nayeli Gaspariano Báez, José Ángel Jiménez Cuaquentzi, Óscar Sergio Gutiérrez Hernández",
+      "tecnica": "Acrílico sobre muro",
+      "descripcion": "Colaboradores: Pamela Sánchez Hernández, Jaret Aramis Reyes Coatl, Miguel Fernando Lima Rodríguez, Alan Alcázar Roque, Isabella Torres Rodríguez, José María Nava Jiménez, Karen Bravo de Sampedro ,Frida Vásquez Benítez  | Medidas: 8.85 x 3.4 x 0.5 m",
+      "anio": 2023,
+      "ubicacion": "Exterior CCU",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847138/CCU_15_a%C3%B1os_de_Arte_y_Cultura_ibabiw.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": "Pamela Sánchez Hernández, Jaret Aramis Reyes Coatl, Miguel Fernando Lima Rodríguez, Alan Alcázar Roque, Isabella Torres Rodríguez, José María Nava Jiménez, Karen Bravo de Sampedro ,Frida Vásquez Benítez",
+        "medidas": "8.85 x 3.4 x 0.5 m",
+        "imagen_original": "ccu_15_años_de_arte_y_cultura_ibabiw",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "Las Hadas",
+      "autor": "Camila Ocotoxtle Ortiz",
+      "tecnica": "Acrílico sobre muro",
+      "descripcion": "Colaboradores: Mateo Pineda Calderón\r\nYoltic Álvarez Villafañe\r\nZuzet Maya Hernández Sedeño \r\nLuis Roberto Moreno Cortés \r\nAzul Amanda Ramírez Castillo\r\nCarlos Andrés Carreón Espinoza | Medidas: 3.60 x 394 m",
+      "anio": 2025,
+      "ubicacion": "Exterior arpa 1",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847146/Las_Hadas_jzmq0b.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": "Mateo Pineda Calderón\r\nYoltic Álvarez Villafañe\r\nZuzet Maya Hernández Sedeño \r\nLuis Roberto Moreno Cortés \r\nAzul Amanda Ramírez Castillo\r\nCarlos Andrés Carreón Espinoza",
+        "medidas": "3.60 x 394 m",
+        "imagen_original": "las_hadas_jzmq0b",
+        "fuente": "Registro ARPA"
+      }
+    },
+    {
+      "titulo": "El lobo",
+      "autor": null,
+      "tecnica": "Acrílico sobre muro",
+      "descripcion": "Colaboradores: Camila Ocotoxtle Ortiz\r\nDavid Flores Sánchez \r\nSofia Jiménez Rojas | Medidas: 1.30 x 3.26 m",
+      "anio": 2025,
+      "ubicacion": "Exterior arpa 1",
+      "url_imagen": "https://res.cloudinary.com/daol1ohso/image/upload/v1749847142/El_lobo_tyjcim.jpg",
+      "latitud": null,
+      "longitud": null,
+      "metadata": {
+        "colaboradores": "Camila Ocotoxtle Ortiz\r\nDavid Flores Sánchez \r\nSofia Jiménez Rojas",
+        "medidas": "1.30 x 3.26 m",
+        "imagen_original": "el_lobo_tyjcim",
+        "fuente": "Registro ARPA"
+      }
+    }
+  ]
+}

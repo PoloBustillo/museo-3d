@@ -394,7 +394,7 @@ export default function MisDocumentos() {
               img.onload = resolve;
               img.onerror = reject;
             };
-            img.src = artwork.src || artwork.url_imagen || "";
+            img.src = artwork.src || artwork.imagenUrl || "";
           });
 
           // Calcular dimensiones de la imagen
