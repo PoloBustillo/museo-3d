@@ -9,6 +9,7 @@ export const useUpdateProfile = () => {
   const [success, setSuccess] = useState(false);
 
   const updateProfile = async (formData) => {
+    console.log("updateProfile llamado con:", formData);
     if (!session?.user?.id) {
       setError("Debes iniciar sesión para actualizar tu perfil");
       return false;
@@ -22,6 +23,7 @@ export const useUpdateProfile = () => {
       // Si hay una imagen, subirla primero
       let imageUrl = session.user.image;
       if (formData.image && formData.image instanceof File) {
+        console.log("Subiendo imagen...");
         const uploadFormData = new FormData();
         uploadFormData.append("file", formData.image);
         uploadFormData.append("folder", "avatars");
@@ -34,45 +36,61 @@ export const useUpdateProfile = () => {
         if (res.ok) {
           const uploadData = await res.json();
           imageUrl = uploadData.url;
+          console.log("Imagen subida:", imageUrl);
         } else {
           throw new Error("Error al subir la imagen");
         }
       }
 
       // Actualizar el perfil del usuario
+      const updateData = {
+        name: formData.name,
+        email: formData.email,
+        image: imageUrl,
+        bio: formData.bio,
+        location: formData.location,
+        website: formData.website,
+      };
+      console.log("Enviando datos de actualización:", updateData);
+
       const res = await fetch(`/api/usuarios/${session.user.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          image: imageUrl,
-          bio: formData.bio,
-          location: formData.location,
-          website: formData.website,
-        }),
+        body: JSON.stringify(updateData),
       });
 
+      console.log("Respuesta del servidor:", res.status);
       if (res.ok) {
         const updatedUser = await res.json();
+        console.log("Usuario actualizado:", updatedUser);
 
         // Actualizar la sesión con los nuevos datos
-        await update({
-          ...session,
-          user: {
-            ...session.user,
-            name: updatedUser.usuario?.name || updatedUser.name,
-            email: updatedUser.usuario?.email || updatedUser.email,
-            image: updatedUser.usuario?.image || updatedUser.image,
-          },
+        const newUserData = {
+          ...session.user,
+          name: updatedUser.usuario?.name || updatedUser.name || formData.name,
+          email:
+            updatedUser.usuario?.email ||
+            updatedUser.email ||
+            session.user.email,
+          image: updatedUser.usuario?.image || updatedUser.image || imageUrl,
+        };
+
+        console.log("Actualizando sesión con:", newUserData);
+
+        const updateResult = await update({
+          name: newUserData.name,
+          image: newUserData.image,
         });
+
+        console.log("Resultado de actualización de sesión:", updateResult);
 
         setSuccess(true);
         return true;
       } else {
         const errorData = await res.json();
+        console.error("Error del servidor:", errorData);
         throw new Error(errorData.message || "Error al actualizar el perfil");
       }
     } catch (error) {

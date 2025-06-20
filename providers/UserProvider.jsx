@@ -1,7 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { useToast } from "../components/ui/toast";
 
 const UserContext = createContext();
 
@@ -9,7 +8,6 @@ export function UserProvider({ children }) {
   const { data: session, status } = useSession();
   const [userProfile, setUserProfile] = useState(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
-  const { toast } = useToast();
 
   // Cargar perfil del usuario cuando la sesión esté disponible
   useEffect(() => {
@@ -34,12 +32,10 @@ export function UserProvider({ children }) {
       } else {
         console.error("Error loading user profile:", response.statusText);
         setUserProfile(null);
-        toast.error("Error al cargar el perfil del usuario");
       }
     } catch (error) {
       console.error("Error loading user profile:", error);
       setUserProfile(null);
-      toast.error("Error al cargar el perfil del usuario");
     } finally {
       setIsLoadingProfile(false);
     }
@@ -57,14 +53,11 @@ export function UserProvider({ children }) {
 
       if (response.ok) {
         await loadUserProfile(session.user.email);
-        toast.success("Perfil actualizado correctamente");
         return true;
       }
-      toast.error("Error al actualizar el perfil");
       return false;
     } catch (error) {
       console.error("Error updating user profile:", error);
-      toast.error("Error al actualizar el perfil");
       return false;
     }
   };

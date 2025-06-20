@@ -34,7 +34,7 @@ import { useUser } from "../../providers/UserProvider";
 import { useModal } from "../../providers/ModalProvider";
 import { ModalWrapper } from "../../components/ui/Modal";
 import { useSessionData } from "../../providers/SessionProvider";
-import { useToast } from "../../components/ui/toast";
+import toast from "react-hot-toast";
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
@@ -316,20 +316,17 @@ function PerfilAvatarEdit({
   handleNameChange,
   checkingName,
   nameAvailable,
-  saving,
   updating,
-  updateError,
-  updateSuccess,
   setEditMode,
   handleSave,
   fileInputRef,
+  nameInputRef,
 }) {
   const avatarRef = useRef();
   const [hovered, setHovered] = useState(false);
 
   // Determinar si el botón guardar debe estar habilitado
-  const canSave =
-    !saving && !updating && nameAvailable === true && newName.length >= 3;
+  const canSave = !updating && nameAvailable === true && newName.length >= 3;
 
   return (
     <>
@@ -355,7 +352,7 @@ function PerfilAvatarEdit({
           className="absolute bottom-2 right-2 rounded-full p-2 shadow-lg border border-white bg-black text-white hover:bg-black/90"
           onClick={() => fileInputRef.current?.click()}
           type="button"
-          disabled={saving || updating}
+          disabled={updating}
         >
           <svg
             className="w-5 h-5"
@@ -379,11 +376,12 @@ function PerfilAvatarEdit({
         />
       </div>
       <input
+        ref={nameInputRef}
         type="text"
         className="border rounded-lg px-3 py-2 text-center w-full mb-2"
         value={newName}
         onChange={handleNameChange}
-        disabled={checkingName || saving || updating}
+        disabled={checkingName || updating}
         maxLength={32}
         placeholder="Ingresa tu nombre"
       />
@@ -398,21 +396,17 @@ function PerfilAvatarEdit({
       {nameAvailable === true && (
         <div className="text-xs text-green-600">¡Nombre disponible!</div>
       )}
-      {updateError && <div className="text-xs text-red-500">{updateError}</div>}
-      {updateSuccess && (
-        <div className="text-xs text-green-600">¡Perfil actualizado!</div>
-      )}
       <div className="flex gap-2 mt-2">
         <Button
           size="sm"
           variant="outline"
           onClick={() => setEditMode(false)}
-          disabled={saving || updating}
+          disabled={updating}
         >
           Cancelar
         </Button>
         <Button size="sm" onClick={handleSave} disabled={!canSave}>
-          {saving || updating ? "Guardando..." : "Guardar"}
+          {updating ? "Guardando..." : "Guardar"}
         </Button>
       </div>
     </>
@@ -484,7 +478,6 @@ function PerfilContent() {
   const [imagePreview, setImagePreview] = useState(session?.user?.image || "");
   const [checkingName, setCheckingName] = useState(false);
   const [nameAvailable, setNameAvailable] = useState(null); // null | true | false
-  const [saving, setSaving] = useState(false);
   const fileInputRef = useRef();
   const {
     updateProfile,
@@ -527,9 +520,7 @@ function PerfilContent() {
     lastActivity,
   } = useSessionData();
   const { openModal } = useModal();
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({});
-  const { toast } = useToast();
+  const nameInputRef = useRef(null);
 
   const userId = session?.user?.id || null;
 
@@ -647,26 +638,21 @@ function PerfilContent() {
     const value = e.target.value;
     setNewName(value);
     setNameAvailable(null);
-
-    // Mantener el focus en el input
-    e.target.focus();
-  }
-
-  useEffect(() => {
-    if (newName.length > 2) {
+    if (value.length > 2) {
       if (debounceRef.current) clearTimeout(debounceRef.current);
-      const valueToCheck = newName;
+      const valueToCheck = value;
       debounceRef.current = setTimeout(() => {
         setCheckingName(true);
         checkNameAvailability(valueToCheck);
+        nameInputRef.current?.focus();
       }, 1200);
     } else {
       setNameAvailable(null);
       setCheckingName(false);
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      nameInputRef.current?.focus();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [newName]);
+  }
 
   function handleImageChange(e) {
     const file = e.target.files[0];
@@ -679,32 +665,51 @@ function PerfilContent() {
   }
 
   function handleSave() {
-    console.log("Guardando perfil:", { newName, newImage });
-    setSaving(true);
+    if (!session?.user?.id) {
+      toast.error("Error: No se pudo identificar al usuario");
+      nameInputRef.current?.focus();
+      return;
+    }
+
+    if (newName.length < 3) {
+      toast.error("El nombre debe tener al menos 3 caracteres");
+      nameInputRef.current?.focus();
+      return;
+    }
+
+    if (nameAvailable === false) {
+      toast.error("El nombre no está disponible, elige otro");
+      nameInputRef.current?.focus();
+      return;
+    }
+
     updateProfile({
       name: newName,
-      image: newImage instanceof File ? newImage : null,
+      image: newImage,
     })
-      .then((success) => {
-        console.log("Resultado de guardado:", success);
+      .then(async (success) => {
         if (success) {
+          if (typeof update === "function") {
+            await update();
+          }
           setEditMode(false);
-          // Limpiar estados
           setNewName(session?.user?.name || "");
           setNewImage(session?.user?.image || "");
           setImagePreview(session?.user?.image || "");
           setNameAvailable(null);
           setCheckingName(false);
-          toast.success("Perfil actualizado correctamente");
+          toast.success("¡Perfil actualizado correctamente!");
         } else {
           toast.error("Error al actualizar el perfil");
+          nameInputRef.current?.focus();
         }
-        setSaving(false);
       })
       .catch((error) => {
-        console.error("Error saving profile:", error);
-        toast.error("Error al actualizar el perfil");
-        setSaving(false);
+        console.error("Error updating profile:", error);
+        toast.error(
+          error.message || "Error al actualizar el perfil. Inténtalo de nuevo."
+        );
+        nameInputRef.current?.focus();
       });
   }
 
@@ -753,22 +758,33 @@ function PerfilContent() {
   const onNotifChange = async (checked, e) => {
     if (e && typeof e.preventDefault === "function") e.preventDefault();
     setNotifEnabled(checked);
-    await handleSettingsChange({
-      ...session.user.settings,
-      notificaciones: checked ? "true" : "false",
-      subscripcion: subsEnabled ? "true" : "false",
-      emailValidated: emailValidated ? "true" : "false",
-    });
+    try {
+      await handleSettingsChange({
+        ...session.user.settings,
+        notificaciones: checked ? "true" : "false",
+        subscripcion: subsEnabled ? "true" : "false",
+        emailValidated: emailValidated ? "true" : "false",
+      });
+      toast.success(`Notificaciones ${checked ? "activadas" : "desactivadas"}`);
+    } catch (error) {
+      toast.error("Error al cambiar configuración de notificaciones");
+    }
   };
+
   const onSubsChange = async (checked, e) => {
     if (e && typeof e.preventDefault === "function") e.preventDefault();
     setSubsEnabled(checked);
-    await handleSettingsChange({
-      ...session.user.settings,
-      notificaciones: notifEnabled ? "true" : "false",
-      subscripcion: checked ? "true" : "false",
-      emailValidated: emailValidated ? "true" : "false",
-    });
+    try {
+      await handleSettingsChange({
+        ...session.user.settings,
+        notificaciones: notifEnabled ? "true" : "false",
+        subscripcion: checked ? "true" : "false",
+        emailValidated: emailValidated ? "true" : "false",
+      });
+      toast.success(`Suscripción ${checked ? "activada" : "desactivada"}`);
+    } catch (error) {
+      toast.error("Error al cambiar configuración de suscripción");
+    }
   };
 
   // Simulación de verificación de email
@@ -785,29 +801,14 @@ function PerfilContent() {
         emailValidated: "true",
       });
       setVerifMsg("¡Email verificado!");
-      toast.success("Email verificado correctamente");
+      toast.success("¡Email verificado correctamente!");
       setVerifLoading(false);
     }, 1200);
   };
 
   const handleEditProfile = () => {
-    setFormData({
-      nombre: userProfile?.nombre || user?.name || "",
-      bio: userProfile?.bio || "",
-      ubicacion: userProfile?.ubicacion || "",
-      website: userProfile?.website || "",
-    });
-    setIsEditing(true);
-  };
-
-  const handleSaveProfile = async () => {
-    const success = await updateUserProfile(formData);
-    if (success) {
-      setIsEditing(false);
-      toast.success("Perfil actualizado correctamente");
-    } else {
-      toast.error("Error al actualizar el perfil");
-    }
+    setNewName(session?.user?.name || "");
+    setEditMode(true);
   };
 
   const handleUpdateSetting = async (key, value) => {
@@ -833,20 +834,16 @@ function PerfilContent() {
     }
   }, [userId]);
 
-  // Sincronizar el estado del nombre con la sesión
+  // Sincronizar todos los estados cuando la sesión cambie
   useEffect(() => {
-    if (session?.user?.name) {
-      setNewName(session.user.name);
+    if (session?.user) {
+      setNewName(session.user.name || "");
+      setNewImage(session.user.image || "");
+      setImagePreview(session.user.image || "");
+      setNameAvailable(null);
+      setCheckingName(false);
     }
-  }, [session?.user?.name]);
-
-  // Sincronizar el estado de la imagen con la sesión
-  useEffect(() => {
-    if (session?.user?.image) {
-      setNewImage(session.user.image);
-      setImagePreview(session.user.image);
-    }
-  }, [session?.user?.image]);
+  }, [session?.user?.id, session?.user?.name, session?.user?.image]);
 
   if (initialLoading) {
     return (
@@ -887,7 +884,7 @@ function PerfilContent() {
         <div className="md:col-span-1 flex flex-col h-full md:max-w-md mx-auto w-full">
           <Card className="w-full p-4 md:p-6 text-center shadow-xl h-full min-h-[400px] flex flex-col justify-start">
             <CardHeader className="flex flex-col items-center gap-2 border-b pb-4">
-              {isEditing ? (
+              {editMode ? (
                 <PerfilAvatarEdit
                   imagePreview={imagePreview}
                   newName={newName}
@@ -895,13 +892,11 @@ function PerfilContent() {
                   handleNameChange={handleNameChange}
                   checkingName={checkingName}
                   nameAvailable={nameAvailable}
-                  saving={saving}
                   updating={updating}
-                  updateError={updateError}
-                  updateSuccess={updateSuccess}
-                  setEditMode={setIsEditing}
-                  handleSave={handleSaveProfile}
+                  setEditMode={setEditMode}
+                  handleSave={handleSave}
                   fileInputRef={fileInputRef}
+                  nameInputRef={nameInputRef}
                 />
               ) : (
                 <PerfilAvatarView
@@ -1008,53 +1003,6 @@ function PerfilContent() {
                     Eliminar cuenta
                   </Button>
                 </div>
-                {showDelete && (
-                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg p-4 mt-4 flex flex-col gap-2">
-                    <div className="text-sm text-red-700 dark:text-red-300 font-medium">
-                      ¿Estás seguro? Esta acción es irreversible.
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Escribe tu email para confirmar:
-                    </div>
-                    <Input
-                      type="email"
-                      value={deleteEmail}
-                      onChange={(e) => setDeleteEmail(e.target.value)}
-                      placeholder="Tu email"
-                      disabled={deleteLoading || deleteSuccess}
-                    />
-                    {deleteError && (
-                      <div className="text-xs text-red-500">{deleteError}</div>
-                    )}
-                    {deleteSuccess && (
-                      <div className="text-xs text-green-600">
-                        Cuenta eliminada (simulado)
-                      </div>
-                    )}
-                    <div className="flex gap-2 mt-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setShowDelete(false)}
-                        disabled={deleteLoading || deleteSuccess}
-                      >
-                        Cancelar
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={handleDeleteAccount}
-                        disabled={
-                          deleteLoading || deleteSuccess || !deleteEmail
-                        }
-                      >
-                        {deleteLoading
-                          ? "Eliminando..."
-                          : "Confirmar eliminación"}
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </div>
               <div className="my-2 border-t border-muted-foreground/10 dark:border-neutral-800" />
               {/* Mensaje de proveedor */}
@@ -1285,120 +1233,136 @@ function PerfilContent() {
               )}
             </CardContent>
           </Card>
-          {/* Estadísticas */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-white/50 p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">
-              Estadísticas
-            </h3>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Rol principal:</span>
-                <span className="font-medium">{getUserRole()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Es administrador:</span>
-                <span
-                  className={
-                    isAdmin ? "text-green-600 font-medium" : "text-gray-400"
-                  }
-                >
-                  {isAdmin ? "Sí" : "No"}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Es moderador:</span>
-                <span
-                  className={
-                    isModerator
-                      ? "text-yellow-600 font-medium"
-                      : "text-gray-400"
-                  }
-                >
-                  {isModerator ? "Sí" : "No"}
-                </span>
-              </div>
+          {/* Estadísticas de Sesión */}
+          <Card className="w-full p-8">
+            <CardHeader className="mb-4">
+              <CardTitle className="text-lg font-semibold">
+                Estadísticas de Sesión
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Rol principal:</span>
+                  <span className="font-medium">{getUserRole()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">
+                    Es administrador:
+                  </span>
+                  <span
+                    className={
+                      isAdmin
+                        ? "text-green-600 dark:text-green-400 font-medium"
+                        : "text-muted-foreground"
+                    }
+                  >
+                    {isAdmin ? "Sí" : "No"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Es moderador:</span>
+                  <span
+                    className={
+                      isModerator
+                        ? "text-yellow-600 dark:text-yellow-400 font-medium"
+                        : "text-muted-foreground"
+                    }
+                  >
+                    {isModerator ? "Sí" : "No"}
+                  </span>
+                </div>
 
-              {/* Información de la sesión */}
-              {sessionData && (
-                <>
-                  <div className="pt-3 border-t border-gray-200">
-                    <h4 className="text-sm font-medium text-gray-900 mb-2">
-                      Información de Sesión
-                    </h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 text-sm">
-                          Proveedor:
-                        </span>
-                        <span className="text-sm font-medium">
-                          {accountInfo?.primaryProvider ||
-                            sessionData.user?.provider ||
-                            "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 text-sm">Tipo:</span>
-                        <span className="text-sm font-medium">
-                          {accountInfo?.accountType ||
-                            sessionData.user?.accountType ||
-                            "N/A"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 text-sm">Duración:</span>
-                        <span
-                          className={`text-sm font-medium ${
-                            isSessionExpiringSoon
-                              ? "text-yellow-600"
-                              : isSessionExpired
-                              ? "text-red-600"
-                              : "text-green-600"
-                          }`}
-                        >
-                          {sessionDuration}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600 text-sm">
-                          Tiempo restante:
-                        </span>
-                        <span className="text-sm font-medium">
-                          {sessionTimeRemaining} min
-                        </span>
-                      </div>
-                      {lastActivity && (
+                {/* Información de la sesión */}
+                {sessionData && (
+                  <>
+                    <div className="pt-3 border-t border-border">
+                      <h4 className="text-sm font-medium mb-2">
+                        Información de Sesión
+                      </h4>
+                      <div className="space-y-2">
                         <div className="flex justify-between">
-                          <span className="text-gray-600 text-sm">
-                            Última actividad:
+                          <span className="text-muted-foreground text-sm">
+                            Proveedor:
                           </span>
                           <span className="text-sm font-medium">
-                            {new Date(lastActivity).toLocaleTimeString("es-ES")}
+                            {accountInfo?.primaryProvider ||
+                              sessionData.user?.provider ||
+                              "N/A"}
                           </span>
                         </div>
-                      )}
-                      {accountInfo?.expiresAt && (
                         <div className="flex justify-between">
-                          <span className="text-gray-600 text-sm">Expira:</span>
+                          <span className="text-muted-foreground text-sm">
+                            Tipo:
+                          </span>
                           <span className="text-sm font-medium">
-                            {new Date(accountInfo.expiresAt).toLocaleString(
-                              "es-ES"
-                            )}
+                            {accountInfo?.accountType ||
+                              sessionData.user?.accountType ||
+                              "N/A"}
                           </span>
                         </div>
-                      )}
-                      {isSessionExpiringSoon && (
-                        <div className="bg-yellow-50 p-2 rounded-lg">
-                          <p className="text-xs text-yellow-800">
-                            ⚠️ Tu sesión expirará pronto. Considera renovarla.
-                          </p>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground text-sm">
+                            Duración:
+                          </span>
+                          <span
+                            className={`text-sm font-medium ${
+                              isSessionExpiringSoon
+                                ? "text-yellow-600 dark:text-yellow-400"
+                                : isSessionExpired
+                                ? "text-red-600 dark:text-red-400"
+                                : "text-green-600 dark:text-green-400"
+                            }`}
+                          >
+                            {sessionDuration}
+                          </span>
                         </div>
-                      )}
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground text-sm">
+                            Tiempo restante:
+                          </span>
+                          <span className="text-sm font-medium">
+                            {sessionTimeRemaining} min
+                          </span>
+                        </div>
+                        {lastActivity && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground text-sm">
+                              Última actividad:
+                            </span>
+                            <span className="text-sm font-medium">
+                              {new Date(lastActivity).toLocaleTimeString(
+                                "es-ES"
+                              )}
+                            </span>
+                          </div>
+                        )}
+                        {accountInfo?.expiresAt && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground text-sm">
+                              Expira:
+                            </span>
+                            <span className="text-sm font-medium">
+                              {new Date(accountInfo.expiresAt).toLocaleString(
+                                "es-ES"
+                              )}
+                            </span>
+                          </div>
+                        )}
+                        {isSessionExpiringSoon && (
+                          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded-lg">
+                            <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                              ⚠️ Tu sesión expirará pronto. Considera renovarla.
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 

@@ -3,6 +3,9 @@ import { createContext, useContext, useState, useEffect } from "react";
 
 const ToastContext = createContext();
 
+// Toast global que no depende del contexto
+let globalToast = null;
+
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
 
@@ -26,6 +29,11 @@ export function ToastProvider({ children }) {
   const info = (message, duration) => addToast(message, "info", duration);
   const warning = (message, duration) => addToast(message, "warning", duration);
 
+  // Asignar el toast global
+  useEffect(() => {
+    globalToast = { success, error, info, warning, removeToast };
+  }, []);
+
   return (
     <ToastContext.Provider
       value={{ success, error, info, warning, removeToast }}
@@ -38,7 +46,7 @@ export function ToastProvider({ children }) {
 
 function ToastContainer({ toasts, removeToast }) {
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
+    <div className="fixed top-4 right-12 z-50 space-y-2">
       {toasts.map((toast) => (
         <Toast key={toast.id} toast={toast} removeToast={removeToast} />
       ))}
@@ -107,7 +115,19 @@ function Toast({ toast, removeToast }) {
 export const useToast = () => {
   const context = useContext(ToastContext);
   if (!context) {
-    throw new Error("useToast debe ser usado dentro de un ToastProvider");
+    // Si no hay contexto, usar el toast global
+    if (globalToast) {
+      return globalToast;
+    }
+    // Fallback: crear un toast simple
+    console.warn("Toast context not available, using fallback");
+    return {
+      success: (msg) => console.log("SUCCESS:", msg),
+      error: (msg) => console.error("ERROR:", msg),
+      warning: (msg) => console.warn("WARNING:", msg),
+      info: (msg) => console.info("INFO:", msg),
+      removeToast: () => {},
+    };
   }
   return context;
 };
