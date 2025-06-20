@@ -46,7 +46,7 @@ export function ToastProvider({ children }) {
 
 function ToastContainer({ toasts, removeToast }) {
   return (
-    <div className="fixed top-4 right-12 z-50 space-y-2">
+    <div className="fixed top-4 left-4 z-[99999] space-y-2">
       {toasts.map((toast) => (
         <Toast key={toast.id} toast={toast} removeToast={removeToast} />
       ))}

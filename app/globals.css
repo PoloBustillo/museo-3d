@@ -1181,3 +1181,45 @@ html.dark .graffiti-gradient-bg {
     radial-gradient(circle at 70% 80%, #047857cc 0%, transparent 60%),
     linear-gradient(120deg, #fff2 0%, transparent 80%);
 }
+
+/* Forzar estilos modernos en los toasts de react-hot-toast */
+.react-hot-toast .react-hot-toast-toast,
+.react-hot-toast [data-testid="toast"] {
+  background: rgba(30,41,59,0.85) !important;
+  color: #fff !important;
+  border: 1.5px solid #64748b !important;
+  border-radius: 14px !important;
+  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15) !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  max-width: 400px !important;
+  min-width: 300px !important;
+  backdrop-filter: blur(6px) !important;
+  padding: 18px 20px !important;
+}
+.react-hot-toast .react-hot-toast-toast[data-success],
+.react-hot-toast [data-testid="toast"][data-success] {
+  background: rgba(34,197,94,0.92) !important;
+  color: #fff !important;
+  border: 1.5px solid #22c55e !important;
+}
+.react-hot-toast .react-hot-toast-toast[data-error],
+.react-hot-toast [data-testid="toast"][data-error] {
+  background: rgba(239,68,68,0.92) !important;
+  color: #fff !important;
+  border: 1.5px solid #ef4444 !important;
+}
+
+/* Forzar posición y visibilidad del toaster de react-hot-toast */
+#_rht_toaster {
+  top: 32px !important;
+  left: 50% !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translateX(-50%) !important;
+  pointer-events: none !important;
+  z-index: 99999 !important;
+}
+#_rht_toaster > * {
+  pointer-events: all !important;
+}

@@ -450,6 +450,7 @@ function PerfilAvatarView({ image, name, onEdit }) {
 
 function PerfilContent() {
   const { data: session, status, update } = useSession();
+  const [updating, setUpdating] = useState(false);
   const [personalCollection, setPersonalCollection] = useState([]);
   const [collectionStats, setCollectionStats] = useState({});
   const [museumStats, setMuseumStats] = useState({
@@ -481,7 +482,6 @@ function PerfilContent() {
   const fileInputRef = useRef();
   const {
     updateProfile,
-    loading: updating,
     error: updateError,
     success: updateSuccess,
   } = useUpdateProfile();
@@ -662,7 +662,7 @@ function PerfilContent() {
     }
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!session?.user?.id) {
       toast.error("Error: No se pudo identificar al usuario");
       nameInputRef.current?.focus();
@@ -681,34 +681,20 @@ function PerfilContent() {
       return;
     }
 
-    updateProfile({
-      name: newName,
-      image: newImage,
-    })
-      .then(async (success) => {
-        if (success) {
-          if (typeof update === "function") {
-            await update();
-          }
-          setEditMode(false);
-          setNewName(session?.user?.name || "");
-          setNewImage(session?.user?.image || "");
-          setImagePreview(session?.user?.image || "");
-          setNameAvailable(null);
-          setCheckingName(false);
-          toast.success("¡Perfil actualizado correctamente!");
-        } else {
-          toast.error("Error al actualizar el perfil");
-          nameInputRef.current?.focus();
-        }
-      })
-      .catch((error) => {
-        console.error("Error updating profile:", error);
-        toast.error(
-          error.message || "Error al actualizar el perfil. Inténtalo de nuevo."
-        );
-        nameInputRef.current?.focus();
-      });
+    setUpdating(true);
+    await toast.promise(
+      updateProfile({
+        name: newName,
+        image: imagePreview,
+      }),
+      {
+        loading: "Guardando perfil...",
+        success: "Perfil actualizado correctamente",
+        error: "Error al actualizar el perfil",
+      }
+    );
+    setEditMode(false);
+    setUpdating(false);
   }
 
   async function handleDeleteAccount() {
@@ -1034,48 +1020,50 @@ function PerfilContent() {
                 </div>
               ) : (
                 <div className="flex flex-col gap-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <SalaIcon className="w-10 h-10 text-blue-500" />
-                        <span className="text-2xl font-bold">
+                  <div className="flex flex-wrap gap-4 justify-center">
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-center gap-2 mb-1">
+                        <SalaIcon className="w-8 h-8 text-blue-500" />
+                        <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">
                           {museumStats.totalSalas}
                         </span>
                       </div>
-                      <div className="text-xs text-muted-foreground">Salas</div>
+                      <span className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-200 text-xs font-semibold border border-blue-200 dark:border-blue-700 shadow-sm">
+                        Salas
+                      </span>
                     </div>
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <MuralIcon className="w-10 h-10 text-indigo-500" />
-                        <span className="text-2xl font-bold">
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-center gap-2 mb-1">
+                        <MuralIcon className="w-8 h-8 text-indigo-500" />
+                        <span className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">
                           {museumStats.totalArtworks}
                         </span>
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <span className="px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-200 text-xs font-semibold border border-indigo-200 dark:border-indigo-700 shadow-sm">
                         Murales
-                      </div>
+                      </span>
                     </div>
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <ArtistaIcon className="w-10 h-10 text-rose-500" />
-                        <span className="text-2xl font-bold">
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-center gap-2 mb-1">
+                        <ArtistaIcon className="w-8 h-8 text-rose-500" />
+                        <span className="text-2xl font-bold text-rose-700 dark:text-rose-300">
                           {museumStats.totalArtists}
                         </span>
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <span className="px-3 py-1 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-200 text-xs font-semibold border border-rose-200 dark:border-rose-700 shadow-sm">
                         Artistas
-                      </div>
+                      </span>
                     </div>
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <TecnicaIcon className="w-10 h-10 text-green-500" />
-                        <span className="text-2xl font-bold">
+                    <div className="flex flex-col items-center">
+                      <div className="flex items-center gap-2 mb-1">
+                        <TecnicaIcon className="w-8 h-8 text-green-500" />
+                        <span className="text-2xl font-bold text-green-700 dark:text-green-300">
                           {museumStats.totalTechniques}
                         </span>
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <span className="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-200 text-xs font-semibold border border-green-200 dark:border-green-700 shadow-sm">
                         Técnicas
-                      </div>
+                      </span>
                     </div>
                   </div>
                   <div>

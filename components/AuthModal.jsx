@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { signIn } from "next-auth/react";
 import { useModal } from "../providers/ModalProvider";
-import { useToast } from "./ui/toast";
+import toast from "react-hot-toast";
 import {
   X,
   Mail,
@@ -18,7 +18,6 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export default function AuthModal() {
   const { modal, modalData, closeModal, isModalOpen } = useModal();
-  const { toast } = useToast();
   const [form, setForm] = useState({
     email: "",
     password: "",

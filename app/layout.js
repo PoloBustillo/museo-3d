@@ -3,6 +3,7 @@ import "./globals.css";
 import ClientLayout from "../components/ClientLayout";
 import AppProviders from "../components/AppProviders";
 import { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,13 +33,6 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
-  if (typeof window !== "undefined") {
-    window.testToast = () => {
-      import("react-hot-toast").then(({ toast }) =>
-        toast.success("Toast global de prueba")
-      );
-    };
-  }
   return (
     <html lang="es" suppressHydrationWarning={true}>
       <body
@@ -49,64 +43,34 @@ export default function RootLayout({ children }) {
         </AppProviders>
         <Toaster
           position="top-center"
-          reverseOrder={false}
+          reverseOrder={true}
+          limit={1}
           toastOptions={{
-            duration: 4000,
             style: {
-              background: "var(--background)",
-              color: "var(--foreground)",
-              border: "1px solid var(--border)",
-              borderRadius: "12px",
-              padding: "16px",
-              fontSize: "14px",
-              fontWeight: "500",
+              background: "rgba(255,255,255,0.95)",
+              color: "#1e293b",
+              border: "1px solid #e5e7eb",
               boxShadow:
                 "0 10px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04)",
+              borderRadius: "12px",
+              fontSize: "14px",
+              fontWeight: 500,
               maxWidth: "400px",
               minWidth: "300px",
-              position: "fixed",
-              zIndex: 9999,
+              backdropFilter: "blur(4px)",
             },
             success: {
-              iconTheme: {
-                primary: "#10b981",
-                secondary: "#ffffff",
-              },
               style: {
-                background: "var(--background)",
-                color: "var(--foreground)",
-                border: "1px solid #10b981",
-                borderLeft: "4px solid #10b981",
-                position: "fixed",
-                zIndex: 9999,
+                background: "rgba(34,197,94,0.95)",
+                color: "#fff",
+                border: "1px solid #22c55e",
               },
             },
             error: {
-              iconTheme: {
-                primary: "#ef4444",
-                secondary: "#ffffff",
-              },
               style: {
-                background: "var(--background)",
-                color: "var(--foreground)",
+                background: "rgba(239,68,68,0.95)",
+                color: "#fff",
                 border: "1px solid #ef4444",
-                borderLeft: "4px solid #ef4444",
-                position: "fixed",
-                zIndex: 9999,
-              },
-            },
-            loading: {
-              iconTheme: {
-                primary: "#3b82f6",
-                secondary: "#ffffff",
-              },
-              style: {
-                background: "var(--background)",
-                color: "var(--foreground)",
-                border: "1px solid #3b82f6",
-                borderLeft: "4px solid #3b82f6",
-                position: "fixed",
-                zIndex: 9999,
               },
             },
           }}
