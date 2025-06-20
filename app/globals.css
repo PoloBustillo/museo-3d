@@ -1286,3 +1286,53 @@ html.dark .toast-badge-info {
   border-color: #1e40af !important;
   color: #bfdbfe !important;
 }
+
+/* Card mouse glow effect - Solo desktop */
+@media (min-width: 768px) {
+  .card-mouse-glow {
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 8px 32px rgba(30,41,59,0.10);
+    transition: box-shadow 0.3s;
+  }
+  .card-mouse-glow:hover {
+    box-shadow: 0 12px 40px rgba(59,130,246,0.18);
+  }
+  .card-blob {
+    position: absolute;
+    top: 0; left: 0;
+    width: 260px; height: 260px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(99,102,241,0.25) 0%, rgba(99,102,241,0.0) 80%);
+    filter: blur(40px);
+    opacity: 0.7;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    z-index: 1;
+  }
+  html.dark .card-mouse-glow {
+    background: rgba(30,41,59,0.85);
+  }
+  html.dark .card-blob {
+    background: radial-gradient(circle, rgba(99,102,241,0.35) 0%, rgba(99,102,241,0.0) 80%);
+  }
+}
+
+/* En móviles, mantener el estilo normal sin efecto glow */
+@media (max-width: 767px) {
+  .card-mouse-glow {
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.85);
+    box-shadow: 0 8px 32px rgba(30,41,59,0.10);
+  }
+  .card-blob {
+    display: none;
+  }
+  html.dark .card-mouse-glow {
+    background: rgba(30,41,59,0.85);
+  }
+}

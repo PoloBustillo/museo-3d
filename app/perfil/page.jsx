@@ -35,6 +35,7 @@ import { useModal } from "../../providers/ModalProvider";
 import { ModalWrapper } from "../../components/ui/Modal";
 import { useSessionData } from "../../providers/SessionProvider";
 import toast from "react-hot-toast";
+import { useCardMouseGlow } from "../hooks/useCardMouseGlow";
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
@@ -851,6 +852,12 @@ function PerfilContent() {
     }
   }, [checkingName, editMode]);
 
+  // Para cada card principal, aplica el efecto mouse glow
+  const statsGlow = useCardMouseGlow();
+  const collectionGlow = useCardMouseGlow();
+  const sessionGlow = useCardMouseGlow();
+  const profileGlow = useCardMouseGlow();
+
   if (initialLoading) {
     return (
       <div className="relative min-h-screen flex items-center justify-center">
@@ -881,496 +888,551 @@ function PerfilContent() {
   }
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center pt-8 md:pt-12 pb-8 md:pb-12">
-      <div className="absolute inset-0 z-0">
-        <RainbowBackground />
-      </div>
-      <div className="z-10 w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-[350px_1fr] gap-8 px-4 sm:px-8 h-full">
-        {/* Sidebar Perfil */}
-        <div className="md:col-span-1 flex flex-col h-full md:max-w-md mx-auto w-full">
-          <Card className="w-full p-4 md:p-6 text-center shadow-xl h-full min-h-[400px] flex flex-col justify-start">
-            <CardHeader className="flex flex-col items-center gap-2 border-b pb-4">
-              {editMode ? (
-                <PerfilAvatarEdit
-                  imagePreview={imagePreview}
-                  newName={newName}
-                  handleImageChange={handleImageChange}
-                  handleNameChange={handleNameChange}
-                  checkingName={checkingName}
-                  nameAvailable={nameAvailable}
-                  updating={updating}
-                  setEditMode={setEditMode}
-                  handleSave={handleSave}
-                  fileInputRef={fileInputRef}
-                  nameInputRef={nameInputRef}
-                />
-              ) : (
-                <PerfilAvatarView
-                  image={session?.user?.image}
-                  name={session?.user?.name}
-                  onEdit={handleEditProfile}
-                />
-              )}
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4 mt-4">
-              {/* Info de perfil */}
-              <div className="w-full text-left mb-6">
-                <div className="text-left">
-                  <Label>Email</Label>
-                  <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
-                    {session?.user?.email || "No disponible"}
-                    {emailValidated ? (
-                      <Badge variant="success">Verificado</Badge>
-                    ) : (
-                      <a
-                        href="#"
-                        className="text-primary underline text-xs font-medium hover:text-primary/80 transition"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleVerifyEmail();
-                        }}
-                        disabled={verifLoading}
-                      >
-                        {verifLoading ? "Verificando..." : "Verificar email"}
-                      </a>
-                    )}
-                  </div>
-                  {verifMsg && (
-                    <div className="text-xs text-green-600 mt-1">
-                      {verifMsg}
-                    </div>
-                  )}
-                </div>
-                <div className="text-left mt-2">
-                  <Label>ID de usuario</Label>
-                  <div className="text-xs font-mono text-muted-foreground mt-1">
-                    {userId || "No disponible"}
-                  </div>
-                </div>
-                <div className="text-left mt-4">
-                  <Label>Notificaciones</Label>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-1">
-                    <Switch
-                      checked={notifEnabled}
-                      onCheckedChange={(checked, e) =>
-                        onNotifChange(checked, e)
-                      }
-                    />
-                    <span className="text-xs text-muted-foreground">
-                      {notifEnabled ? "Activadas" : "Desactivadas"}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-left mt-2">
-                  <Label>Suscripción</Label>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-1">
-                    <Switch
-                      checked={subsEnabled}
-                      onCheckedChange={(checked, e) => onSubsChange(checked, e)}
-                    />
-                    <span className="text-xs text-muted-foreground">
-                      {subsEnabled ? "Activa" : "Inactiva"}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-left mt-2">
-                  <Label>Email verificado</Label>
-                  <div className="flex items-center gap-2 mt-1">
-                    <Switch checked={emailValidated} disabled />
-                    {emailValidated ? (
-                      <Badge variant="success">Verificado</Badge>
-                    ) : (
-                      <a
-                        href="#"
-                        className="text-primary underline text-xs font-medium hover:text-primary/80 transition"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleVerifyEmail();
-                        }}
-                        disabled={verifLoading}
-                      >
-                        {verifLoading ? "Verificando..." : "Verificar email"}
-                      </a>
-                    )}
-                  </div>
-                  {verifMsg && (
-                    <div className="text-xs text-green-600 mt-1">
-                      {verifMsg}
-                    </div>
-                  )}
-                </div>
-                <div className="text-left mt-4">
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    className="w-full"
-                    onClick={() => setShowDelete((v) => !v)}
-                  >
-                    Eliminar cuenta
-                  </Button>
-                </div>
-              </div>
-              <div className="my-2 border-t border-muted-foreground/10 dark:border-neutral-800" />
-              {/* Mensaje de proveedor */}
-              <div className="mt-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
-                La información se obtiene de tu proveedor de autenticación.
-                <br />
-                Para cambios, contacta al administrador.
-              </div>
-            </CardContent>
-          </Card>
+    <>
+      <div className="relative min-h-screen pt-8 md:pt-12 pb-8 md:pb-12">
+        <div className="absolute inset-0 z-0">
+          <RainbowBackground />
         </div>
-        {/* Main content: Estadísticas y Colección */}
-        <div className="md:col-span-1 flex flex-col gap-8 w-full">
-          <Card className="w-full p-8 mb-4">
-            <CardHeader className="mb-4">
-              <CardTitle className="text-lg font-semibold">
-                Estadísticas del museo
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {isLoadingStats ? (
-                <div className="text-center text-muted-foreground">
-                  Cargando estadísticas...
-                </div>
-              ) : (
-                <div className="flex flex-col gap-6">
-                  <div className="flex flex-wrap gap-4 justify-center">
-                    <div className="flex flex-col items-center">
-                      <div className="flex items-center gap-2 mb-1">
-                        <SalaIcon className="w-8 h-8 text-blue-500" />
-                        <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">
-                          {museumStats.totalSalas}
-                        </span>
-                      </div>
-                      <span className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-200 text-xs font-semibold border border-blue-200 dark:border-blue-700 shadow-sm">
-                        Salas
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <div className="flex items-center gap-2 mb-1">
-                        <MuralIcon className="w-8 h-8 text-indigo-500" />
-                        <span className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">
-                          {museumStats.totalArtworks}
-                        </span>
-                      </div>
-                      <span className="px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-200 text-xs font-semibold border border-indigo-200 dark:border-indigo-700 shadow-sm">
-                        Murales
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <div className="flex items-center gap-2 mb-1">
-                        <ArtistaIcon className="w-8 h-8 text-rose-500" />
-                        <span className="text-2xl font-bold text-rose-700 dark:text-rose-300">
-                          {museumStats.totalArtists}
-                        </span>
-                      </div>
-                      <span className="px-3 py-1 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-200 text-xs font-semibold border border-rose-200 dark:border-rose-700 shadow-sm">
-                        Artistas
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                      <div className="flex items-center gap-2 mb-1">
-                        <TecnicaIcon className="w-8 h-8 text-green-500" />
-                        <span className="text-2xl font-bold text-green-700 dark:text-green-300">
-                          {museumStats.totalTechniques}
-                        </span>
-                      </div>
-                      <span className="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-200 text-xs font-semibold border border-green-200 dark:border-green-700 shadow-sm">
-                        Técnicas
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-medium mb-2">Técnicas más usadas</div>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(muralesStats.porTecnica || {})
-                        .sort((a, b) => b[1] - a[1])
-                        .slice(0, 3)
-                        .map(([tecnica, count], i) => (
-                          <TagWithPreview
-                            key={tecnica}
-                            label={`${tecnica} (${count})`}
-                            variant={
-                              i === 0 ? "blue" : i === 1 ? "green" : "violet"
-                            }
-                            images={murales.filter(
-                              (m) =>
-                                m.tecnica === tecnica &&
-                                (m.url_imagen || m.imagenUrl)
-                            )}
-                          />
-                        ))}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-medium mb-2">
-                      Murales por año (últimos 5)
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(muralesStats.porAnio || {})
-                        .sort((a, b) => b[0] - a[0])
-                        .slice(0, 5)
-                        .map(([anio, count], i) => (
-                          <TagWithPreview
-                            key={anio}
-                            label={`${anio}: ${count}`}
-                            variant={i % 2 === 0 ? "yellow" : "pink"}
-                            images={murales.filter(
-                              (m) =>
-                                String(m.anio) === String(anio) &&
-                                (m.url_imagen || m.imagenUrl)
-                            )}
-                          />
-                        ))}
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-medium mb-2">
-                      Salas con más murales
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.entries(muralesStats.porSala || {})
-                        .sort((a, b) => b[1] - a[1])
-                        .slice(0, 3)
-                        .map(([sala, count], i) => (
-                          <TagWithPreview
-                            key={sala}
-                            label={`${sala}: ${count}`}
-                            variant={
-                              i === 0 ? "violet" : i === 1 ? "blue" : "green"
-                            }
-                            images={murales.filter(
-                              (m) =>
-                                (m.sala?.nombre || "Sin sala") === sala &&
-                                (m.url_imagen || m.imagenUrl)
-                            )}
-                          />
-                        ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          <Card className="w-full p-8">
-            <CardHeader className="mb-4">
-              <CardTitle className="text-lg font-semibold">
-                Mi colección personal
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {personalCollection.length === 0 ? (
-                <div className="text-center text-muted-foreground">
-                  No tienes obras guardadas en tu colección.
-                </div>
-              ) : (
-                <div className="flex flex-col gap-6">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <MuralIcon className="w-10 h-10 text-indigo-500" />
-                        <span className="text-2xl font-bold">
-                          {collectionStats.totalArtworks}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">Obras</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <ArtistaIcon className="w-10 h-10 text-rose-500" />
-                        <span className="text-2xl font-bold">
-                          {collectionStats.uniqueArtists}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Artistas
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <TecnicaIcon className="w-10 h-10 text-green-500" />
-                        <span className="text-2xl font-bold">
-                          {collectionStats.uniqueTechniques}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Técnicas
-                      </div>
-                    </div>
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-2 mb-1">
-                        <svg
-                          className="w-10 h-10 text-gray-500"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M8 17l4 4 4-4m-4-5v9" />
-                        </svg>
-                        <span className="text-2xl font-bold">
-                          {collectionStats.oldestYear || "-"}
-                        </span>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        Año más antiguo
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-medium mb-2">Obras guardadas</div>
-                    <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
-                      {personalCollection.map((item) => (
-                        <CollectionItem
-                          key={item.id}
-                          item={item}
-                          allItems={personalCollection}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="text-center mt-4">
-                    <Button asChild>
-                      <Link href="/mis-documentos">
-                        Gestionar colección avanzada
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-          {/* Estadísticas de Sesión */}
-          <Card className="w-full p-8">
-            <CardHeader className="mb-4">
-              <CardTitle className="text-lg font-semibold">
-                Estadísticas de Sesión
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Rol principal:</span>
-                  <span className="font-medium">{getUserRole()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    Es administrador:
-                  </span>
-                  <span
-                    className={
-                      isAdmin
-                        ? "text-green-600 dark:text-green-400 font-medium"
-                        : "text-muted-foreground"
-                    }
-                  >
-                    {isAdmin ? "Sí" : "No"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Es moderador:</span>
-                  <span
-                    className={
-                      isModerator
-                        ? "text-yellow-600 dark:text-yellow-400 font-medium"
-                        : "text-muted-foreground"
-                    }
-                  >
-                    {isModerator ? "Sí" : "No"}
-                  </span>
-                </div>
-
-                {/* Información de la sesión */}
-                {sessionData && (
-                  <>
-                    <div className="pt-3 border-t border-border">
-                      <h4 className="text-sm font-medium mb-2">
-                        Información de Sesión
-                      </h4>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground text-sm">
-                            Proveedor:
-                          </span>
-                          <span className="text-sm font-medium">
-                            {accountInfo?.primaryProvider ||
-                              sessionData.user?.provider ||
-                              "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground text-sm">
-                            Tipo:
-                          </span>
-                          <span className="text-sm font-medium">
-                            {accountInfo?.accountType ||
-                              sessionData.user?.accountType ||
-                              "N/A"}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground text-sm">
-                            Duración:
-                          </span>
-                          <span
-                            className={`text-sm font-medium ${
-                              isSessionExpiringSoon
-                                ? "text-yellow-600 dark:text-yellow-400"
-                                : isSessionExpired
-                                ? "text-red-600 dark:text-red-400"
-                                : "text-green-600 dark:text-green-400"
-                            }`}
+        <div className="z-10 w-full max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-[350px_1fr] gap-8 px-4 sm:px-8">
+          {/* Sidebar Perfil */}
+          <div className="md:col-span-1 flex flex-col md:max-w-md mx-auto w-full">
+            <div
+              className="card-mouse-glow w-full"
+              onMouseMove={profileGlow.handleMouseMove}
+              onMouseLeave={profileGlow.handleMouseLeave}
+            >
+              <div ref={profileGlow.blobRef} className="card-blob" />
+              <Card className="w-full p-4 md:p-6 text-center shadow-xl min-h-[400px] flex flex-col justify-start bg-transparent shadow-none border-0">
+                <CardHeader className="flex flex-col items-center gap-2 border-b pb-4">
+                  {editMode ? (
+                    <PerfilAvatarEdit
+                      imagePreview={imagePreview}
+                      newName={newName}
+                      handleImageChange={handleImageChange}
+                      handleNameChange={handleNameChange}
+                      checkingName={checkingName}
+                      nameAvailable={nameAvailable}
+                      updating={updating}
+                      setEditMode={setEditMode}
+                      handleSave={handleSave}
+                      fileInputRef={fileInputRef}
+                      nameInputRef={nameInputRef}
+                    />
+                  ) : (
+                    <PerfilAvatarView
+                      image={session?.user?.image}
+                      name={session?.user?.name}
+                      onEdit={handleEditProfile}
+                    />
+                  )}
+                </CardHeader>
+                <CardContent className="flex flex-col gap-4 mt-4">
+                  {/* Info de perfil */}
+                  <div className="w-full text-left mb-6">
+                    <div className="text-left">
+                      <Label>Email</Label>
+                      <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                        {session?.user?.email || "No disponible"}
+                        {emailValidated ? (
+                          <Badge variant="success">Verificado</Badge>
+                        ) : (
+                          <a
+                            href="#"
+                            className="text-primary underline text-xs font-medium hover:text-primary/80 transition"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleVerifyEmail();
+                            }}
+                            disabled={verifLoading}
                           >
-                            {sessionDuration}
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground text-sm">
-                            Tiempo restante:
-                          </span>
-                          <span className="text-sm font-medium">
-                            {sessionTimeRemaining} min
-                          </span>
-                        </div>
-                        {lastActivity && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground text-sm">
-                              Última actividad:
-                            </span>
-                            <span className="text-sm font-medium">
-                              {new Date(lastActivity).toLocaleTimeString(
-                                "es-ES"
-                              )}
-                            </span>
-                          </div>
-                        )}
-                        {accountInfo?.expiresAt && (
-                          <div className="flex justify-between">
-                            <span className="text-muted-foreground text-sm">
-                              Expira:
-                            </span>
-                            <span className="text-sm font-medium">
-                              {new Date(accountInfo.expiresAt).toLocaleString(
-                                "es-ES"
-                              )}
-                            </span>
-                          </div>
-                        )}
-                        {isSessionExpiringSoon && (
-                          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded-lg">
-                            <p className="text-xs text-yellow-800 dark:text-yellow-200">
-                              ⚠️ Tu sesión expirará pronto. Considera renovarla.
-                            </p>
-                          </div>
+                            {verifLoading
+                              ? "Verificando..."
+                              : "Verificar email"}
+                          </a>
                         )}
                       </div>
+                      {verifMsg && (
+                        <div className="text-xs text-green-600 mt-1">
+                          {verifMsg}
+                        </div>
+                      )}
                     </div>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                    <div className="text-left mt-2">
+                      <Label>ID de usuario</Label>
+                      <div className="text-xs font-mono text-muted-foreground mt-1">
+                        {userId || "No disponible"}
+                      </div>
+                    </div>
+                    <div className="text-left mt-4">
+                      <Label>Notificaciones</Label>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-1">
+                        <Switch
+                          checked={notifEnabled}
+                          onCheckedChange={(checked, e) =>
+                            onNotifChange(checked, e)
+                          }
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          {notifEnabled ? "Activadas" : "Desactivadas"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-left mt-2">
+                      <Label>Suscripción</Label>
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 mt-1">
+                        <Switch
+                          checked={subsEnabled}
+                          onCheckedChange={(checked, e) =>
+                            onSubsChange(checked, e)
+                          }
+                        />
+                        <span className="text-xs text-muted-foreground">
+                          {subsEnabled ? "Activa" : "Inactiva"}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="text-left mt-2">
+                      <Label>Email verificado</Label>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Switch checked={emailValidated} disabled />
+                        {emailValidated ? (
+                          <Badge variant="success">Verificado</Badge>
+                        ) : (
+                          <a
+                            href="#"
+                            className="text-primary underline text-xs font-medium hover:text-primary/80 transition"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleVerifyEmail();
+                            }}
+                            disabled={verifLoading}
+                          >
+                            {verifLoading
+                              ? "Verificando..."
+                              : "Verificar email"}
+                          </a>
+                        )}
+                      </div>
+                      {verifMsg && (
+                        <div className="text-xs text-green-600 mt-1">
+                          {verifMsg}
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-left mt-4">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="w-full"
+                        onClick={() => setShowDelete((v) => !v)}
+                      >
+                        Eliminar cuenta
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="my-2 border-t border-muted-foreground/10 dark:border-neutral-800" />
+                  {/* Mensaje de proveedor */}
+                  <div className="mt-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
+                    La información se obtiene de tu proveedor de autenticación.
+                    <br />
+                    Para cambios, contacta al administrador.
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+          {/* Main content: Estadísticas y Colección */}
+          <div className="md:col-span-1 flex flex-col gap-8 w-full">
+            {/* Estadísticas del museo */}
+            <div
+              className="card-mouse-glow w-full mb-4"
+              onMouseMove={statsGlow.handleMouseMove}
+              onMouseLeave={statsGlow.handleMouseLeave}
+            >
+              <div ref={statsGlow.blobRef} className="card-blob" />
+              <Card className="w-full p-8 bg-transparent shadow-none border-0">
+                <CardHeader className="mb-4">
+                  <CardTitle className="text-lg font-semibold">
+                    Estadísticas del museo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingStats ? (
+                    <div className="text-center text-muted-foreground">
+                      Cargando estadísticas...
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-6">
+                      <div className="flex flex-wrap gap-4 justify-center">
+                        <div className="flex flex-col items-center">
+                          <div className="flex items-center gap-2 mb-1">
+                            <SalaIcon className="w-8 h-8 text-blue-500" />
+                            <span className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+                              {museumStats.totalSalas}
+                            </span>
+                          </div>
+                          <span className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-200 text-xs font-semibold border border-blue-200 dark:border-blue-700 shadow-sm">
+                            Salas
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <div className="flex items-center gap-2 mb-1">
+                            <MuralIcon className="w-8 h-8 text-indigo-500" />
+                            <span className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">
+                              {museumStats.totalArtworks}
+                            </span>
+                          </div>
+                          <span className="px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-200 text-xs font-semibold border border-indigo-200 dark:border-indigo-700 shadow-sm">
+                            Murales
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <div className="flex items-center gap-2 mb-1">
+                            <ArtistaIcon className="w-8 h-8 text-rose-500" />
+                            <span className="text-2xl font-bold text-rose-700 dark:text-rose-300">
+                              {museumStats.totalArtists}
+                            </span>
+                          </div>
+                          <span className="px-3 py-1 rounded-full bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-200 text-xs font-semibold border border-rose-200 dark:border-rose-700 shadow-sm">
+                            Artistas
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <div className="flex items-center gap-2 mb-1">
+                            <TecnicaIcon className="w-8 h-8 text-green-500" />
+                            <span className="text-2xl font-bold text-green-700 dark:text-green-300">
+                              {museumStats.totalTechniques}
+                            </span>
+                          </div>
+                          <span className="px-3 py-1 rounded-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-200 text-xs font-semibold border border-green-200 dark:border-green-700 shadow-sm">
+                            Técnicas
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-medium mb-2">
+                          Técnicas más usadas
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(muralesStats.porTecnica || {})
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 3)
+                            .map(([tecnica, count], i) => (
+                              <TagWithPreview
+                                key={tecnica}
+                                label={`${tecnica} (${count})`}
+                                variant={
+                                  i === 0
+                                    ? "blue"
+                                    : i === 1
+                                    ? "green"
+                                    : "violet"
+                                }
+                                images={murales.filter(
+                                  (m) =>
+                                    m.tecnica === tecnica &&
+                                    (m.url_imagen || m.imagenUrl)
+                                )}
+                              />
+                            ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-medium mb-2">
+                          Murales por año (últimos 5)
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(muralesStats.porAnio || {})
+                            .sort((a, b) => b[0] - a[0])
+                            .slice(0, 5)
+                            .map(([anio, count], i) => (
+                              <TagWithPreview
+                                key={anio}
+                                label={`${anio}: ${count}`}
+                                variant={i % 2 === 0 ? "yellow" : "pink"}
+                                images={murales.filter(
+                                  (m) =>
+                                    String(m.anio) === String(anio) &&
+                                    (m.url_imagen || m.imagenUrl)
+                                )}
+                              />
+                            ))}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-medium mb-2">
+                          Salas con más murales
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.entries(muralesStats.porSala || {})
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 3)
+                            .map(([sala, count], i) => (
+                              <TagWithPreview
+                                key={sala}
+                                label={`${sala}: ${count}`}
+                                variant={
+                                  i === 0
+                                    ? "violet"
+                                    : i === 1
+                                    ? "blue"
+                                    : "green"
+                                }
+                                images={murales.filter(
+                                  (m) =>
+                                    (m.sala?.nombre || "Sin sala") === sala &&
+                                    (m.url_imagen || m.imagenUrl)
+                                )}
+                              />
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+            {/* Mi colección personal */}
+            <div
+              className="card-mouse-glow w-full"
+              onMouseMove={collectionGlow.handleMouseMove}
+              onMouseLeave={collectionGlow.handleMouseLeave}
+            >
+              <div ref={collectionGlow.blobRef} className="card-blob" />
+              <Card className="w-full p-8 bg-transparent shadow-none border-0">
+                <CardHeader className="mb-4">
+                  <CardTitle className="text-lg font-semibold">
+                    Mi colección personal
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {personalCollection.length === 0 ? (
+                    <div className="text-center text-muted-foreground">
+                      No tienes obras guardadas en tu colección.
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-6">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-2 mb-1">
+                            <MuralIcon className="w-10 h-10 text-indigo-500" />
+                            <span className="text-2xl font-bold">
+                              {collectionStats.totalArtworks}
+                            </span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Obras
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-2 mb-1">
+                            <ArtistaIcon className="w-10 h-10 text-rose-500" />
+                            <span className="text-2xl font-bold">
+                              {collectionStats.uniqueArtists}
+                            </span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Artistas
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-2 mb-1">
+                            <TecnicaIcon className="w-10 h-10 text-green-500" />
+                            <span className="text-2xl font-bold">
+                              {collectionStats.uniqueTechniques}
+                            </span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Técnicas
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="flex items-center justify-center gap-2 mb-1">
+                            <svg
+                              className="w-10 h-10 text-gray-500"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M8 17l4 4 4-4m-4-5v9" />
+                            </svg>
+                            <span className="text-2xl font-bold">
+                              {collectionStats.oldestYear || "-"}
+                            </span>
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            Año más antiguo
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <div className="font-medium mb-2">Obras guardadas</div>
+                        <div className="flex flex-col gap-2 max-h-64 overflow-y-auto">
+                          {personalCollection.map((item) => (
+                            <CollectionItem
+                              key={item.id}
+                              item={item}
+                              allItems={personalCollection}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="text-center mt-4">
+                        <Button asChild>
+                          <Link href="/mis-documentos">
+                            Gestionar colección avanzada
+                          </Link>
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+            {/* Estadísticas de Sesión */}
+            <div
+              className="card-mouse-glow w-full"
+              onMouseMove={sessionGlow.handleMouseMove}
+              onMouseLeave={sessionGlow.handleMouseLeave}
+            >
+              <div ref={sessionGlow.blobRef} className="card-blob" />
+              <Card className="w-full p-8 bg-transparent shadow-none border-0">
+                <CardHeader className="mb-4">
+                  <CardTitle className="text-lg font-semibold">
+                    Estadísticas de Sesión
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Rol principal:
+                      </span>
+                      <span className="font-medium">{getUserRole()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Es administrador:
+                      </span>
+                      <span
+                        className={
+                          isAdmin
+                            ? "text-green-600 dark:text-green-400 font-medium"
+                            : "text-muted-foreground"
+                        }
+                      >
+                        {isAdmin ? "Sí" : "No"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        Es moderador:
+                      </span>
+                      <span
+                        className={
+                          isModerator
+                            ? "text-yellow-600 dark:text-yellow-400 font-medium"
+                            : "text-muted-foreground"
+                        }
+                      >
+                        {isModerator ? "Sí" : "No"}
+                      </span>
+                    </div>
+
+                    {/* Información de la sesión */}
+                    {sessionData && (
+                      <>
+                        <div className="pt-3 border-t border-border">
+                          <h4 className="text-sm font-medium mb-2">
+                            Información de Sesión
+                          </h4>
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground text-sm">
+                                Proveedor:
+                              </span>
+                              <span className="text-sm font-medium">
+                                {accountInfo?.primaryProvider ||
+                                  sessionData.user?.provider ||
+                                  "N/A"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground text-sm">
+                                Tipo:
+                              </span>
+                              <span className="text-sm font-medium">
+                                {accountInfo?.accountType ||
+                                  sessionData.user?.accountType ||
+                                  "N/A"}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground text-sm">
+                                Duración:
+                              </span>
+                              <span
+                                className={`text-sm font-medium ${
+                                  isSessionExpiringSoon
+                                    ? "text-yellow-600 dark:text-yellow-400"
+                                    : isSessionExpired
+                                    ? "text-red-600 dark:text-red-400"
+                                    : "text-green-600 dark:text-green-400"
+                                }`}
+                              >
+                                {sessionDuration}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-muted-foreground text-sm">
+                                Tiempo restante:
+                              </span>
+                              <span className="text-sm font-medium">
+                                {sessionTimeRemaining} min
+                              </span>
+                            </div>
+                            {lastActivity && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground text-sm">
+                                  Última actividad:
+                                </span>
+                                <span className="text-sm font-medium">
+                                  {new Date(lastActivity).toLocaleTimeString(
+                                    "es-ES"
+                                  )}
+                                </span>
+                              </div>
+                            )}
+                            {accountInfo?.expiresAt && (
+                              <div className="flex justify-between">
+                                <span className="text-muted-foreground text-sm">
+                                  Expira:
+                                </span>
+                                <span className="text-sm font-medium">
+                                  {new Date(
+                                    accountInfo.expiresAt
+                                  ).toLocaleString("es-ES")}
+                                </span>
+                              </div>
+                            )}
+                            {isSessionExpiringSoon && (
+                              <div className="bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded-lg">
+                                <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                                  ⚠️ Tu sesión expirará pronto. Considera
+                                  renovarla.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1423,14 +1485,23 @@ function PerfilContent() {
           </div>
         )}
       </ModalWrapper>
-    </div>
+    </>
   );
 }
 
 export default function Perfil() {
   return (
     <ProtectedRoute>
-      <PerfilContent />
+      <div className="relative min-h-screen w-full">
+        {/* Fondo de blobs animados como el footer */}
+        <div className="pointer-events-none absolute inset-0 w-full h-full z-0">
+          <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-blue-300 dark:bg-blue-700 rounded-full mix-blend-multiply filter blur-2xl opacity-60 animate-blob"></div>
+          <div className="absolute -top-20 -right-24 w-96 h-96 bg-purple-200 dark:bg-purple-800 rounded-full mix-blend-multiply filter blur-2xl opacity-60 animate-blob animation-delay-2000"></div>
+        </div>
+        <div className="relative z-10">
+          <PerfilContent />
+        </div>
+      </div>
     </ProtectedRoute>
   );
 }
