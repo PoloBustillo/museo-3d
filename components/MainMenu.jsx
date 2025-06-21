@@ -173,18 +173,15 @@ export default function MainMenu({ onSubirArchivo }) {
         initial={{ y: 0 }}
         animate={{ y: isVisible ? 0 : -100 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className={`fixed top-0 z-50 w-full
-          ${
-            mobileMenuOpen
-              ? ""
-              : "border-b border-gray-200 dark:border-gray-700"
-          }
-          ${
-            isScrolled
-              ? "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md"
-              : "bg-transparent md:bg-white/95 md:dark:bg-gray-900/95 md:backdrop-blur-md"
-          }
-          text-gray-900 dark:text-white shadow-sm transition-colors duration-300`}
+        className={`fixed top-0 z-50 w-full ${
+          mobileMenuOpen
+            ? ""
+            : "border-b border-gray-200 dark:border-gray-700"
+        } ${
+          isScrolled
+            ? "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md"
+            : "bg-transparent md:bg-white/95 md:dark:bg-gray-900/95 md:backdrop-blur-md"
+        } text-gray-900 dark:text-white shadow-sm transition-colors duration-300`}
       >
         <div className="max-w-screen-xl mx-auto flex items-center justify-between px-4 py-3 md:py-4">
           {" "}

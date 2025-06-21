@@ -45,7 +45,7 @@ export default function ClientLayout({ children }) {
   const pathname = usePathname();
 
   // Páginas que no necesitan padding-top (manejan su propio espaciado)
-  const noTopPaddingPages = ["/", "/museo"];
+  const noTopPaddingPages = ["/", "/museo", "/perfil"];
   const needsTopPadding = !noTopPaddingPages.includes(pathname);
   const isMainOrMuseo = noTopPaddingPages.includes(pathname);
 
