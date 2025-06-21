@@ -37,7 +37,7 @@ export default function SessionIndicator() {
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="hidden md:block fixed bottom-4 right-4 z-50">
       <button
         onClick={handleClick}
         className="bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg shadow-lg p-3 hover:bg-white transition-all duration-200 group"

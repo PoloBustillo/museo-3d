@@ -908,22 +908,14 @@ function PerfilContent() {
                       <Label>Email</Label>
                       <div className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
                         {session?.user?.email || "No disponible"}
-                        {emailValidated ? (
-                          <Badge variant="success">Verificado</Badge>
-                        ) : (
-                          <a
-                            href="#"
-                            className="text-primary underline text-xs font-medium hover:text-primary/80 transition"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleVerifyEmail();
-                            }}
+                        {!emailValidated && (
+                          <button
+                            onClick={handleVerifyEmail}
                             disabled={verifLoading}
+                            className="text-primary hover:underline text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            {verifLoading
-                              ? "Verificando..."
-                              : "Verificar email"}
-                          </a>
+                            {verifLoading ? "Verificando..." : "(Verificar)"}
+                          </button>
                         )}
                       </div>
                       {verifMsg && (
@@ -969,30 +961,10 @@ function PerfilContent() {
                     <div className="text-left mt-2">
                       <Label>Email verificado</Label>
                       <div className="flex items-center gap-2 mt-1">
-                        <Switch checked={emailValidated} disabled />
-                        {emailValidated ? (
-                          <Badge variant="success">Verificado</Badge>
-                        ) : (
-                          <a
-                            href="#"
-                            className="text-primary underline text-xs font-medium hover:text-primary/80 transition"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              handleVerifyEmail();
-                            }}
-                            disabled={verifLoading}
-                          >
-                            {verifLoading
-                              ? "Verificando..."
-                              : "Verificar email"}
-                          </a>
-                        )}
+                         <Badge variant={emailValidated ? 'success' : 'destructive'}>
+                          {emailValidated ? 'Sí' : 'No'}
+                        </Badge>
                       </div>
-                      {verifMsg && (
-                        <div className="text-xs text-green-600 mt-1">
-                          {verifMsg}
-                        </div>
-                      )}
                     </div>
                     <div className="text-left mt-4">
                       <Button
