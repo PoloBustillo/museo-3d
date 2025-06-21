@@ -39,7 +39,7 @@ export default function RainbowBackground() {
     );
   }
 
-  // Versión optimizada con CSS puro
+  // Versión con divs para los blobs
   return (
     <div
       className="rainbow-background"
@@ -51,9 +51,11 @@ export default function RainbowBackground() {
         width: "100%",
         zIndex: 0,
         pointerEvents: "none",
-        overflow: "hidden",
+        overflow: "hidden", // Crucial for containing the blobs
       }}
     >
+      <div className="blob1" />
+      <div className="blob2" />
       <style>{`
         .rainbow-background {
           background: linear-gradient(135deg, 
@@ -67,31 +69,35 @@ export default function RainbowBackground() {
           animation: gradient-shift 20s ease infinite;
         }
 
-        .rainbow-background::before,
-        .rainbow-background::after {
+        .blob1, .blob2 {
           content: '';
           position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
+          top: -20%; 
+          left: -20%;
+          width: 140%;
+          height: 140%;
+          animation: subtle-move 15s ease-in-out infinite;
+          will-change: transform;
+        }
+
+        .blob1 {
           background: linear-gradient(45deg, 
             rgba(232,121,249,0.05) 0%, 
             transparent 50%, 
             rgba(94,234,212,0.05) 100%
           );
-          animation: subtle-move 15s ease-in-out infinite;
         }
 
-        .rainbow-background::after {
+        .blob2 {
           background: linear-gradient(-45deg, 
             rgba(96,165,250,0.05) 0%, 
             transparent 50%, 
             rgba(232,121,249,0.05) 100%
           );
-          animation: subtle-move 12s ease-in-out infinite reverse;
+          animation-direction: reverse;
+          animation-duration: 12s;
         }
-
+        
         .rainbow-background-simple {
           background: linear-gradient(135deg, 
             rgba(232,121,249,0.08) 0%, 
@@ -108,19 +114,19 @@ export default function RainbowBackground() {
 
         @keyframes subtle-move {
           0%, 100% { 
-            transform: translateX(0) translateY(0) scale(1);
+            transform: translateX(0) translateY(0);
             opacity: 0.3;
           }
           25% { 
-            transform: translateX(2%) translateY(-1%) scale(1.02);
+            transform: translateX(5%) translateY(-2%);
             opacity: 0.4;
           }
           50% { 
-            transform: translateX(-1%) translateY(2%) scale(0.98);
+            transform: translateX(-2%) translateY(5%);
             opacity: 0.3;
           }
           75% { 
-            transform: translateX(1%) translateY(-2%) scale(1.01);
+            transform: translateX(2%) translateY(-5%);
             opacity: 0.4;
           }
         }
@@ -128,8 +134,8 @@ export default function RainbowBackground() {
         /* Optimización para dispositivos con preferencia de movimiento reducido */
         @media (prefers-reduced-motion: reduce) {
           .rainbow-background,
-          .rainbow-background::before,
-          .rainbow-background::after {
+          .blob1,
+          .blob2 {
             animation: none !important;
           }
           
@@ -148,8 +154,8 @@ export default function RainbowBackground() {
             animation-duration: 30s;
           }
           
-          .rainbow-background::before,
-          .rainbow-background::after {
+          .blob1,
+          .blob2 {
             animation-duration: 20s;
           }
         }

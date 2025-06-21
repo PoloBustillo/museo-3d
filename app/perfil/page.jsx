@@ -1467,7 +1467,7 @@ function PerfilContent() {
 export default function Perfil() {
   return (
     <ProtectedRoute>
-      <div className="relative min-h-screen w-full">
+      <div className="relative min-h-screen w-full overflow-hidden">
         {/* Fondo de blobs animados como el footer */}
         <div className="pointer-events-none absolute inset-0 w-full h-full z-0">
           <div className="absolute -top-24 -right-24 w-[500px] h-[500px] bg-blue-300/60 dark:bg-blue-700/30 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe"></div>
