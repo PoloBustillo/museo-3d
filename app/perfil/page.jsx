@@ -39,55 +39,76 @@ import { useCardMouseGlow } from "../hooks/useCardMouseGlow";
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
+// --- Lógica de posicionamiento de Tooltip robusta y simplificada ---
+function calculateTooltipPosition(
+  anchorRect,
+  tooltipWidth,
+  tooltipHeight,
+  preferredPosition = "top"
+) {
+  const padding = 8;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  // Calcular la mejor posición 'left' relativa al viewport
+  let left = anchorRect.left + anchorRect.width / 2 - tooltipWidth / 2;
+  if (left < padding) left = padding;
+  if (left + tooltipWidth > viewportWidth - padding) {
+    left = viewportWidth - tooltipWidth - padding;
+  }
+
+  // Calcular posiciones 'top' relativas al viewport (arriba y abajo del ancla)
+  const posAbove = anchorRect.top - tooltipHeight - padding;
+  const posBelow = anchorRect.bottom + padding;
+
+  let top;
+  // Decidir si se coloca arriba o abajo
+  if (preferredPosition === "top") {
+    // Se prefiere arriba, pero se coloca abajo si no hay espacio
+    if (posAbove > padding) {
+      top = posAbove;
+    } else {
+      top = posBelow;
+    }
+  } else {
+    // Se prefiere abajo, pero se coloca arriba si no hay espacio
+    if (posBelow + tooltipHeight < viewportHeight - padding) {
+      top = posBelow;
+    } else {
+      top = posAbove;
+    }
+  }
+
+  // Convertir a coordenadas absolutas del documento para `position: absolute`
+  return {
+    top: top + window.scrollY,
+    left: left + window.scrollX,
+  };
+}
+
 function ImageTooltip({ src, alt, anchorRef, show }) {
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const tooltipWidth = 260;
   const tooltipHeight = 260;
+
   useEffect(() => {
     if (show && anchorRef.current) {
       const rect = anchorRef.current.getBoundingClientRect();
-      let top, left;
-      const padding = 8;
-      // Mobile: centrar abajo, Desktop: derecha
-      if (window.innerWidth < 600) {
-        // Centrar horizontalmente sobre el elemento, mostrar abajo
-        left = rect.left + rect.width / 2 - tooltipWidth / 2 + window.scrollX;
-        top = rect.bottom + padding + window.scrollY;
-        // Si se sale por la izquierda
-        if (left < padding) left = padding;
-        // Si se sale por la derecha
-        if (left + tooltipWidth > window.innerWidth - padding)
-          left = window.innerWidth - tooltipWidth - padding;
-        // Si se sale por abajo, mostrar arriba
-        if (
-          top + tooltipHeight >
-          window.innerHeight + window.scrollY - padding
-        ) {
-          top = rect.top - tooltipHeight - padding + window.scrollY;
-        }
-      } else {
-        // Desktop: mostrar a la derecha
-        left = rect.right + padding + window.scrollX;
-        top = rect.top + rect.height / 2 - tooltipHeight / 2 + window.scrollY;
-        // Si se sale por la derecha
-        if (left + tooltipWidth > window.innerWidth - padding)
-          left = rect.left - tooltipWidth - padding + window.scrollX;
-        // Si se sale por la izquierda
-        if (left < padding) left = padding;
-        // Si se sale por arriba
-        if (top < padding) top = padding;
-        // Si se sale por abajo
-        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding)
-          top = window.innerHeight + window.scrollY - tooltipHeight - padding;
-      }
-      setPos({ top, left });
+      const newPos = calculateTooltipPosition(
+        rect,
+        tooltipWidth,
+        tooltipHeight,
+        "bottom"
+      );
+      setPos(newPos);
     }
   }, [show, anchorRef]);
+
   if (!show) return null;
   return ReactDOM.createPortal(
     <div
       style={{
-        position: "fixed",
+        position: "absolute",
         top: pos.top,
         left: pos.left,
         zIndex: 1000,
@@ -145,38 +166,15 @@ function TagPreviewTooltip({ anchorRef, show, images }) {
   const [pos, setPos] = React.useState({ top: 0, left: 0 });
   const tooltipWidth = 320;
   const tooltipHeight = 120;
+
   React.useEffect(() => {
     if (show && anchorRef.current) {
       const rect = anchorRef.current.getBoundingClientRect();
-      let top, left;
-      const padding = 8;
-      if (window.innerWidth < 600) {
-        // Mobile: centrar horizontalmente sobre el tag, mostrar abajo
-        left = rect.left + rect.width / 2 - tooltipWidth / 2 + window.scrollX;
-        top = rect.bottom + padding + window.scrollY;
-        if (left < padding) left = padding;
-        if (left + tooltipWidth > window.innerWidth - padding)
-          left = window.innerWidth - tooltipWidth - padding;
-        if (
-          top + tooltipHeight >
-          window.innerHeight + window.scrollY - padding
-        ) {
-          top = rect.top - tooltipHeight - padding + window.scrollY;
-        }
-      } else {
-        // Desktop: mostrar a la derecha
-        left = rect.right + padding + window.scrollX;
-        top = rect.top + rect.height / 2 - tooltipHeight / 2 + window.scrollY;
-        if (left + tooltipWidth > window.innerWidth - padding)
-          left = rect.left - tooltipWidth - padding + window.scrollX;
-        if (left < padding) left = padding;
-        if (top < padding) top = padding;
-        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding)
-          top = window.innerHeight + window.scrollY - tooltipHeight - padding;
-      }
-      setPos({ top, left });
+      const newPos = calculateTooltipPosition(rect, tooltipWidth, tooltipHeight);
+      setPos(newPos);
     }
   }, [show, anchorRef]);
+
   if (!show || images.length === 0) return null;
   const maxPreview = 5;
   const previewImages = images.slice(0, maxPreview);
@@ -184,7 +182,7 @@ function TagPreviewTooltip({ anchorRef, show, images }) {
   return ReactDOM.createPortal(
     <div
       style={{
-        position: "fixed",
+        position: "absolute",
         top: pos.top,
         left: pos.left,
         zIndex: 1000,
@@ -253,43 +251,20 @@ function AvatarTooltip({ src, alt, anchorRef, show }) {
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const tooltipWidth = 260;
   const tooltipHeight = 260;
+
   useEffect(() => {
     if (show && anchorRef.current) {
       const rect = anchorRef.current.getBoundingClientRect();
-      let top, left;
-      const padding = 8;
-      if (window.innerWidth < 600) {
-        // Mobile: centrar horizontalmente sobre el avatar, mostrar abajo
-        left = rect.left + rect.width / 2 - tooltipWidth / 2 + window.scrollX;
-        top = rect.bottom + padding + window.scrollY;
-        if (left < padding) left = padding;
-        if (left + tooltipWidth > window.innerWidth - padding)
-          left = window.innerWidth - tooltipWidth - padding;
-        if (
-          top + tooltipHeight >
-          window.innerHeight + window.scrollY - padding
-        ) {
-          top = rect.top - tooltipHeight - padding + window.scrollY;
-        }
-      } else {
-        // Desktop: mostrar a la derecha
-        left = rect.right + padding + window.scrollX;
-        top = rect.top + rect.height / 2 - tooltipHeight / 2 + window.scrollY;
-        if (left + tooltipWidth > window.innerWidth - padding)
-          left = rect.left - tooltipWidth - padding + window.scrollX;
-        if (left < padding) left = padding;
-        if (top < padding) top = padding;
-        if (top + tooltipHeight > window.innerHeight + window.scrollY - padding)
-          top = window.innerHeight + window.scrollY - tooltipHeight - padding;
-      }
-      setPos({ top, left });
+      const newPos = calculateTooltipPosition(rect, tooltipWidth, tooltipHeight);
+      setPos(newPos);
     }
   }, [show, anchorRef]);
+
   if (!show) return null;
   return ReactDOM.createPortal(
     <div
       style={{
-        position: "fixed",
+        position: "absolute",
         top: pos.top,
         left: pos.left,
         zIndex: 1000,
