@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("🌱 Starting database seed...");
 
-  // Crear usuario admin por defecto
+  // --- 1. CREACIÓN DE USUARIOS ---
   const adminUser = await prisma.user.upsert({
     where: { email: "admin@museo3d.com" },
     update: {},
@@ -12,17 +12,11 @@ async function main() {
       email: "admin@museo3d.com",
       name: "Administrador",
       role: "ADMIN",
-      settings: {
-        theme: "dark",
-        notifications: true,
-        emailValidated: true,
-      },
+      emailVerified: new Date(),
     },
   });
+  console.log("✅ Admin user processed:", adminUser.email);
 
-  console.log("✅ Admin user created:", adminUser.email);
-
-  // Crear usuario de prueba
   const testUser = await prisma.user.upsert({
     where: { email: "test@museo3d.com" },
     update: {},
@@ -30,65 +24,156 @@ async function main() {
       email: "test@museo3d.com",
       name: "Usuario de Prueba",
       role: "USER",
-      settings: {
-        theme: "light",
-        notifications: false,
-        emailValidated: true,
-      },
+      emailVerified: new Date(),
     },
   });
+  console.log("✅ Test user processed:", testUser.email);
 
-  console.log("✅ Test user created:", testUser.email);
+  const artistUser = await prisma.user.upsert({
+    where: { email: "artista@museo3d.com" },
+    update: {},
+    create: {
+      email: "artista@museo3d.com",
+      name: "Artista de Prueba",
+      role: "ARTIST",
+      emailVerified: new Date(),
+      artist: {
+        create: {
+          bio: "Artista apasionado por el muralismo y el arte urbano.",
+          especialidad: "Muralismo, Arte Digital",
+        },
+      },
+    },
+    include: { artist: true },
+  });
+  console.log("✅ Artist user processed:", artistUser.email);
 
-  // Crear algunos murales de ejemplo
-  const murales = [
+  // --- 2. CREACIÓN DE MURALES DE EJEMPLO ---
+  const muralesData = [
     {
       titulo: "Mural de Bienvenida",
       autor: "Artista Local",
       tecnica: "Acrílico sobre muro",
-      descripcion: "Mural que da la bienvenida a los visitantes del museo",
+      descripcion: "Un mural vibrante que da la bienvenida a los visitantes.",
       anio: 2024,
       url_imagen:
         "https://res.cloudinary.com/daol1ohso/image/upload/v1749847137/ejemplo1.jpg",
-      latitud: -33.4489,
-      longitud: -70.6693,
-      ubicacion: "Entrada principal del museo",
     },
     {
       titulo: "Historia de la Ciudad",
       autor: "Muralista Urbano",
       tecnica: "Spray y acrílico",
       descripcion:
-        "Representación de la historia de la ciudad a través del arte",
+        "Un recorrido visual por la rica historia de nuestra ciudad.",
       anio: 2023,
       url_imagen:
         "https://res.cloudinary.com/daol1ohso/image/upload/v1749847137/ejemplo2.jpg",
-      latitud: -33.4489,
-      longitud: -70.6693,
-      ubicacion: "Pared exterior del museo",
+    },
+    {
+      titulo: "Sueños Digitales",
+      autor: "Artista de Prueba",
+      tecnica: "Proyección sobre muro",
+      descripcion:
+        "Una exploración de los paisajes oníricos en la era digital.",
+      anio: 2024,
+      url_imagen:
+        "https://res.cloudinary.com/daol1ohso/image/upload/v1749847137/mural_artista1.jpg",
+      artistId: artistUser.artist.id,
+    },
+    {
+      titulo: "Naturaleza Conectada",
+      autor: "Artista de Prueba",
+      tecnica: "Pintura con elementos de AR",
+      descripcion: "Un mural que cobra vida a través de la realidad aumentada.",
+      anio: 2023,
+      url_imagen:
+        "https://res.cloudinary.com/daol1ohso/image/upload/v1749847137/mural_artista2.jpg",
+      artistId: artistUser.artist.id,
+    },
+    {
+      titulo: "Geometría Ancestral",
+      autor: "Colectivo Andino",
+      tecnica: "Mosaico de cerámica",
+      descripcion: "Patrones geométricos inspirados en culturas precolombinas.",
+      anio: 2022,
+      url_imagen:
+        "https://res.cloudinary.com/daol1ohso/image/upload/v1749847137/mural_geo.jpg",
+    },
+    {
+      titulo: "Ritmos Urbanos",
+      autor: "DJ Arte",
+      tecnica: "Grafiti y esténcil",
+      descripcion:
+        "La energía y el movimiento de la música urbana plasmados en un muro.",
+      anio: 2024,
+      url_imagen:
+        "https://res.cloudinary.com/daol1ohso/image/upload/v1749847137/mural_urbano.jpg",
     },
   ];
 
-  for (const muralData of murales) {
-    const mural = await prisma.mural.create({
-      data: muralData,
+  for (const data of muralesData) {
+    const existingMural = await prisma.mural.findFirst({
+      where: { titulo: data.titulo },
     });
-    console.log("✅ Mural created:", mural.titulo);
+    if (!existingMural) {
+      await prisma.mural.create({ data });
+    }
   }
+  console.log(`✅ ${muralesData.length} base murals processed.`);
 
-  // Crear sala de ejemplo
-  const sala = await prisma.sala.upsert({
-    where: { nombre: "Sala Principal" },
-    update: {},
-    create: {
-      nombre: "Sala Principal",
-      descripcion: "Sala principal del museo con las obras más importantes",
-      publica: true,
-      creadorId: adminUser.id,
-    },
-  });
+  // --- 3. LIMPIAR ASOCIACIONES Y SALAS EXISTENTES ---
+  // Para evitar duplicados en relaciones, es más seguro limpiar las salas viejas
+  await prisma.salaMural.deleteMany({});
+  await prisma.sala.deleteMany({});
+  console.log("🧹 Old rooms and associations cleared.");
 
-  console.log("✅ Sala created:", sala.nombre);
+  // --- 4. OBTENER TODOS LOS MURALES Y REPARTIRLOS ---
+  const allMurales = await prisma.mural.findMany();
+  const totalMurales = allMurales.length;
+  const muralesPerSala = Math.floor(totalMurales / 3);
+
+  const muralesSala1 = allMurales.slice(0, muralesPerSala);
+  const muralesSala2 = allMurales.slice(muralesPerSala, muralesPerSala * 2);
+  const muralesSala3 = allMurales.slice(muralesPerSala * 2);
+
+  // --- 5. CREAR LAS 3 SALAS Y ASIGNAR MURALES ---
+  const createSalaWithMurales = async (nombre, creador, murales) => {
+    if (murales.length === 0) {
+      console.log(
+        `⚠️ No murals to assign to room "${nombre}". Skipping creation.`
+      );
+      return null;
+    }
+    const sala = await prisma.sala.create({
+      data: {
+        nombre,
+        descripcion: `Sala gestionada por ${creador.name}.`,
+        publica: true,
+        creadorId: creador.id,
+        murales: {
+          create: murales.map((mural) => ({
+            muralId: mural.id,
+          })),
+        },
+      },
+    });
+    console.log(
+      `✅ Room "${sala.nombre}" created with ${murales.length} murals.`
+    );
+    return sala;
+  };
+
+  await createSalaWithMurales(
+    "Colección del Administrador",
+    adminUser,
+    muralesSala1
+  );
+  await createSalaWithMurales(
+    "Exhibición del Artista",
+    artistUser,
+    muralesSala2
+  );
+  await createSalaWithMurales("Favoritos del Usuario", testUser, muralesSala3);
 
   console.log("🎉 Database seeding completed successfully!");
 }
