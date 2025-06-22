@@ -4,7 +4,6 @@ import { AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
 import AnimatedTriangleOverlay from "../components/TriangleOverlay";
 import LandingMobile from "./landing-mobile";
-import AppProviders from "./AppProviders";
 import { useModal } from "../providers/ModalProvider";
 import { useUser } from "../providers/UserProvider";
 import { useSessionData } from "../providers/SessionProvider";
@@ -293,289 +292,287 @@ function HomeContent() {
   }
 
   return (
-    <AppProviders>
-      <div className="home-page">
-        <div
-          ref={containerRef}
-          className="h-screen w-full overflow-y-scroll parallax-container relative"
-          style={{
-            height: "100vh",
-            maxHeight: "100vh",
-            overflow: "hidden auto", // Solo scroll vertical
-          }}
-        >
-          {/* Fondos con parallax absolutos */}
-          {steps.map((step, index) => {
-            const sectionHeight = containerRef.current?.clientHeight || 800;
-            const sectionOffset = index * sectionHeight;
+    <div className="home-page">
+      <div
+        ref={containerRef}
+        className="h-screen w-full overflow-y-scroll parallax-container relative"
+        style={{
+          height: "100vh",
+          maxHeight: "100vh",
+          overflow: "hidden auto", // Solo scroll vertical
+        }}
+      >
+        {/* Fondos con parallax absolutos */}
+        {steps.map((step, index) => {
+          const sectionHeight = containerRef.current?.clientHeight || 800;
+          const sectionOffset = index * sectionHeight;
 
-            // Detectar si es dispositivo móvil para reducir efectos
-            const isMobile =
-              typeof window !== "undefined" && window.innerWidth < 768;
+          // Detectar si es dispositivo móvil para reducir efectos
+          const isMobile =
+            typeof window !== "undefined" && window.innerWidth < 768;
 
-            // Calcular el parallax de manera que la imagen se mantenga centrada en su sección
-            const scrollFromSectionStart = scrollY - sectionOffset;
-            const parallaxOffset = isMobile ? 0 : scrollFromSectionStart * 0.1; // Sin parallax en móvil
+          // Calcular el parallax de manera que la imagen se mantenga centrada en su sección
+          const scrollFromSectionStart = scrollY - sectionOffset;
+          const parallaxOffset = isMobile ? 0 : scrollFromSectionStart * 0.1; // Sin parallax en móvil
 
-            // Calcular opacidad basada en la proximidad a la sección
-            const distanceFromSection = Math.abs(scrollY - sectionOffset);
-            const normalizedDistance = distanceFromSection / sectionHeight;
+          // Calcular opacidad basada en la proximidad a la sección
+          const distanceFromSection = Math.abs(scrollY - sectionOffset);
+          const normalizedDistance = distanceFromSection / sectionHeight;
 
-            // Opacidad más gradual y suave
-            let opacity = 1;
-            if (normalizedDistance > 1.2) {
-              opacity = Math.max(0.1, 1 - (normalizedDistance - 1.2) * 0.5);
-            } else if (normalizedDistance > 0.8) {
-              opacity = 1 - (normalizedDistance - 0.8) * 0.5;
+          // Opacidad más gradual y suave
+          let opacity = 1;
+          if (normalizedDistance > 1.2) {
+            opacity = Math.max(0.1, 1 - (normalizedDistance - 1.2) * 0.5);
+          } else if (normalizedDistance > 0.8) {
+            opacity = 1 - (normalizedDistance - 0.8) * 0.5;
+          }
+
+          // Efectos de zoom más suaves y graduales (reducidos en móvil)
+          const scrollProgress = Math.max(
+            0,
+            Math.min(
+              1,
+              (scrollY - sectionOffset + sectionHeight) / (sectionHeight * 2)
+            )
+          );
+
+          // Zoom más sutil y gradual (sin efectos complejos en móvil)
+          let scale = 1;
+          let blur = 0;
+
+          if (!isMobile) {
+            if (scrollProgress < 0.3) {
+              // Entrando: zoom muy sutil desde 1.05 a 1.0
+              scale = 1.05 - scrollProgress * 0.17; // Reducido de 0.4 a 0.17
+              blur = (0.3 - scrollProgress) * 3; // Reducido de 8 a 3
+            } else if (scrollProgress > 0.7) {
+              // Saliendo: zoom sutil desde 1.0 a 0.95
+              scale = 1.0 - (scrollProgress - 0.7) * 0.17; // Reducido de 0.4 a 0.17
+              blur = (scrollProgress - 0.7) * 4; // Reducido de 12 a 4
             }
+          }
 
-            // Efectos de zoom más suaves y graduales (reducidos en móvil)
-            const scrollProgress = Math.max(
-              0,
-              Math.min(
-                1,
-                (scrollY - sectionOffset + sectionHeight) / (sectionHeight * 2)
-              )
-            );
+          // Rotación más sutil (sin rotación en móvil)
+          const rotation = isMobile ? 0 : (scrollProgress - 0.5) * 0.5; // Reducido de 2 a 0.5 grados
 
-            // Zoom más sutil y gradual (sin efectos complejos en móvil)
-            let scale = 1;
-            let blur = 0;
-
-            if (!isMobile) {
-              if (scrollProgress < 0.3) {
-                // Entrando: zoom muy sutil desde 1.05 a 1.0
-                scale = 1.05 - scrollProgress * 0.17; // Reducido de 0.4 a 0.17
-                blur = (0.3 - scrollProgress) * 3; // Reducido de 8 a 3
-              } else if (scrollProgress > 0.7) {
-                // Saliendo: zoom sutil desde 1.0 a 0.95
-                scale = 1.0 - (scrollProgress - 0.7) * 0.17; // Reducido de 0.4 a 0.17
-                blur = (scrollProgress - 0.7) * 4; // Reducido de 12 a 4
-              }
-            }
-
-            // Rotación más sutil (sin rotación en móvil)
-            const rotation = isMobile ? 0 : (scrollProgress - 0.5) * 0.5; // Reducido de 2 a 0.5 grados
-
-            return (
-              <div
-                key={`bg-${index}`}
-                className="absolute w-full h-full pointer-events-none overflow-hidden"
-                style={{
-                  top: `${index * 100}vh`, // Posicionar cada imagen en su sección
-                  opacity: opacity,
-                  zIndex: Math.floor(opacity * 10), // Z-index basado en opacidad
-                  willChange: "transform, opacity, filter",
-                }}
-              >
-                <div
-                  className="absolute inset-0 w-full h-[130vh]"
-                  style={{
-                    top: "-15vh",
-                    backgroundImage: `url(${step.img})`,
-                    backgroundSize: "cover",
-                    backgroundPosition: "center center",
-                    backgroundRepeat: "no-repeat",
-                    transform: `
-                      translate3d(0, ${parallaxOffset}px, 0) 
-                      scale(${scale}) 
-                      rotate(${rotation}deg)
-                    `,
-                    filter: `blur(${blur}px) brightness(${
-                      1 + (scrollProgress - 0.5) * 0.1
-                    })`, // Brillo más sutil
-                    transition: "filter 0.2s ease-out",
-                  }}
-                />
-
-                {/* Overlay de gradiente más sutil */}
-                <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    background: `
-                      radial-gradient(circle at center, 
-                        transparent ${70 + scrollProgress * 15}%, 
-                        rgba(0,0,0,${scrollProgress * 0.15}) 100%
-                      )
-                    `,
-                    opacity:
-                      scrollProgress > 0.8 ? (scrollProgress - 0.8) * 2.5 : 0, // Más gradual
-                  }}
-                />
-              </div>
-            );
-          })}
-
-          {/* Secciones de contenido (transparentes para scroll) */}
-          {steps.map((step, index) => (
+          return (
             <div
-              key={`section-${index}`}
-              data-index={index}
-              className="section h-screen w-full relative"
+              key={`bg-${index}`}
+              className="absolute w-full h-full pointer-events-none overflow-hidden"
               style={{
-                backgroundColor: "transparent",
-                height: "100vh",
-                maxHeight: "100vh",
-                minHeight: "100vh",
-                boxSizing: "border-box",
+                top: `${index * 100}vh`, // Posicionar cada imagen en su sección
+                opacity: opacity,
+                zIndex: Math.floor(opacity * 10), // Z-index basado en opacidad
+                willChange: "transform, opacity, filter",
               }}
-            />
-          ))}
-        </div>
-        {/* Overlay triangular fuera del contenedor de scroll */}
-        <AnimatePresence mode="wait" initial={false}>
-          <AnimatedTriangleOverlay
-            key={`triangle-${side}-${current + 1}`}
-            step={current + 1}
-            text={steps[current] ? steps[current].text : ""}
-            side={side}
-            isFinalStep={current === steps.length - 1}
-            scrollOpacity={scrollOpacity}
+            >
+              <div
+                className="absolute inset-0 w-full h-[130vh]"
+                style={{
+                  top: "-15vh",
+                  backgroundImage: `url(${step.img})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center center",
+                  backgroundRepeat: "no-repeat",
+                  transform: `
+                    translate3d(0, ${parallaxOffset}px, 0) 
+                    scale(${scale}) 
+                    rotate(${rotation}deg)
+                  `,
+                  filter: `blur(${blur}px) brightness(${
+                    1 + (scrollProgress - 0.5) * 0.1
+                  })`, // Brillo más sutil
+                  transition: "filter 0.2s ease-out",
+                }}
+              />
+
+              {/* Overlay de gradiente más sutil */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: `
+                    radial-gradient(circle at center, 
+                      transparent ${70 + scrollProgress * 15}%, 
+                      rgba(0,0,0,${scrollProgress * 0.15}) 100%
+                    )
+                  `,
+                  opacity:
+                    scrollProgress > 0.8 ? (scrollProgress - 0.8) * 2.5 : 0, // Más gradual
+                }}
+              />
+            </div>
+          );
+        })}
+
+        {/* Secciones de contenido (transparentes para scroll) */}
+        {steps.map((step, index) => (
+          <div
+            key={`section-${index}`}
+            data-index={index}
+            className="section h-screen w-full relative"
+            style={{
+              backgroundColor: "transparent",
+              height: "100vh",
+              maxHeight: "100vh",
+              minHeight: "100vh",
+              boxSizing: "border-box",
+            }}
           />
-        </AnimatePresence>{" "}
-        {/* Indicador de posición */}
-        <div
-          className={`fixed z-[50] space-y-3 scroll-indicators-desktop
-            ${/* Mobile: bottom center */ ""}
-            md:top-1/2 md:transform md:-translate-y-1/2 md:space-y-6 md:space-x-0
-            ${/* Mobile: bottom positioning */ ""}
-            bottom-20 left-1/2 transform -translate-x-1/2 flex space-x-3 space-y-0
-            md:flex-col md:space-x-0 md:space-y-6 md:bottom-auto
-          `}
-          style={{
-            opacity: scrollOpacity > 0.3 ? 1 : 0.3,
-            // Desktop positioning - keeping left good, moving right much more outside
-            left: isDesktop ? (side === "left" ? "0rem" : "auto") : "50%", // Keep left as is (flush with edge)
-            right: isDesktop ? (side === "right" ? "-2.5rem" : "auto") : "auto", // Much more outside for right (-40px)
-            transform: isDesktop ? "translateY(-50%)" : "translateX(-50%)",
-            // Simple smooth transition for position changes only
-            transition:
-              "left 0.8s ease-in-out, right 0.8s ease-in-out, opacity 0.3s ease",
-          }}
-          data-debug={`side: ${side}, current: ${current}, isDesktop: ${isDesktop}`}
-        >
-          {" "}
-          {steps.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => scrollToSection(index)}
-              className={`rounded-full transition-all duration-300
-                ${/* Mobile sizes */ ""}
-                w-3 h-3 
-                ${/* Desktop sizes - much larger (triple size) */ ""}
-                md:w-12 md:h-12
-                ${
-                  index === current
-                    ? "bg-white scale-125 shadow-lg md:shadow-xl"
-                    : "bg-white/50 hover:bg-white/75 hover:scale-110"
-                }`}
-              aria-label={`Ir a sección ${index + 1}`}
-            />
-          ))}
-        </div>{" "}
-        {/* Contador de progreso - Solo visible en desktop */}
-        <div
-          className="hidden md:block fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[40] bg-black/20 backdrop-blur-sm rounded-full px-4 py-2 transition-all duration-500"
-          style={{
-            opacity: scrollOpacity > 0.3 ? 1 : 0.3, // Se desvanece junto con el triángulo
-          }}
-        >
-          <span className="text-white font-medium">
-            {current + 1} / {steps.length}
-          </span>
-        </div>
-        {/* Botón de ejemplo para ModalProvider */}
-        <button
-          onClick={() =>
-            openModal("info-modal", {
-              title: "Información del Museo",
-              content:
-                "Este es un ejemplo de cómo usar el ModalProvider en cualquier parte de la aplicación.",
-            })
-          }
-          className="fixed top-4 right-4 z-[60] bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
-        >
-          ℹ️ Info
-        </button>
-        {/* Botón de ejemplo para UserProvider */}
-        {isAuthenticated && (
-          <button
-            onClick={() =>
-              openModal("user-info-modal", {
-                user,
-                userProfile,
-                role: getUserRole(),
-                isAdmin,
-                isModerator,
-              })
-            }
-            className="fixed top-4 right-20 z-[60] bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-lg"
-          >
-            👤 Usuario
-          </button>
-        )}
-        {/* Botón de ejemplo para SessionProvider */}
-        {sessionData && (
-          <button
-            onClick={() =>
-              openModal("session-info-modal", {
-                session: sessionData,
-                user,
-                userProfile,
-              })
-            }
-            className="fixed top-4 right-36 z-[60] bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors shadow-lg"
-          >
-            ⏱️ Sesión
-          </button>
-        )}
-        {/* Botón para mostrar ejemplo de GalleryProvider */}
-        <button
-          onClick={showGalleryExample}
-          className="fixed top-4 right-52 z-[60] bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors shadow-lg"
-        >
-          🖼️ GalleryProvider
-        </button>
-        {/* Botón para probar modal de imagen */}
-        <button
-          onClick={testImageModal}
-          className="fixed top-4 right-80 z-[60] bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
-        >
-          🖼️ Test Modal
-        </button>
-        {/* Botón para probar modal de colección */}
-        <button
-          onClick={() =>
-            openModal("collection-stats", {
-              stats: {
-                totalArtworks: 25,
-                uniqueArtists: 15,
-                uniqueTechniques: 8,
-                oldestYear: 1990,
-                newestYear: 2024,
-              },
-              collection: [],
-            })
-          }
-          className="fixed top-4 right-96 z-[60] bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-lg"
-        >
-          📊 Test Collection
-        </button>
-        {/* Botón para probar modal de información */}
-        <button
-          onClick={() =>
-            openModal("info-modal", {
-              title: "Modal de Prueba",
-              content:
-                "Este es un modal de prueba para verificar el centrado correcto.",
-            })
-          }
-          className="fixed top-4 right-112 z-[60] bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors shadow-lg"
-        >
-          ℹ️ Test Info
-        </button>
+        ))}
       </div>
-    </AppProviders>
+      {/* Overlay triangular fuera del contenedor de scroll */}
+      <AnimatePresence mode="wait" initial={false}>
+        <AnimatedTriangleOverlay
+          key={`triangle-${side}-${current + 1}`}
+          step={current + 1}
+          text={steps[current] ? steps[current].text : ""}
+          side={side}
+          isFinalStep={current === steps.length - 1}
+          scrollOpacity={scrollOpacity}
+        />
+      </AnimatePresence>{" "}
+      {/* Indicador de posición */}
+      <div
+        className={`fixed z-[50] space-y-3 scroll-indicators-desktop
+          ${/* Mobile: bottom center */ ""}
+          md:top-1/2 md:transform md:-translate-y-1/2 md:space-y-6 md:space-x-0
+          ${/* Mobile: bottom positioning */ ""}
+          bottom-20 left-1/2 transform -translate-x-1/2 flex space-x-3 space-y-0
+          md:flex-col md:space-x-0 md:space-y-6 md:bottom-auto
+        `}
+        style={{
+          opacity: scrollOpacity > 0.3 ? 1 : 0.3,
+          // Desktop positioning - keeping left good, moving right much more outside
+          left: isDesktop ? (side === "left" ? "0rem" : "auto") : "50%", // Keep left as is (flush with edge)
+          right: isDesktop ? (side === "right" ? "-2.5rem" : "auto") : "auto", // Much more outside for right (-40px)
+          transform: isDesktop ? "translateY(-50%)" : "translateX(-50%)",
+          // Simple smooth transition for position changes only
+          transition:
+            "left 0.8s ease-in-out, right 0.8s ease-in-out, opacity 0.3s ease",
+        }}
+        data-debug={`side: ${side}, current: ${current}, isDesktop: ${isDesktop}`}
+      >
+        {" "}
+        {steps.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => scrollToSection(index)}
+            className={`rounded-full transition-all duration-300
+              ${/* Mobile sizes */ ""}
+              w-3 h-3 
+              ${/* Desktop sizes - much larger (triple size) */ ""}
+              md:w-12 md:h-12
+              ${
+                index === current
+                  ? "bg-white scale-125 shadow-lg md:shadow-xl"
+                  : "bg-white/50 hover:bg-white/75 hover:scale-110"
+              }`}
+            aria-label={`Ir a sección ${index + 1}`}
+          />
+        ))}
+      </div>{" "}
+      {/* Contador de progreso - Solo visible en desktop */}
+      <div
+        className="hidden md:block fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[40] bg-black/20 backdrop-blur-sm rounded-full px-4 py-2 transition-all duration-500"
+        style={{
+          opacity: scrollOpacity > 0.3 ? 1 : 0.3, // Se desvanece junto con el triángulo
+        }}
+      >
+        <span className="text-white font-medium">
+          {current + 1} / {steps.length}
+        </span>
+      </div>
+      {/* Botón de ejemplo para ModalProvider */}
+      <button
+        onClick={() =>
+          openModal("info-modal", {
+            title: "Información del Museo",
+            content:
+              "Este es un ejemplo de cómo usar el ModalProvider en cualquier parte de la aplicación.",
+          })
+        }
+        className="fixed top-4 right-4 z-[60] bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
+      >
+        ℹ️ Info
+      </button>
+      {/* Botón de ejemplo para UserProvider */}
+      {isAuthenticated && (
+        <button
+          onClick={() =>
+            openModal("user-info-modal", {
+              user,
+              userProfile,
+              role: getUserRole(),
+              isAdmin,
+              isModerator,
+            })
+          }
+          className="fixed top-4 right-20 z-[60] bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-lg"
+        >
+          �� Usuario
+        </button>
+      )}
+      {/* Botón de ejemplo para SessionProvider */}
+      {sessionData && (
+        <button
+          onClick={() =>
+            openModal("session-info-modal", {
+              session: sessionData,
+              user,
+              userProfile,
+            })
+          }
+          className="fixed top-4 right-36 z-[60] bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors shadow-lg"
+        >
+          ⏱️ Sesión
+        </button>
+      )}
+      {/* Botón para mostrar ejemplo de GalleryProvider */}
+      <button
+        onClick={showGalleryExample}
+        className="fixed top-4 right-52 z-[60] bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors shadow-lg"
+      >
+        🖼️ GalleryProvider
+      </button>
+      {/* Botón para probar modal de imagen */}
+      <button
+        onClick={testImageModal}
+        className="fixed top-4 right-80 z-[60] bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors shadow-lg"
+      >
+        🖼️ Test Modal
+      </button>
+      {/* Botón para probar modal de colección */}
+      <button
+        onClick={() =>
+          openModal("collection-stats", {
+            stats: {
+              totalArtworks: 25,
+              uniqueArtists: 15,
+              uniqueTechniques: 8,
+              oldestYear: 1990,
+              newestYear: 2024,
+            },
+            collection: [],
+          })
+        }
+        className="fixed top-4 right-96 z-[60] bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-lg"
+      >
+        📊 Test Collection
+      </button>
+      {/* Botón para probar modal de información */}
+      <button
+        onClick={() =>
+          openModal("info-modal", {
+            title: "Modal de Prueba",
+            content:
+              "Este es un modal de prueba para verificar el centrado correcto.",
+          })
+        }
+        className="fixed top-4 right-112 z-[60] bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors shadow-lg"
+      >
+        ℹ️ Test Info
+      </button>
+    </div>
   );
 }
 
