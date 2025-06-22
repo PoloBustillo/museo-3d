@@ -156,38 +156,109 @@ function Room({ artworks, artworkPositions, galleryDimensions, passedInitialWall
 }
 
 function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
-  const [scale, setScale] = useState(1);
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0, startX: 0, startY: 0 });
+  const modalRef = useRef(null);
   const [isInCollection, setIsInCollection] = useState(false);
   const [collectionMessage, setCollectionMessage] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
-    setIsInCollection(isInPersonalCollection(artwork, userId));
-  }, [artwork, userId]);
+    setIsInCollection(isInPersonalCollection(artwork, onCollectionUpdate.collection));
+  }, [artwork, onCollectionUpdate.collection]);
 
-  const handleCollectionAction = useCallback((e) => {
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  const handleCollectionAction = useCallback(async (e) => {
     e.stopPropagation();
-    if (isInCollection) {
-      const success = removeFromPersonalCollection(`${artwork.title}-${artwork.artist}`, userId);
-      if (success) {
-        setIsInCollection(false);
-        setCollectionMessage("🗑️ Removido de tu colección");
-        if (onCollectionUpdate) onCollectionUpdate();
-      } else { setCollectionMessage("❌ Error al remover"); }
-    } else {
-      const success = addToPersonalCollection(artwork, userId);
-      if (success) {
-        setIsInCollection(true);
-        setCollectionMessage("✅ ¡Añadido a tu colección!");
-        if (onCollectionUpdate) onCollectionUpdate();
-      } else { setCollectionMessage("⚡ Ya está en tu colección"); }
+    if (!userId) {
+      setCollectionMessage("⚠️ Inicia sesión para guardar");
+      setTimeout(() => setCollectionMessage(""), 3000);
+      return;
     }
-    setTimeout(() => setCollectionMessage(""), 3000);
+
+    setIsUpdating(true);
+    try {
+      if (isInCollection) {
+        await removeFromPersonalCollection(artwork);
+        setCollectionMessage("🗑️ Removido de tu colección");
+      } else {
+        await addToPersonalCollection(artwork);
+        setCollectionMessage("✅ ¡Añadido a tu colección!");
+      }
+      if (onCollectionUpdate?.update) {
+        onCollectionUpdate.update();
+      }
+    } catch (error) {
+      console.error("Error updating collection:", error);
+      setCollectionMessage("❌ Error al actualizar");
+    } finally {
+      setIsUpdating(false);
+      setTimeout(() => setCollectionMessage(""), 3000);
+    }
   }, [artwork, isInCollection, onCollectionUpdate, userId]);
 
-  // ... (resto de la lógica de ZoomModal)
+  if (!artwork) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        ref={modalRef}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4"
+      >
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 50, opacity: 0 }}
+          transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          onClick={(e) => e.stopPropagation()}
+          className="bg-[#1c1c1c] text-white rounded-2xl shadow-2xl overflow-hidden max-w-4xl w-full flex flex-col md:flex-row"
+        >
+          <div className="md:w-1/2 w-full p-6 flex flex-col justify-between">
+            <div>
+              <h2 className="text-3xl font-bold mb-2 text-amber-300">{artwork.title}</h2>
+              <h3 className="text-xl font-semibold mb-4">{artwork.artist} ({artwork.year})</h3>
+              <p className="text-gray-300 mb-2"><b>Técnica:</b> {artwork.technique}</p>
+              <p className="text-gray-300 mb-4"><b>Dimensiones:</b> {artwork.dimensions}</p>
+              <p className="text-gray-200 leading-relaxed">{artwork.description}</p>
+            </div>
+            <div className="mt-6">
+              {collectionMessage ? (
+                <p className="text-center font-semibold text-lg h-[52px] flex items-center justify-center">{collectionMessage}</p>
+              ) : (
+                <button
+                  onClick={handleCollectionAction}
+                  disabled={isUpdating}
+                  className={`w-full py-3 px-4 rounded-lg font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 ${
+                    isUpdating
+                      ? "bg-neutral-600 cursor-not-allowed"
+                      : isInCollection
+                      ? "bg-red-700 hover:bg-red-800 text-white"
+                      : "bg-amber-400 hover:bg-amber-500 text-black"
+                  }`}
+                >
+                  {isUpdating ? "Guardando..." : isInCollection ? "Eliminar de la colección" : "Añadir a mi colección"}
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="md:w-1/2 w-full relative bg-black">
+            <img src={artwork.src} alt={artwork.title} className="w-full h-full object-contain" />
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
 }
 
 export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, availableRooms = [] }) {
@@ -198,6 +269,18 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
   const [passedInitialWall, setPassedInitialWall] = useState(false);
   const [showRoomSelector, setShowRoomSelector] = useState(false);
   const { isMuted } = useSound();
+  const [personalCollection, setPersonalCollection] = useState([]);
+
+  const fetchCollection = useCallback(async () => {
+    if (userId) {
+      const collection = await getPersonalCollection();
+      setPersonalCollection(collection);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    fetchCollection();
+  }, [fetchCollection]);
 
   const validArtworks = murales
     .filter((art) => art && art.url_imagen)
@@ -229,7 +312,15 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
         </Canvas>
         <AnimatePresence>
           {selectedArtwork && (
-            <ZoomModal artwork={selectedArtwork} onClose={handleCloseModal} userId={userId} />
+            <ZoomModal
+              artwork={selectedArtwork}
+              onClose={handleCloseModal}
+              userId={userId}
+              onCollectionUpdate={{
+                collection: personalCollection,
+                update: fetchCollection
+              }}
+            />
           )}
         </AnimatePresence>
       </div>

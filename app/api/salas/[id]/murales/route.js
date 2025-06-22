@@ -12,21 +12,17 @@ export async function GET(req, { params }) {
         murales: {
           include: {
             mural: {
-              select: {
-                id: true,
-                titulo: true,
-                artista: true,
-                tecnica: true,
-                anio: true,
-                imagenUrl: true,
-                imagenUrlWebp: true,
-                latitud: true,
-                longitud: true,
-                ubicacion: true,
-                descripcion: true,
-                estado: true,
-                dimensiones: true,
-                fechaCreacion: true,
+              include: {
+                artist: {
+                  include: {
+                    user: {
+                      select: {
+                        name: true,
+                        image: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },
@@ -42,7 +38,16 @@ export async function GET(req, { params }) {
     }
 
     // Transformar la respuesta para devolver solo los murales
-    const murales = sala.murales.map((salaMural) => salaMural.mural);
+    const murales = sala.murales.map((salaMural) => {
+      const mural = salaMural.mural;
+      return {
+        ...mural,
+        artistName: mural.artist?.user?.name || mural.autor || "Desconocido",
+        artistImage: mural.artist?.user?.image,
+        artista: mural.artist?.user?.name || mural.autor || "Desconocido",
+        imagenUrl: mural.url_imagen,
+      };
+    });
 
     return new Response(
       JSON.stringify({
@@ -118,14 +123,16 @@ export async function POST(req, { params }) {
         murales: {
           include: {
             mural: {
-              select: {
-                id: true,
-                titulo: true,
-                artista: true,
-                tecnica: true,
-                anio: true,
-                imagenUrl: true,
-                imagenUrlWebp: true,
+              include: {
+                artist: {
+                  include: {
+                    user: {
+                      select: {
+                        name: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },

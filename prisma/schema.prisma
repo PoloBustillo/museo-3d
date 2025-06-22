@@ -41,21 +41,21 @@ enum UserRole {
 }
 
 model User {
-    id                 String              @id @default(cuid())
-    name               String?
-    email              String?             @unique
-    emailVerified      DateTime?
-    image              String?
-    password           String? // Campo para contraseñas hasheadas
-    role               UserRole            @default(USER)
-    accounts           Account[]
-    sessions           Session[]
-    settings           Json?
-    personalCollection PersonalCollection?
-    salasPropias       Sala[]              @relation("SalaOwner")
-    salasColabora      Sala[]              @relation("SalaColaboradores")
-    pushSubscriptions  PushSubscription[]
-    artist             Artist? // Relación opcional con Artist
+    id                String              @id @default(cuid())
+    name              String?
+    email             String?             @unique
+    emailVerified     DateTime?
+    image             String?
+    password          String? // Campo para contraseñas hasheadas
+    role              UserRole            @default(USER)
+    accounts          Account[]
+    sessions          Session[]
+    settings          Json?
+    salasPropias      Sala[]              @relation("SalaOwner")
+    salasColabora     Sala[]              @relation("SalaColaboradores")
+    pushSubscriptions PushSubscription[]
+    artist            Artist? // Relación opcional con Artist
+    favoritedBy       UserMuralFavorite[]
 }
 
 model VerificationToken {
@@ -79,9 +79,10 @@ model Mural {
     ubicacion   String? // Dirección o descripción de ubicación
 
     // Relaciones
-    salas    SalaMural[]
-    artistId String? // ID del artista (opcional)
-    artist   Artist?     @relation(fields: [artistId], references: [id])
+    salas       SalaMural[]
+    artistId    String? // ID del artista (opcional)
+    artist      Artist?             @relation(fields: [artistId], references: [id])
+    favoritedBy UserMuralFavorite[]
 
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
@@ -110,23 +111,15 @@ model SalaMural {
     @@unique([salaId, muralId])
 }
 
-model PersonalCollectionItem {
-    id           Int                @id @default(autoincrement())
-    artworkId    String
-    artworkType  String
-    artworkData  Json
-    addedAt      DateTime           @default(now())
-    collectionId String
-    collection   PersonalCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
-}
+model UserMuralFavorite {
+    user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+    userId  String
+    mural   Mural    @relation(fields: [muralId], references: [id], onDelete: Cascade)
+    muralId Int
+    addedAt DateTime @default(now())
 
-model PersonalCollection {
-    id        String                   @id @default(cuid())
-    userId    String                   @unique
-    user      User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
-    items     PersonalCollectionItem[]
-    createdAt DateTime                 @default(now())
-    updatedAt DateTime                 @updatedAt
+    @@id([userId, muralId])
+    @@map("user_mural_favorites")
 }
 
 model PushSubscription {

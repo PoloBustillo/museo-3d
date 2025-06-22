@@ -78,7 +78,7 @@ export async function GET(req) {
           select: {
             salasPropias: true,
             salasColabora: true,
-            personalCollection: true,
+            favoritedBy: true,
           },
         },
       },
