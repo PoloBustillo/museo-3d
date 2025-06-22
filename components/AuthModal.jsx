@@ -41,16 +41,26 @@ export default function AuthModal() {
 
   useEffect(() => {
     if (!isOpen) return;
+    
+    // Al abrir el modal, ir al top de la página instantáneamente
+    window.scrollTo(0, 0);
+    
     const handleKey = (e) => {
       if (e.key === "Escape" && !success) {
         handleClose();
       }
     };
+    
     window.addEventListener("keydown", handleKey);
+    
+    // Bloquear el scroll inmediatamente
     document.body.style.overflow = "hidden";
+    
     return () => {
       window.removeEventListener("keydown", handleKey);
-      document.body.style.overflow = "unset";
+      
+      // Restaurar el scroll
+      document.body.style.overflow = "";
     };
   }, [isOpen, success]);
 
@@ -205,17 +215,28 @@ export default function AuthModal() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen bg-black/50 backdrop-blur-sm"
+          transition={{ duration: 0.3 }}
+          className="fixed z-[9999] bg-black/50 backdrop-blur-sm"
+          style={{
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            width: '100vw',
+            height: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1rem'
+          }}
           onClick={handleBackdropClick}
         >
           <motion.div
             ref={modalRef}
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 0, scale: 0.8, y: 50 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="relative w-full max-w-sm sm:max-w-md mx-2 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[90vh] flex flex-col"
+            exit={{ opacity: 0, scale: 0.8, y: 50 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="relative w-full max-w-sm sm:max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[90vh] flex flex-col"
           >
             {/* Header */}
             <div className="relative p-4 sm:p-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
