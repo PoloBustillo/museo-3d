@@ -206,7 +206,7 @@ export default function AuthModal() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 z-50 flex items-center justify-center min-h-screen bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-[9999] flex items-center justify-center min-h-screen bg-black/50 backdrop-blur-sm"
           onClick={handleBackdropClick}
         >
           <motion.div
@@ -215,7 +215,7 @@ export default function AuthModal() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="relative w-full max-w-md sm:max-w-md max-w-sm mx-2 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[90vh] flex flex-col"
+            className="relative w-full max-w-sm sm:max-w-md mx-2 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[90vh] flex flex-col"
           >
             {/* Header */}
             <div className="relative p-4 sm:p-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">

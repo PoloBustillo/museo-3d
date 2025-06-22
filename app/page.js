@@ -9,10 +9,6 @@ import { useUser } from "../providers/UserProvider";
 import { useSessionData } from "../providers/SessionProvider";
 import { useGallery } from "../providers/GalleryProvider";
 
-const AuthModal = dynamic(() => import("../components/AuthModal"), {
-  ssr: false,
-});
-
 const steps = [
   {
     img: "/images/Origen.webp",

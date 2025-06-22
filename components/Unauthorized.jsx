@@ -15,7 +15,7 @@ import {
   EyeOff,
   AlertTriangle
 } from "lucide-react";
-import AuthModal from "./AuthModal";
+import { useModal } from "../providers/ModalProvider";
 
 export default function Unauthorized({ 
   title = "Acceso no autorizado",
@@ -27,7 +27,7 @@ export default function Unauthorized({
 }) {
   const [mounted, setMounted] = useState(false);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
-  const [showAuthModal, setShowAuthModal] = useState(false);
+  const { openModal } = useModal();
   const router = useRouter();
   const { data: session, status } = useSession();
 
@@ -43,14 +43,7 @@ export default function Unauthorized({
   }, [session, callbackUrl, router]);
 
   const handleLogin = () => {
-    setShowAuthModal(true);
-  };
-
-  const handleAuthModalClose = (success) => {
-    setShowAuthModal(false);
-    if (success === "success" && callbackUrl) {
-      router.push(callbackUrl);
-    }
+    openModal("auth-login");
   };
 
   const handleEasterEgg = () => {
@@ -248,15 +241,6 @@ export default function Unauthorized({
           />
         ))}
       </div>
-      
-      {/* Modal de autenticación */}
-      {showAuthModal && (
-        <AuthModal
-          open={showAuthModal}
-          mode="login"
-          onClose={handleAuthModalClose}
-        />
-      )}
     </div>
   );
 }

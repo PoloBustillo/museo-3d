@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
-import AuthModal from "./AuthModal";
 import ThemeSwitch from "./ThemeSwitch";
 import { useModal } from "../providers/ModalProvider";
 import { useUser } from "../providers/UserProvider";
@@ -838,9 +837,6 @@ export default function MainMenu({ onSubirArchivo }) {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* AuthModal ahora se maneja a través del ModalProvider */}
-      <AuthModal />
     </>
   );
 }
