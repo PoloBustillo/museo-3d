@@ -1,89 +1,119 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import GraffitiBackground from "./GraffitiBackground";
+import React from "react";
 
 const equipo = [
   {
     nombre: "Mario Leopoldo Bustillo Eguiluz",
     rol: "Experto en tecnologías digitales",
     img: "/images/Equipo_5.webp",
+    color: "bg-gradient-to-br from-blue-400 to-purple-500",
   },
   {
     nombre: "Ángel Hernández Gonzalez",
     rol: "Área de gestión y modelado de base datos",
     img: "/images/Equipo_4.webp",
+    color: "bg-gradient-to-br from-green-400 to-teal-500",
   },
   {
     nombre: "Dayron Jesus Salazar Alfaro",
-    rol: "Área de gestión y modelado de base de datos",
+    rol: "Área de gestión y modelado de base datos",
     img: "/images/Equipo_2.webp",
+    color: "bg-gradient-to-br from-orange-400 to-red-500",
   },
   {
     nombre: "Andrei Carro Flores",
     rol: "Front-end / Diseñador UI/UX",
     img: "/images/Equipo_2.webp",
+    color: "bg-gradient-to-br from-pink-400 to-rose-500",
   },
   {
     nombre: "Angel Kenai Sanchez Rojas",
     rol: "Front-end / Diseñador UI/UX",
     img: "/images/Equipo_4.webp",
+    color: "bg-gradient-to-br from-indigo-400 to-blue-500",
   },
   {
     nombre: "Ixcheel Jasmin Huerta Ramos",
     rol: "Front-end",
     img: "/images/Equipo_3.webp",
+    color: "bg-gradient-to-br from-emerald-400 to-green-500",
   },
   {
     nombre: "Dante Castelán Carpinteyro",
     rol: "DevOps",
     img: "/images/Equipo_1.webp",
+    color: "bg-gradient-to-br from-violet-400 to-purple-500",
   },
 ];
 
+function AnimatedBlobsBackground() {
+  return (
+    <>
+      <div className="absolute top-0 left-0 w-[520px] h-[520px] bg-orange-300/60 dark:bg-orange-700/30 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe" />
+      <div className="absolute bottom-0 right-0 w-[520px] h-[520px] bg-pink-300/60 dark:bg-pink-700/30 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe-delayed" />
+      <div
+        className="absolute top-1/2 left-1/2 w-[340px] h-[340px] bg-fuchsia-200/50 dark:bg-fuchsia-800/20 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe"
+        style={{ transform: "translate(-50%,-50%) scale(1.2)" }}
+      />
+    </>
+  );
+}
+
+function DotsPattern() {
+  return (
+    <svg
+      className="absolute inset-0 w-full h-full z-0 pointer-events-none hidden dark:block"
+      width="100%"
+      height="100%"
+      style={{ opacity: 0.13 }}
+    >
+      <defs>
+        <pattern
+          id="dots"
+          x="0"
+          y="0"
+          width="32"
+          height="32"
+          patternUnits="userSpaceOnUse"
+        >
+          <circle cx="2" cy="2" r="1.5" fill="#fff" />
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#dots)" />
+    </svg>
+  );
+}
+
 export default function AcercaDe() {
   return (
-    <div className="relative min-h-[calc(100vh-64px)] bg-gradient-to-br from-primary/5 via-secondary/10 to-muted/30 flex flex-col items-center justify-start pt-8 md:pt-12 pb-8 md:pb-12 overflow-x-hidden">
-      <div className="absolute inset-0 z-[-1]">
+    <div className="relative w-full flex flex-col items-center justify-start bg-transparent">
+      {/* Fondo animado, patrón y graffiti sutil */}
+      <div className="pointer-events-none absolute inset-0 w-full h-full z-0">
+        <AnimatedBlobsBackground />
+        <DotsPattern />
         <GraffitiBackground />
       </div>
-      <div className="absolute inset-0 z-0 w-full h-full bg-gradient-to-br from-primary/10 via-secondary/10 to-muted/20 blur-2xl opacity-60" />
-      <main className="z-10 w-full max-w-5xl mx-auto flex flex-col gap-12 px-4 sm:px-8">
+      <main className="relative z-10 w-full max-w-5xl mx-auto flex flex-col gap-16 px-4 sm:px-8 py-8 md:py-12">
         {/* Hero Section */}
-        <Card className="w-full bg-card/80 shadow-xl border-0 backdrop-blur-md">
-          <CardHeader className="text-center">
-            <CardTitle
-              className="text-5xl font-bold mb-4"
-              style={{ fontFamily: "var(--font-playfair), serif" }}
-            >
-              Acerca del Mural ARPA
-            </CardTitle>
-            <p
-              className="text-xl text-muted-foreground max-w-2xl mx-auto font-normal"
-              style={{ fontFamily: "var(--font-inter), sans-serif" }}
-            >
-              Una iniciativa cultural que busca preservar y difundir el arte
-              mural mexicano a través de la tecnología y la experiencia digital.
-            </p>
-          </CardHeader>
-        </Card>
+        <section className="text-center animate-fade-in-up">
+          <h1 className="text-5xl font-bold mb-6 font-playfair text-foreground">
+            Acerca del Mural ARPA
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto font-normal animate-fade-in font-inter">
+            Una iniciativa cultural que busca preservar y difundir el arte mural
+            mexicano a través de la tecnología y la experiencia digital.
+          </p>
+        </section>
 
-        {/* Historia Section */}
-        <div className="grid md:grid-cols-2 gap-8 items-center">
-          <Card className="bg-card/80 shadow-lg border-0">
-            <CardHeader>
-              <CardTitle
-                className="text-3xl font-bold mb-2"
-                style={{ fontFamily: "var(--font-playfair), serif" }}
-              >
-                Nuestra Historia
-              </CardTitle>
-            </CardHeader>
-            <CardContent
-              className="space-y-4 text-muted-foreground font-normal"
-              style={{ fontFamily: "var(--font-inter), sans-serif" }}
-            >
+        {/* Historia Section - Collage mejorado */}
+        <section className="grid md:grid-cols-2 gap-12 items-center animate-fade-in-up delay-100">
+          <div>
+            <h2 className="text-3xl font-bold mb-6 font-playfair text-foreground">
+              Nuestra Historia
+            </h2>
+            <div className="space-y-4 text-muted-foreground font-normal font-inter text-lg leading-relaxed">
               <p>
                 El Mural ARPA nació como parte de un esfuerzo colectivo por
                 documentar y visibilizar las obras murales creadas por
@@ -99,53 +129,41 @@ export default function AcercaDe() {
                 las tecnologías más avanzadas para crear experiencias inmersivas
                 que conectan a las personas con el arte.
               </p>
-            </CardContent>
-          </Card>
-          <div className="flex items-center justify-center">
-            <div className="relative w-full h-64 flex items-center justify-center z-10">
+            </div>
+          </div>
+          <div className="relative w-full h-80 flex items-center justify-center">
+            <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
               <img
                 src="/assets/banner68.webp"
                 alt="Banner"
-                className="absolute left-1/2 top-1/2 w-40 h-56 object-cover rounded-xl border-2 border-white shadow-md"
-                style={{ transform: "translate(-60%, -50%) rotate(-8deg)" }}
+                className="w-full h-48 object-cover rounded-2xl shadow-2xl animate-float"
               />
               <img
                 src="/assets/bansky.webp"
                 alt="Bansky"
-                className="absolute left-1/2 top-1/2 w-32 h-44 object-cover rounded-xl border-2 border-white shadow-md"
-                style={{ transform: "translate(-30%, -40%) rotate(6deg)" }}
+                className="w-full h-48 object-cover rounded-2xl shadow-2xl animate-float-delayed mt-8"
               />
               <img
                 src="/assets/bansky1.webp"
                 alt="Bansky 1"
-                className="absolute left-1/2 top-1/2 w-28 h-36 object-cover rounded-xl border-2 border-white shadow-md"
-                style={{ transform: "translate(-90%, -10%) rotate(-14deg)" }}
+                className="w-full h-48 object-cover rounded-2xl shadow-2xl animate-float mt-4"
               />
               <img
                 src="/assets/bansky2.webp"
                 alt="Bansky 2"
-                className="absolute left-1/2 top-1/2 w-24 h-32 object-cover rounded-xl border-2 border-white shadow-md"
-                style={{ transform: "translate(-10%, 10%) rotate(12deg)" }}
+                className="w-full h-48 object-cover rounded-2xl shadow-2xl animate-float-delayed"
               />
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Misión y Visión */}
-        <div className="grid md:grid-cols-2 gap-8">
-          <Card className="bg-card/80 shadow-lg border-0">
-            <CardHeader>
-              <CardTitle
-                className="text-2xl font-bold mb-2"
-                style={{ fontFamily: "var(--font-playfair), serif" }}
-              >
-                Nuestra Misión
-              </CardTitle>
-            </CardHeader>
-            <CardContent
-              className="text-muted-foreground font-normal"
-              style={{ fontFamily: "var(--font-inter), sans-serif" }}
-            >
+        <section className="grid md:grid-cols-2 gap-12 animate-fade-in-up delay-200">
+          <div>
+            <h2 className="text-2xl font-bold mb-4 font-playfair text-foreground">
+              Nuestra Misión
+            </h2>
+            <p className="text-muted-foreground font-normal font-inter text-lg leading-relaxed">
               Preservar, documentar y difundir el arte mural mexicano a través
               de tecnologías digitales innovadoras, haciendo accesible este
               patrimonio cultural a audiencias globales. Buscamos convertirnos
@@ -153,117 +171,88 @@ export default function AcercaDe() {
               interacción digital, garantizando que las obras murales realizadas
               por artistas emergentes tengan vida propia más allá de las paredes
               donde fueron creadas.
-            </CardContent>
-          </Card>
-          <Card className="bg-card/80 shadow-lg border-0">
-            <CardHeader>
-              <CardTitle
-                className="text-2xl font-bold mb-2"
-                style={{ fontFamily: "var(--font-playfair), serif" }}
-              >
-                Nuestra Visión
-              </CardTitle>
-            </CardHeader>
-            <CardContent
-              className="text-muted-foreground font-normal"
-              style={{ fontFamily: "var(--font-inter), sans-serif" }}
-            >
+            </p>
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold mb-4 font-playfair text-foreground">
+              Nuestra Visión
+            </h2>
+            <p className="text-muted-foreground font-normal font-inter text-lg leading-relaxed">
               Ser la plataforma líder mundial en la preservación y experiencia
               digital del arte mural, conectando artistas, historiadores y
               amantes del arte en una comunidad global comprometida con la
               memoria cultural y la innovación artística.
-            </CardContent>
-          </Card>
-        </div>
+            </p>
+          </div>
+        </section>
 
         {/* Apoyo */}
-        <Card className="bg-card/80 shadow-lg border-0">
-          <CardHeader>
-            <CardTitle
-              className="text-3xl font-bold text-center mb-4"
-              style={{ fontFamily: "var(--font-playfair), serif" }}
-            >
-              Con apoyo de:
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-center">
-              <div className="text-center">
-                <Avatar className="w-32 h-32 mx-auto mb-4">
-                  <AvatarImage
-                    src="/images/Arpa.webp"
-                    alt="Escuela de Artes Plásticas y Audiovisuales (BUAP)"
-                    className="object-cover"
-                  />
-                  <AvatarFallback>ARPA</AvatarFallback>
-                </Avatar>
-                <h4 className="font-semibold text-foreground">
-                  Escuela de Artes Plásticas y Audiovisuales (BUAP)
-                </h4>
-              </div>
+        <section className="text-center animate-fade-in-up delay-300">
+          <h2 className="text-3xl font-bold mb-8 font-playfair text-foreground">
+            Con apoyo de:
+          </h2>
+          <div className="flex justify-center">
+            <div className="text-center">
+              <Avatar className="w-32 h-32 mx-auto mb-4">
+                <AvatarImage
+                  src="/images/Arpa.webp"
+                  alt="Escuela de Artes Plásticas y Audiovisuales (BUAP)"
+                  className="object-cover"
+                />
+                <AvatarFallback>ARPA</AvatarFallback>
+              </Avatar>
+              <h4 className="font-semibold text-foreground text-lg">
+                Escuela de Artes Plásticas y Audiovisuales (BUAP)
+              </h4>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        {/* Equipo Circular Grid */}
-        <div>
-          <h2
-            className="text-3xl font-bold text-center mb-10 mt-4"
-            style={{ fontFamily: "var(--font-playfair), serif" }}
-          >
+        {/* Equipo en grid de 4 columnas */}
+        <section className="animate-fade-in-up delay-400">
+          <h2 className="text-3xl font-bold text-center mb-12 font-playfair text-foreground">
             Nuestro Equipo
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-8 justify-items-center">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {equipo.map((persona, i) => (
-              <div
-                key={i}
-                className="flex flex-col items-center bg-transparent"
-              >
-                <Avatar className="w-24 h-24 md:w-28 md:h-28 mb-3 shadow-lg border-4 border-white">
-                  <AvatarImage
-                    src={persona.img}
-                    alt={persona.nombre}
-                    className="object-cover"
-                  />
-                  <AvatarFallback>
-                    {persona.nombre
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </AvatarFallback>
-                </Avatar>
+              <article key={i} className="text-center group">
                 <div
-                  className="font-semibold text-base md:text-lg text-center"
-                  style={{ fontFamily: "var(--font-playfair), serif" }}
+                  className={`w-32 h-32 mx-auto mb-4 rounded-full ${persona.color} flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-105`}
                 >
-                  {persona.rol}
+                  <Avatar className="w-28 h-28 border-4 border-white">
+                    <AvatarImage
+                      src={persona.img}
+                      alt={persona.nombre}
+                      className="object-cover"
+                    />
+                    <AvatarFallback className="text-white font-bold">
+                      {persona.nombre
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")}
+                    </AvatarFallback>
+                  </Avatar>
                 </div>
-                <div
-                  className="text-xs text-muted-foreground text-center"
-                  style={{ fontFamily: "var(--font-inter), sans-serif" }}
-                >
+                <h3 className="font-bold text-xl font-playfair text-foreground mb-2">
                   {persona.nombre}
-                </div>
-              </div>
+                </h3>
+                <p className="text-sm text-primary/80 dark:text-primary/60 font-inter leading-relaxed">
+                  {persona.rol}
+                </p>
+              </article>
             ))}
           </div>
-        </div>
+        </section>
 
-        {/* Call to Action */}
-        <Card className="bg-white text-primary shadow-2xl border-0 text-center mt-8 dark:bg-gray-900 dark:text-white">
-          <CardHeader>
-            <CardTitle
-              className="text-3xl font-bold mb-2"
-              style={{ fontFamily: "var(--font-playfair), serif" }}
-            >
+        {/* Call to Action con banner */}
+        <section className="relative overflow-hidden rounded-3xl animate-fade-in-up delay-500">
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-pink-500/20 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-[url('/assets/banner68.webp')] bg-cover bg-center opacity-10" />
+          <div className="relative z-10 text-center py-16 px-8">
+            <h2 className="text-3xl font-bold mb-6 font-playfair text-foreground">
               Únete a Nuestra Misión
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p
-              className="text-xl mb-8 opacity-90"
-              style={{ fontFamily: "var(--font-inter), sans-serif" }}
-            >
+            </h2>
+            <p className="text-xl mb-8 text-muted-foreground font-inter max-w-2xl mx-auto">
               Ayúdanos a preservar el patrimonio cultural mexicano para las
               futuras generaciones.
             </p>
@@ -283,8 +272,8 @@ export default function AcercaDe() {
                 <a href="/crear-sala">Contribuir</a>
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </main>
     </div>
   );

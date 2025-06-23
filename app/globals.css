@@ -123,6 +123,7 @@
     height: auto;
     min-height: 100vh;
     cursor: url('/assets/cursor-museum-bw.webp') 8 8, auto;
+    overflow-x: hidden;
   }
   body {
     @apply bg-background text-foreground;
@@ -1357,4 +1358,19 @@ html.dark .toast-badge-info {
 .animate-breathe-delayed {
   animation: breathe 8s ease-in-out infinite;
   animation-delay: 4s;
+}
+
+.glass-card-strong {
+  background: linear-gradient(135deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.08) 100%);
+  backdrop-filter: blur(16px) saturate(1.2);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  border: 1.5px solid rgba(255,255,255,0.3);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.10);
+  border-radius: 1.25rem;
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.dark .glass-card-strong {
+  background: linear-gradient(135deg, rgba(30,30,40,0.60) 0%, rgba(30,30,40,0.45) 100%);
+  border: 1.5px solid rgba(255,255,255,0.20);
+  box-shadow: 0 8px 32px 0 rgba(0,0,0,0.18);
 }
