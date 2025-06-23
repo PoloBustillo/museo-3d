@@ -223,13 +223,13 @@ export default function MainMenu({ onSubirArchivo }) {
                   className={
                     "navbar-link hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all " +
                     (pathname.startsWith("/crear-sala") ||
-                    pathname.startsWith("/archivo") ||
+                    pathname.startsWith("/galeria") ||
                     pathname.startsWith("/museo")
                       ? "elegant-active-menu"
                       : "")
                   }
                 >
-                  Archivo
+                  Galería
                 </NavigationMenuTrigger>
                 <NavigationMenuContent className="navbar-dropdown bg-card p-6 rounded-lg shadow-lg border min-w-[200px]">
                   <div className="flex flex-col gap-2">
@@ -248,14 +248,14 @@ export default function MainMenu({ onSubirArchivo }) {
                     </NavigationMenuLink>
                     <NavigationMenuLink asChild>
                       <Link
-                        href="/archivo"
+                        href="/galeria"
                         className={`navbar-dropdown-item block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all ${
-                          pathname.startsWith("/archivo")
+                          pathname.startsWith("/galeria")
                             ? "elegant-active-menu"
                             : ""
                         }`}
                       >
-                        Ver archivo
+                        Ver Galería
                       </Link>
                     </NavigationMenuLink>
                     <NavigationMenuLink asChild>
@@ -298,21 +298,6 @@ export default function MainMenu({ onSubirArchivo }) {
                     }`}
                   >
                     Museo Virtual
-                  </Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-
-              <NavigationMenuItem>
-                <NavigationMenuLink asChild>
-                  <Link
-                    href="/galeria"
-                    className={`navbar-link hover:text-primary transition-all px-3 py-2 rounded-lg ${
-                      pathname.startsWith("/galeria")
-                        ? "elegant-active-menu"
-                        : ""
-                    }`}
-                  >
-                    Galería
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
@@ -628,14 +613,14 @@ export default function MainMenu({ onSubirArchivo }) {
                   <button
                     onClick={() => setMobileArchivoOpen(!mobileArchivoOpen)}
                     className={`navbar-link flex items-center justify-between w-full py-2 text-base font-medium hover:text-primary transition-colors ${
-                      ["/crear-sala", "/archivo", "/museo"].some((p) =>
+                      ["/crear-sala", "/galeria", "/museo"].some((p) =>
                         pathname.startsWith(p)
                       )
                         ? "elegant-active-menu"
                         : ""
                     }`}
                   >
-                    <span>Archivo</span>
+                    <span>Galería</span>
                     <svg
                       className={`w-4 h-4 transition-transform duration-200 ${
                         mobileArchivoOpen ? "rotate-180" : ""
@@ -678,18 +663,18 @@ export default function MainMenu({ onSubirArchivo }) {
                           Crear Sala
                         </Link>
                         <Link
-                          href="/archivo"
+                          href="/galeria"
                           onClick={() => {
                             setMobileMenuOpen(false);
                             setMobileArchivoOpen(false);
                           }}
                           className={`navbar-dropdown-item block py-1.5 text-sm hover:text-primary transition-colors ${
-                            pathname.startsWith("/archivo")
+                            pathname.startsWith("/galeria")
                               ? "elegant-active-menu"
                               : ""
                           }`}
                         >
-                          Ver archivo
+                          Ver Galería
                         </Link>
                         <Link
                           href="/museo"
