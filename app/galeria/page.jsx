@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import { PageLoader, SectionLoader } from "../../components/LoadingSpinner";
+import GalleryCarousel from "../../components/GalleryCarousel";
 
 export default function GaleriaPage() {
   const { data: session } = useSession();
@@ -79,7 +80,7 @@ export default function GaleriaPage() {
     .filter((mural) => {
       const matchesSearch =
         mural.titulo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        mural.artista?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        mural.autor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         mural.descripcion?.toLowerCase().includes(searchTerm.toLowerCase());
 
       const matchesTecnica = !filterTecnica || mural.tecnica === filterTecnica;
@@ -92,7 +93,7 @@ export default function GaleriaPage() {
         case "titulo":
           return (a.titulo || "").localeCompare(b.titulo || "");
         case "artista":
-          return (a.artista || "").localeCompare(b.artista || "");
+          return (a.autor || "").localeCompare(b.autor || "");
         case "anio":
           return (b.anio || 0) - (a.anio || 0);
         case "tecnica":
@@ -126,6 +127,19 @@ export default function GaleriaPage() {
             por el archivo completo
           </p>
         </div>
+
+        {/* Carrusel destacado */}
+        {allMurales.length > 0 && (
+          <div className="mb-16">
+            <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
+              Obras Destacadas
+            </h2>
+            <GalleryCarousel
+              items={allMurales.slice(0, 10)} // Mostrar solo las primeras 10 obras
+              title="Galería de Obras"
+            />
+          </div>
+        )}
 
         {/* Selector de modo de vista */}
         <div className="flex justify-center mb-8">
@@ -219,18 +233,20 @@ export default function GaleriaPage() {
                         >
                           <div className="relative h-48">
                             <img
-                              src={mural.imagenUrl || mural.imagenUrlWebp}
+                              src={mural.url_imagen}
                               alt={mural.titulo}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.src = "/assets/artworks/cuadro1.webp";
+                              }}
                             />
-                            <div className="absolute inset-0 bg-black bg-opacity-20"></div>
                           </div>
                           <div className="p-6">
                             <h3 className="text-xl font-bold text-foreground mb-2">
                               {mural.titulo}
                             </h3>
                             <p className="text-muted-foreground mb-3">
-                              {mural.artista || "Artista desconocido"}
+                              {mural.autor || "Artista desconocido"}
                             </p>
                             {mural.tecnica && (
                               <p className="text-sm text-muted-foreground mb-2">
@@ -291,7 +307,7 @@ export default function GaleriaPage() {
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Título, artista, descripción..."
+                    placeholder="Título, autor, descripción..."
                     className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
                   />
                 </div>
@@ -374,11 +390,13 @@ export default function GaleriaPage() {
                   >
                     <div className="relative h-48">
                       <img
-                        src={mural.imagenUrl || mural.imagenUrlWebp}
+                        src={mural.url_imagen}
                         alt={mural.titulo}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = "/assets/artworks/cuadro1.webp";
+                        }}
                       />
-                      <div className="absolute inset-0 bg-black bg-opacity-20"></div>
                       {mural.anio && (
                         <div className="absolute top-3 right-3 bg-background/90 rounded-full px-2 py-1 text-xs font-bold text-foreground">
                           {mural.anio}
@@ -390,7 +408,7 @@ export default function GaleriaPage() {
                         {mural.titulo}
                       </h3>
                       <p className="text-muted-foreground mb-2">
-                        {mural.artista || "Artista desconocido"}
+                        {mural.autor || "Artista desconocido"}
                       </p>
                       {mural.tecnica && (
                         <p className="text-sm text-muted-foreground mb-2">
