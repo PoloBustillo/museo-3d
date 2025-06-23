@@ -172,20 +172,21 @@ export default function MainMenu({ onSubirArchivo }) {
         initial={{ y: 0 }}
         animate={{ y: isVisible ? 0 : -100 }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className={`fixed top-0 z-50 w-full ${
-          mobileMenuOpen
-            ? ""
-            : "border-b border-gray-200 dark:border-gray-700"
+        className={`fixed top-0 z-50 w-full navbar-main navbar-enter ${
+          mobileMenuOpen ? "" : "border-b border-gray-200 dark:border-gray-700"
         } ${
           isScrolled
-            ? "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md"
+            ? "scrolled"
             : "bg-transparent md:bg-white/95 md:dark:bg-gray-900/95 md:backdrop-blur-md"
         } text-gray-900 dark:text-white shadow-sm transition-colors duration-300`}
       >
         <div className="max-w-screen-xl mx-auto flex items-center justify-between px-4 py-3 md:py-4">
           {" "}
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 min-w-fit">
+          <Link
+            href="/"
+            className="flex items-center gap-3 min-w-fit navbar-link"
+          >
             <img
               src="/assets/nav/logo.svg"
               alt="Logo"
@@ -219,7 +220,7 @@ export default function MainMenu({ onSubirArchivo }) {
               <NavigationMenuItem>
                 <NavigationMenuTrigger
                   className={
-                    "hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all " +
+                    "navbar-link hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all " +
                     (pathname.startsWith("/crear-sala") ||
                     pathname.startsWith("/archivo") ||
                     pathname.startsWith("/museo")
@@ -229,13 +230,13 @@ export default function MainMenu({ onSubirArchivo }) {
                 >
                   Archivo
                 </NavigationMenuTrigger>
-                <NavigationMenuContent className="bg-card p-6 rounded-lg shadow-lg border min-w-[200px]">
+                <NavigationMenuContent className="navbar-dropdown bg-card p-6 rounded-lg shadow-lg border min-w-[200px]">
                   <div className="flex flex-col gap-2">
                     <NavigationMenuLink asChild>
                       <Link
                         href="/crear-sala"
                         onClick={onSubirArchivo}
-                        className={`block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all ${
+                        className={`navbar-dropdown-item block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all ${
                           pathname.startsWith("/crear-sala")
                             ? "elegant-active-menu"
                             : ""
@@ -247,7 +248,7 @@ export default function MainMenu({ onSubirArchivo }) {
                     <NavigationMenuLink asChild>
                       <Link
                         href="/archivo"
-                        className={`block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all ${
+                        className={`navbar-dropdown-item block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all ${
                           pathname.startsWith("/archivo")
                             ? "elegant-active-menu"
                             : ""
@@ -259,7 +260,7 @@ export default function MainMenu({ onSubirArchivo }) {
                     <NavigationMenuLink asChild>
                       <Link
                         href="/museo"
-                        className={`block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all ${
+                        className={`navbar-dropdown-item block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all ${
                           pathname.startsWith("/museo")
                             ? "elegant-active-menu"
                             : ""
@@ -276,7 +277,7 @@ export default function MainMenu({ onSubirArchivo }) {
                 <NavigationMenuLink asChild>
                   <Link
                     href="/acerca-de"
-                    className={`hover:text-primary transition-all px-3 py-2 rounded-lg ${
+                    className={`navbar-link hover:text-primary transition-all px-3 py-2 rounded-lg ${
                       pathname.startsWith("/acerca-de")
                         ? "elegant-active-menu"
                         : ""
@@ -291,7 +292,7 @@ export default function MainMenu({ onSubirArchivo }) {
                 <NavigationMenuLink asChild>
                   <Link
                     href="/museo"
-                    className={`hover:text-primary transition-all px-3 py-2 rounded-lg ${
+                    className={`navbar-link hover:text-primary transition-all px-3 py-2 rounded-lg ${
                       pathname.startsWith("/museo") ? "elegant-active-menu" : ""
                     }`}
                   >
@@ -304,7 +305,7 @@ export default function MainMenu({ onSubirArchivo }) {
                 <NavigationMenuLink asChild>
                   <Link
                     href="/galeria"
-                    className={`hover:text-primary transition-all px-3 py-2 rounded-lg ${
+                    className={`navbar-link hover:text-primary transition-all px-3 py-2 rounded-lg ${
                       pathname.startsWith("/galeria")
                         ? "elegant-active-menu"
                         : ""
@@ -589,16 +590,17 @@ export default function MainMenu({ onSubirArchivo }) {
                 <Link
                   href="/"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`block py-2 text-base font-medium hover:text-primary transition-colors ${
+                  className={`navbar-link block py-2 text-base font-medium hover:text-primary transition-colors ${
                     pathname === "/" ? "elegant-active-menu" : ""
                   }`}
                 >
                   Inicio
                 </Link>
+
                 <Link
                   href="/museo"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`block py-2 text-base font-medium hover:text-primary transition-colors ${
+                  className={`navbar-link block py-2 text-base font-medium hover:text-primary transition-colors ${
                     pathname.startsWith("/museo") ? "elegant-active-menu" : ""
                   }`}
                 >
@@ -608,7 +610,7 @@ export default function MainMenu({ onSubirArchivo }) {
                 <Link
                   href="/galeria"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`block py-2 text-base font-medium hover:text-primary transition-colors ${
+                  className={`navbar-link block py-2 text-base font-medium hover:text-primary transition-colors ${
                     pathname.startsWith("/galeria") ? "elegant-active-menu" : ""
                   }`}
                 >
@@ -619,7 +621,7 @@ export default function MainMenu({ onSubirArchivo }) {
                 <div className="space-y-2">
                   <button
                     onClick={() => setMobileArchivoOpen(!mobileArchivoOpen)}
-                    className={`flex items-center justify-between w-full py-2 text-base font-medium hover:text-primary transition-colors ${
+                    className={`navbar-link flex items-center justify-between w-full py-2 text-base font-medium hover:text-primary transition-colors ${
                       ["/crear-sala", "/archivo", "/museo"].some((p) =>
                         pathname.startsWith(p)
                       )
@@ -661,7 +663,7 @@ export default function MainMenu({ onSubirArchivo }) {
                             setMobileArchivoOpen(false);
                             if (onSubirArchivo) onSubirArchivo();
                           }}
-                          className={`block py-1.5 text-sm hover:text-primary transition-colors ${
+                          className={`navbar-dropdown-item block py-1.5 text-sm hover:text-primary transition-colors ${
                             pathname.startsWith("/crear-sala")
                               ? "elegant-active-menu"
                               : ""
@@ -675,7 +677,7 @@ export default function MainMenu({ onSubirArchivo }) {
                             setMobileMenuOpen(false);
                             setMobileArchivoOpen(false);
                           }}
-                          className={`block py-1.5 text-sm hover:text-primary transition-colors ${
+                          className={`navbar-dropdown-item block py-1.5 text-sm hover:text-primary transition-colors ${
                             pathname.startsWith("/archivo")
                               ? "elegant-active-menu"
                               : ""
@@ -689,7 +691,7 @@ export default function MainMenu({ onSubirArchivo }) {
                             setMobileMenuOpen(false);
                             setMobileArchivoOpen(false);
                           }}
-                          className={`block py-1.5 text-sm hover:text-primary transition-colors ${
+                          className={`navbar-dropdown-item block py-1.5 text-sm hover:text-primary transition-colors ${
                             pathname.startsWith("/museo")
                               ? "elegant-active-menu"
                               : ""
@@ -705,7 +707,7 @@ export default function MainMenu({ onSubirArchivo }) {
                 <Link
                   href="/acerca-de"
                   onClick={() => setMobileMenuOpen(false)}
-                  className={`block py-2 text-base font-medium hover:text-primary transition-colors ${
+                  className={`navbar-link block py-2 text-base font-medium hover:text-primary transition-colors ${
                     pathname.startsWith("/acerca-de")
                       ? "elegant-active-menu"
                       : ""
