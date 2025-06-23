@@ -9,14 +9,47 @@ export default function GalleryCarousel({ items, title = "Galería de Obras" }) 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [loadedImages, setLoadedImages] = useState(new Set());
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const carouselRef = useRef(null);
+  const autoPlayRef = useRef(null);
 
   const nextSlide = () => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
     setCurrentIndex((prev) => (prev + 1) % items.length);
+    resetAutoPlay();
   };
 
   const prevSlide = () => {
+    if (isTransitioning) return;
+    setIsTransitioning(true);
     setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
+    resetAutoPlay();
+  };
+
+  const goToSlide = (index) => {
+    if (isTransitioning || index === currentIndex) return;
+    setIsTransitioning(true);
+    setCurrentIndex(index);
+    resetAutoPlay();
+  };
+
+  const resetAutoPlay = () => {
+    if (autoPlayRef.current) {
+      clearInterval(autoPlayRef.current);
+    }
+    // Reiniciar auto-play después de 3 segundos de inactividad
+    setTimeout(() => {
+      startAutoPlay();
+    }, 3000);
+  };
+
+  const startAutoPlay = () => {
+    autoPlayRef.current = setInterval(() => {
+      if (!isTransitioning) {
+        setCurrentIndex((prev) => (prev + 1) % items.length);
+      }
+    }, 8000); // 8 segundos en lugar de 5
   };
 
   const openModal = (item) => {
@@ -35,12 +68,22 @@ export default function GalleryCarousel({ items, title = "Galería de Obras" }) 
 
   // Auto-play
   useEffect(() => {
-    const interval = setInterval(() => {
-      nextSlide();
-    }, 5000);
-
-    return () => clearInterval(interval);
+    startAutoPlay();
+    return () => {
+      if (autoPlayRef.current) {
+        clearInterval(autoPlayRef.current);
+      }
+    };
   }, [items.length]);
+
+  // Reset transition state
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsTransitioning(false);
+    }, 500); // Duración de la transición
+
+    return () => clearTimeout(timer);
+  }, [currentIndex]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -52,7 +95,7 @@ export default function GalleryCarousel({ items, title = "Galería de Obras" }) 
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [isTransitioning]);
 
   if (!items || items.length === 0) {
     return (
@@ -68,46 +111,55 @@ export default function GalleryCarousel({ items, title = "Galería de Obras" }) 
       <div className="relative h-96 md:h-[500px] bg-gradient-to-br from-purple-50 to-pink-50 dark:from-gray-900 dark:to-purple-900/20 rounded-2xl overflow-hidden border border-border">
         <div className="relative w-full h-full">
           {/* Imagen principal */}
-          <motion.div
-            key={currentIndex}
-            initial={{ opacity: 0, scale: 1.1 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.5 }}
-            className="absolute inset-0"
-          >
-            {/* Esqueleto de carga */}
-            {!loadedImages.has(currentIndex) && (
-              <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 animate-pulse">
-                <div className="flex items-center justify-center h-full">
-                  <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              </div>
-            )}
-
-            <img
-              src={items[currentIndex]?.url_imagen}
-              alt={items[currentIndex]?.titulo || "Obra de arte"}
-              className={`w-full h-full object-cover transition-opacity duration-300 ${
-                loadedImages.has(currentIndex) ? "opacity-100" : "opacity-0"
-              }`}
-              onLoad={() => handleImageLoad(currentIndex)}
-              onError={(e) => {
-                e.target.src = "/assets/artworks/cuadro1.webp";
-                handleImageLoad(currentIndex);
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentIndex}
+              initial={{ opacity: 0, scale: 1.1, x: 50 }}
+              animate={{ opacity: 1, scale: 1, x: 0 }}
+              exit={{ opacity: 0, scale: 0.9, x: -50 }}
+              transition={{
+                duration: 0.6,
+                ease: [0.4, 0.0, 0.2, 1],
+                type: "spring",
+                stiffness: 100,
+                damping: 20,
               }}
-            />
+              className="absolute inset-0"
+            >
+              {/* Esqueleto de carga */}
+              {!loadedImages.has(currentIndex) && (
+                <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 animate-pulse">
+                  <div className="flex items-center justify-center h-full">
+                    <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                </div>
+              )}
 
-            {/* Gradiente sutil solo en la parte inferior para el texto */}
-            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
-          </motion.div>
+              <img
+                src={items[currentIndex]?.url_imagen}
+                alt={items[currentIndex]?.titulo || "Obra de arte"}
+                className={`w-full h-full object-cover transition-opacity duration-300 ${
+                  loadedImages.has(currentIndex) ? "opacity-100" : "opacity-0"
+                }`}
+                onLoad={() => handleImageLoad(currentIndex)}
+                onError={(e) => {
+                  e.target.src = "/assets/artworks/cuadro1.webp";
+                  handleImageLoad(currentIndex);
+                }}
+              />
+
+              {/* Gradiente sutil solo en la parte inferior para el texto */}
+              <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
+            </motion.div>
+          </AnimatePresence>
 
           {/* Información de la obra */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+          <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-10">
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              key={`info-${currentIndex}`}
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
+              transition={{ delay: 0.3, duration: 0.5, ease: "easeOut" }}
             >
               <h3 className="text-2xl md:text-3xl font-bold mb-2">
                 {items[currentIndex]?.titulo || "Sin título"}
@@ -129,13 +181,15 @@ export default function GalleryCarousel({ items, title = "Galería de Obras" }) 
           {/* Botones de navegación */}
           <button
             onClick={prevSlide}
-            className="absolute left-4 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background text-foreground p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+            disabled={isTransitioning}
+            className="absolute left-4 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background text-foreground p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed z-20"
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
           <button
             onClick={nextSlide}
-            className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background text-foreground p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+            disabled={isTransitioning}
+            className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/80 hover:bg-background text-foreground p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed z-20"
           >
             <ChevronRight className="w-6 h-6" />
           </button>
@@ -143,22 +197,23 @@ export default function GalleryCarousel({ items, title = "Galería de Obras" }) 
           {/* Botón de información */}
           <button
             onClick={() => openModal(items[currentIndex])}
-            className="absolute top-4 right-4 bg-background/80 hover:bg-background text-foreground p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+            className="absolute top-4 right-4 bg-background/80 hover:bg-background text-foreground p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-110 z-20"
           >
             <Info className="w-5 h-5" />
           </button>
 
           {/* Indicadores */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-20">
             {items.map((_, index) => (
               <button
                 key={index}
-                onClick={() => setCurrentIndex(index)}
-                className={`w-3 h-3 rounded-full transition-all duration-200 ${
+                onClick={() => goToSlide(index)}
+                disabled={isTransitioning}
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${
                   index === currentIndex
                     ? "bg-white scale-125"
                     : "bg-white/50 hover:bg-white/75"
-                }`}
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
               />
             ))}
           </div>
@@ -168,21 +223,25 @@ export default function GalleryCarousel({ items, title = "Galería de Obras" }) 
       {/* Miniaturas */}
       <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
         {items.map((item, index) => (
-          <button
+          <motion.button
             key={index}
-            onClick={() => setCurrentIndex(index)}
-            className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-200 relative ${
+            onClick={() => goToSlide(index)}
+            disabled={isTransitioning}
+            className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-300 relative ${
               index === currentIndex
-                ? "border-primary scale-110"
+                ? "border-primary"
                 : "border-border hover:border-primary/50"
-            }`}
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            layout
           >
             {/* Esqueleto para miniatura */}
             {!loadedImages.has(index) && (
               <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse" />
             )}
 
-            <img
+            <motion.img
               src={item?.url_imagen}
               alt={item?.titulo || `Obra ${index + 1}`}
               className={`w-full h-full object-cover transition-opacity duration-300 ${
@@ -193,8 +252,28 @@ export default function GalleryCarousel({ items, title = "Galería de Obras" }) 
                 e.target.src = "/assets/artworks/cuadro1.webp";
                 handleImageLoad(index);
               }}
+              layoutId={`thumbnail-${index}`}
+              initial={{ scale: 1 }}
+              animate={{
+                scale: index === currentIndex ? 1.1 : 1,
+                opacity: index === currentIndex ? 0.9 : 1,
+              }}
+              transition={{
+                duration: 0.4,
+                ease: "easeInOut",
+              }}
             />
-          </button>
+
+            {/* Overlay para la miniatura activa */}
+            {index === currentIndex && (
+              <motion.div
+                className="absolute inset-0 bg-primary/20"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+              />
+            )}
+          </motion.button>
         ))}
       </div>
 
