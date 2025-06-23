@@ -6,6 +6,7 @@ import ThemeSwitch from "./ThemeSwitch";
 import { useModal } from "../providers/ModalProvider";
 import { useUser } from "../providers/UserProvider";
 import { useSessionData } from "../providers/SessionProvider";
+import { ButtonLoader } from "./LoadingSpinner";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
@@ -320,7 +321,12 @@ export default function MainMenu({ onSubirArchivo }) {
           {/* Usuario autenticado o botón de login */}
           <div className="flex items-center gap-4">
             {status === "loading" ? (
-              <div className="w-8 h-8 rounded-full bg-muted animate-pulse"></div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-muted animate-pulse"></div>
+                <span className="hidden md:inline text-sm text-muted-foreground">
+                  Cargando...
+                </span>
+              </div>
             ) : isAuthenticated ? (
               <NavigationMenu>
                 <NavigationMenuList>

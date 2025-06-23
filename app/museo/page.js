@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import GalleryRoom from "../../components/GalleryRoom.jsx";
+import { PageLoader, SectionLoader } from "../../components/LoadingSpinner";
 
 /**
  * La prueba más simple posible. Si esto no se ve, el problema está
@@ -80,7 +81,7 @@ export default function MuseoPage() {
       <div className="fixed top-0 left-0 right-0 bottom-0 z-[100]">
         <button
           onClick={() => setSalaSeleccionada(null)}
-          className="absolute top-5 left-5 z-[1000] bg-white/90 border-2 border-gray-800 rounded-lg px-4 py-2 cursor-pointer font-bold text-sm hover:bg-white transition-colors"
+          className="absolute top-5 left-5 z-[1000] bg-background/90 border-2 border-border rounded-lg px-4 py-2 cursor-pointer font-bold text-sm hover:bg-background transition-colors shadow-lg"
         >
           ← Volver a salas
         </button>
@@ -99,35 +100,31 @@ export default function MuseoPage() {
   }
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-lg">Cargando salas del museo...</p>
-        </div>
-      </div>
-    );
+    return <PageLoader text="Cargando salas del museo..." />;
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 text-lg mb-4">Error al cargar las salas</p>
-          <p className="text-gray-600">{error}</p>
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center max-w-md mx-auto">
+          <div className="text-6xl mb-6 opacity-20">⚠️</div>
+          <h2 className="text-2xl font-light text-foreground mb-4">
+            Error al cargar las salas
+          </h2>
+          <p className="text-muted-foreground">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-blue-900/20 dark:to-purple-900/20 p-4">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-4">
+          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-4">
             Museo Virtual 3D
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Explora las salas y descubre obras en un entorno inmersivo
           </p>
         </div>
@@ -136,7 +133,7 @@ export default function MuseoPage() {
             <div
               key={sala.id}
               onClick={() => setSalaSeleccionada(sala.id)}
-              className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105"
+              className="bg-card rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:scale-105 border border-border"
               style={{ backgroundColor: sala.color }}
             >
               <div className="relative h-48 rounded-t-2xl overflow-hidden">
@@ -146,7 +143,7 @@ export default function MuseoPage() {
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black bg-opacity-20"></div>
-                <div className="absolute top-4 right-4 bg-white/90 rounded-full px-3 py-1 text-sm font-bold">
+                <div className="absolute top-4 right-4 bg-background/90 rounded-full px-3 py-1 text-sm font-bold text-foreground">
                   {sala.cantidadMurales} obras
                 </div>
               </div>
@@ -155,14 +152,14 @@ export default function MuseoPage() {
                   <span className="text-3xl mr-3">
                     {getIconBySalaId(sala.id)}
                   </span>
-                  <h3 className="text-2xl font-bold text-gray-900">
+                  <h3 className="text-2xl font-bold text-foreground">
                     {sala.nombre}
                   </h3>
                 </div>
-                <p className="text-gray-700 mb-4">{sala.descripcion}</p>
-                <div className="flex justify-between items-center text-sm text-gray-600">
+                <p className="text-muted-foreground mb-4">{sala.descripcion}</p>
+                <div className="flex justify-between items-center text-sm text-muted-foreground">
                   <span>Propietario: {sala.propietario}</span>
-                  <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                  <button className="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
                     Entrar →
                   </button>
                 </div>
@@ -172,7 +169,9 @@ export default function MuseoPage() {
         </div>
         {salas.length === 0 && !loading && (
           <div className="text-center py-12">
-            <p className="text-gray-600 text-lg">No hay salas disponibles.</p>
+            <p className="text-muted-foreground text-lg">
+              No hay salas disponibles.
+            </p>
           </div>
         )}
       </div>

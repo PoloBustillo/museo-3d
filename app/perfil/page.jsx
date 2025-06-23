@@ -36,6 +36,7 @@ import { ModalWrapper } from "../../components/ui/Modal";
 import { useSessionData } from "../../providers/SessionProvider";
 import toast from "react-hot-toast";
 import { useCardMouseGlow } from "../hooks/useCardMouseGlow";
+import { PageLoader } from "../../components/LoadingSpinner";
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
@@ -170,7 +171,11 @@ function TagPreviewTooltip({ anchorRef, show, images }) {
   React.useEffect(() => {
     if (show && anchorRef.current) {
       const rect = anchorRef.current.getBoundingClientRect();
-      const newPos = calculateTooltipPosition(rect, tooltipWidth, tooltipHeight);
+      const newPos = calculateTooltipPosition(
+        rect,
+        tooltipWidth,
+        tooltipHeight
+      );
       setPos(newPos);
     }
   }, [show, anchorRef]);
@@ -255,7 +260,11 @@ function AvatarTooltip({ src, alt, anchorRef, show }) {
   useEffect(() => {
     if (show && anchorRef.current) {
       const rect = anchorRef.current.getBoundingClientRect();
-      const newPos = calculateTooltipPosition(rect, tooltipWidth, tooltipHeight);
+      const newPos = calculateTooltipPosition(
+        rect,
+        tooltipWidth,
+        tooltipHeight
+      );
       setPos(newPos);
     }
   }, [show, anchorRef]);
@@ -837,10 +846,7 @@ function PerfilContent() {
     return (
       <div className="relative min-h-screen flex items-center justify-center">
         <RainbowBackground />
-        <div className="z-10 text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Cargando perfil...</p>
-        </div>
+        <PageLoader text="Cargando perfil..." />
       </div>
     );
   }
@@ -961,8 +967,10 @@ function PerfilContent() {
                     <div className="text-left mt-2">
                       <Label>Email verificado</Label>
                       <div className="flex items-center gap-2 mt-1">
-                         <Badge variant={emailValidated ? 'success' : 'destructive'}>
-                          {emailValidated ? 'Sí' : 'No'}
+                        <Badge
+                          variant={emailValidated ? "success" : "destructive"}
+                        >
+                          {emailValidated ? "Sí" : "No"}
                         </Badge>
                       </div>
                     </div>

@@ -6,6 +6,7 @@ import AuthProvider from "../providers/AuthProvider";
 import MainMenu from "./MainMenu";
 import Footer from "./Footer";
 import useIsMobile from "../app/hooks/useIsMobile";
+import { PageLoader } from "./LoadingSpinner";
 import { FRASES_MURALISTAS, BANKSY_IMAGES } from "../lib/layoutConstants";
 
 // Para usar el nuevo menú elegante, descomenta la siguiente línea e importa ElegantMenu
@@ -22,6 +23,7 @@ const LayoutContainer = ({ children }) => {
   const [hoveringBottom, setHoveringBottom] = useState(false);
   const [frase, setFrase] = useState("");
   const [currentImage, setCurrentImage] = useState("");
+  const [isInitializing, setIsInitializing] = useState(true);
   const pathname = usePathname();
   const isMobile = useIsMobile();
 
@@ -31,9 +33,25 @@ const LayoutContainer = ({ children }) => {
   const useFixedFooter = fixedFooterPages.includes(pathname);
 
   useEffect(() => {
-    setFrase(FRASES_MURALISTAS[Math.floor(Math.random() * FRASES_MURALISTAS.length)]);
-    setCurrentImage(BANKSY_IMAGES[Math.floor(Math.random() * BANKSY_IMAGES.length)]);
+    setFrase(
+      FRASES_MURALISTAS[Math.floor(Math.random() * FRASES_MURALISTAS.length)]
+    );
+    setCurrentImage(
+      BANKSY_IMAGES[Math.floor(Math.random() * BANKSY_IMAGES.length)]
+    );
+
+    // Simular tiempo de inicialización
+    const timer = setTimeout(() => {
+      setIsInitializing(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, []);
+
+  // Mostrar loading durante la inicialización
+  if (isInitializing) {
+    return <PageLoader text="Inicializando Museo 3D..." />;
+  }
 
   return (
     <div className="bg-white dark:bg-black text-black dark:text-white flex flex-col min-h-screen transition-colors duration-300">
@@ -55,7 +73,9 @@ const LayoutContainer = ({ children }) => {
           onMouseEnter={() => setHoveringBottom(true)}
           onMouseLeave={() => setHoveringBottom(false)}
           className={`hidden md:block fixed bottom-0 left-0 w-full z-[15] transition-all duration-500 ${
-            hoveringBottom ? "opacity-100 translate-y-0" : "opacity-0 translate-y-full pointer-events-none"
+            hoveringBottom
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-full pointer-events-none"
           }`}
         >
           <Footer />

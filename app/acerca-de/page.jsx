@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import GraffitiBackground from "./GraffitiBackground";
 import { useRandomMurals } from "../hooks/useRandomMurals";
+import { SectionLoader } from "../../components/LoadingSpinner";
 import React, { useState } from "react";
 
 const equipo = [
@@ -177,14 +178,7 @@ export default function AcercaDe() {
           </div>
           <div className="relative w-full h-80 flex items-center justify-center">
             {loading ? (
-              <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
-                {[...Array(4)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="w-full h-48 bg-gray-200 dark:bg-gray-700 rounded-2xl animate-pulse"
-                  />
-                ))}
-              </div>
+              <SectionLoader text="Cargando murales..." />
             ) : error ? (
               <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
                 {fallbackImages.map((img, i) => (

@@ -2,6 +2,7 @@
 import { useUser } from "../providers/UserProvider";
 import { useModal } from "../providers/ModalProvider";
 import { ModalWrapper } from "./ui/Modal";
+import { PageLoader } from "./LoadingSpinner";
 
 export default function ProtectedRoute({
   children,
@@ -13,16 +14,9 @@ export default function ProtectedRoute({
     useUser();
   const { openModal } = useModal();
 
-  // Si está cargando, mostrar loading
+  // Si está cargando, mostrar loading mejorado
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-600 mx-auto mb-4"></div>
-          <p className="text-slate-600">Verificando acceso...</p>
-        </div>
-      </div>
-    );
+    return <PageLoader text="Verificando acceso..." />;
   }
 
   // Si no está autenticado
@@ -36,18 +30,18 @@ export default function ProtectedRoute({
 
     return (
       fallback || (
-        <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex items-center justify-center">
-          <div className="text-center">
+        <div className="min-h-screen bg-background flex items-center justify-center p-4">
+          <div className="text-center max-w-md mx-auto">
             <div className="text-6xl mb-6 opacity-20">🔒</div>
-            <h2 className="text-2xl font-light text-gray-600 mb-4">
+            <h2 className="text-2xl font-light text-foreground mb-4">
               Acceso Requerido
             </h2>
-            <p className="text-gray-500 mb-8 max-w-md mx-auto">
+            <p className="text-muted-foreground mb-8">
               Necesitas iniciar sesión para acceder a esta página.
             </p>
             <button
               onClick={() => openModal("auth-modal", { mode: "login" })}
-              className="bg-slate-600 text-white px-8 py-4 rounded-xl font-medium hover:bg-slate-700 transition-all duration-300"
+              className="bg-primary text-primary-foreground px-8 py-4 rounded-xl font-medium hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl"
             >
               🔑 Iniciar Sesión
             </button>
@@ -64,16 +58,16 @@ export default function ProtectedRoute({
     if (!hasRequiredRole) {
       return (
         fallback || (
-          <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex items-center justify-center">
-            <div className="text-center">
+          <div className="min-h-screen bg-background flex items-center justify-center p-4">
+            <div className="text-center max-w-md mx-auto">
               <div className="text-6xl mb-6 opacity-20">🚫</div>
-              <h2 className="text-2xl font-light text-gray-600 mb-4">
+              <h2 className="text-2xl font-light text-foreground mb-4">
                 Acceso Denegado
               </h2>
-              <p className="text-gray-500 mb-8 max-w-md mx-auto">
+              <p className="text-muted-foreground mb-8">
                 No tienes los permisos necesarios para acceder a esta página.
                 <br />
-                <span className="font-medium">
+                <span className="font-medium text-foreground">
                   Rol requerido: {requiredRole}
                 </span>
               </p>
@@ -83,7 +77,7 @@ export default function ProtectedRoute({
                     showRequiredRole: requiredRole,
                   })
                 }
-                className="bg-blue-600 text-white px-8 py-4 rounded-xl font-medium hover:bg-blue-700 transition-all duration-300"
+                className="bg-primary text-primary-foreground px-8 py-4 rounded-xl font-medium hover:bg-primary/90 transition-all duration-300 shadow-lg hover:shadow-xl"
               >
                 👤 Ver Mi Perfil
               </button>

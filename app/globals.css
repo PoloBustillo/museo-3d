@@ -1596,3 +1596,148 @@ html.dark .toast-badge-info {
 .navbar-dropdown-item:hover::before {
   width: 4px;
 }
+
+/* Loading Spinner mejorado */
+.loading-spinner-gradient {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    var(--primary) 90deg,
+    var(--primary-foreground) 180deg,
+    transparent 270deg,
+    transparent 360deg
+  );
+}
+
+.dark .loading-spinner-gradient {
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    var(--primary) 90deg,
+    rgba(255, 255, 255, 0.8) 180deg,
+    transparent 270deg,
+    transparent 360deg
+  );
+}
+
+/* Animación de pulse para el fondo del loading */
+@keyframes loadingPulse {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+.loading-background {
+  animation: loadingPulse 2s ease-in-out infinite;
+}
+
+/* Efecto de shimmer para el loading */
+@keyframes shimmer {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.loading-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.dark .loading-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Loading skeleton mejorado */
+.loading-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    var(--muted-foreground) 50%,
+    var(--muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.dark .loading-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.1) 25%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.1) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Loading overlay con blur */
+.loading-overlay {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.dark .loading-overlay {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+/* Animación de entrada para el loading */
+@keyframes loadingFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.loading-fade-in {
+  animation: loadingFadeIn 0.3s ease-out;
+}
+
+/* Loading dots animados */
+@keyframes loadingDots {
+  0%, 20% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  40% {
+    transform: translateY(-10px);
+    opacity: 0.5;
+  }
+  60%, 100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.loading-dots > div {
+  animation: loadingDots 1.4s ease-in-out infinite both;
+}
+
+.loading-dots > div:nth-child(1) { animation-delay: -0.32s; }
+.loading-dots > div:nth-child(2) { animation-delay: -0.16s; }
+.loading-dots > div:nth-child(3) { animation-delay: 0s; }
