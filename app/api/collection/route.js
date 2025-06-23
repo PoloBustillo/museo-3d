@@ -1,8 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../../../lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../../../lib/auth";
-
-const prisma = new PrismaClient();
 
 /**
  * @swagger
