@@ -1,7 +1,10 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import GraffitiBackground from "./GraffitiBackground";
-import React from "react";
+import { useRandomMurals } from "../hooks/useRandomMurals";
+import React, { useState } from "react";
 
 const equipo = [
   {
@@ -48,6 +51,28 @@ const equipo = [
   },
 ];
 
+// Componente de imagen con fallback
+function MuralImage({
+  src,
+  alt,
+  className,
+  fallbackSrc = "/assets/artworks/cuadro1.webp",
+}) {
+  const [imgSrc, setImgSrc] = useState(src);
+  const [hasError, setHasError] = useState(false);
+
+  const handleError = () => {
+    if (!hasError) {
+      setImgSrc(fallbackSrc);
+      setHasError(true);
+    }
+  };
+
+  return (
+    <img src={imgSrc} alt={alt} className={className} onError={handleError} />
+  );
+}
+
 function AnimatedBlobsBackground() {
   return (
     <>
@@ -87,6 +112,25 @@ function DotsPattern() {
 }
 
 export default function AcercaDe() {
+  const { murals, loading, error } = useRandomMurals(4);
+
+  // Fallback images si no hay murales
+  const fallbackImages = [
+    "/assets/artworks/cuadro1.webp",
+    "/assets/artworks/cuadro2.webp",
+    "/assets/artworks/cuadro3.webp",
+    "/assets/artworks/cuadro4.webp",
+  ];
+
+  // Usar murales del fetch o fallbacks
+  const displayMurals =
+    murals.length > 0
+      ? murals
+      : fallbackImages.map((img, i) => ({
+          url_imagen: img,
+          titulo: `Mural ${i + 1}`,
+        }));
+
   return (
     <div className="relative w-full flex flex-col items-center justify-start bg-transparent">
       {/* Fondo animado, patrón y graffiti sutil */}
@@ -107,7 +151,7 @@ export default function AcercaDe() {
           </p>
         </section>
 
-        {/* Historia Section - Collage mejorado */}
+        {/* Historia Section - Collage con murales aleatorios */}
         <section className="grid md:grid-cols-2 gap-12 items-center animate-fade-in-up delay-100">
           <div>
             <h2 className="text-3xl font-bold mb-6 font-playfair text-foreground">
@@ -132,28 +176,48 @@ export default function AcercaDe() {
             </div>
           </div>
           <div className="relative w-full h-80 flex items-center justify-center">
-            <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
-              <img
-                src="/assets/banner68.webp"
-                alt="Banner"
-                className="w-full h-48 object-cover rounded-2xl shadow-2xl animate-float"
-              />
-              <img
-                src="/assets/bansky.webp"
-                alt="Bansky"
-                className="w-full h-48 object-cover rounded-2xl shadow-2xl animate-float-delayed mt-8"
-              />
-              <img
-                src="/assets/bansky1.webp"
-                alt="Bansky 1"
-                className="w-full h-48 object-cover rounded-2xl shadow-2xl animate-float mt-4"
-              />
-              <img
-                src="/assets/bansky2.webp"
-                alt="Bansky 2"
-                className="w-full h-48 object-cover rounded-2xl shadow-2xl animate-float-delayed"
-              />
-            </div>
+            {loading ? (
+              <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+                {[...Array(4)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="w-full h-48 bg-gray-200 dark:bg-gray-700 rounded-2xl animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : error ? (
+              <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+                {fallbackImages.map((img, i) => (
+                  <MuralImage
+                    key={i}
+                    src={img}
+                    alt={`Mural ${i + 1}`}
+                    className="w-full h-48 object-cover rounded-2xl shadow-2xl animate-float"
+                    fallbackSrc="/assets/artworks/cuadro1.webp"
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
+                {displayMurals.map((mural, i) => (
+                  <MuralImage
+                    key={i}
+                    src={mural.url_imagen}
+                    alt={mural.titulo || `Mural ${i + 1}`}
+                    className={`w-full h-48 object-cover rounded-2xl shadow-2xl ${
+                      i === 1
+                        ? "animate-float-delayed mt-8"
+                        : i === 2
+                        ? "animate-float mt-4"
+                        : "animate-float-delayed"
+                    }`}
+                    fallbackSrc={
+                      fallbackImages[i] || "/assets/artworks/cuadro1.webp"
+                    }
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
@@ -244,10 +308,20 @@ export default function AcercaDe() {
           </div>
         </section>
 
-        {/* Call to Action con banner */}
+        {/* Call to Action con banner de mural aleatorio */}
         <section className="relative overflow-hidden rounded-3xl animate-fade-in-up delay-500">
           <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-pink-500/20 backdrop-blur-sm" />
-          <div className="absolute inset-0 bg-[url('/assets/banner68.webp')] bg-cover bg-center opacity-10" />
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-10"
+            style={{
+              backgroundImage:
+                murals.length > 0
+                  ? `url(${
+                      murals[0]?.url_imagen || "/assets/artworks/cuadro2.webp"
+                    })`
+                  : "url(/assets/artworks/cuadro2.webp)",
+            }}
+          />
           <div className="relative z-10 text-center py-16 px-8">
             <h2 className="text-3xl font-bold mb-6 font-playfair text-foreground">
               Únete a Nuestra Misión
