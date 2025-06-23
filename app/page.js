@@ -8,6 +8,7 @@ import { useModal } from "../providers/ModalProvider";
 import { useUser } from "../providers/UserProvider";
 import { useSessionData } from "../providers/SessionProvider";
 import { useGallery } from "../providers/GalleryProvider";
+import useIsMobile from "./hooks/useIsMobile";
 
 const steps = [
   {
@@ -36,30 +37,22 @@ function HomeContent() {
   } = useUser();
   const { sessionData } = useSessionData();
   const { openImageModal } = useGallery();
+  const isMobile = useIsMobile();
   const [current, setCurrent] = useState(0);
   const [isClient, setIsClient] = useState(false);
   const [scrollOpacity, setScrollOpacity] = useState(1);
   const [scrollY, setScrollY] = useState(0);
   const [userInteracted, setUserInteracted] = useState(false);
-  const [isDesktop, setIsDesktop] = useState(false);
   const containerRef = useRef(null);
   // Evitar problemas de hidratación
   useEffect(() => {
     setIsClient(true);
 
-    // Detectar si es desktop
-    const checkDesktop = () => {
-      setIsDesktop(window.innerWidth >= 768);
-    };
-
-    checkDesktop();
-    window.addEventListener("resize", checkDesktop);
-
     // Solo agregar listeners globales en desktop
-    if (window.innerWidth < 768) return;
+    if (isMobile) return;
 
     // Solo agregar clase para prevenir scroll del body en desktop
-    if (window.innerWidth >= 768) {
+    if (!isMobile) {
       document.body.classList.add("home-active");
       document.documentElement.classList.add("home-page");
     } else {
@@ -90,9 +83,8 @@ function HomeContent() {
       window.removeEventListener("touchstart", handleUserInteraction);
       window.removeEventListener("scroll", handleUserInteraction);
       window.removeEventListener("keydown", handleUserInteraction);
-      window.removeEventListener("resize", checkDesktop);
     };
-  }, []);
+  }, [isMobile]);
 
   useEffect(() => {
     if (!isClient) return;
@@ -197,7 +189,7 @@ function HomeContent() {
   const side = current % 2 === 0 ? "left" : "right";
 
   // Debug logging
-  console.log("Current:", current, "Side:", side, "IsDesktop:", isDesktop);
+  console.log("Current:", current, "Side:", side, "IsMobile:", isMobile);
 
   const scrollToSection = (index) => {
     if (!containerRef.current) return;
@@ -283,7 +275,7 @@ function HomeContent() {
   }
 
   // Mostrar landing mobile si no es desktop
-  if (!isDesktop) {
+  if (isMobile) {
     return <LandingMobile />;
   }
 
@@ -304,9 +296,6 @@ function HomeContent() {
           const sectionOffset = index * sectionHeight;
 
           // Detectar si es dispositivo móvil para reducir efectos
-          const isMobile =
-            typeof window !== "undefined" && window.innerWidth < 768;
-
           // Calcular el parallax de manera que la imagen se mantenga centrada en su sección
           const scrollFromSectionStart = scrollY - sectionOffset;
           const parallaxOffset = isMobile ? 0 : scrollFromSectionStart * 0.1; // Sin parallax en móvil
@@ -439,14 +428,14 @@ function HomeContent() {
         style={{
           opacity: scrollOpacity > 0.3 ? 1 : 0.3,
           // Desktop positioning - keeping left good, moving right much more outside
-          left: isDesktop ? (side === "left" ? "0rem" : "auto") : "50%", // Keep left as is (flush with edge)
-          right: isDesktop ? (side === "right" ? "-2.5rem" : "auto") : "auto", // Much more outside for right (-40px)
-          transform: isDesktop ? "translateY(-50%)" : "translateX(-50%)",
+          left: !isMobile ? (side === "left" ? "0rem" : "auto") : "50%", // Keep left as is (flush with edge)
+          right: !isMobile ? (side === "right" ? "-2.5rem" : "auto") : "auto", // Much more outside for right (-40px)
+          transform: !isMobile ? "translateY(-50%)" : "translateX(-50%)",
           // Simple smooth transition for position changes only
           transition:
             "left 0.8s ease-in-out, right 0.8s ease-in-out, opacity 0.3s ease",
         }}
-        data-debug={`side: ${side}, current: ${current}, isDesktop: ${isDesktop}`}
+        data-debug={`side: ${side}, current: ${current}, isMobile: ${isMobile}`}
       >
         {" "}
         {steps.map((_, index) => (

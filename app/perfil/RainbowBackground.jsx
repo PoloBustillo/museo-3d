@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
+import useIsMobile from "../hooks/useIsMobile";
 
 export default function RainbowBackground() {
   const [isLowPerformance, setIsLowPerformance] = useState(false);
+  const isMobile = useIsMobile();
 
   // Detectar dispositivos con rendimiento limitado
   useEffect(() => {
     const checkPerformance = () => {
-      const isMobile = window.innerWidth < 768;
       const isLowEnd = navigator.hardwareConcurrency <= 4;
       const prefersReducedMotion = window.matchMedia(
         "(prefers-reduced-motion: reduce)"
@@ -18,7 +19,7 @@ export default function RainbowBackground() {
     checkPerformance();
     window.addEventListener("resize", checkPerformance);
     return () => window.removeEventListener("resize", checkPerformance);
-  }, []);
+  }, [isMobile]);
 
   // Versión simplificada para dispositivos con rendimiento limitado
   if (isLowPerformance) {
