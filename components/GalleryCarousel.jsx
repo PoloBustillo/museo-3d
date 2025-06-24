@@ -202,13 +202,23 @@ export default function GalleryCarousel({ items, title = "Galería de Obras" }) 
                 }}
               />
 
-              {/* Gradiente sutil solo en la parte inferior para el texto */}
-              <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/40 via-black/20 to-transparent" />
+              {/* Gradiente más fuerte para garantizar legibilidad */}
+              <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black/50 via-black/25 to-transparent" />
             </motion.div>
           </AnimatePresence>
 
-          {/* Información de la obra con animaciones de texto */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 text-white z-10">
+          {/* Información de la obra con fondo blur y sombra */}
+          <div className="absolute bottom-0 left-0 right-0 z-10">
+            {/* Fondo blur adicional para mejor legibilidad */}
+            <div className="absolute inset-0 carousel-text-container" style={{
+              background: 'rgba(0, 0, 0, 0.35)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              borderRadius: '16px 16px 0 0',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              boxShadow: '0 4px 20px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+            }}></div>
+            <div className="relative p-6 text-white">
             <motion.div
               key={`info-${currentIndex}`}
               initial={{ opacity: 0, y: 40, filter: "blur(4px)" }}
@@ -223,7 +233,7 @@ export default function GalleryCarousel({ items, title = "Galería de Obras" }) 
               <div className="mb-2">
                 <AnimatedText
                   text={items[currentIndex]?.titulo || "Sin título"}
-                  className="text-2xl md:text-3xl font-bold"
+                  className="text-2xl md:text-3xl font-bold carousel-title"
                   delay={1.0}
                 />
               </div>
@@ -232,7 +242,7 @@ export default function GalleryCarousel({ items, title = "Galería de Obras" }) 
               <div className="mb-1">
                 <AnimatedText
                   text={items[currentIndex]?.autor || "Artista desconocido"}
-                  className="text-lg"
+                  className="text-lg carousel-subtitle"
                   delay={1.3}
                 />
               </div>
@@ -242,7 +252,7 @@ export default function GalleryCarousel({ items, title = "Galería de Obras" }) 
                 <div className="mb-2">
                   <AnimatedText
                     text={items[currentIndex].tecnica}
-                    className="text-sm opacity-90"
+                    className="text-sm carousel-info"
                     delay={1.6}
                   />
                 </div>
@@ -253,12 +263,13 @@ export default function GalleryCarousel({ items, title = "Galería de Obras" }) 
                 <div>
                   <AnimatedText
                     text={items[currentIndex].anio}
-                    className="text-sm opacity-90"
+                    className="text-sm carousel-info"
                     delay={1.9}
                   />
                 </div>
               )}
             </motion.div>
+            </div>
           </div>
 
           {/* Botones de navegación */}

@@ -61,6 +61,35 @@ export default function GaleriaPage() {
   const [filterAnio, setFilterAnio] = useState("");
   const [sortBy, setSortBy] = useState("titulo");
 
+  // Función para normalizar técnicas
+  const normalizeTecnica = (tecnica) => {
+    if (!tecnica) return tecnica;
+    
+    const normalized = tecnica.toLowerCase();
+    
+    // Normalizar variaciones de acrílico
+    if (normalized.includes('acrílico') || normalized.includes('acrilico') || normalized.includes('acrílica') || normalized.includes('acrilica')) {
+      return 'Acrílico';
+    }
+    
+    // Normalizar variaciones de vinílica/vinil
+    if (normalized.includes('vinílica') || normalized.includes('vinilica') || normalized.includes('vinil')) {
+      return 'Pintura vinílica';
+    }
+    
+    // Normalizar otras técnicas comunes
+    if (normalized.includes('óleo') || normalized.includes('oleo')) {
+      return 'Óleo';
+    }
+    
+    if (normalized.includes('acuarela')) {
+      return 'Acuarela';
+    }
+    
+    // Capitalizar primera letra para técnicas no normalizadas
+    return tecnica.charAt(0).toUpperCase() + tecnica.slice(1).toLowerCase();
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -137,7 +166,7 @@ export default function GaleriaPage() {
         mural.autor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         mural.descripcion?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesTecnica = !filterTecnica || mural.tecnica === filterTecnica;
+      const matchesTecnica = !filterTecnica || normalizeTecnica(mural.tecnica) === filterTecnica;
       const matchesAnio = !filterAnio || mural.anio === parseInt(filterAnio);
 
       return matchesSearch && matchesTecnica && matchesAnio;
@@ -159,8 +188,8 @@ export default function GaleriaPage() {
 
   // Obtener técnicas y años únicos para los filtros
   const tecnicasUnicas = [
-    ...new Set(allMurales.map((m) => m.tecnica).filter(Boolean)),
-  ];
+    ...new Set(allMurales.map((m) => normalizeTecnica(m.tecnica)).filter(Boolean)),
+  ].sort();
   const aniosUnicos = [
     ...new Set(allMurales.map((m) => m.anio).filter(Boolean)),
   ].sort((a, b) => b - a);

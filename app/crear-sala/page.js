@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 import { useAuth } from "../hooks/useAuth";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useToast } from "../../components/ui/toast";
+import toast from "react-hot-toast";
 
 const schema = yup.object().shape({
   nombre: yup.string().required("El nombre de la sala es obligatorio"),
@@ -20,7 +20,6 @@ export default function CrearSala() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { data: session } = useSession();
   const router = useRouter();
-  const { toast } = useToast();
   const {
     register,
     handleSubmit,
@@ -94,7 +93,7 @@ export default function CrearSala() {
       router.push("/");
       return;
     }
-  }, [session, router, toast]);
+  }, [session, router]);
 
   // Cargar murales disponibles
   useEffect(() => {
@@ -113,7 +112,7 @@ export default function CrearSala() {
       }
     };
     fetchMurales();
-  }, [toast]);
+  }, []);
 
   // Alternar selección de murales existentes
   const handleMuralToggle = (muralId) => {
@@ -205,7 +204,6 @@ export default function CrearSala() {
 
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col items-center py-8">
-      <Toaster position="top-center" />
       <motion.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
