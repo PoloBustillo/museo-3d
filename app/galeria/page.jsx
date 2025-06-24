@@ -5,6 +5,7 @@ import { toast } from "react-hot-toast";
 import { PageLoader, SectionLoader } from "../../components/LoadingSpinner";
 import GalleryCarousel from "../../components/GalleryCarousel";
 import GraffitiBackground from "../acerca-de/GraffitiBackground";
+import { motion } from "framer-motion";
 
 // Componentes de fondo animado (copiados de acerca-de)
 function AnimatedBlobsBackground() {
@@ -401,13 +402,24 @@ export default function GaleriaPage() {
                     {loadingMurales ? (
                       <SectionLoader text="Cargando murales..." />
                     ) : murales.length > 0 ? (
-                      <div className="relative z-10">
-                        {murales.map((mural) => (
-                          <div
+                      <div className="gallery-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
+                        {murales.map((mural, idx) => (
+                          <motion.div
                             key={mural.id}
-                            className="bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border mb-6 relative z-10"
+                            className="gallery-card-glow bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border mb-6 relative z-10"
+                            initial={{ opacity: 0, y: 40 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{
+                              delay: 0.08 * idx,
+                              duration: 0.6,
+                              ease: [0.25, 0.46, 0.45, 0.94],
+                            }}
                           >
-                            <div className="relative h-48">
+                            {/* Glow solo detrás del contenido de la tarjeta */}
+                            <div className="absolute inset-0 pointer-events-none z-0">
+                              <div className="gallery-glow" />
+                            </div>
+                            <div className="relative h-48 z-10">
                               <img
                                 src={mural.url_imagen}
                                 alt={mural.titulo}
@@ -418,7 +430,7 @@ export default function GaleriaPage() {
                                 }}
                               />
                             </div>
-                            <div className="p-6">
+                            <div className="p-6 z-10">
                               <h3 className="text-xl font-bold text-foreground mb-2">
                                 {mural.titulo}
                               </h3>
@@ -441,7 +453,7 @@ export default function GaleriaPage() {
                                 </p>
                               )}
                             </div>
-                          </div>
+                          </motion.div>
                         ))}
                       </div>
                     ) : (
