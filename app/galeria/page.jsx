@@ -194,6 +194,80 @@ export default function GaleriaPage() {
     ...new Set(allMurales.map((m) => m.anio).filter(Boolean)),
   ].sort((a, b) => b - a);
 
+  // Efecto de luz de fondo que sigue el cursor
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      const grid = document.querySelector('.gallery-grid');
+      if (!grid) return;
+
+      const card = e.currentTarget;
+      const gridRect = grid.getBoundingClientRect();
+      const x = e.clientX - gridRect.left;
+      const y = e.clientY - gridRect.top;
+      
+      // Actualizar variables CSS globales en el grid
+      grid.style.setProperty('--global-mouse-x', `${x}px`);
+      grid.style.setProperty('--global-mouse-y', `${y}px`);
+      
+      // Activar el glow
+      grid.classList.add('has-active-glow');
+    };
+
+    const handleMouseEnter = (e) => {
+      const grid = document.querySelector('.gallery-grid');
+      if (grid) {
+        grid.classList.add('has-active-glow');
+      }
+    };
+
+    const handleMouseLeave = (e) => {
+      const grid = document.querySelector('.gallery-grid');
+      if (grid) {
+        grid.classList.remove('has-active-glow');
+      }
+    };
+
+    // Agregar event listeners a todas las tarjetas
+    const observer = new MutationObserver(() => {
+      const cards = document.querySelectorAll('.gallery-card-glow');
+      cards.forEach((card) => {
+        // Remover listeners existentes para evitar duplicados
+        card.removeEventListener('mousemove', handleMouseMove);
+        card.removeEventListener('mouseenter', handleMouseEnter);
+        card.removeEventListener('mouseleave', handleMouseLeave);
+        
+        // Agregar listeners
+        card.addEventListener('mousemove', handleMouseMove);
+        card.addEventListener('mouseenter', handleMouseEnter);
+        card.addEventListener('mouseleave', handleMouseLeave);
+      });
+    });
+
+    // Configurar observer
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+    });
+
+    // Aplicar inicialmente
+    const cards = document.querySelectorAll('.gallery-card-glow');
+    cards.forEach((card) => {
+      card.addEventListener('mousemove', handleMouseMove);
+      card.addEventListener('mouseenter', handleMouseEnter);
+      card.addEventListener('mouseleave', handleMouseLeave);
+    });
+
+    return () => {
+      observer.disconnect();
+      const cards = document.querySelectorAll('.gallery-card-glow');
+      cards.forEach((card) => {
+        card.removeEventListener('mousemove', handleMouseMove);
+        card.removeEventListener('mouseenter', handleMouseEnter);
+        card.removeEventListener('mouseleave', handleMouseLeave);
+      });
+    };
+  }, []);
+
   if (loading) {
     return <PageLoader text="Cargando galería..." />;
   }
@@ -472,11 +546,11 @@ export default function GaleriaPage() {
 
               {/* Lista de murales */}
               {filteredMurales.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="gallery-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {filteredMurales.map((mural) => (
                     <div
                       key={mural.id}
-                      className="bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border"
+                      className="gallery-card-glow bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border"
                     >
                       <div className="relative h-48">
                         <img

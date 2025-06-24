@@ -77,6 +77,43 @@ export default function ArchivoPage() {
   const [filterAnio, setFilterAnio] = useState("");
   const [sortBy, setSortBy] = useState("titulo");
 
+  // Efecto de glow que sigue el cursor
+  useEffect(() => {
+    const galleryGrid = document.querySelector('.gallery-grid');
+    if (!galleryGrid) return;
+
+    const handleMouseMove = (e) => {
+      const rect = galleryGrid.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      galleryGrid.style.setProperty('--global-mouse-x', `${x}px`);
+      galleryGrid.style.setProperty('--global-mouse-y', `${y}px`);
+    };
+
+    const handleMouseEnter = (e) => {
+      if (e.target.classList.contains('archive-card-glow')) {
+        galleryGrid.classList.add('has-active-glow');
+      }
+    };
+
+    const handleMouseLeave = (e) => {
+      if (e.target.classList.contains('archive-card-glow')) {
+        galleryGrid.classList.remove('has-active-glow');
+      }
+    };
+
+    galleryGrid.addEventListener('mousemove', handleMouseMove);
+    galleryGrid.addEventListener('mouseenter', handleMouseEnter, true);
+    galleryGrid.addEventListener('mouseleave', handleMouseLeave, true);
+
+    return () => {
+      galleryGrid.removeEventListener('mousemove', handleMouseMove);
+      galleryGrid.removeEventListener('mouseenter', handleMouseEnter, true);
+      galleryGrid.removeEventListener('mouseleave', handleMouseLeave, true);
+    };
+  }, [filteredMurales]); // Dependencia para re-ejecutar cuando cambien los murales filtrados
+
   // Función para normalizar técnicas
   const normalizeTecnica = (tecnica) => {
     if (!tecnica) return tecnica;
@@ -274,11 +311,11 @@ export default function ArchivoPage() {
 
         {/* Lista de murales */}
         {filteredMurales.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="gallery-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredMurales.map((mural) => (
               <div
                 key={mural.id}
-                className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
+                className="archive-card-glow bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300"
               >
                 <div className="relative h-48">
                   <img

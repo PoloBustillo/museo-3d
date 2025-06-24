@@ -1812,3 +1812,133 @@ html.dark .toast-badge-info {
     background: rgba(0, 0, 0, 0.8) !important;
   }
 }
+
+/* Efecto de luz visible solo en los espacios entre tarjetas */
+@media (min-width: 768px) {
+  /* Contenedor de galería con contexto de apilamiento */
+  .gallery-grid {
+    position: relative;
+    z-index: 1;
+    isolation: isolate; /* Crea un nuevo stacking context */
+  }
+
+  /* Tarjetas con efecto de glow */
+  .gallery-card-glow,
+  .archive-card-glow {
+    position: relative;
+    z-index: 100; /* Z-index muy alto */
+    --mouse-x: 50%;
+    --mouse-y: 50%;
+    /* Crear una superficie completamente opaca */
+    isolation: isolate; /* Crea un nuevo stacking context */
+    background-color: var(--card, #ffffff);
+  }
+
+  /* Tema oscuro para las tarjetas */
+  .dark .gallery-card-glow,
+  .dark .archive-card-glow {
+    background-color: var(--card, #1f2937);
+  }
+
+  /* Pseudo-elemento para crear una capa opaca que bloquee la luz */
+  .gallery-card-glow::before,
+  .archive-card-glow::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--card, #ffffff);
+    z-index: -1; /* Detrás del contenido de la tarjeta pero sobre la luz */
+  }
+
+  /* Asegurar fondos opacos en tema oscuro */
+  .dark .gallery-card-glow::before {
+    background-color: var(--card, #1f2937);
+  }
+
+  .dark .archive-card-glow::before {
+    background-color: #1f2937;
+  }
+
+  .gallery-card-glow:hover,
+  .archive-card-glow:hover {
+    transform: translateY(-4px);
+    z-index: 200; /* Aún más alto al hacer hover */
+  }
+
+  /* Luz que está en una capa completamente separada DETRÁS del grid */
+  .gallery-grid::before {
+    content: '';
+    position: absolute;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(
+      circle,
+      var(--active-glow-color-1, rgba(255, 0, 255, 0.6)) 0%,
+      var(--active-glow-color-2, rgba(0, 255, 255, 0.4)) 40%,
+      var(--active-glow-color-1, rgba(255, 0, 255, 0.2)) 70%,
+      transparent 100%
+    );
+    border-radius: 50%;
+    z-index: -10; /* Muy por detrás del grid completo */
+    opacity: 0;
+    filter: blur(80px);
+    transition: opacity 0.3s ease, left 0.1s ease, top 0.1s ease;
+    pointer-events: none;
+    top: var(--global-mouse-y, 50%);
+    left: var(--global-mouse-x, 50%);
+    transform: translate(-50%, -50%);
+  }
+
+  /* Mostrar la luz cuando hay hover activo */
+  .gallery-grid.has-active-glow::before {
+    opacity: 1;
+  }
+
+  /* Variaciones de color por tarjeta para crear diversidad */
+  .gallery-card-glow:nth-child(6n+1),
+  .archive-card-glow:nth-child(6n+1) {
+    --glow-color-1: rgba(232, 106, 240, 0.8);
+    --glow-color-2: rgba(155, 109, 223, 0.6);
+  }
+
+  .gallery-card-glow:nth-child(6n+2),
+  .archive-card-glow:nth-child(6n+2) {
+    --glow-color-1: rgba(90, 224, 223, 0.8);
+    --glow-color-2: rgba(43, 134, 217, 0.6);
+  }
+
+  .gallery-card-glow:nth-child(6n+3),
+  .archive-card-glow:nth-child(6n+3) {
+    --glow-color-1: rgba(255, 204, 102, 0.8);
+    --glow-color-2: rgba(255, 136, 102, 0.6);
+  }
+
+  .gallery-card-glow:nth-child(6n+4),
+  .archive-card-glow:nth-child(6n+4) {
+    --glow-color-1: rgba(162, 222, 150, 0.8);
+    --glow-color-2: rgba(87, 196, 120, 0.6);
+  }
+
+  .gallery-card-glow:nth-child(6n+5),
+  .archive-card-glow:nth-child(6n+5) {
+    --glow-color-1: rgba(240, 98, 146, 0.8);
+    --glow-color-2: rgba(236, 64, 122, 0.6);
+  }
+
+  .gallery-card-glow:nth-child(6n+6),
+  .archive-card-glow:nth-child(6n+6) {
+    --glow-color-1: rgba(149, 117, 205, 0.8);
+    --glow-color-2: rgba(126, 87, 194, 0.6);
+  }
+}
+
+/* En móviles, solo efecto hover sutil sin glow */
+@media (max-width: 767px) {
+  .gallery-card-glow:hover,
+  .archive-card-glow:hover {
+    transform: translateY(-2px);
+  }
+}
