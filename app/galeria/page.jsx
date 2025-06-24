@@ -447,9 +447,8 @@ export default function GaleriaPage() {
                             </div>
                           </motion.div>
                         ))}
-                      </div>
-                    ) : (
-                      <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border relative z-10">
+                      </div>                    ) : (
+                      <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border">
                         <div className="text-6xl mb-4">🎨</div>
                         <h3 className="text-2xl font-bold text-foreground mb-2">
                           Sala vacía
@@ -461,7 +460,7 @@ export default function GaleriaPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border relative z-10">
+                  <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border">
                     <div className="text-6xl mb-4">🏛️</div>
                     <h3 className="text-2xl font-bold text-foreground mb-2">
                       Selecciona una sala
@@ -473,15 +472,14 @@ export default function GaleriaPage() {
                   </div>
                 )}
               </div>
-            </div>
-          ) : (
+            </div>          ) : (
             // Vista de archivo completo
             <div>
               {/* Filtros y búsqueda */}
-              <div className="bg-card rounded-2xl shadow-lg p-6 mb-8 border border-border relative z-10">
+              <div className="bg-card rounded-2xl shadow-lg p-6 mb-8 border border-border">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Búsqueda */}
-                  <div className="relative z-10">
+                  <div>
                     <label className="block text-sm font-medium text-foreground mb-2">
                       Buscar
                     </label>
@@ -490,7 +488,7 @@ export default function GaleriaPage() {
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Título, autor, descripción..."
-                      className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground relative z-10"
+                      className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
                     />
                   </div>
 
@@ -558,17 +556,16 @@ export default function GaleriaPage() {
                     </span>
                     <span>🎨 {tecnicasUnicas.length} técnicas diferentes</span>
                     <span>📅 {aniosUnicos.length} años representados</span>
-                  </div>
-                </div>
+                  </div>                </div>
               </div>
 
               {/* Lista de murales */}
               {filteredMurales.length > 0 ? (
-                <div className="gallery-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 relative z-10">
+                <div className="gallery-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {filteredMurales.map((mural) => (
                     <div
                       key={mural.id}
-                      className="gallery-card-glow bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border relative z-10"
+                      className="gallery-card-glow bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border"
                     >
                       <div className="relative h-48">
                         <img
@@ -606,25 +603,23 @@ export default function GaleriaPage() {
                           <p className="text-xs text-muted-foreground mt-2">
                             📍 {mural.ubicacion}
                           </p>
-                        )}
-                      </div>
+                        )}                      </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border relative z-10">
+                <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border">
                   <div className="text-6xl mb-4">📄</div>
                   <h3 className="text-2xl font-bold text-foreground mb-2">
                     No hay resultados
                   </h3>
                   <p className="text-muted-foreground">
                     No se encontraron murales que coincidan con tu búsqueda.
-                  </p>                </div>
-              )}
+                  </p>
+                </div>              )}
             </div>
           )}
         </div>
-      </div>
     </div>
   );
 }
