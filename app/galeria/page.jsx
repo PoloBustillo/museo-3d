@@ -284,26 +284,18 @@ export default function GaleriaPage() {
   if (loading) {
     return <PageLoader text="Cargando galería..." />;
   }
-
   return (
-    <div className="relative w-full flex flex-col items-center justify-start bg-transparent">
-      {/* Fondo animado, patrón y graffiti sutil */}
-      <div className="pointer-events-none absolute inset-0 w-full h-full z-0">
-        <AnimatedBlobsBackground />
-        <DotsPattern />
-        <GraffitiBackground />
-      </div>
-      <div className="relative z-10 w-full min-h-screen p-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-4">
-              Galería Virtual
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Explora las obras de arte organizadas por salas temáticas o navega
-              por el archivo completo
-            </p>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-100 p-4">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-4">
+            Galería Virtual
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Explora las obras de arte organizadas por salas temáticas o navega
+            por el archivo completo
+          </p>
+        </div>
 
           {/* Carrusel destacado */}
           {allMurales.length > 0 && (
@@ -351,7 +343,7 @@ export default function GaleriaPage() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
               {/* Sidebar con salas */}
               <div className="lg:col-span-1">
-                <div className="bg-card rounded-2xl shadow-lg p-6 sticky top-4 border border-border relative z-10">
+                <div className="bg-card rounded-2xl shadow-lg p-6 sticky top-4 border border-border">
                   <h2 className="text-2xl font-bold text-foreground mb-6">
                     Salas
                   </h2>
@@ -387,7 +379,7 @@ export default function GaleriaPage() {
               </div>
 
               {/* Contenido principal */}
-              <div className="lg:col-span-3 relative z-10">
+              <div className="lg:col-span-3">
                 {selectedSala ? (
                   <div>
                     <div className="bg-card rounded-2xl shadow-lg p-6 mb-6 border border-border">
@@ -402,11 +394,11 @@ export default function GaleriaPage() {
                     {loadingMurales ? (
                       <SectionLoader text="Cargando murales..." />
                     ) : murales.length > 0 ? (
-                      <div className="gallery-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
+                      <div className="gallery-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                         {murales.map((mural, idx) => (
                           <motion.div
                             key={mural.id}
-                            className="gallery-card-glow bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border mb-6 relative z-10"
+                            className="gallery-card-glow bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border mb-6"
                             initial={{ opacity: 0, y: 40 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{
@@ -416,10 +408,10 @@ export default function GaleriaPage() {
                             }}
                           >
                             {/* Glow solo detrás del contenido de la tarjeta */}
-                            <div className="absolute inset-0 pointer-events-none z-0">
+                            <div className="absolute inset-0 pointer-events-none">
                               <div className="gallery-glow" />
                             </div>
-                            <div className="relative h-48 z-10">
+                            <div className="relative h-48">
                               <img
                                 src={mural.url_imagen}
                                 alt={mural.titulo}
@@ -430,7 +422,7 @@ export default function GaleriaPage() {
                                 }}
                               />
                             </div>
-                            <div className="p-6 z-10">
+                            <div className="p-6">
                               <h3 className="text-xl font-bold text-foreground mb-2">
                                 {mural.titulo}
                               </h3>
@@ -627,8 +619,7 @@ export default function GaleriaPage() {
                   </h3>
                   <p className="text-muted-foreground">
                     No se encontraron murales que coincidan con tu búsqueda.
-                  </p>
-                </div>
+                  </p>                </div>
               )}
             </div>
           )}
