@@ -297,329 +297,332 @@ export default function GaleriaPage() {
           </p>
         </div>
 
-          {/* Carrusel destacado */}
-          {allMurales.length > 0 && (
-            <div className="mb-16">
-              <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
-                Obras Destacadas
-              </h2>
-              <GalleryCarousel
-                items={allMurales.slice(0, 10)} // Mostrar solo las primeras 10 obras
-                title="Galería de Obras"
-              />
-            </div>
-          )}
+        {/* Carrusel destacado */}
+        {allMurales.length > 0 && (
+          <div className="mb-16">
+            <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
+              Obras Destacadas
+            </h2>
+            <GalleryCarousel
+              items={allMurales.slice(0, 10)} // Mostrar solo las primeras 10 obras
+              title="Galería de Obras"
+            />
+          </div>
+        )}
 
-          {/* Selector de modo de vista */}
-          <div className="flex justify-center mb-8">
-            <div className="bg-card rounded-2xl shadow-lg p-2 border border-border">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setViewMode("salas")}
-                  className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
-                    viewMode === "salas"
-                      ? "bg-primary text-primary-foreground shadow-lg"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  }`}
-                >
-                  🏛️ Por Salas
-                </button>
-                <button
-                  onClick={() => setViewMode("archivo")}
-                  className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
-                    viewMode === "archivo"
-                      ? "bg-primary text-primary-foreground shadow-lg"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  }`}
-                >
-                  📚 Archivo Completo
-                </button>
-              </div>
+        {/* Selector de modo de vista */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-card rounded-2xl shadow-lg p-2 border border-border">
+            <div className="flex gap-2">
+              <button
+                onClick={() => setViewMode("salas")}
+                className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                  viewMode === "salas"
+                    ? "bg-primary text-primary-foreground shadow-lg"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
+              >
+                🏛️ Por Salas
+              </button>
+              <button
+                onClick={() => setViewMode("archivo")}
+                className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                  viewMode === "archivo"
+                    ? "bg-primary text-primary-foreground shadow-lg"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
+              >
+                📚 Archivo Completo
+              </button>
             </div>
           </div>
+        </div>
 
-          {viewMode === "salas" ? (
-            // Vista por salas
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              {/* Sidebar con salas */}
-              <div className="lg:col-span-1">
-                <div className="bg-card rounded-2xl shadow-lg p-6 sticky top-4 border border-border">
-                  <h2 className="text-2xl font-bold text-foreground mb-6">
-                    Salas
-                  </h2>
-                  <div className="space-y-3">
-                    {salas.map((sala) => (
-                      <button
-                        key={sala.id}
-                        onClick={() => handleSalaSelect(sala.id)}
-                        className={`w-full text-left p-4 rounded-lg transition-all duration-200 ${
-                          selectedSala === sala.id
-                            ? "bg-primary/10 border-2 border-primary text-primary"
-                            : "bg-muted/50 hover:bg-muted border-2 border-transparent text-foreground"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-semibold">{sala.nombre}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {sala._count.murales} obras
-                            </p>
-                          </div>
-                          <span className="text-2xl">🎨</span>
-                        </div>
-                        {sala.creador && (
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Por: {sala.creador.name || sala.creador.email}
+        {viewMode === "salas" ? (
+          // Vista por salas
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* Sidebar con salas */}
+            <div className="lg:col-span-1">
+              <div className="bg-card rounded-2xl shadow-lg p-6 sticky top-4 border border-border">
+                <h2 className="text-2xl font-bold text-foreground mb-6">
+                  Salas
+                </h2>
+                <div className="space-y-3">
+                  {salas.map((sala) => (
+                    <button
+                      key={sala.id}
+                      onClick={() => handleSalaSelect(sala.id)}
+                      className={`w-full text-left p-4 rounded-lg transition-all duration-200 ${
+                        selectedSala === sala.id
+                          ? "bg-primary/10 border-2 border-primary text-primary"
+                          : "bg-muted/50 hover:bg-muted border-2 border-transparent text-foreground"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold">{sala.nombre}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {sala._count.murales} obras
                           </p>
-                        )}
-                      </button>
-                    ))}
-                  </div>
+                        </div>
+                        <span className="text-2xl">🎨</span>
+                      </div>
+                      {sala.creador && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Por: {sala.creador.name || sala.creador.email}
+                        </p>
+                      )}
+                    </button>
+                  ))}
                 </div>
               </div>
+            </div>
 
-              {/* Contenido principal */}
-              <div className="lg:col-span-3">
-                {selectedSala ? (
-                  <div>
-                    <div className="bg-card rounded-2xl shadow-lg p-6 mb-6 border border-border">
-                      <h2 className="text-3xl font-bold text-foreground mb-2">
-                        {salas.find((s) => s.id === selectedSala)?.nombre}
-                      </h2>
-                      <p className="text-muted-foreground">
-                        {salas.find((s) => s.id === selectedSala)?.descripcion}
-                      </p>
-                    </div>
-
-                    {loadingMurales ? (
-                      <SectionLoader text="Cargando murales..." />
-                    ) : murales.length > 0 ? (
-                      <div className="gallery-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {murales.map((mural, idx) => (
-                          <motion.div
-                            key={mural.id}
-                            className="gallery-card-glow bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border mb-6"
-                            initial={{ opacity: 0, y: 40 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{
-                              delay: 0.08 * idx,
-                              duration: 0.6,
-                              ease: [0.25, 0.46, 0.45, 0.94],
-                            }}
-                          >
-                            {/* Glow solo detrás del contenido de la tarjeta */}
-                            <div className="absolute inset-0 pointer-events-none">
-                              <div className="gallery-glow" />
-                            </div>
-                            <div className="relative h-48">
-                              <img
-                                src={mural.url_imagen}
-                                alt={mural.titulo}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.target.src =
-                                    "/assets/artworks/cuadro1.webp";
-                                }}
-                              />
-                            </div>
-                            <div className="p-6">
-                              <h3 className="text-xl font-bold text-foreground mb-2">
-                                {mural.titulo}
-                              </h3>
-                              <p className="text-muted-foreground mb-3">
-                                {mural.autor || "Artista desconocido"}
-                              </p>
-                              {mural.tecnica && (
-                                <p className="text-sm text-muted-foreground mb-2">
-                                  Técnica: {mural.tecnica}
-                                </p>
-                              )}
-                              {mural.anio && (
-                                <p className="text-sm text-muted-foreground mb-2">
-                                  Año: {mural.anio}
-                                </p>
-                              )}
-                              {mural.descripcion && (
-                                <p className="text-sm text-muted-foreground line-clamp-3">
-                                  {mural.descripcion}
-                                </p>
-                              )}
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>                    ) : (
-                      <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border">
-                        <div className="text-6xl mb-4">🎨</div>
-                        <h3 className="text-2xl font-bold text-foreground mb-2">
-                          Sala vacía
-                        </h3>
-                        <p className="text-muted-foreground">
-                          Esta sala aún no tiene obras de arte.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border">
-                    <div className="text-6xl mb-4">🏛️</div>
-                    <h3 className="text-2xl font-bold text-foreground mb-2">
-                      Selecciona una sala
-                    </h3>
+            {/* Contenido principal */}
+            <div className="lg:col-span-3">
+              {selectedSala ? (
+                <div>
+                  <div className="bg-card rounded-2xl shadow-lg p-6 mb-6 border border-border">
+                    <h2 className="text-3xl font-bold text-foreground mb-2">
+                      {salas.find((s) => s.id === selectedSala)?.nombre}
+                    </h2>
                     <p className="text-muted-foreground">
-                      Elige una sala del menú lateral para ver sus obras de
-                      arte.
+                      {salas.find((s) => s.id === selectedSala)?.descripcion}
                     </p>
                   </div>
-                )}
-              </div>
-            </div>          ) : (
-            // Vista de archivo completo
-            <div>
-              {/* Filtros y búsqueda */}
-              <div className="bg-card rounded-2xl shadow-lg p-6 mb-8 border border-border">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Búsqueda */}
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Buscar
-                    </label>
-                    <input
-                      type="text"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      placeholder="Título, autor, descripción..."
-                      className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
-                    />
-                  </div>
 
-                  {/* Filtro por técnica */}
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Técnica
-                    </label>
-                    <select
-                      value={filterTecnica}
-                      onChange={(e) => setFilterTecnica(e.target.value)}
-                      className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
-                    >
-                      <option value="">Todas las técnicas</option>
-                      {tecnicasUnicas.map((tecnica) => (
-                        <option key={tecnica} value={tecnica}>
-                          {tecnica}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Filtro por año */}
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Año
-                    </label>
-                    <select
-                      value={filterAnio}
-                      onChange={(e) => setFilterAnio(e.target.value)}
-                      className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
-                    >
-                      <option value="">Todos los años</option>
-                      {aniosUnicos.map((anio) => (
-                        <option key={anio} value={anio}>
-                          {anio}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Ordenar por */}
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Ordenar por
-                    </label>
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                      className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
-                    >
-                      <option value="titulo">Título</option>
-                      <option value="artista">Artista</option>
-                      <option value="anio">Año (más reciente)</option>
-                      <option value="tecnica">Técnica</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Estadísticas */}
-                <div className="mt-6 pt-6 border-t border-border">
-                  <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
-                    <span>
-                      📊 {filteredMurales.length} de {allMurales.length} obras
-                    </span>
-                    <span>🎨 {tecnicasUnicas.length} técnicas diferentes</span>
-                    <span>📅 {aniosUnicos.length} años representados</span>
-                  </div>                </div>
-              </div>
-
-              {/* Lista de murales */}
-              {filteredMurales.length > 0 ? (
-                <div className="gallery-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {filteredMurales.map((mural) => (
-                    <div
-                      key={mural.id}
-                      className="gallery-card-glow bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border"
-                    >
-                      <div className="relative h-48">
-                        <img
-                          src={mural.url_imagen}
-                          alt={mural.titulo}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.src = "/assets/artworks/cuadro1.webp";
+                  {loadingMurales ? (
+                    <SectionLoader text="Cargando murales..." />
+                  ) : murales.length > 0 ? (
+                    <div className="gallery-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {murales.map((mural, idx) => (
+                        <motion.div
+                          key={mural.id}
+                          className="gallery-card-glow bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border mb-6"
+                          initial={{ opacity: 0, y: 40 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{
+                            delay: 0.08 * idx,
+                            duration: 0.6,
+                            ease: [0.25, 0.46, 0.45, 0.94],
                           }}
-                        />
-                        {mural.anio && (
-                          <div className="absolute top-3 right-3 bg-background/90 rounded-full px-2 py-1 text-xs font-bold text-foreground">
-                            {mural.anio}
+                        >
+                          {/* Glow solo detrás del contenido de la tarjeta */}
+                          <div className="absolute inset-0 pointer-events-none">
+                            <div className="gallery-glow" />
                           </div>
-                        )}
-                      </div>
-                      <div className="p-4">
-                        <h3 className="text-lg font-bold text-foreground mb-2 line-clamp-2">
-                          {mural.titulo}
-                        </h3>
-                        <p className="text-muted-foreground mb-2">
-                          {mural.autor || "Artista desconocido"}
-                        </p>
-                        {mural.tecnica && (
-                          <p className="text-sm text-muted-foreground mb-2">
-                            {mural.tecnica}
-                          </p>
-                        )}
-                        {mural.descripcion && (
-                          <p className="text-sm text-muted-foreground line-clamp-3">
-                            {mural.descripcion}
-                          </p>
-                        )}
-                        {mural.ubicacion && (
-                          <p className="text-xs text-muted-foreground mt-2">
-                            📍 {mural.ubicacion}
-                          </p>
-                        )}                      </div>
+                          <div className="relative h-48">
+                            <img
+                              src={mural.url_imagen}
+                              alt={mural.titulo}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.src = "/assets/artworks/cuadro1.webp";
+                              }}
+                            />
+                          </div>
+                          <div className="p-6">
+                            <h3 className="text-xl font-bold text-foreground mb-2">
+                              {mural.titulo}
+                            </h3>
+                            <p className="text-muted-foreground mb-3">
+                              {mural.autor || "Artista desconocido"}
+                            </p>
+                            {mural.tecnica && (
+                              <p className="text-sm text-muted-foreground mb-2">
+                                Técnica: {mural.tecnica}
+                              </p>
+                            )}
+                            {mural.anio && (
+                              <p className="text-sm text-muted-foreground mb-2">
+                                Año: {mural.anio}
+                              </p>
+                            )}
+                            {mural.descripcion && (
+                              <p className="text-sm text-muted-foreground line-clamp-3">
+                                {mural.descripcion}
+                              </p>
+                            )}
+                          </div>
+                        </motion.div>
+                      ))}
                     </div>
-                  ))}
+                  ) : (
+                    <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border">
+                      <div className="text-6xl mb-4">🎨</div>
+                      <h3 className="text-2xl font-bold text-foreground mb-2">
+                        Sala vacía
+                      </h3>
+                      <p className="text-muted-foreground">
+                        Esta sala aún no tiene obras de arte.
+                      </p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border">
-                  <div className="text-6xl mb-4">📄</div>
+                  <div className="text-6xl mb-4">🏛️</div>
                   <h3 className="text-2xl font-bold text-foreground mb-2">
-                    No hay resultados
+                    Selecciona una sala
                   </h3>
                   <p className="text-muted-foreground">
-                    No se encontraron murales que coincidan con tu búsqueda.
+                    Elige una sala del menú lateral para ver sus obras de arte.
                   </p>
-                </div>              )}
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        ) : (
+          // Vista de archivo completo
+          <div>
+            {/* Filtros y búsqueda */}
+            <div className="bg-card rounded-2xl shadow-lg p-6 mb-8 border border-border">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Búsqueda */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Buscar
+                  </label>
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Título, autor, descripción..."
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
+                  />
+                </div>
+
+                {/* Filtro por técnica */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Técnica
+                  </label>
+                  <select
+                    value={filterTecnica}
+                    onChange={(e) => setFilterTecnica(e.target.value)}
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
+                  >
+                    <option value="">Todas las técnicas</option>
+                    {tecnicasUnicas.map((tecnica) => (
+                      <option key={tecnica} value={tecnica}>
+                        {tecnica}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Filtro por año */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Año
+                  </label>
+                  <select
+                    value={filterAnio}
+                    onChange={(e) => setFilterAnio(e.target.value)}
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
+                  >
+                    <option value="">Todos los años</option>
+                    {aniosUnicos.map((anio) => (
+                      <option key={anio} value={anio}>
+                        {anio}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Ordenar por */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Ordenar por
+                  </label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
+                  >
+                    <option value="titulo">Título</option>
+                    <option value="artista">Artista</option>
+                    <option value="anio">Año (más reciente)</option>
+                    <option value="tecnica">Técnica</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Estadísticas */}
+              <div className="mt-6 pt-6 border-t border-border">
+                <div className="flex flex-wrap justify-center gap-6 text-sm text-muted-foreground">
+                  <span>
+                    📊 {filteredMurales.length} de {allMurales.length} obras
+                  </span>
+                  <span>🎨 {tecnicasUnicas.length} técnicas diferentes</span>
+                  <span>📅 {aniosUnicos.length} años representados</span>
+                </div>{" "}
+              </div>
+            </div>
+
+            {/* Lista de murales */}
+            {filteredMurales.length > 0 ? (
+              <div className="gallery-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredMurales.map((mural) => (
+                  <div
+                    key={mural.id}
+                    className="gallery-card-glow bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border"
+                  >
+                    <div className="relative h-48">
+                      <img
+                        src={mural.url_imagen}
+                        alt={mural.titulo}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = "/assets/artworks/cuadro1.webp";
+                        }}
+                      />
+                      {mural.anio && (
+                        <div className="absolute top-3 right-3 bg-background/90 rounded-full px-2 py-1 text-xs font-bold text-foreground">
+                          {mural.anio}
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <h3 className="text-lg font-bold text-foreground mb-2 line-clamp-2">
+                        {mural.titulo}
+                      </h3>
+                      <p className="text-muted-foreground mb-2">
+                        {mural.autor || "Artista desconocido"}
+                      </p>
+                      {mural.tecnica && (
+                        <p className="text-sm text-muted-foreground mb-2">
+                          {mural.tecnica}
+                        </p>
+                      )}
+                      {mural.descripcion && (
+                        <p className="text-sm text-muted-foreground line-clamp-3">
+                          {mural.descripcion}
+                        </p>
+                      )}
+                      {mural.ubicacion && (
+                        <p className="text-xs text-muted-foreground mt-2">
+                          📍 {mural.ubicacion}
+                        </p>
+                      )}{" "}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border">
+                <div className="text-6xl mb-4">📄</div>
+                <h3 className="text-2xl font-bold text-foreground mb-2">
+                  No hay resultados
+                </h3>
+                <p className="text-muted-foreground">
+                  No se encontraron murales que coincidan con tu búsqueda.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

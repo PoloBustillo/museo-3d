@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 // POST /api/salas/[id]/colaboradores
 export async function POST(req, { params }) {
-  const { id } = params;
+  const { id } = await params;
   try {
     const data = await req.json();
     // data: { colaboradores: [userId, ...] }

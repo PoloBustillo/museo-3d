@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 // GET /api/salas/[id]/murales
 export async function GET(req, { params }) {
-  const { id } = params;
+  const { id } = await params;
   try {
     const sala = await prisma.sala.findUnique({
       where: { id: Number(id) },
@@ -75,7 +75,7 @@ export async function GET(req, { params }) {
 
 // POST /api/salas/[id]/murales
 export async function POST(req, { params }) {
-  const { id } = params;
+  const { id } = await params;
   try {
     const data = await req.json();
 
@@ -162,7 +162,7 @@ export async function POST(req, { params }) {
 
 // DELETE /api/salas/[id]/murales
 export async function DELETE(req, { params }) {
-  const { id } = params;
+  const { id } = await params;
   try {
     const data = await req.json();
 
