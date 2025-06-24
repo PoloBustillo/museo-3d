@@ -64,28 +64,37 @@ export default function GaleriaPage() {
   // Función para normalizar técnicas
   const normalizeTecnica = (tecnica) => {
     if (!tecnica) return tecnica;
-    
+
     const normalized = tecnica.toLowerCase();
-    
+
     // Normalizar variaciones de acrílico
-    if (normalized.includes('acrílico') || normalized.includes('acrilico') || normalized.includes('acrílica') || normalized.includes('acrilica')) {
-      return 'Acrílico';
+    if (
+      normalized.includes("acrílico") ||
+      normalized.includes("acrilico") ||
+      normalized.includes("acrílica") ||
+      normalized.includes("acrilica")
+    ) {
+      return "Acrílico";
     }
-    
+
     // Normalizar variaciones de vinílica/vinil
-    if (normalized.includes('vinílica') || normalized.includes('vinilica') || normalized.includes('vinil')) {
-      return 'Pintura vinílica';
+    if (
+      normalized.includes("vinílica") ||
+      normalized.includes("vinilica") ||
+      normalized.includes("vinil")
+    ) {
+      return "Pintura vinílica";
     }
-    
+
     // Normalizar otras técnicas comunes
-    if (normalized.includes('óleo') || normalized.includes('oleo')) {
-      return 'Óleo';
+    if (normalized.includes("óleo") || normalized.includes("oleo")) {
+      return "Óleo";
     }
-    
-    if (normalized.includes('acuarela')) {
-      return 'Acuarela';
+
+    if (normalized.includes("acuarela")) {
+      return "Acuarela";
     }
-    
+
     // Capitalizar primera letra para técnicas no normalizadas
     return tecnica.charAt(0).toUpperCase() + tecnica.slice(1).toLowerCase();
   };
@@ -166,7 +175,8 @@ export default function GaleriaPage() {
         mural.autor?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         mural.descripcion?.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesTecnica = !filterTecnica || normalizeTecnica(mural.tecnica) === filterTecnica;
+      const matchesTecnica =
+        !filterTecnica || normalizeTecnica(mural.tecnica) === filterTecnica;
       const matchesAnio = !filterAnio || mural.anio === parseInt(filterAnio);
 
       return matchesSearch && matchesTecnica && matchesAnio;
@@ -188,7 +198,9 @@ export default function GaleriaPage() {
 
   // Obtener técnicas y años únicos para los filtros
   const tecnicasUnicas = [
-    ...new Set(allMurales.map((m) => normalizeTecnica(m.tecnica)).filter(Boolean)),
+    ...new Set(
+      allMurales.map((m) => normalizeTecnica(m.tecnica)).filter(Boolean)
+    ),
   ].sort();
   const aniosUnicos = [
     ...new Set(allMurales.map((m) => m.anio).filter(Boolean)),
@@ -197,49 +209,49 @@ export default function GaleriaPage() {
   // Efecto de luz de fondo que sigue el cursor
   useEffect(() => {
     const handleMouseMove = (e) => {
-      const grid = document.querySelector('.gallery-grid');
+      const grid = document.querySelector(".gallery-grid");
       if (!grid) return;
 
       const card = e.currentTarget;
       const gridRect = grid.getBoundingClientRect();
       const x = e.clientX - gridRect.left;
       const y = e.clientY - gridRect.top;
-      
+
       // Actualizar variables CSS globales en el grid
-      grid.style.setProperty('--global-mouse-x', `${x}px`);
-      grid.style.setProperty('--global-mouse-y', `${y}px`);
-      
+      grid.style.setProperty("--global-mouse-x", `${x}px`);
+      grid.style.setProperty("--global-mouse-y", `${y}px`);
+
       // Activar el glow
-      grid.classList.add('has-active-glow');
+      grid.classList.add("has-active-glow");
     };
 
     const handleMouseEnter = (e) => {
-      const grid = document.querySelector('.gallery-grid');
+      const grid = document.querySelector(".gallery-grid");
       if (grid) {
-        grid.classList.add('has-active-glow');
+        grid.classList.add("has-active-glow");
       }
     };
 
     const handleMouseLeave = (e) => {
-      const grid = document.querySelector('.gallery-grid');
+      const grid = document.querySelector(".gallery-grid");
       if (grid) {
-        grid.classList.remove('has-active-glow');
+        grid.classList.remove("has-active-glow");
       }
     };
 
     // Agregar event listeners a todas las tarjetas
     const observer = new MutationObserver(() => {
-      const cards = document.querySelectorAll('.gallery-card-glow');
+      const cards = document.querySelectorAll(".gallery-card-glow");
       cards.forEach((card) => {
         // Remover listeners existentes para evitar duplicados
-        card.removeEventListener('mousemove', handleMouseMove);
-        card.removeEventListener('mouseenter', handleMouseEnter);
-        card.removeEventListener('mouseleave', handleMouseLeave);
-        
+        card.removeEventListener("mousemove", handleMouseMove);
+        card.removeEventListener("mouseenter", handleMouseEnter);
+        card.removeEventListener("mouseleave", handleMouseLeave);
+
         // Agregar listeners
-        card.addEventListener('mousemove', handleMouseMove);
-        card.addEventListener('mouseenter', handleMouseEnter);
-        card.addEventListener('mouseleave', handleMouseLeave);
+        card.addEventListener("mousemove", handleMouseMove);
+        card.addEventListener("mouseenter", handleMouseEnter);
+        card.addEventListener("mouseleave", handleMouseLeave);
       });
     });
 
@@ -250,20 +262,20 @@ export default function GaleriaPage() {
     });
 
     // Aplicar inicialmente
-    const cards = document.querySelectorAll('.gallery-card-glow');
+    const cards = document.querySelectorAll(".gallery-card-glow");
     cards.forEach((card) => {
-      card.addEventListener('mousemove', handleMouseMove);
-      card.addEventListener('mouseenter', handleMouseEnter);
-      card.addEventListener('mouseleave', handleMouseLeave);
+      card.addEventListener("mousemove", handleMouseMove);
+      card.addEventListener("mouseenter", handleMouseEnter);
+      card.addEventListener("mouseleave", handleMouseLeave);
     });
 
     return () => {
       observer.disconnect();
-      const cards = document.querySelectorAll('.gallery-card-glow');
+      const cards = document.querySelectorAll(".gallery-card-glow");
       cards.forEach((card) => {
-        card.removeEventListener('mousemove', handleMouseMove);
-        card.removeEventListener('mouseenter', handleMouseEnter);
-        card.removeEventListener('mouseleave', handleMouseLeave);
+        card.removeEventListener("mousemove", handleMouseMove);
+        card.removeEventListener("mouseenter", handleMouseEnter);
+        card.removeEventListener("mouseleave", handleMouseLeave);
       });
     };
   }, []);
@@ -338,7 +350,7 @@ export default function GaleriaPage() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
               {/* Sidebar con salas */}
               <div className="lg:col-span-1">
-                <div className="bg-card rounded-2xl shadow-lg p-6 sticky top-4 border border-border">
+                <div className="bg-card rounded-2xl shadow-lg p-6 sticky top-4 border border-border relative z-10">
                   <h2 className="text-2xl font-bold text-foreground mb-6">
                     Salas
                   </h2>
@@ -374,7 +386,7 @@ export default function GaleriaPage() {
               </div>
 
               {/* Contenido principal */}
-              <div className="lg:col-span-3">
+              <div className="lg:col-span-3 relative z-10">
                 {selectedSala ? (
                   <div>
                     <div className="bg-card rounded-2xl shadow-lg p-6 mb-6 border border-border">
@@ -389,11 +401,11 @@ export default function GaleriaPage() {
                     {loadingMurales ? (
                       <SectionLoader text="Cargando murales..." />
                     ) : murales.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <div className="relative z-10">
                         {murales.map((mural) => (
                           <div
                             key={mural.id}
-                            className="bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border"
+                            className="bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border mb-6 relative z-10"
                           >
                             <div className="relative h-48">
                               <img
@@ -401,7 +413,8 @@ export default function GaleriaPage() {
                                 alt={mural.titulo}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
-                                  e.target.src = "/assets/artworks/cuadro1.webp";
+                                  e.target.src =
+                                    "/assets/artworks/cuadro1.webp";
                                 }}
                               />
                             </div>
@@ -432,7 +445,7 @@ export default function GaleriaPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border">
+                      <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border relative z-10">
                         <div className="text-6xl mb-4">🎨</div>
                         <h3 className="text-2xl font-bold text-foreground mb-2">
                           Sala vacía
@@ -444,13 +457,14 @@ export default function GaleriaPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border">
+                  <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border relative z-10">
                     <div className="text-6xl mb-4">🏛️</div>
                     <h3 className="text-2xl font-bold text-foreground mb-2">
                       Selecciona una sala
                     </h3>
                     <p className="text-muted-foreground">
-                      Elige una sala del menú lateral para ver sus obras de arte.
+                      Elige una sala del menú lateral para ver sus obras de
+                      arte.
                     </p>
                   </div>
                 )}
@@ -460,10 +474,10 @@ export default function GaleriaPage() {
             // Vista de archivo completo
             <div>
               {/* Filtros y búsqueda */}
-              <div className="bg-card rounded-2xl shadow-lg p-6 mb-8 border border-border">
+              <div className="bg-card rounded-2xl shadow-lg p-6 mb-8 border border-border relative z-10">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* Búsqueda */}
-                  <div>
+                  <div className="relative z-10">
                     <label className="block text-sm font-medium text-foreground mb-2">
                       Buscar
                     </label>
@@ -472,7 +486,7 @@ export default function GaleriaPage() {
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                       placeholder="Título, autor, descripción..."
-                      className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground"
+                      className="w-full px-4 py-2 border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-background text-foreground relative z-10"
                     />
                   </div>
 
@@ -546,11 +560,11 @@ export default function GaleriaPage() {
 
               {/* Lista de murales */}
               {filteredMurales.length > 0 ? (
-                <div className="gallery-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="gallery-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 relative z-10">
                   {filteredMurales.map((mural) => (
                     <div
                       key={mural.id}
-                      className="gallery-card-glow bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border"
+                      className="gallery-card-glow bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border relative z-10"
                     >
                       <div className="relative h-48">
                         <img
@@ -594,8 +608,8 @@ export default function GaleriaPage() {
                   ))}
                 </div>
               ) : (
-                <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border">
-                  <div className="text-6xl mb-4">📭</div>
+                <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border relative z-10">
+                  <div className="text-6xl mb-4">📄</div>
                   <h3 className="text-2xl font-bold text-foreground mb-2">
                     No hay resultados
                   </h3>

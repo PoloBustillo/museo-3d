@@ -1872,8 +1872,8 @@ html.dark .toast-badge-info {
   .gallery-grid::before {
     content: '';
     position: absolute;
-    width: 600px;
-    height: 600px;
+    width: 400px;
+    height: 400px;
     background: radial-gradient(
       circle,
       var(--active-glow-color-1, rgba(255, 0, 255, 0.6)) 0%,
