@@ -1,11 +1,12 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import { PageLoader, SectionLoader } from "../../components/LoadingSpinner";
 import GalleryCarousel from "../../components/GalleryCarousel";
 import GraffitiBackground from "../acerca-de/GraffitiBackground";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 // Componentes de fondo animado (copiados de acerca-de)
 function AnimatedBlobsBackground() {
@@ -54,13 +55,13 @@ export default function GaleriaPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMurales, setLoadingMurales] = useState(false);
   const [selectedSala, setSelectedSala] = useState(null);
-  const [viewMode, setViewMode] = useState("salas"); // "salas" o "archivo"
-
-  // Filtros para el modo archivo
+  const [viewMode, setViewMode] = useState("salas");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterTecnica, setFilterTecnica] = useState("");
   const [filterAnio, setFilterAnio] = useState("");
   const [sortBy, setSortBy] = useState("titulo");
+  const cardRefs = useRef({});
+  const router = useRouter();
 
   // Función para normalizar técnicas
   const normalizeTecnica = (tecnica) => {
@@ -398,7 +399,8 @@ export default function GaleriaPage() {
                       {murales.map((mural, idx) => (
                         <motion.div
                           key={mural.id}
-                          className="gallery-card-glow bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border mb-6"
+                          ref={(el) => (cardRefs.current[mural.id] = el)}
+                          className="gallery-card-glow bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border mb-6 cursor-pointer"
                           initial={{ opacity: 0, y: 40 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{
@@ -406,6 +408,7 @@ export default function GaleriaPage() {
                             duration: 0.6,
                             ease: [0.25, 0.46, 0.45, 0.94],
                           }}
+                          onClick={() => router.push(`/galeria/${mural.id}`)}
                         >
                           {/* Glow solo detrás del contenido de la tarjeta */}
                           <div className="absolute inset-0 pointer-events-none">
@@ -567,6 +570,7 @@ export default function GaleriaPage() {
                   <div
                     key={mural.id}
                     className="gallery-card-glow bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border"
+                    onClick={() => router.push(`/galeria/${mural.id}`)} // Abrir modal al hacer clic
                   >
                     <div className="relative h-48">
                       <img
@@ -624,5 +628,145 @@ export default function GaleriaPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// --- Al final del archivo ---
+
+function ModalZoomImage({ mural, rect, onClose }) {
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [dragging, setDragging] = useState(false);
+  const [start, setStart] = useState({ x: 0, y: 0 });
+  const imgRef = useRef();
+
+  // Animación desde la card
+  const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
+  useEffect(() => {
+    setWindowSize({ width: window.innerWidth, height: window.innerHeight });
+  }, []);
+
+  // Zoom con rueda
+  const handleWheel = (e) => {
+    e.preventDefault();
+    setZoom((z) => Math.max(0.5, Math.min(5, z + (e.deltaY < 0 ? 0.15 : -0.15))));
+  };
+
+  // Drag para mover la imagen
+  const handleMouseDown = (e) => {
+    setDragging(true);
+    setStart({ x: e.clientX - offset.x, y: e.clientY - offset.y });
+  };
+  const handleMouseMove = (e) => {
+    if (dragging) {
+      setOffset({ x: e.clientX - start.x, y: e.clientY - start.y });
+    }
+  };
+  const handleMouseUp = () => setDragging(false);
+
+  useEffect(() => {
+    if (dragging) {
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+      return () => {
+        window.removeEventListener("mousemove", handleMouseMove);
+        window.removeEventListener("mouseup", handleMouseUp);
+      };
+    }
+  }, [dragging]);
+
+  // Reset zoom/offset al abrir
+  useEffect(() => {
+    setZoom(1);
+    setOffset({ x: 0, y: 0 });
+  }, [mural]);
+
+  // Calcular animación inicial/final (ajustar con scroll)
+  const initial = {
+    x: rect.left + window.scrollX,
+    y: rect.top + window.scrollY,
+    width: rect.width,
+    height: rect.height,
+    position: "absolute",
+    zIndex: 2,
+  };
+  const animate = {
+    x: windowSize.width * 0.05 + window.scrollX,
+    y: windowSize.height * 0.1 + window.scrollY,
+    width: windowSize.width * 0.9,
+    height: windowSize.height * 0.8,
+    position: "fixed",
+    zIndex: 3,
+  };
+
+  return (
+    <motion.div
+      initial={initial}
+      animate={animate}
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ type: "spring", stiffness: 80, damping: 20 }}
+      className="bg-card rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col pointer-events-auto"
+      onClick={(e) => e.stopPropagation()}
+      style={{ maxWidth: 1200, maxHeight: "90vh" }}
+    >
+      <div className="relative flex-1 flex items-center justify-center bg-black select-none">
+        <img
+          ref={imgRef}
+          src={mural.url_imagen}
+          alt={mural.titulo}
+          className="object-contain w-full h-full max-h-[70vh] bg-black cursor-grab"
+          style={{
+            transform: `scale(${zoom}) translate(${offset.x / zoom}px, ${offset.y / zoom}px)`
+          }}
+          onWheel={handleWheel}
+          onMouseDown={handleMouseDown}
+          onError={e => { e.target.src = '/assets/artworks/cuadro1.webp'; }}
+          draggable={false}
+        />
+        <button
+          className="absolute top-3 right-3 bg-white/80 dark:bg-black/60 rounded-full p-2 text-xl font-bold shadow hover:bg-white/100 dark:hover:bg-black/80 transition"
+          onClick={onClose}
+        >
+          ×
+        </button>
+        {/* Herramientas de imagen */}
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 bg-black/60 rounded-lg p-2">
+          <button
+            className="text-white px-3 py-1 rounded hover:bg-white/20"
+            onClick={() => setZoom((z) => Math.min(z + 0.2, 5))}
+            title="Acercar"
+          >
+            +
+          </button>
+          <button
+            className="text-white px-3 py-1 rounded hover:bg-white/20"
+            onClick={() => setZoom((z) => Math.max(z - 0.2, 0.5))}
+            title="Alejar"
+          >
+            –
+          </button>
+          <button
+            className="text-white px-3 py-1 rounded hover:bg-white/20"
+            onClick={() => { setZoom(1); setOffset({ x: 0, y: 0 }); }}
+            title="Reset"
+          >
+            ⟳
+          </button>
+        </div>
+      </div>
+      <div className="p-6 overflow-y-auto max-h-[30vh]">
+        <h2 className="text-2xl font-bold text-foreground mb-2">{mural.titulo}</h2>
+        <p className="text-muted-foreground mb-2">{mural.autor || 'Artista desconocido'}</p>
+        {mural.tecnica && (
+          <p className="text-sm text-muted-foreground mb-2">Técnica: {mural.tecnica}</p>
+        )}
+        {mural.anio && (
+          <p className="text-sm text-muted-foreground mb-2">Año: {mural.anio}</p>
+        )}
+        {mural.descripcion && (
+          <p className="text-base text-muted-foreground mb-2">{mural.descripcion}</p>
+        )}
+      </div>
+    </motion.div>
   );
 }
