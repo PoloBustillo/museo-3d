@@ -497,21 +497,6 @@ function HomeContent() {
           �� Usuario
         </button>
       )}
-      {/* Botón de ejemplo para SessionProvider */}
-      {sessionData && (
-        <button
-          onClick={() =>
-            openModal("session-info-modal", {
-              session: sessionData,
-              user,
-              userProfile,
-            })
-          }
-          className="fixed top-4 right-36 z-[60] bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors shadow-lg"
-        >
-          ⏱️ Sesión
-        </button>
-      )}
       {/* Botón para mostrar ejemplo de GalleryProvider */}
       <button
         onClick={showGalleryExample}

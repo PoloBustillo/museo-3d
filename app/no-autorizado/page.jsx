@@ -18,7 +18,7 @@ function UnauthorizedContent() {
   const getPageName = (url) => {
     if (url.includes("/crear-sala")) return "Crear Sala";
     if (url.includes("/perfil")) return "tu Perfil";
-    if (url.includes("/mis-documentos")) return "Mis Documentos";
+    if (url.includes("/mis-obras")) return "Mis Obras";
     return "esta página";
   };
 

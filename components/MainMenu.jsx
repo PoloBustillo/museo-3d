@@ -399,10 +399,10 @@ export default function MainMenu({ onSubirArchivo }) {
                         </NavigationMenuLink>
                         <NavigationMenuLink asChild>
                           <Link
-                            href="/mis-documentos"
+                            href="/mis-obras"
                             className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm"
                           >
-                            Mis documentos
+                            Mis Obras
                           </Link>
                         </NavigationMenuLink>
 
@@ -787,11 +787,11 @@ export default function MainMenu({ onSubirArchivo }) {
                       Mi perfil
                     </Link>
                     <Link
-                      href="/mis-documentos"
+                      href="/mis-obras"
                       onClick={() => setMobileMenuOpen(false)}
                       className="block py-2 text-base hover:text-primary transition-colors"
                     >
-                      Mis documentos
+                      Mis Obras
                     </Link>
                     <button
                       onClick={() => {

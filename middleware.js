@@ -8,7 +8,7 @@ export default withAuth(
 
     // Si no hay token y la ruta está protegida, redirigir a nuestra página personalizada
     const token = req.nextauth.token;
-    const protectedPaths = ["/crear-sala", "/perfil", "/mis-documentos"];
+    const protectedPaths = ["/crear-sala", "/perfil", "/mis-obras"];
     const isProtectedPath = protectedPaths.some((path) =>
       req.nextUrl.pathname.startsWith(path)
     );
@@ -25,7 +25,7 @@ export default withAuth(
     callbacks: {
       authorized: ({ token, req }) => {
         // Definir qué rutas necesitan autenticación
-        const protectedPaths = ["/crear-sala", "/perfil", "/mis-documentos"];
+        const protectedPaths = ["/crear-sala", "/perfil", "/mis-obras"];
         const isProtectedPath = protectedPaths.some((path) =>
           req.nextUrl.pathname.startsWith(path)
         );

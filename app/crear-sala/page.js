@@ -527,7 +527,7 @@ export default function CrearSala() {
 
                 <div className="mt-8 text-center space-y-2">
                   <Link
-                    href="/mis-documentos"
+                    href="/mis-obras"
                     className="text-indigo-700 dark:text-indigo-300 underline font-medium hover:text-indigo-800 dark:hover:text-indigo-200 transition block"
                   >
                     Ver mis salas existentes

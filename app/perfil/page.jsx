@@ -1235,7 +1235,7 @@ function PerfilContent() {
                       </div>
                       <div className="text-center mt-4">
                         <Button asChild>
-                          <Link href="/mis-documentos">
+                          <Link href="/mis-obras">
                             Gestionar colección avanzada
                           </Link>
                         </Button>
