@@ -10,7 +10,6 @@ import { DeviceProvider } from "../providers/DeviceProvider";
 import { CollectionProvider } from "../providers/CollectionProvider";
 import AuthModal from "./AuthModal";
 import { ModalWrapper } from "./ui/Modal";
-import SessionIndicator from "./SessionIndicator";
 
 export default function AppProviders({ children }) {
   return (
@@ -334,8 +333,6 @@ export default function AppProviders({ children }) {
                         )}
                       </ModalWrapper>
                     </CollectionProvider>
-                    {/* Indicador de sesión global */}
-                    <SessionIndicator />
                   </DeviceProvider>
                 </GalleryProvider>
               </SoundProvider>
