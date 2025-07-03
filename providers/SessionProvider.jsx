@@ -1,15 +1,16 @@
 "use client";
-import { SessionProvider as NextAuthSessionProvider } from "next-auth/react";
-import { createContext, useContext, useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { SessionProvider as NextAuthSessionProvider, useSession } from "next-auth/react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 
 const SessionContext = createContext();
 
-export function SessionProvider({ children }) {
+function SessionDataManager({ children }) {
   const [sessionData, setSessionData] = useState(null);
   const [sessionStatus, setSessionStatus] = useState("loading");
   const [lastActivity, setLastActivity] = useState(null);
   const [sessionDuration, setSessionDuration] = useState(0);
+  const { status, update, data: session } = useSession();
+  const hasRefreshed = useRef(false);
 
   // Actualizar actividad del usuario
   const updateActivity = () => {
@@ -27,7 +28,6 @@ export function SessionProvider({ children }) {
           setSessionDuration(duration);
         }
       }, 1000);
-
       return () => clearInterval(interval);
     }
   }, [sessionData]);
@@ -41,15 +41,12 @@ export function SessionProvider({ children }) {
       "scroll",
       "touchstart",
     ];
-
     const handleActivity = () => {
       updateActivity();
     };
-
     events.forEach((event) => {
       document.addEventListener(event, handleActivity, true);
     });
-
     return () => {
       events.forEach((event) => {
         document.removeEventListener(event, handleActivity, true);
@@ -60,13 +57,9 @@ export function SessionProvider({ children }) {
   // Formatear duración de sesión
   const formatSessionDuration = () => {
     if (sessionDuration <= 0) return "Sesión expirada";
-
     const hours = Math.floor(sessionDuration / (1000 * 60 * 60));
-    const minutes = Math.floor(
-      (sessionDuration % (1000 * 60 * 60)) / (1000 * 60)
-    );
+    const minutes = Math.floor((sessionDuration % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((sessionDuration % (1000 * 60)) / 1000);
-
     if (hours > 0) {
       return `${hours}h ${minutes}m ${seconds}s`;
     } else if (minutes > 0) {
@@ -91,51 +84,50 @@ export function SessionProvider({ children }) {
     return Math.max(0, Math.floor(sessionDuration / (1000 * 60)));
   };
 
+  // Refrescar sesión tras login
+  useEffect(() => {
+    if (status === "authenticated" && !hasRefreshed.current) {
+      update();
+      hasRefreshed.current = true;
+    }
+    if (status === "unauthenticated") {
+      hasRefreshed.current = false;
+    }
+  }, [status, update]);
+
+  // Sincronizar datos de sesión
+  useEffect(() => {
+    setSessionData(session);
+  }, [session]);
+  useEffect(() => {
+    setSessionStatus(status);
+  }, [status]);
+
   return (
-    <NextAuthSessionProvider>
-      <SessionContext.Provider
-        value={{
-          // Datos de sesión
-          session: sessionData,
-          status: sessionStatus,
-
-          // Información de actividad
-          lastActivity,
-          sessionDuration: formatSessionDuration(),
-          sessionTimeRemaining: getSessionTimeRemaining(),
-
-          // Estados de sesión
-          isSessionExpiringSoon: isSessionExpiringSoon(),
-          isSessionExpired: isSessionExpired(),
-
-          // Funciones
-          updateActivity,
-          formatSessionDuration,
-        }}
-      >
-        <SessionDataUpdater
-          onSessionChange={setSessionData}
-          onStatusChange={setSessionStatus}
-        />
-        {children}
-      </SessionContext.Provider>
-    </NextAuthSessionProvider>
+    <SessionContext.Provider
+      value={{
+        session: sessionData,
+        status: sessionStatus,
+        lastActivity,
+        sessionDuration: formatSessionDuration(),
+        sessionTimeRemaining: getSessionTimeRemaining(),
+        isSessionExpiringSoon: isSessionExpiringSoon(),
+        isSessionExpired: isSessionExpired(),
+        updateActivity,
+        formatSessionDuration,
+      }}
+    >
+      {children}
+    </SessionContext.Provider>
   );
 }
 
-// Componente interno para actualizar datos de sesión
-function SessionDataUpdater({ onSessionChange, onStatusChange }) {
-  const { data: session, status } = useSession();
-
-  useEffect(() => {
-    onSessionChange(session);
-  }, [session, onSessionChange]);
-
-  useEffect(() => {
-    onStatusChange(status);
-  }, [status, onStatusChange]);
-
-  return null;
+export function SessionProvider({ children }) {
+  return (
+    <NextAuthSessionProvider>
+      <SessionDataManager>{children}</SessionDataManager>
+    </NextAuthSessionProvider>
+  );
 }
 
 export const useSessionData = () => {

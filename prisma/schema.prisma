@@ -89,16 +89,26 @@ model Mural {
 }
 
 model Sala {
-    id            Int         @id @default(autoincrement())
-    nombre        String
-    descripcion   String?
-    murales       SalaMural[]
-    colaboradores User[]      @relation("SalaColaboradores")
-    publica       Boolean     @default(false)
-    creadorId     String
-    creador       User        @relation("SalaOwner", fields: [creadorId], references: [id])
-    createdAt     DateTime    @default(now())
-    updatedAt     DateTime    @updatedAt
+    id               Int         @id @default(autoincrement())
+    nombre           String
+    descripcion      String?
+    publica          Boolean     @default(false)
+    esPrivada        Boolean?    @default(false)
+    color            String?
+    texturaPared     String?
+    texturaPiso      String?
+    musica           String?
+    imagenPortada    String?
+    tema             String?
+    maxColaboradores Int?
+    fechaApertura    DateTime?
+    notas            String?
+    creadorId        String
+    creador          User        @relation("SalaOwner", fields: [creadorId], references: [id])
+    murales          SalaMural[]
+    colaboradores    User[]      @relation("SalaColaboradores")
+    createdAt        DateTime    @default(now())
+    updatedAt        DateTime    @updatedAt
 }
 
 model SalaMural {

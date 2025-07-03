@@ -19,11 +19,30 @@ export default function MisSalas() {
     async function fetchSalas() {
       setLoading(true);
       try {
-        const res = await fetch("/api/salas?mine=1");
-        if (res.ok) {
-          const data = await res.json();
-          setSalas(data.salas || []);
+        if (!session?.user?.id) {
+          setSalas([]);
+          setLoading(false);
+          return;
         }
+        // Fetch salas donde es creador
+        const creadorRes = await fetch(`/api/salas?creadorId=${session.user.id}`);
+        let creadorSalas = [];
+        if (creadorRes.ok) {
+          const data = await creadorRes.json();
+          creadorSalas = data.salas || [];
+        }
+        // Fetch todas las salas y filtra donde es colaborador
+        const allRes = await fetch(`/api/salas`);
+        let colaboradorSalas = [];
+        if (allRes.ok) {
+          const data = await allRes.json();
+          colaboradorSalas = (data.salas || []).filter(sala =>
+            sala.colaboradores?.some(col => col.id === session.user.id)
+            && sala.creadorId !== session.user.id // evitar duplicados
+          );
+        }
+        // Unir y mostrar
+        setSalas([...creadorSalas, ...colaboradorSalas]);
       } catch (e) {
         toast.error("Error al cargar salas");
       } finally {
@@ -31,7 +50,7 @@ export default function MisSalas() {
       }
     }
     fetchSalas();
-  }, []);
+  }, [session]);
 
   const handleDelete = async (id) => {
     if (!window.confirm("¿Seguro que deseas eliminar esta sala? Esta acción no se puede deshacer.")) return;
@@ -78,7 +97,7 @@ export default function MisSalas() {
                   {sala.creadorId === session?.user?.id ? (
                     <Badge className="ml-2" variant="secondary">Creador</Badge>
                   ) : (
-                    <Badge className="ml-2" variant="outline">Colaborador</Badge>
+                    <Badge className="ml-2 bg-yellow-400/80 text-yellow-900 border-yellow-300" variant="outline">Colaborador</Badge>
                   )}
                 </CardHeader>
                 <CardContent className="space-y-2">

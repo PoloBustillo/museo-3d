@@ -38,7 +38,9 @@ export function UserProvider({ children }) {
       );
       if (response.ok) {
         const userData = await response.json();
-        setUserProfile(userData.user); // Solo guardar el objeto user
+        const user = userData.user;
+        user.roles = user.roles || (user.role ? [user.role.toLowerCase()] : []);
+        setUserProfile(user); // Solo guardar el objeto user
       } else {
         console.error("Error loading user profile:", response.statusText);
         setUserProfile(null);

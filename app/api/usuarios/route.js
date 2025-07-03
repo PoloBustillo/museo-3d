@@ -9,6 +9,7 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const name = searchParams.get("name");
+    const search = searchParams.get("search");
 
     // Si se proporciona un nombre, verificar disponibilidad (no requiere autenticación)
     if (name) {
@@ -28,6 +29,37 @@ export async function GET(req) {
           headers: { "Content-Type": "application/json" },
         }
       );
+    }
+
+    // NUEVO: búsqueda flexible por nombre o email
+    if (search) {
+      const role = searchParams.get("role");
+      const usuarios = await prisma.user.findMany({
+        where: {
+          AND: [
+            {
+              OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { email: { contains: search, mode: "insensitive" } },
+              ],
+            },
+            ...(role ? [{ role: role }] : []),
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          image: true,
+        },
+        take: 20,
+        orderBy: { name: "asc" },
+      });
+      return new Response(JSON.stringify({ usuarios }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     // Si no hay nombre, obtener lista de usuarios (requiere autenticación de admin)

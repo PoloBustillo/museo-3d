@@ -405,6 +405,14 @@ export default function MainMenu({ onSubirArchivo }) {
                             Mis Obras
                           </Link>
                         </NavigationMenuLink>
+                        <NavigationMenuLink asChild>
+                          <Link
+                            href="/mis-salas"
+                            className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm"
+                          >
+                            Mis Salas
+                          </Link>
+                        </NavigationMenuLink>
 
                         {/* Opciones para moderadores y administradores */}
                         {(isModerator || isAdmin) && (
@@ -596,6 +604,16 @@ export default function MainMenu({ onSubirArchivo }) {
                   }`}
                 >
                   Museo Virtual
+                </Link>
+
+                <Link
+                  href="/mis-salas"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`navbar-link block py-2 text-base font-medium hover:text-primary transition-colors ${
+                    pathname.startsWith("/mis-salas") ? "elegant-active-menu" : ""
+                  }`}
+                >
+                  Mis Salas
                 </Link>
 
                 <Link
@@ -792,6 +810,13 @@ export default function MainMenu({ onSubirArchivo }) {
                       className="block py-2 text-base hover:text-primary transition-colors"
                     >
                       Mis Obras
+                    </Link>
+                    <Link
+                      href="/mis-salas"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block py-2 text-base hover:text-primary transition-colors"
+                    >
+                      Mis Salas
                     </Link>
                     <button
                       onClick={() => {

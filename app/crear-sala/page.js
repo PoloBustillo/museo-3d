@@ -78,12 +78,21 @@ const schemaStep1 = yup.object().shape({
 // Esquema para el paso 2 (textura y piso)
 const schemaStep2 = yup.object().shape({
   textura: yup.string().required("Selecciona una textura de pared"),
+  color: yup.string().nullable(),
+  texturaPared: yup.string().nullable(),
+  texturaPiso: yup.string().nullable(),
   colorParedes: yup.string().required("Selecciona un color de pared"),
   piso: yup.string().required("Selecciona una textura de piso"),
+  tema: yup.string().nullable(),
 });
-// Esquema para el paso 3 (musica)
+// Esquema para el paso 3 (musica y otros)
 const schemaStep3 = yup.object().shape({
   musica: yup.string().required("Selecciona una música de ambiente"),
+  imagenPortada: yup.string().nullable(),
+  esPrivada: yup.boolean().nullable(),
+  maxColaboradores: yup.number().nullable(),
+  fechaApertura: yup.date().nullable(),
+  notas: yup.string().nullable(),
 });
 // Esquema para el paso 4 (murales)
 const schemaStep4 = yup.object().shape({
@@ -102,9 +111,18 @@ const schemaFinal = yup.object().shape({
     .min(5, "La descripción debe tener al menos 5 caracteres")
     .max(300, "La descripción no debe superar 300 caracteres"),
   textura: yup.string().required("Selecciona una textura de pared"),
+  color: yup.string().nullable(),
+  texturaPared: yup.string().nullable(),
+  texturaPiso: yup.string().nullable(),
   colorParedes: yup.string().required("Selecciona un color de pared"),
   piso: yup.string().required("Selecciona una textura de piso"),
+  tema: yup.string().nullable(),
   musica: yup.string().required("Selecciona una música de ambiente"),
+  imagenPortada: yup.string().nullable(),
+  esPrivada: yup.boolean().nullable(),
+  maxColaboradores: yup.number().nullable(),
+  fechaApertura: yup.date().nullable(),
+  notas: yup.string().nullable(),
   murales: yup.array().of(yup.number()).min(1, "Selecciona al menos un mural"),
 });
 
@@ -217,11 +235,21 @@ export default function CrearSala() {
   });
   const [salaConfig, setSalaConfig] = useState({
     textura: "moderna",
-    colorParedes: "blanco",
+    color: "#ffffff",
+    texturaPared: "",
+    texturaPiso: "",
+    colorParedes: "#ffffff",
+    piso: "",
     tipoIluminacion: "natural",
     musica: "ninguna",
     ambiente: "minimalista",
     archivoPersonalizado: null,
+    tema: "",
+    imagenPortada: "",
+    esPrivada: false,
+    maxColaboradores: 10,
+    fechaApertura: "",
+    notas: "",
   });
   const [view, setView] = useState("crear");
   const [loadingMurales, setLoadingMurales] = useState(false);
@@ -613,7 +641,7 @@ export default function CrearSala() {
     </motion.div>
   );
 
-  // Step 2: Textura y piso
+  // Step 2: Textura y piso (ampliado)
   const StepTextura = (
     <motion.div
       key={1}
@@ -627,63 +655,50 @@ export default function CrearSala() {
     >
       <label className="block font-semibold mb-2">Textura de paredes</label>
       <select
-        value={salaConfig.textura}
+        value={salaConfig.texturaPared}
         onChange={(e) =>
-          setSalaConfig((prev) => ({ ...prev, textura: e.target.value }))
+          setSalaConfig((prev) => ({ ...prev, texturaPared: e.target.value }))
         }
         className="w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold shadow-sm focus:outline-none transition-all mb-4"
       >
+        <option value="">Selecciona una textura</option>
         <option value="moderna">Moderna</option>
         <option value="clasica">Clásica</option>
         <option value="industrial">Industrial</option>
       </select>
-      {errors.textura && (
-        <div className="text-pink-500 dark:text-pink-400 text-sm mt-1 font-medium animate-shake">
-          {errors.textura}
-        </div>
-      )}
-      <label className="block font-semibold mb-2">Color de paredes</label>
-      <input
-        type="color"
-        value={salaConfig.colorParedes}
-        onChange={(e) =>
-          setSalaConfig((prev) => ({ ...prev, colorParedes: e.target.value }))
-        }
-        className="w-16 h-10 rounded border-2"
-      />
-      {errors.colorParedes && (
-        <div className="text-pink-500 dark:text-pink-400 text-sm mt-1 font-medium animate-shake">
-          {errors.colorParedes}
-        </div>
-      )}
-      <label className="block font-semibold mb-2 mt-4">Textura de piso</label>
+      <label className="block font-semibold mb-2">Textura de piso</label>
       <select
-        value={salaConfig.piso || "madera"}
+        value={salaConfig.texturaPiso}
         onChange={(e) =>
-          setSalaConfig((prev) => ({ ...prev, piso: e.target.value }))
+          setSalaConfig((prev) => ({ ...prev, texturaPiso: e.target.value }))
         }
-        className="w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold shadow-sm focus:outline-none transition-all"
+        className="w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold shadow-sm focus:outline-none transition-all mb-4"
       >
+        <option value="">Selecciona una textura</option>
         <option value="madera">Madera</option>
         <option value="marmol">Mármol</option>
         <option value="cemento">Cemento</option>
       </select>
-      {errors.piso && (
-        <div className="text-pink-500 dark:text-pink-400 text-sm mt-1 font-medium animate-shake">
-          {errors.piso}
-        </div>
-      )}
-      <div className="flex justify-between mt-6">
-        <button
-          type="button"
-          className="px-6 py-2 rounded-lg bg-gray-200 text-gray-700 font-bold hover:bg-gray-300 transition"
-          onClick={() => {
-            setDirection(-1);
-            setStep(0);
-          }}
-        >
-          Atrás
-        </button>
+      <label className="block font-semibold mb-2">Color de paredes</label>
+      <input
+        type="color"
+        value={salaConfig.color}
+        onChange={(e) =>
+          setSalaConfig((prev) => ({ ...prev, color: e.target.value }))
+        }
+        className="w-16 h-10 rounded border-2"
+      />
+      <label className="block font-semibold mb-2 mt-4">Tema visual</label>
+      <input
+        type="text"
+        value={salaConfig.tema}
+        onChange={(e) =>
+          setSalaConfig((prev) => ({ ...prev, tema: e.target.value }))
+        }
+        className="w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold shadow-sm focus:outline-none transition-all mb-4"
+        placeholder="Ej: Minimalista, Clásico, etc."
+      />
+      <div className="flex justify-end mt-6">
         <button
           type="button"
           className="px-6 py-2 rounded-lg bg-indigo-600 dark:bg-indigo-500 text-white font-bold hover:bg-indigo-700 dark:hover:bg-indigo-400 transition"
@@ -695,7 +710,7 @@ export default function CrearSala() {
     </motion.div>
   );
 
-  // Step 3: Música
+  // Step 3: Música y extras
   const StepMusica = (
     <motion.div
       key={2}
@@ -713,29 +728,71 @@ export default function CrearSala() {
         onChange={(e) =>
           setSalaConfig((prev) => ({ ...prev, musica: e.target.value }))
         }
-        className="w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold shadow-sm focus:outline-none transition-all"
+        className="w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold shadow-sm focus:outline-none transition-all mb-4"
       >
         <option value="ninguna">Ninguna</option>
         <option value="clasica">Clásica</option>
         <option value="jazz">Jazz</option>
-        <option value="electronica">Electrónica</option>
+        <option value="ambiente">Ambiente</option>
+        <option value="personalizada">Personalizada</option>
       </select>
-      {errors.musica && (
-        <div className="text-pink-500 dark:text-pink-400 text-sm mt-1 font-medium animate-shake">
-          {errors.musica}
-        </div>
-      )}
-      <div className="flex justify-between mt-6">
-        <button
-          type="button"
-          className="px-6 py-2 rounded-lg bg-gray-200 text-gray-700 font-bold hover:bg-gray-300 transition"
-          onClick={() => {
-            setDirection(-1);
-            setStep(1);
-          }}
-        >
-          Atrás
-        </button>
+      <label className="block font-semibold mb-2">
+        Imagen de portada (URL)
+      </label>
+      <input
+        type="text"
+        value={salaConfig.imagenPortada}
+        onChange={(e) =>
+          setSalaConfig((prev) => ({ ...prev, imagenPortada: e.target.value }))
+        }
+        className="w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold shadow-sm focus:outline-none transition-all mb-4"
+        placeholder="URL de la imagen de portada"
+      />
+      <label className="block font-semibold mb-2">¿Sala privada?</label>
+      <input
+        type="checkbox"
+        checked={salaConfig.esPrivada}
+        onChange={(e) =>
+          setSalaConfig((prev) => ({ ...prev, esPrivada: e.target.checked }))
+        }
+        className="mr-2"
+      />
+      <span className="text-sm">Solo usuarios invitados podrán acceder</span>
+      <label className="block font-semibold mb-2 mt-4">
+        Máx. colaboradores
+      </label>
+      <input
+        type="number"
+        min={1}
+        value={salaConfig.maxColaboradores}
+        onChange={(e) =>
+          setSalaConfig((prev) => ({
+            ...prev,
+            maxColaboradores: parseInt(e.target.value),
+          }))
+        }
+        className="w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold shadow-sm focus:outline-none transition-all mb-4"
+        placeholder="Ej: 10"
+      />
+      <label className="block font-semibold mb-2">Fecha de apertura</label>
+      <input
+        type="date"
+        value={salaConfig.fechaApertura}
+        onChange={(e) =>
+          setSalaConfig((prev) => ({ ...prev, fechaApertura: e.target.value }))
+        }
+        className="w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold shadow-sm focus:outline-none transition-all mb-4"
+      />
+      <label className="block font-semibold mb-2">Notas internas</label>
+      <textarea
+        value={salaConfig.notas}
+        onChange={(e) =>
+          setSalaConfig((prev) => ({ ...prev, notas: e.target.value }))
+        }
+        className="w-full px-4 py-3 rounded-xl border-2 text-base shadow-sm focus:outline-none transition-all resize-none min-h-[60px] mb-4"
+        placeholder="Notas, instrucciones, etc. (opcional)"
+      />
+      <div className="flex justify-end mt-6">
         <button
           type="button"
           className="px-6 py-2 rounded-lg bg-indigo-600 dark:bg-indigo-500 text-white font-bold hover:bg-indigo-700 dark:hover:bg-indigo-400 transition"
@@ -820,7 +877,7 @@ export default function CrearSala() {
     </motion.div>
   );
 
-  // Step 5: Confirmación (animación mejorada)
+  // Step 5: Confirmación (ampliado)
   const StepConfirm = (
     <motion.div
       key={4}
@@ -836,18 +893,53 @@ export default function CrearSala() {
       <div className="mb-4">
         <div className="font-semibold">Nombre:</div>
         <div className="mb-2">{nombre}</div>
-        {errors.nombre && (
-          <div className="text-pink-500 dark:text-pink-400 text-sm mt-1 font-medium animate-shake">
-            {errors.nombre}
-          </div>
-        )}
         <div className="font-semibold">Descripción:</div>
         <div className="mb-2">{descripcion}</div>
-        {errors.descripcion && (
-          <div className="text-pink-500 dark:text-pink-400 text-sm mt-1 font-medium animate-shake">
-            {errors.descripcion}
-          </div>
-        )}
+        <div className="font-semibold">Textura de pared:</div>
+        <div className="mb-2">{salaConfig.texturaPared}</div>
+        <div className="font-semibold">Textura de piso:</div>
+        <div className="mb-2">{salaConfig.texturaPiso}</div>
+        <div className="font-semibold">Color de paredes:</div>
+        <div className="mb-2">
+          <span
+            style={{
+              background: salaConfig.color,
+              padding: "0 12px",
+              borderRadius: 4,
+              border: "1px solid #ccc",
+            }}
+          >
+            {salaConfig.color}
+          </span>
+        </div>
+        <div className="font-semibold">Tema visual:</div>
+        <div className="mb-2">{salaConfig.tema}</div>
+        <div className="font-semibold">Música:</div>
+        <div className="mb-2">{salaConfig.musica}</div>
+        <div className="font-semibold">Imagen de portada:</div>
+        <div className="mb-2">
+          {salaConfig.imagenPortada ? (
+            <img
+              src={salaConfig.imagenPortada}
+              alt="Portada"
+              className="h-16 rounded shadow"
+            />
+          ) : (
+            <span className="italic text-muted-foreground">No definida</span>
+          )}
+        </div>
+        <div className="font-semibold">¿Sala privada?</div>
+        <div className="mb-2">{salaConfig.esPrivada ? "Sí" : "No"}</div>
+        <div className="font-semibold">Máx. colaboradores:</div>
+        <div className="mb-2">{salaConfig.maxColaboradores || "-"}</div>
+        <div className="font-semibold">Fecha de apertura:</div>
+        <div className="mb-2">{salaConfig.fechaApertura || "-"}</div>
+        <div className="font-semibold">Notas internas:</div>
+        <div className="mb-2">
+          {salaConfig.notas || (
+            <span className="italic text-muted-foreground">Sin notas</span>
+          )}
+        </div>
         <div className="font-semibold">Murales seleccionados:</div>
         <div className="flex flex-wrap gap-2">
           {muralesForm.map((muralId) => {
@@ -863,11 +955,6 @@ export default function CrearSala() {
             ) : null;
           })}
         </div>
-        {errors.murales && (
-          <div className="text-red-500 text-sm mb-2 animate-pulse">
-            {errors.murales}
-          </div>
-        )}
       </div>
       <div className="flex justify-between mt-6">
         <button
