@@ -3,11 +3,9 @@ import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useDropzone } from "react-dropzone";
-import { motion } from "framer-motion";
-import { useAuth } from "../hooks/useAuth";
-import { useSession } from "next-auth/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
@@ -19,15 +17,20 @@ import {
 import { Badge } from "../components/ui/badge";
 import { DatePicker } from "../components/ui/date-picker";
 import { X } from "lucide-react";
+import RainbowBackground from "../perfil/RainbowBackground";
+import { useCardMouseGlow } from "../hooks/useCardMouseGlow";
+import { useTheme } from "../../providers/ThemeProvider";
+import { useSessionData } from "../../providers/SessionProvider";
+import { useCrearSalaStore } from "./crearSalaStore";
 
 // Componentes de fondo animado (copiados de acerca-de)
 function AnimatedBlobsBackground() {
   return (
     <>
-      <div className="absolute top-0 left-0 w-[520px] h-[520px] bg-orange-300/60 dark:bg-orange-700/30 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe" />
-      <div className="absolute bottom-0 right-0 w-[520px] h-[520px] bg-pink-300/60 dark:bg-pink-700/30 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe-delayed" />
+      <div className="absolute top-0 left-0 w-[520px] h-[520px] bg-orange-300/60 dark:bg-orange-700/20 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe" />
+      <div className="absolute bottom-0 right-0 w-[520px] h-[520px] bg-pink-300/60 dark:bg-pink-700/20 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe-delayed" />
       <div
-        className="absolute top-1/2 left-1/2 w-[340px] h-[340px] bg-fuchsia-200/50 dark:bg-fuchsia-800/20 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe"
+        className="absolute top-1/2 left-1/2 w-[340px] h-[340px] bg-fuchsia-200/50 dark:bg-fuchsia-800/10 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe"
         style={{ transform: "translate(-50%,-50%) scale(1.2)" }}
       />
     </>
@@ -59,15 +62,128 @@ function DotsPattern() {
   );
 }
 
-const schema = yup.object().shape({
-  nombre: yup.string().required("El nombre de la sala es obligatorio"),
-  murales: yup.array().of(yup.number()),
+// Esquema para el paso 1 (nombre y descripcion)
+const schemaStep1 = yup.object().shape({
+  nombre: yup
+    .string()
+    .required("El nombre de la sala es obligatorio")
+    .min(3, "El nombre debe tener al menos 3 caracteres")
+    .max(50, "El nombre no debe superar 50 caracteres"),
+  descripcion: yup
+    .string()
+    .required("La descripción es obligatoria")
+    .min(5, "La descripción debe tener al menos 5 caracteres")
+    .max(300, "La descripción no debe superar 300 caracteres"),
+});
+// Esquema para el paso 2 (textura y piso)
+const schemaStep2 = yup.object().shape({
+  textura: yup.string().required("Selecciona una textura de pared"),
+  colorParedes: yup.string().required("Selecciona un color de pared"),
+  piso: yup.string().required("Selecciona una textura de piso"),
+});
+// Esquema para el paso 3 (musica)
+const schemaStep3 = yup.object().shape({
+  musica: yup.string().required("Selecciona una música de ambiente"),
+});
+// Esquema para el paso 4 (murales)
+const schemaStep4 = yup.object().shape({
+  murales: yup.array().of(yup.number()).min(1, "Selecciona al menos un mural"),
+});
+// Esquema completo para el submit final
+const schemaFinal = yup.object().shape({
+  nombre: yup
+    .string()
+    .required("El nombre de la sala es obligatorio")
+    .min(3, "El nombre debe tener al menos 3 caracteres")
+    .max(50, "El nombre no debe superar 50 caracteres"),
+  descripcion: yup
+    .string()
+    .required("La descripción es obligatoria")
+    .min(5, "La descripción debe tener al menos 5 caracteres")
+    .max(300, "La descripción no debe superar 300 caracteres"),
+  textura: yup.string().required("Selecciona una textura de pared"),
+  colorParedes: yup.string().required("Selecciona un color de pared"),
+  piso: yup.string().required("Selecciona una textura de piso"),
+  musica: yup.string().required("Selecciona una música de ambiente"),
+  murales: yup.array().of(yup.number()).min(1, "Selecciona al menos un mural"),
 });
 
+// Modal visual local para selección de murales
+function MuralSelectModal({
+  isOpen,
+  onClose,
+  murales,
+  muralesForm,
+  setValue,
+  muralSearch,
+  setMuralSearch,
+}) {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full p-6 relative">
+        <button
+          className="absolute top-3 right-3 text-gray-400 hover:text-gray-700"
+          onClick={onClose}
+        >
+          ✕
+        </button>
+        <h2 className="text-xl font-bold mb-4">Selecciona murales</h2>
+        <input
+          type="text"
+          placeholder="Buscar mural por título..."
+          value={muralSearch}
+          onChange={(e) => setMuralSearch(e.target.value)}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 mb-4"
+        />
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+          {murales
+            .filter(
+              (m) =>
+                !muralesForm.includes(m.id) &&
+                m.titulo.toLowerCase().includes(muralSearch.toLowerCase())
+            )
+            .map((mural) => (
+              <button
+                key={mural.id}
+                type="button"
+                className="flex flex-col items-center border rounded-xl p-3 bg-white hover:bg-indigo-50 transition shadow-sm"
+                onClick={() => setValue(mural.id)}
+              >
+                <img
+                  src={mural.url_imagen}
+                  alt={mural.titulo}
+                  className="w-20 h-20 object-cover rounded mb-2"
+                />
+                <div className="font-medium text-sm text-gray-900 truncate w-full">
+                  {mural.titulo}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {mural.autor || "Autor desconocido"}
+                </div>
+                <div className="text-xs text-gray-400">
+                  {mural.tecnica || "Técnica desconocida"}
+                </div>
+              </button>
+            ))}
+        </div>
+        <div className="flex justify-end gap-2 mt-6">
+          <button
+            type="button"
+            className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700"
+            onClick={onClose}
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CrearSala() {
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const { data: session } = useSession();
   const router = useRouter();
+  const { session, status } = useSessionData();
   const [globalMousePosition, setGlobalMousePosition] = useState({
     x: 0,
     y: 0,
@@ -75,17 +191,20 @@ export default function CrearSala() {
   const [hasActiveGlow, setHasActiveGlow] = useState(false);
 
   const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    formState: { errors, isSubmitting },
+    nombre,
+    descripcion,
+    murales,
+    step,
+    setNombre,
+    setDescripcion,
+    addMural,
+    removeMural,
+    setStep,
     reset,
-  } = useForm({
-    resolver: yupResolver(schema),
-    defaultValues: { murales: [] },
-  });
+  } = useCrearSalaStore();
 
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [files, setFiles] = useState([]);
   const [isDragActive, setIsDragActive] = useState(false);
   const [addingMural, setAddingMural] = useState(false);
@@ -105,10 +224,47 @@ export default function CrearSala() {
     archivoPersonalizado: null,
   });
   const [view, setView] = useState("crear");
-  const [murales, setMurales] = useState([]);
   const [loadingMurales, setLoadingMurales] = useState(false);
-  const [selectedMurales, setSelectedMurales] = useState([]);
   const [selectedMuralForAdd, setSelectedMuralForAdd] = useState("");
+  const [showMuralModal, setShowMuralModal] = useState(false);
+  const [muralSearch, setMuralSearch] = useState("");
+
+  // Stepper steps
+  const steps = [
+    { label: "Datos de la sala" },
+    { label: "Textura y piso" },
+    { label: "Música" },
+    { label: "Seleccionar murales" },
+    { label: "Confirmar" },
+  ];
+
+  // Animations
+  const variants = {
+    enter: (direction) => ({
+      x: direction > 0 ? 300 : -300,
+      opacity: 0,
+      position: "absolute",
+    }),
+    center: { x: 0, opacity: 1, position: "relative" },
+    exit: (direction) => ({
+      x: direction < 0 ? 300 : -300,
+      opacity: 0,
+      position: "absolute",
+    }),
+  };
+  const [direction, setDirection] = useState(0);
+
+  const cardGlow = useCardMouseGlow();
+
+  const nombreRef = useRef();
+  const descripcionRef = useRef();
+
+  const { theme } = useTheme ? useTheme() : { theme: "light" };
+
+  const muralesForm = murales;
+
+  // 1. Estado local para los murales disponibles
+  const [muralesDisponibles, setMuralesDisponibles] = useState([]);
 
   // Manejar archivo personalizado para características de sala
   const handleCustomFileUpload = (e) => {
@@ -147,23 +303,19 @@ export default function CrearSala() {
   const handleAddMural = () => {
     if (
       selectedMuralForAdd &&
-      !selectedMurales.includes(parseInt(selectedMuralForAdd))
+      !muralesForm.includes(parseInt(selectedMuralForAdd))
     ) {
-      const newMurales = [...selectedMurales, parseInt(selectedMuralForAdd)];
-      setSelectedMurales(newMurales);
-      setValue("murales", newMurales);
+      const newMurales = [...muralesForm, parseInt(selectedMuralForAdd)];
+      addMural(newMurales);
       setSelectedMuralForAdd("");
     }
   };
 
   // Remover mural seleccionado
   const handleRemoveMural = (muralId) => {
-    const newMurales = selectedMurales.filter((id) => id !== muralId);
-    setSelectedMurales(newMurales);
-    setValue("murales", newMurales);
+    const newMurales = muralesForm.filter((id) => id !== muralId);
+    removeMural(newMurales);
   };
-
-  const watchedMurales = watch("murales");
 
   const onDrop = useCallback(
     (acceptedFiles) => {
@@ -202,14 +354,43 @@ export default function CrearSala() {
   };
 
   useEffect(() => {
-    if (!session) {
-      toast.error("Debes iniciar sesión para crear una sala");
-      router.push("/");
-      return;
+    if (status === "loading") {
+      return (
+        <div className="relative min-h-screen flex items-center justify-center">
+          <RainbowBackground />
+          <div className="absolute inset-0 z-0 pointer-events-none">
+            <div className="absolute -top-24 -right-24 w-[500px] h-[500px] bg-blue-300/60 dark:bg-blue-700/40 rounded-full mix-blend-multiply filter blur-[120px] animate-breathe"></div>
+            <div className="absolute -bottom-20 -left-24 w-[500px] h-[500px] bg-purple-200/60 dark:bg-purple-800/40 rounded-full mix-blend-multiply filter blur-[120px] animate-breathe-delayed"></div>
+          </div>
+          <div className="relative z-10 flex flex-col items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-indigo-200 animate-pulse mb-6" />
+            <p className="text-lg text-foreground font-semibold">
+              Cargando sesión...
+            </p>
+          </div>
+        </div>
+      );
     }
-  }, [session, router]);
+    if (!session) {
+      return (
+        <div className="relative min-h-screen flex items-center justify-center">
+          <RainbowBackground />
+          <div className="absolute inset-0 z-0 pointer-events-none">
+            <div className="absolute -top-24 -right-24 w-[500px] h-[500px] bg-blue-300/60 dark:bg-blue-700/40 rounded-full mix-blend-multiply filter blur-[120px] animate-breathe"></div>
+            <div className="absolute -bottom-20 -left-24 w-[500px] h-[500px] bg-purple-200/60 dark:bg-purple-800/40 rounded-full mix-blend-multiply filter blur-[120px] animate-breathe-delayed"></div>
+          </div>
+          <div className="relative z-10 flex flex-col items-center justify-center">
+            <div className="w-16 h-16 rounded-full bg-red-200 animate-pulse mb-6" />
+            <p className="text-lg text-foreground font-semibold">
+              Debes iniciar sesión para crear una sala
+            </p>
+          </div>
+        </div>
+      );
+    }
+  }, [status, session]);
 
-  // Cargar murales disponibles
+  // 2. Cargar murales disponibles SOLO en el estado local
   useEffect(() => {
     const fetchMurales = async () => {
       setLoadingMurales(true);
@@ -217,7 +398,7 @@ export default function CrearSala() {
         const res = await fetch("/api/murales");
         if (res.ok) {
           const data = await res.json();
-          setMurales(data.murales || []);
+          setMuralesDisponibles(data.murales || []);
         }
       } catch (error) {
         toast.error("Error al cargar murales");
@@ -228,82 +409,487 @@ export default function CrearSala() {
     fetchMurales();
   }, []);
 
-  const onSubmit = async (data) => {
-    if (!session?.user?.id) {
-      toast.error("Debes iniciar sesión para crear una sala");
-      return;
-    }
-
-    setLoadingMurales(true);
+  // Validar y avanzar de step SOLO con los campos del paso actual
+  const handleNextStep = async () => {
+    let data = { nombre, descripcion, murales, ...salaConfig };
+    console.log("DEBUG handleNextStep - data:", data);
     try {
-      // Preparar la configuración de la sala incluyendo el archivo personalizado
-      const salaConfigToSend = { ...salaConfig };
-
-      // Si hay un archivo personalizado, convertirlo a base64 o manejarlo de manera apropiada
-      if (salaConfig.archivoPersonalizado) {
-        // Aquí podrías subir el archivo a Cloudinary o manejarlo según tu backend
-        salaConfigToSend.archivoPersonalizado = {
-          name: salaConfig.archivoPersonalizado.name,
-          size: salaConfig.archivoPersonalizado.size,
-          type: salaConfig.archivoPersonalizado.type,
-        };
+      if (step === 0) {
+        await schemaStep1.validate(data, { abortEarly: false });
+      } else if (step === 1) {
+        await schemaStep2.validate(salaConfig, { abortEarly: false });
+      } else if (step === 2) {
+        await schemaStep3.validate(salaConfig, { abortEarly: false });
+      } else if (step === 3) {
+        await schemaStep4.validate(data, { abortEarly: false });
       }
-
-      // Crear la sala
-      const response = await fetch("/api/salas", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          nombre: data.nombre,
-          descripcion: data.descripcion,
-          publica: data.publica || false,
-          creadorId: session.user.id,
-          murales: selectedMurales,
-          colaboradores: [],
-          configuracion: salaConfigToSend,
-        }),
-      });
-
-      if (response.ok) {
-        const salaData = await response.json();
-        toast.success("Sala creada exitosamente");
-
-        // Si hay murales seleccionados, agregarlos a la sala
-        if (selectedMurales.length > 0) {
-          const muralResponse = await fetch(
-            `/api/salas/${salaData.id}/murales`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                murales: selectedMurales,
-              }),
-            }
-          );
-
-          if (muralResponse.ok) {
-            toast.success(
-              `${selectedMurales.length} murales agregados a la sala`
-            );
-          }
-        }
-
-        router.push(`/museo`);
+      setErrors({});
+      setStep(step + 1);
+      console.log("DEBUG handleNextStep - validation passed, advancing step");
+    } catch (err) {
+      if (err.inner) {
+        const newErrors = {};
+        err.inner.forEach((e) => {
+          newErrors[e.path] = e.message;
+        });
+        setErrors(newErrors);
+        console.log("DEBUG handleNextStep - validation errors:", newErrors);
       } else {
-        const errorData = await response.json();
-        toast.error(errorData.message || "Error al crear la sala");
+        console.log("DEBUG handleNextStep - unknown error:", err);
       }
-    } catch (error) {
-      console.error("Error creating sala:", error);
-      toast.error("Error de conexión");
-    } finally {
-      setLoadingMurales(false);
     }
   };
+
+  // Validar y enviar (submit final)
+  const handleSubmit = async () => {
+    let data = { nombre, descripcion, murales, ...salaConfig };
+    setIsSubmitting(true);
+    try {
+      await schemaFinal.validate(data, { abortEarly: false });
+      setErrors({});
+      // ... lógica de submit ...
+      // enviar data al backend, incluyendo salaConfig
+      // ...
+      reset();
+    } catch (err) {
+      if (err.inner) {
+        const newErrors = {};
+        err.inner.forEach((e) => {
+          newErrors[e.path] = e.message;
+        });
+        setErrors(newErrors);
+        console.log("DEBUG handleSubmit - validation errors:", newErrors);
+      } else {
+        console.log("DEBUG handleSubmit - unknown error:", err);
+      }
+    }
+    setIsSubmitting(false);
+  };
+
+  // Stepper visual mejorado, ahora dentro de la card
+  const Stepper = (
+    <div className="w-full flex flex-col items-center mb-8">
+      <div className="flex items-end justify-center gap-4 w-full">
+        {steps.map((s, i) => {
+          const isActive = i === step;
+          const isDark = theme === "dark";
+          return (
+            <motion.div
+              key={i}
+              initial={false}
+              animate={isActive ? { scale: 1.18, y: -6 } : { scale: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 18 }}
+              className="flex flex-col items-center flex-1 min-w-[110px]"
+            >
+              <div className="relative flex items-center justify-center">
+                {isActive && (
+                  <motion.div
+                    layoutId="step-glow"
+                    className={`absolute z-0 w-20 h-20 md:w-28 md:h-28 rounded-full ${
+                      isDark ? "bg-indigo-400/40" : "bg-indigo-500/30"
+                    } blur-3xl animate-pulse`}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1, scale: [1, 1.2, 1] }}
+                    exit={{ opacity: 0 }}
+                    transition={{
+                      duration: 0.7,
+                      repeat: Infinity,
+                      repeatType: "reverse",
+                    }}
+                  />
+                )}
+                <div
+                  className={`relative z-10 w-14 h-14 flex items-center justify-center rounded-full font-extrabold text-2xl border-4 transition-all duration-300 select-none
+                    ${
+                      isActive
+                        ? `${
+                            isDark
+                              ? "bg-indigo-400 text-white border-indigo-300"
+                              : "bg-indigo-600 text-white border-indigo-700"
+                          } shadow-2xl animate-bounce`
+                        : `${
+                            isDark
+                              ? "bg-slate-800 text-indigo-200 border-indigo-900"
+                              : "bg-white text-indigo-700 border-indigo-200"
+                          }`
+                    }
+                  `}
+                  style={{
+                    boxShadow: isActive
+                      ? isDark
+                        ? "0 0 0 12px #818cf822"
+                        : "0 0 0 12px #a5b4fc22"
+                      : undefined,
+                  }}
+                >
+                  {i + 1}
+                </div>
+              </div>
+              <div
+                className={
+                  `mt-3 text-sm font-semibold text-center min-w-[110px] h-10 flex items-center justify-center` +
+                  (isActive
+                    ? isDark
+                      ? " text-indigo-200"
+                      : " text-indigo-700"
+                    : isDark
+                    ? " text-indigo-400"
+                    : " text-gray-400")
+                }
+              >
+                {s.label}
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  // Step 1: Sala config (animación mejorada + shake si error)
+  const StepSala = (
+    <motion.div
+      key={0}
+      custom={direction}
+      variants={variants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.05 }}
+      className={`w-full ${errors.nombre ? "animate-shake" : ""}`}
+    >
+      <label className="block font-semibold text-foreground dark:text-gray-200 mb-2">
+        Nombre de la sala
+      </label>
+      <input
+        id="nombre"
+        type="text"
+        placeholder="Nombre de la sala"
+        value={nombre}
+        onChange={(e) => setNombre(e.target.value)}
+        ref={nombreRef}
+        className={`w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold shadow-sm focus:outline-none transition-all bg-white dark:bg-neutral-800 border-gray-200 dark:border-gray-700 text-foreground dark:text-neutral-100 placeholder:text-gray-400 dark:placeholder:text-gray-500 ${
+          errors.nombre
+            ? "border-pink-500 animate-shake"
+            : "focus:border-indigo-500"
+        }`}
+        autoComplete="off"
+      />
+      {errors.nombre && (
+        <div className="text-pink-500 dark:text-pink-400 text-sm mt-1 font-medium animate-shake">
+          {errors.nombre}
+        </div>
+      )}
+      <label className="block font-semibold text-foreground dark:text-gray-200 mb-2">
+        Descripción
+      </label>
+      <textarea
+        id="descripcion"
+        placeholder="Descripción"
+        value={descripcion}
+        onChange={(e) => setDescripcion(e.target.value)}
+        ref={descripcionRef}
+        className={`w-full px-4 py-3 rounded-xl border-2 text-base shadow-sm focus:outline-none transition-all resize-none min-h-[80px] ${
+          errors.descripcion
+            ? "border-pink-500 animate-shake"
+            : "border-indigo-200 focus:border-indigo-500"
+        }`}
+        autoComplete="off"
+      />
+      {errors.descripcion && (
+        <div className="text-pink-500 dark:text-pink-400 text-sm mt-1 font-medium animate-shake">
+          {errors.descripcion}
+        </div>
+      )}
+      <div className="flex justify-end mt-6">
+        <button
+          type="button"
+          className="px-6 py-2 rounded-lg bg-indigo-600 dark:bg-indigo-500 text-white font-bold hover:bg-indigo-700 dark:hover:bg-indigo-400 transition"
+          onClick={handleNextStep}
+        >
+          Siguiente
+        </button>
+      </div>
+    </motion.div>
+  );
+
+  // Step 2: Textura y piso
+  const StepTextura = (
+    <motion.div
+      key={1}
+      custom={direction}
+      variants={variants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.05 }}
+      className="w-full"
+    >
+      <label className="block font-semibold mb-2">Textura de paredes</label>
+      <select
+        value={salaConfig.textura}
+        onChange={(e) =>
+          setSalaConfig((prev) => ({ ...prev, textura: e.target.value }))
+        }
+        className="w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold shadow-sm focus:outline-none transition-all mb-4"
+      >
+        <option value="moderna">Moderna</option>
+        <option value="clasica">Clásica</option>
+        <option value="industrial">Industrial</option>
+      </select>
+      {errors.textura && (
+        <div className="text-pink-500 dark:text-pink-400 text-sm mt-1 font-medium animate-shake">
+          {errors.textura}
+        </div>
+      )}
+      <label className="block font-semibold mb-2">Color de paredes</label>
+      <input
+        type="color"
+        value={salaConfig.colorParedes}
+        onChange={(e) =>
+          setSalaConfig((prev) => ({ ...prev, colorParedes: e.target.value }))
+        }
+        className="w-16 h-10 rounded border-2"
+      />
+      {errors.colorParedes && (
+        <div className="text-pink-500 dark:text-pink-400 text-sm mt-1 font-medium animate-shake">
+          {errors.colorParedes}
+        </div>
+      )}
+      <label className="block font-semibold mb-2 mt-4">Textura de piso</label>
+      <select
+        value={salaConfig.piso || "madera"}
+        onChange={(e) =>
+          setSalaConfig((prev) => ({ ...prev, piso: e.target.value }))
+        }
+        className="w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold shadow-sm focus:outline-none transition-all"
+      >
+        <option value="madera">Madera</option>
+        <option value="marmol">Mármol</option>
+        <option value="cemento">Cemento</option>
+      </select>
+      {errors.piso && (
+        <div className="text-pink-500 dark:text-pink-400 text-sm mt-1 font-medium animate-shake">
+          {errors.piso}
+        </div>
+      )}
+      <div className="flex justify-between mt-6">
+        <button
+          type="button"
+          className="px-6 py-2 rounded-lg bg-gray-200 text-gray-700 font-bold hover:bg-gray-300 transition"
+          onClick={() => {
+            setDirection(-1);
+            setStep(0);
+          }}
+        >
+          Atrás
+        </button>
+        <button
+          type="button"
+          className="px-6 py-2 rounded-lg bg-indigo-600 dark:bg-indigo-500 text-white font-bold hover:bg-indigo-700 dark:hover:bg-indigo-400 transition"
+          onClick={handleNextStep}
+        >
+          Siguiente
+        </button>
+      </div>
+    </motion.div>
+  );
+
+  // Step 3: Música
+  const StepMusica = (
+    <motion.div
+      key={2}
+      custom={direction}
+      variants={variants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.05 }}
+      className="w-full"
+    >
+      <label className="block font-semibold mb-2">Música de ambiente</label>
+      <select
+        value={salaConfig.musica}
+        onChange={(e) =>
+          setSalaConfig((prev) => ({ ...prev, musica: e.target.value }))
+        }
+        className="w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold shadow-sm focus:outline-none transition-all"
+      >
+        <option value="ninguna">Ninguna</option>
+        <option value="clasica">Clásica</option>
+        <option value="jazz">Jazz</option>
+        <option value="electronica">Electrónica</option>
+      </select>
+      {errors.musica && (
+        <div className="text-pink-500 dark:text-pink-400 text-sm mt-1 font-medium animate-shake">
+          {errors.musica}
+        </div>
+      )}
+      <div className="flex justify-between mt-6">
+        <button
+          type="button"
+          className="px-6 py-2 rounded-lg bg-gray-200 text-gray-700 font-bold hover:bg-gray-300 transition"
+          onClick={() => {
+            setDirection(-1);
+            setStep(1);
+          }}
+        >
+          Atrás
+        </button>
+        <button
+          type="button"
+          className="px-6 py-2 rounded-lg bg-indigo-600 dark:bg-indigo-500 text-white font-bold hover:bg-indigo-700 dark:hover:bg-indigo-400 transition"
+          onClick={handleNextStep}
+        >
+          Siguiente
+        </button>
+      </div>
+    </motion.div>
+  );
+
+  // Step 4: Selección de murales (animación mejorada + shake si error)
+  const StepMurales = (
+    <motion.div
+      key={3}
+      custom={direction}
+      variants={variants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.05 }}
+      className={`w-full ${errors.murales ? "animate-shake" : ""}`}
+    >
+      <label className="block font-semibold text-foreground dark:text-gray-200 mb-2">
+        Murales para la sala
+      </label>
+      <button
+        type="button"
+        className="px-4 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition mb-3"
+        onClick={() => setShowMuralModal(true)}
+      >
+        Seleccionar murales
+      </button>
+      {errors.murales && (
+        <div className="text-red-500 text-sm mb-2 animate-pulse">
+          {errors.murales}
+        </div>
+      )}
+      {muralesForm.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-2">
+          {muralesForm.map((muralId) => {
+            const mural = muralesDisponibles.find((m) => m.id === muralId);
+            return mural ? (
+              <Badge
+                key={muralId}
+                variant="blue"
+                className="flex items-center gap-1 px-3 py-1"
+              >
+                {mural.titulo}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveMural(muralId)}
+                  className="ml-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full p-0.5"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </Badge>
+            ) : null;
+          })}
+        </div>
+      )}
+      <div className="flex justify-between mt-6">
+        <button
+          type="button"
+          className="px-6 py-2 rounded-lg bg-gray-200 text-gray-700 font-bold hover:bg-gray-300 transition"
+          onClick={() => {
+            setDirection(-1);
+            setStep(2);
+          }}
+        >
+          Atrás
+        </button>
+        <button
+          type="button"
+          className="px-6 py-2 rounded-lg bg-indigo-600 dark:bg-indigo-500 text-white font-bold hover:bg-indigo-700 dark:hover:bg-indigo-400 transition"
+          onClick={handleNextStep}
+          disabled={muralesForm.length === 0}
+        >
+          Siguiente
+        </button>
+      </div>
+    </motion.div>
+  );
+
+  // Step 5: Confirmación (animación mejorada)
+  const StepConfirm = (
+    <motion.div
+      key={4}
+      custom={direction}
+      variants={variants}
+      initial="enter"
+      animate="center"
+      exit="exit"
+      transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.05 }}
+      className="w-full"
+    >
+      <h2 className="text-xl font-bold mb-4">Confirmar creación de sala</h2>
+      <div className="mb-4">
+        <div className="font-semibold">Nombre:</div>
+        <div className="mb-2">{nombre}</div>
+        {errors.nombre && (
+          <div className="text-pink-500 dark:text-pink-400 text-sm mt-1 font-medium animate-shake">
+            {errors.nombre}
+          </div>
+        )}
+        <div className="font-semibold">Descripción:</div>
+        <div className="mb-2">{descripcion}</div>
+        {errors.descripcion && (
+          <div className="text-pink-500 dark:text-pink-400 text-sm mt-1 font-medium animate-shake">
+            {errors.descripcion}
+          </div>
+        )}
+        <div className="font-semibold">Murales seleccionados:</div>
+        <div className="flex flex-wrap gap-2">
+          {muralesForm.map((muralId) => {
+            const mural = muralesDisponibles.find((m) => m.id === muralId);
+            return mural ? (
+              <Badge
+                key={muralId}
+                variant="blue"
+                className="flex items-center gap-1 px-3 py-1"
+              >
+                {mural.titulo}
+              </Badge>
+            ) : null;
+          })}
+        </div>
+        {errors.murales && (
+          <div className="text-red-500 text-sm mb-2 animate-pulse">
+            {errors.murales}
+          </div>
+        )}
+      </div>
+      <div className="flex justify-between mt-6">
+        <button
+          type="button"
+          className="px-6 py-2 rounded-lg bg-gray-200 text-gray-700 font-bold hover:bg-gray-300 transition"
+          onClick={() => {
+            setDirection(-1);
+            setStep(3);
+          }}
+        >
+          Atrás
+        </button>
+        <button
+          type="submit"
+          className="px-6 py-2 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 transition"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? "Creando..." : "Crear sala"}
+        </button>
+      </div>
+    </motion.div>
+  );
 
   if (!session) {
     return (
@@ -323,465 +909,49 @@ export default function CrearSala() {
   }
 
   return (
-    <div className="relative min-h-screen">
-      {/* Fondo animado y patrones */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
+    <div className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-center">
+      {/* Fondo animado y patrón tipo acerca-de */}
+      <div className="pointer-events-none absolute inset-0 w-full h-full z-0">
         <AnimatedBlobsBackground />
         <DotsPattern />
       </div>
-
-      <div
-        className={`gallery-grid relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-8 pt-24 md:pt-28 pb-8 md:pb-12 ${
-          hasActiveGlow ? "has-active-glow" : ""
-        }`}
-        onMouseMove={handleGlobalMouseMove}
-        onMouseEnter={handleGlobalMouseEnter}
-        onMouseLeave={handleGlobalMouseLeave}
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
-          className="w-full max-w-7xl mx-auto mb-12"
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-            {/* Formulario principal */}
-            <div className="lg:col-span-2">
-              <div className="gallery-card-glow bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border p-8">
-                <h2 className="text-3xl font-extrabold text-center text-foreground mb-8 tracking-tight">
-                  Crear nueva sala y añadir murales
-                </h2>
-                <form
-                  onSubmit={handleSubmit(onSubmit)}
-                  className="flex flex-col gap-6"
-                >
-                  <div>
-                    <label className="block font-semibold text-foreground dark:text-gray-200 mb-2">
-                      Nombre de la sala
-                    </label>
-                    <input
-                      {...register("nombre")}
-                      className="w-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-neutral-800 text-foreground rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 shadow-sm transition placeholder-gray-400 dark:placeholder-gray-500"
-                      placeholder="Ej: Sala de Murales Modernos"
-                    />
-                    {errors.nombre && (
-                      <p className="text-red-600 text-sm mt-1">
-                        {errors.nombre.message}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-foreground dark:text-gray-200 mb-2">
-                      Seleccionar murales existentes
-                    </label>
-                    <div className="flex gap-2 mb-3">
-                      <div className="flex-1">
-                        <Select
-                          value={selectedMuralForAdd}
-                          onValueChange={setSelectedMuralForAdd}
-                          placeholder="Selecciona un mural..."
-                        >
-                          {murales
-                            .filter((m) => !selectedMurales.includes(m.id))
-                            .map((mural) => (
-                              <SelectItem
-                                key={mural.id}
-                                value={mural.id.toString()}
-                                image={mural.url_imagen}
-                                description={`${
-                                  mural.autor || "Autor desconocido"
-                                } • ${mural.tecnica || "Técnica desconocida"}`}
-                              >
-                                {mural.titulo || `Mural ${mural.id}`}
-                              </SelectItem>
-                            ))}
-                        </Select>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleAddMural}
-                        disabled={!selectedMuralForAdd}
-                        className="px-4 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                      >
-                        Añadir
-                      </button>
-                    </div>
-
-                    {/* Murales seleccionados como badges */}
-                    {selectedMurales.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {selectedMurales.map((muralId) => {
-                          const mural = murales.find((m) => m.id === muralId);
-                          return mural ? (
-                            <Badge
-                              key={muralId}
-                              variant="blue"
-                              className="flex items-center gap-1 px-3 py-1"
-                            >
-                              {mural.titulo}
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveMural(muralId)}
-                                className="ml-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-full p-0.5"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
-                            </Badge>
-                          ) : null;
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-foreground dark:text-gray-200 mb-2">
-                      Sube nuevos murales (imágenes)
-                    </label>
-                    <div
-                      {...getRootProps()}
-                      className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all duration-200 ${
-                        isDragActive
-                          ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
-                          : "border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-neutral-800/50 hover:bg-gray-100 dark:hover:bg-neutral-700/50"
-                      }`}
-                    >
-                      <input {...getInputProps()} />
-                      {files && files.length > 0 ? (
-                        <ul className="mt-2 text-left text-sm">
-                          {files.map((file, idx) => (
-                            <li
-                              key={idx}
-                              className="text-foreground flex items-center gap-2 mb-1"
-                            >
-                              <img
-                                src={URL.createObjectURL(file)}
-                                alt={file.name}
-                                className="w-12 h-12 object-cover rounded shadow border border-gray-200 dark:border-gray-600"
-                                onLoad={(e) =>
-                                  URL.revokeObjectURL(e.target.src)
-                                }
-                              />
-                              <span className="font-semibold text-indigo-700 dark:text-indigo-300">
-                                {file.name}
-                              </span>
-                              <span className="text-gray-500 dark:text-gray-400">
-                                ({Math.round(file.size / 1024)} KB)
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => removeFile(idx)}
-                                className="ml-2 px-2 py-1 text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded hover:bg-red-200 dark:hover:bg-red-900/50 transition"
-                              >
-                                Eliminar
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <span className="text-gray-500 dark:text-gray-400">
-                          Arrastra imágenes aquí o haz click para seleccionar
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="text"
-                      placeholder="Técnica"
-                      value={muralForm.tecnica}
-                      onChange={(e) =>
-                        setMuralForm((f) => ({ ...f, tecnica: e.target.value }))
-                      }
-                      className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-neutral-800 text-foreground rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 placeholder-gray-400 dark:placeholder-gray-500"
-                    />
-                    <DatePicker
-                      value={muralForm.fecha}
-                      onChange={(fecha) =>
-                        setMuralForm((f) => ({ ...f, fecha }))
-                      }
-                      placeholder="Fecha de creación"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Autor"
-                      value={muralForm.autor}
-                      onChange={(e) =>
-                        setMuralForm((f) => ({ ...f, autor: e.target.value }))
-                      }
-                      className="border border-gray-200 dark:border-gray-700 bg-white dark:bg-neutral-800 text-foreground rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 placeholder-gray-400 dark:placeholder-gray-500 col-span-2"
-                    />
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="mt-2 py-3 px-8 rounded-xl bg-gradient-to-r from-indigo-700 to-indigo-500 text-white font-bold shadow-lg hover:from-indigo-800 hover:to-indigo-600 hover:shadow-xl transition-all duration-200 disabled:opacity-60 text-lg tracking-wide transform hover:scale-105"
-                  >
-                    {isSubmitting
-                      ? "Enviando..."
-                      : "Crear sala y subir murales"}
-                  </button>
-                </form>
-
-                <div className="mt-8 text-center space-y-2">
-                  <Link
-                    href="/mis-obras"
-                    className="text-indigo-700 dark:text-indigo-300 underline font-medium hover:text-indigo-800 dark:hover:text-indigo-200 transition block"
-                  >
-                    Ver mis salas existentes
-                  </Link>
-                  <Link
-                    href="/"
-                    className="text-gray-600 dark:text-gray-400 underline font-medium hover:text-gray-800 dark:hover:text-gray-200 transition block"
-                  >
-                    Volver al inicio
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Sidebar de características de la sala */}
-            <div className="lg:col-span-1">
-              <div className="gallery-card-glow bg-card rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border p-6">
-                <h3 className="text-xl font-bold text-foreground mb-6 text-center">
-                  Características de la Sala
-                </h3>
-
-                <div className="space-y-4">
-                  {/* Textura de paredes con preview */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Textura de paredes
-                    </label>
-                    <select
-                      value={salaConfig.textura}
-                      onChange={(e) =>
-                        setSalaConfig((prev) => ({
-                          ...prev,
-                          textura: e.target.value,
-                        }))
-                      }
-                      className="w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-neutral-700 text-foreground rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
-                    >
-                      <option value="moderna">🏢 Moderna lisa</option>
-                      <option value="ladrillo">🧱 Ladrillo expuesto</option>
-                      <option value="concreto">🏭 Concreto industrial</option>
-                      <option value="madera">🌳 Paneles de madera</option>
-                      <option value="marmol">💎 Mármol</option>
-                      <option value="rustica">🪨 Textura rústica</option>
-                    </select>
-                    <div className="mt-2 p-2 bg-gray-100 dark:bg-neutral-700 rounded-lg">
-                      <div className="text-xs text-gray-600 dark:text-gray-400">
-                        Vista previa:{" "}
-                        <span className="font-medium capitalize">
-                          {salaConfig.textura.replace("-", " ")}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Color de paredes con preview */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Color de paredes
-                    </label>
-                    <select
-                      value={salaConfig.colorParedes}
-                      onChange={(e) =>
-                        setSalaConfig((prev) => ({
-                          ...prev,
-                          colorParedes: e.target.value,
-                        }))
-                      }
-                      className="w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-neutral-700 text-foreground rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
-                    >
-                      <option value="blanco">⚪ Blanco puro</option>
-                      <option value="gris-claro">🔘 Gris claro</option>
-                      <option value="gris-oscuro">⚫ Gris oscuro</option>
-                      <option value="negro">⚫ Negro</option>
-                      <option value="beige">🟤 Beige</option>
-                      <option value="azul-marino">🔵 Azul marino</option>
-                    </select>
-                    <div className="mt-2 p-2 bg-gray-100 dark:bg-neutral-700 rounded-lg flex items-center gap-2">
-                      <div
-                        className={`w-4 h-4 rounded border border-gray-300 ${
-                          salaConfig.colorParedes === "blanco"
-                            ? "bg-white"
-                            : salaConfig.colorParedes === "gris-claro"
-                            ? "bg-gray-300"
-                            : salaConfig.colorParedes === "gris-oscuro"
-                            ? "bg-gray-600"
-                            : salaConfig.colorParedes === "negro"
-                            ? "bg-black"
-                            : salaConfig.colorParedes === "beige"
-                            ? "bg-yellow-100"
-                            : "bg-blue-900"
-                        }`}
-                      ></div>
-                      <span className="text-xs text-gray-600 dark:text-gray-400 capitalize">
-                        {salaConfig.colorParedes.replace("-", " ")}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Iluminación */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Iluminación
-                    </label>
-                    <select
-                      value={salaConfig.tipoIluminacion}
-                      onChange={(e) =>
-                        setSalaConfig((prev) => ({
-                          ...prev,
-                          tipoIluminacion: e.target.value,
-                        }))
-                      }
-                      className="w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-neutral-700 text-foreground rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
-                    >
-                      <option value="natural">☀️ Luz natural</option>
-                      <option value="led-calida">💡 LED cálida</option>
-                      <option value="led-fria">🔆 LED fría</option>
-                      <option value="neon">🌈 Neón colorido</option>
-                      <option value="dramatica">🎭 Dramática (spots)</option>
-                      <option value="tenue">🕯️ Tenue y suave</option>
-                    </select>
-                  </div>
-
-                  {/* Música ambiente */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Música ambiente
-                    </label>
-                    <select
-                      value={salaConfig.musica}
-                      onChange={(e) =>
-                        setSalaConfig((prev) => ({
-                          ...prev,
-                          musica: e.target.value,
-                        }))
-                      }
-                      className="w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-neutral-700 text-foreground rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
-                    >
-                      <option value="ninguna">🔇 Sin música</option>
-                      <option value="clasica">🎼 Clásica suave</option>
-                      <option value="jazz">🎷 Jazz instrumental</option>
-                      <option value="ambient">🌊 Música ambient</option>
-                      <option value="electronica">🎧 Electrónica suave</option>
-                      <option value="naturaleza">
-                        🍃 Sonidos de naturaleza
-                      </option>
-                    </select>
-                  </div>
-
-                  {/* Ambiente general */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Ambiente general
-                    </label>
-                    <select
-                      value={salaConfig.ambiente}
-                      onChange={(e) =>
-                        setSalaConfig((prev) => ({
-                          ...prev,
-                          ambiente: e.target.value,
-                        }))
-                      }
-                      className="w-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-neutral-700 text-foreground rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
-                    >
-                      <option value="minimalista">
-                        ✨ Minimalista y limpio
-                      </option>
-                      <option value="industrial">🏭 Industrial urbano</option>
-                      <option value="clasico">🏛️ Clásico elegante</option>
-                      <option value="bohemio">🎨 Bohemio artístico</option>
-                      <option value="futurista">
-                        🚀 Futurista y tecnológico
-                      </option>
-                      <option value="rustico">🌿 Rústico y acogedor</option>
-                    </select>
-                  </div>
-
-                  {/* Archivo personalizado */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Archivo personalizado (opcional)
-                    </label>
-                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4">
-                      {salaConfig.archivoPersonalizado ? (
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1">
-                            <div className="text-sm font-medium text-foreground">
-                              {salaConfig.archivoPersonalizado.name}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {Math.round(
-                                salaConfig.archivoPersonalizado.size / 1024
-                              )}{" "}
-                              KB
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={removeCustomFile}
-                            className="p-1 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                      ) : (
-                        <div>
-                          <input
-                            type="file"
-                            id="customFile"
-                            onChange={handleCustomFileUpload}
-                            accept=".jpg,.jpeg,.png,.gif,.mp3,.wav,.mp4,.mov"
-                            className="hidden"
-                          />
-                          <label
-                            htmlFor="customFile"
-                            className="cursor-pointer text-center block"
-                          >
-                            <div className="text-sm text-gray-600 dark:text-gray-400">
-                              📁 Subir imagen, audio o video
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              Para personalizar tu sala
-                            </div>
-                          </label>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Resumen visual */}
-                  <div className="mt-6 p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-700">
-                    <h4 className="text-sm font-medium text-indigo-900 dark:text-indigo-200 mb-2">
-                      Resumen de tu sala:
-                    </h4>
-                    <div className="text-xs text-indigo-700 dark:text-indigo-300 space-y-1">
-                      <div>
-                        • Paredes: {salaConfig.textura}{" "}
-                        {salaConfig.colorParedes}
-                      </div>
-                      <div>• Luz: {salaConfig.tipoIluminacion}</div>
-                      <div>• Sonido: {salaConfig.musica}</div>
-                      <div>• Estilo: {salaConfig.ambiente}</div>
-                      {salaConfig.archivoPersonalizado && (
-                        <div>
-                          • Archivo: {salaConfig.archivoPersonalizado.name}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+      {/* Título neutro fuera de la card */}
+      <h1 className="text-3xl md:text-4xl font-bold text-center mb-8 text-foreground dark:text-neutral-100 z-20">
+        Crea tu sala personalizada
+      </h1>
+      <div className="relative z-10 max-w-2xl w-full flex items-center justify-center">
+        <div className="relative w-full">
+          {/* Glow detrás de la card, más grande y difuso */}
+          <div className="absolute -inset-16 md:-inset-32 z-0 pointer-events-none">
+            <div className="w-full h-full rounded-3xl bg-gradient-radial from-indigo-400/40 via-fuchsia-300/30 to-pink-300/40 blur-[120px] opacity-80 animate-pulse" />
           </div>
-        </motion.div>
+          <div
+            className="relative z-10 w-full bg-white/90 dark:bg-neutral-900/95 rounded-3xl shadow-xl p-6 md:p-14 flex flex-col items-center card-mouse-glow border border-border"
+            onMouseMove={cardGlow.handleMouseMove}
+            onMouseLeave={cardGlow.handleMouseLeave}
+          >
+            {Stepper}
+            <form onSubmit={handleSubmit} className="w-full">
+              <AnimatePresence initial={false} custom={direction} mode="wait">
+                {step === 0 && StepSala}
+                {step === 1 && StepTextura}
+                {step === 2 && StepMusica}
+                {step === 3 && StepMurales}
+                {step === 4 && StepConfirm}
+              </AnimatePresence>
+            </form>
+          </div>
+        </div>
       </div>
+      <MuralSelectModal
+        isOpen={showMuralModal}
+        onClose={() => setShowMuralModal(false)}
+        murales={muralesDisponibles}
+        muralesForm={muralesForm}
+        setValue={(id) => addMural(id)}
+        muralSearch={muralSearch}
+        setMuralSearch={setMuralSearch}
+      />
     </div>
   );
 }

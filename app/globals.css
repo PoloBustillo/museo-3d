@@ -1942,3 +1942,47 @@ html.dark .toast-badge-info {
     transform: translateY(-2px);
   }
 }
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-10px) scale(1.08); }
+  50% { transform: translateY(-6px) scale(1.12); }
+  70% { transform: translateY(-2px) scale(1.08); }
+}
+.animate-bounce {
+  animation: bounce 0.7s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(.4,0,.6,1) infinite;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-8px); }
+  40%, 60% { transform: translateX(8px); }
+}
+.animate-shake {
+  animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+.card-blob {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: 2rem;
+  background: radial-gradient(ellipse 60% 60% at var(--global-mouse-x,50%) var(--global-mouse-y,50%), rgba(99,102,241,0.18) 0%, rgba(232,121,249,0.10) 60%, transparent 100%);
+  transition: background 0.3s;
+}
+
+.card-mouse-glow {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+}

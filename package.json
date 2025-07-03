@@ -55,7 +55,8 @@
     "tailwind-merge": "^3.3.1",
     "three": "^0.177.0",
     "web-push": "^3.6.7",
-    "yup": "^1.6.1"
+    "yup": "^1.6.1",
+    "zustand": "^4.5.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
