@@ -108,6 +108,11 @@ export function DatePicker({ value, onChange, placeholder = "Seleccionar fecha..
 
   const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
+  // Generar lista de años
+  const currentYear = new Date().getFullYear();
+  const yearOptions = [];
+  for (let y = 1950; y <= currentYear + 2; y++) yearOptions.push(y);
+
   return (
     <>
       <div className="relative date-picker-container" ref={triggerRef}>
@@ -130,6 +135,7 @@ export function DatePicker({ value, onChange, placeholder = "Seleccionar fecha..
       {isOpen && triggerRect && typeof document !== 'undefined' && createPortal(
         <DatePickerContent
           currentMonth={currentMonth}
+          setCurrentMonth={setCurrentMonth}
           selectedDate={selectedDate}
           onDateChange={handleDateChange}
           triggerRect={triggerRect}
@@ -137,6 +143,7 @@ export function DatePicker({ value, onChange, placeholder = "Seleccionar fecha..
           dayNames={dayNames}
           getDaysInMonth={getDaysInMonth}
           navigateMonth={navigateMonth}
+          yearOptions={yearOptions}
         />,
         document.body
       )}
@@ -146,13 +153,15 @@ export function DatePicker({ value, onChange, placeholder = "Seleccionar fecha..
 
 function DatePickerContent({ 
   currentMonth, 
+  setCurrentMonth,
   selectedDate, 
   onDateChange, 
   triggerRect, 
   monthNames, 
   dayNames, 
   getDaysInMonth, 
-  navigateMonth 
+  navigateMonth,
+  yearOptions
 }) {
   const style = {
     position: 'fixed',
@@ -166,13 +175,23 @@ function DatePickerContent({
   const today = new Date();
   const selectedDateObj = selectedDate ? new Date(selectedDate + 'T00:00:00') : null;
 
+  // Cambiar año desde el select
+  const handleYearChange = (e) => {
+    const newYear = parseInt(e.target.value);
+    setCurrentMonth(prev => {
+      const newDate = new Date(prev);
+      newDate.setFullYear(newYear);
+      return newDate;
+    });
+  };
+
   return (
     <div 
       className="date-picker-content bg-white dark:bg-neutral-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg p-4"
       style={style}
     >
       {/* Header del calendario */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-4 gap-2">
         <button
           type="button"
           onClick={() => navigateMonth(-1)}
@@ -180,9 +199,20 @@ function DatePickerContent({
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <h3 className="font-semibold text-foreground">
-          {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-        </h3>
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-foreground">
+            {monthNames[currentMonth.getMonth()]}
+          </span>
+          <select
+            value={currentMonth.getFullYear()}
+            onChange={handleYearChange}
+            className="rounded border px-2 py-1 bg-white dark:bg-neutral-800 border-gray-300 dark:border-gray-700 text-foreground dark:text-neutral-100"
+          >
+            {yearOptions.map(y => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
         <button
           type="button"
           onClick={() => navigateMonth(1)}

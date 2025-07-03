@@ -26,6 +26,7 @@ import {
   RefreshCw,
   ChevronDown
 } from "lucide-react";
+import { DatePicker } from "../components/ui/date-picker-new";
 
 // Componentes de fondo animado
 function AnimatedBlobsBackground() {
@@ -296,12 +297,15 @@ function CanvasEditor({ isOpen, onClose, onSave, editingMural = null }) {
                     onChange={(e) => setMuralData({...muralData, tecnica: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-700 text-foreground focus:ring-2 focus:ring-indigo-500"
                   />
-                  <input
-                    type="number"
-                    placeholder="Año"
-                    value={muralData.year}
-                    onChange={(e) => setMuralData({...muralData, year: parseInt(e.target.value)})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-700 text-foreground focus:ring-2 focus:ring-indigo-500"
+                  <DatePicker
+                    value={muralData.year ? `${muralData.year}-01-01` : ""}
+                    onChange={dateString => {
+                      if (dateString) {
+                        const d = new Date(dateString);
+                        setMuralData({...muralData, year: d.getFullYear()});
+                      }
+                    }}
+                    placeholder="Selecciona el año..."
                   />
                 </div>
               </div>
@@ -434,6 +438,373 @@ function CanvasEditor({ isOpen, onClose, onSave, editingMural = null }) {
   );
 }
 
+// 2. Modal stepper moderno y centrado para crear mural
+function CrearObraModal({ isOpen, onClose, onCreate }) {
+  const [step, setStep] = useState(0);
+  const [titulo, setTitulo] = useState("");
+  const [tecnica, setTecnica] = useState("");
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [imagen, setImagen] = useState(null);
+  const [canvasImage, setCanvasImage] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [imgMode, setImgMode] = useState("archivo");
+  const [brushType, setBrushType] = useState("brush");
+  const [brushColor, setBrushColor] = useState("#000000");
+  const [brushSize, setBrushSize] = useState(5);
+  const [canvasBg, setCanvasBg] = useState(null);
+  const fileInputRef = useRef();
+  const canvasRef = useRef();
+
+  // Dropzone para archivos (debe estar al inicio del componente)
+  const onDrop = useCallback((acceptedFiles) => {
+    if (acceptedFiles && acceptedFiles[0]) setImagen(acceptedFiles[0]);
+  }, []);
+  const dropzone = useDropzone({
+    onDrop,
+    accept: { "image/*": [] },
+    multiple: false
+  });
+  const { getRootProps, getInputProps, isDragActive } = dropzone;
+
+  const reset = () => {
+    setStep(0);
+    setTitulo("");
+    setTecnica("");
+    setYear(new Date().getFullYear());
+    setImagen(null);
+    setCanvasImage(null);
+    setErrors({});
+    setImgMode("archivo");
+    setBrushType("brush");
+    setBrushColor("#000000");
+    setBrushSize(5);
+    setCanvasBg(null);
+  };
+
+  useEffect(() => {
+    if (!isOpen) reset();
+  }, [isOpen]);
+
+  const validateStep = () => {
+    if (step === 0) {
+      const errs = {};
+      if (!titulo.trim()) errs.titulo = "El título es obligatorio";
+      if (!tecnica.trim()) errs.tecnica = "La técnica es obligatoria";
+      setErrors(errs);
+      return Object.keys(errs).length === 0;
+    }
+    if (step === 1) {
+      if (!imagen && imgMode === "archivo") {
+        setErrors({ imagen: "Debes subir una imagen" });
+        return false;
+      }
+      setErrors({});
+      return true;
+    }
+    return true;
+  };
+
+  const handleNext = () => {
+    if (validateStep()) setStep(step + 1);
+  };
+  const handleBack = () => setStep(step - 1);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) setImagen(file);
+  };
+  const handleCanvasBgChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setCanvasBg(ev.target.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [lastPoint, setLastPoint] = useState(null);
+  const startDrawing = (e) => {
+    setIsDrawing(true);
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const x = e.nativeEvent.offsetX;
+    const y = e.nativeEvent.offsetY;
+    setLastPoint({ x, y });
+  };
+  const draw = (e) => {
+    if (!isDrawing) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    const x = e.nativeEvent.offsetX;
+    const y = e.nativeEvent.offsetY;
+    if (lastPoint) {
+      ctx.lineWidth = brushSize;
+      ctx.lineCap = "round";
+      ctx.strokeStyle = brushColor;
+      if (brushType === "brush") {
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+        ctx.beginPath();
+        ctx.moveTo(lastPoint.x, lastPoint.y);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      } else if (brushType === "aerosol") {
+        ctx.globalAlpha = 0.3;
+        for (let i = 0; i < 10 * brushSize; i++) {
+          const angle = Math.random() * 2 * Math.PI;
+          const radius = Math.random() * brushSize;
+          const dx = x + radius * Math.cos(angle);
+          const dy = y + radius * Math.sin(angle);
+          ctx.beginPath();
+          ctx.arc(dx, dy, 1, 0, 2 * Math.PI);
+          ctx.fillStyle = brushColor;
+          ctx.fill();
+        }
+      } else if (brushType === "carboncillo") {
+        ctx.globalAlpha = 0.7;
+        ctx.globalCompositeOperation = "multiply";
+        ctx.beginPath();
+        ctx.moveTo(lastPoint.x, lastPoint.y);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      } else if (brushType === "acuarela") {
+        ctx.globalAlpha = 0.2;
+        ctx.globalCompositeOperation = "lighter";
+        ctx.beginPath();
+        ctx.moveTo(lastPoint.x, lastPoint.y);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+      }
+    }
+    setLastPoint({ x, y });
+  };
+  const stopDrawing = () => {
+    setIsDrawing(false);
+    setLastPoint(null);
+    const canvas = canvasRef.current;
+    setCanvasImage(canvas.toDataURL());
+  };
+
+  useEffect(() => {
+    if (imgMode === "canvas" && canvasBg && canvasRef.current) {
+      const ctx = canvasRef.current.getContext("2d");
+      const img = new window.Image();
+      img.onload = () => {
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+        ctx.globalAlpha = 1;
+        ctx.globalCompositeOperation = "source-over";
+        ctx.drawImage(img, 0, 0, canvasRef.current.width, canvasRef.current.height);
+      };
+      img.src = canvasBg;
+    }
+  }, [canvasBg, imgMode]);
+
+  const handleCreate = () => {
+    if (!validateStep()) return;
+    let imgUrl = null;
+    if (imgMode === "archivo" && imagen) {
+      imgUrl = URL.createObjectURL(imagen);
+    } else if (imgMode === "canvas" && canvasImage) {
+      imgUrl = canvasImage;
+    }
+    onCreate({
+      id: Date.now(),
+      titulo,
+      tecnica,
+      year,
+      url_imagen: imgUrl,
+      autor: session?.user?.name || "Usuario",
+      userId: session?.user?.id,
+      createdAt: new Date().toISOString(),
+    });
+    onClose();
+    reset();
+  };
+
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.96 }}
+        className="bg-background dark:bg-neutral-900 border border-border rounded-2xl shadow-2xl w-full max-w-lg mx-auto p-0 overflow-hidden flex flex-col"
+      >
+        <div className="px-8 pt-8 pb-4 border-b border-border">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-xl font-bold text-foreground">Crear nueva obra</h2>
+            <button onClick={onClose} className="p-2 rounded hover:bg-muted transition-colors">
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+          {/* Stepper */}
+          <div className="flex items-center justify-center gap-4 mb-2">
+            {["Datos", "Imagen", "Confirmar"].map((label, i) => (
+              <div key={i} className="flex flex-col items-center">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold border-2 text-sm ${
+                  step === i
+                    ? "bg-indigo-600 text-white border-indigo-700 shadow-lg"
+                    : "bg-muted text-foreground border-border"
+                }`}>
+                  {i + 1}
+                </div>
+                <span className="mt-1 text-xs text-center min-w-[60px] text-muted-foreground">{label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="flex-1 px-8 py-6 flex flex-col gap-6">
+          {step === 0 && (
+            <>
+              <input
+                type="text"
+                placeholder="Título de la obra"
+                value={titulo}
+                onChange={e => setTitulo(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border text-base bg-background dark:bg-neutral-800 border-border text-foreground dark:text-neutral-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              />
+              {errors.titulo && <div className="text-pink-500 text-sm">{errors.titulo}</div>}
+              <input
+                type="text"
+                placeholder="Técnica"
+                value={tecnica}
+                onChange={e => setTecnica(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border text-base bg-background dark:bg-neutral-800 border-border text-foreground dark:text-neutral-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+              />
+              {errors.tecnica && <div className="text-pink-500 text-sm">{errors.tecnica}</div>}
+              <DatePicker
+                value={year ? `${year}-01-01` : ""}
+                onChange={dateString => {
+                  if (dateString) {
+                    const d = new Date(dateString);
+                    setYear(d.getFullYear());
+                  }
+                }}
+                placeholder="Selecciona el año..."
+              />
+            </>
+          )}
+          {step === 1 && (
+            <>
+              <div className="flex gap-4 mb-4">
+                <button
+                  className={`px-4 py-2 rounded-lg font-bold border ${imgMode === "archivo" ? "bg-indigo-600 text-white border-indigo-700" : "bg-muted text-foreground border-border"}`}
+                  onClick={() => setImgMode("archivo")}
+                >
+                  Subir archivo
+                </button>
+                <button
+                  className={`px-4 py-2 rounded-lg font-bold border ${imgMode === "canvas" ? "bg-indigo-600 text-white border-indigo-700" : "bg-muted text-foreground border-border"}`}
+                  onClick={() => setImgMode("canvas")}
+                >
+                  Crear en canvas
+                </button>
+              </div>
+              {imgMode === "archivo" && (
+                <>
+                  <div {...getRootProps()} className={`w-full border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition ${isDragActive ? "border-indigo-500 bg-indigo-50" : "border-border bg-muted/40"}`}>
+                    <input {...getInputProps()} />
+                    {imagen ? (
+                      <img src={URL.createObjectURL(imagen)} alt="preview" className="w-full max-h-64 object-contain rounded-xl border mt-2 mx-auto" />
+                    ) : (
+                      <span className="text-muted-foreground">Arrastra una imagen aquí o haz clic para seleccionar</span>
+                    )}
+                  </div>
+                  {errors.imagen && <div className="text-pink-500 text-sm">{errors.imagen}</div>}
+                </>
+              )}
+              {imgMode === "canvas" && (
+                <div className="flex flex-col gap-4">
+                  <div className="flex gap-2 items-center">
+                    <label className="font-medium">Fondo:</label>
+                    <input type="file" accept="image/*" onChange={handleCanvasBgChange} />
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <label className="font-medium">Pincel:</label>
+                    <select value={brushType} onChange={e => setBrushType(e.target.value)} className="rounded border px-2 py-1">
+                      <option value="brush">Pincel</option>
+                      <option value="aerosol">Aerosol</option>
+                      <option value="carboncillo">Carboncillo</option>
+                      <option value="acuarela">Acuarela</option>
+                    </select>
+                    <input type="color" value={brushColor} onChange={e => setBrushColor(e.target.value)} className="w-8 h-8 rounded" />
+                    <input type="range" min="1" max="40" value={brushSize} onChange={e => setBrushSize(Number(e.target.value))} />
+                    <span className="text-xs">{brushSize}px</span>
+                  </div>
+                  <div className="relative bg-white dark:bg-neutral-800 border rounded-xl overflow-hidden">
+                    <canvas
+                      ref={canvasRef}
+                      width={400}
+                      height={300}
+                      style={{ width: "100%", height: 300, background: "#fff", borderRadius: 12, display: "block" }}
+                      onMouseDown={startDrawing}
+                      onMouseMove={draw}
+                      onMouseUp={stopDrawing}
+                      onMouseLeave={stopDrawing}
+                    />
+                    {canvasBg && (
+                      <img
+                        src={canvasBg}
+                        alt="bg"
+                        style={{ position: "absolute", left: 0, top: 0, width: "100%", height: 300, objectFit: "cover", opacity: 0.3, pointerEvents: "none" }}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+          {step === 2 && (
+            <div className="space-y-4">
+              <div className="text-lg font-semibold text-foreground">¿Listo para crear tu obra?</div>
+              <div className="flex flex-col gap-2">
+                <div><span className="font-medium">Título:</span> {titulo}</div>
+                <div><span className="font-medium">Técnica:</span> {tecnica}</div>
+                <div><span className="font-medium">Año:</span> {year}</div>
+                {imagen && <img src={URL.createObjectURL(imagen)} alt="preview" className="w-full max-h-40 object-contain rounded-xl border" />}
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center justify-between gap-4 px-8 py-4 border-t border-border bg-muted/40">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-neutral-800 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-300 dark:hover:bg-neutral-700 transition"
+          >
+            Cancelar
+          </button>
+          <div className="flex gap-2">
+            {step > 0 && (
+              <button
+                onClick={handleBack}
+                className="px-4 py-2 rounded-lg bg-muted text-foreground font-bold hover:bg-gray-100 dark:hover:bg-neutral-700 transition"
+              >
+                Atrás
+              </button>
+            )}
+            {step < 2 ? (
+              <button
+                onClick={handleNext}
+                className="px-4 py-2 rounded-lg bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition"
+              >
+                Siguiente
+              </button>
+            ) : (
+              <button
+                onClick={handleCreate}
+                className="px-4 py-2 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 transition"
+              >
+                Crear obra
+              </button>
+            )}
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
 export default function MisObras() {
   const { data: session, status } = useSession();
   const { user, isAuthenticated } = useAuth();
@@ -451,6 +822,7 @@ export default function MisObras() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedMurales, setSelectedMurales] = useState([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showCrearObraModal, setShowCrearObraModal] = useState(false);
 
   // Cargar murales del usuario
   useEffect(() => {
@@ -477,6 +849,10 @@ export default function MisObras() {
 
   // Filtrar murales
   const filteredMurales = murales.filter(mural => {
+    // Solo mostrar obras del usuario actual
+    if (session?.user?.id && mural.userId && mural.userId !== session.user.id) return false;
+    if (session?.user?.name && mural.autor && mural.autor !== session.user.name) return false;
+    // Filtros existentes
     if (filters.search && !mural.titulo?.toLowerCase().includes(filters.search.toLowerCase()) &&
         !mural.autor?.toLowerCase().includes(filters.search.toLowerCase()) &&
         !mural.tecnica?.toLowerCase().includes(filters.search.toLowerCase())) {
@@ -634,18 +1010,10 @@ export default function MisObras() {
             {/* Botones de acción principales */}
             <div className="flex flex-wrap gap-4 mb-6">
               <button
-                onClick={() => setShowCanvasEditor(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium shadow-lg"
+                onClick={() => setShowCanvasEditor(false) || setShowUploadModal(false) || setShowCrearObraModal(true)}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-bold shadow hover:bg-indigo-700 transition"
               >
-                <Brush className="h-5 w-5" />
-                Crear con Canvas
-              </button>
-              <button
-                onClick={() => setShowUploadModal(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-medium shadow-lg"
-              >
-                <Upload className="h-5 w-5" />
-                Subir Imagen
+                <Plus className="h-5 w-5" /> Crear obra
               </button>
             </div>
 
@@ -770,18 +1138,11 @@ export default function MisObras() {
               {murales.length === 0 && (
                 <div className="flex justify-center gap-4">
                   <button
-                    onClick={() => setShowCanvasEditor(true)}
+                    onClick={() => setShowCanvasEditor(false) || setShowUploadModal(false) || setShowCrearObraModal(true)}
                     className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors"
                   >
-                    <Brush className="h-5 w-5" />
-                    Crear con Canvas
-                  </button>
-                  <button
-                    onClick={() => setShowUploadModal(true)}
-                    className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors"
-                  >
-                    <Upload className="h-5 w-5" />
-                    Subir Imagen
+                    <Plus className="h-5 w-5" />
+                    Crear obra
                   </button>
                 </div>
               )}
@@ -951,6 +1312,13 @@ export default function MisObras() {
         }}
         onSave={handleCanvasSave}
         editingMural={editingMural}
+      />
+
+      {/* Crear Obra Modal */}
+      <CrearObraModal
+        isOpen={showCrearObraModal}
+        onClose={() => setShowCrearObraModal(false)}
+        onCreate={obra => setMurales([obra, ...murales])}
       />
     </div>
   );
