@@ -4,7 +4,7 @@ import { useRouter, useParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { Badge } from "../../../components/ui/badge";
 import { DatePicker } from "../../../components/ui/date-picker";
-import { useSessionData } from "../../../providers/SessionProvider";
+import { useSessionData } from "providers/SessionProvider";
 import * as yup from "yup";
 
 const schema = yup.object().shape({
