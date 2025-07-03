@@ -228,6 +228,9 @@ export async function PUT(req, context) {
   }
 }
 
+// PATCH /api/usuarios/[id] - Alias de PUT para compatibilidad
+export const PATCH = PUT;
+
 // DELETE /api/usuarios/[id] - Eliminar usuario (solo admin)
 export async function DELETE(req, context) {
   try {

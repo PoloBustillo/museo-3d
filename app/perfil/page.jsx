@@ -37,6 +37,7 @@ import { useSessionData } from "../../providers/SessionProvider";
 import toast from "react-hot-toast";
 import { useCardMouseGlow } from "../hooks/useCardMouseGlow";
 import { PageLoader } from "../../components/LoadingSpinner";
+import AvatarTooltip from "../components/ui/AvatarTooltip";
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
