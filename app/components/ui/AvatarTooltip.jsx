@@ -1,33 +1,66 @@
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
 
-export default function AvatarTooltip({ src, alt, anchorRef, show }) {
+// Lógica robusta de posicionamiento
+function calculateTooltipPosition(anchorRect, tooltipWidth, tooltipHeight, preferredPosition = "bottom") {
+  const padding = 8;
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  // Calcular la mejor posición 'left' relativa al viewport
+  let left = anchorRect.left + anchorRect.width / 2 - tooltipWidth / 2;
+  if (left < padding) left = padding;
+  if (left + tooltipWidth > viewportWidth - padding) {
+    left = viewportWidth - tooltipWidth - padding;
+  }
+
+  // Calcular posiciones 'top' relativas al viewport (arriba y abajo del ancla)
+  const posAbove = anchorRect.top - tooltipHeight - padding;
+  const posBelow = anchorRect.bottom + padding;
+
+  let top;
+  // Decidir si se coloca arriba o abajo
+  if (preferredPosition === "top") {
+    if (posAbove > padding) {
+      top = posAbove;
+    } else {
+      top = posBelow;
+    }
+  } else {
+    if (posBelow + tooltipHeight < viewportHeight - padding) {
+      top = posBelow;
+    } else {
+      top = posAbove;
+    }
+  }
+
+  return {
+    top: top + window.scrollY,
+    left: left + window.scrollX,
+  };
+}
+
+export default function AvatarTooltip({ src, alt, anchorRef, show, preferredPosition = "bottom" }) {
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const tooltipWidth = 260;
   const tooltipHeight = 260;
 
   useEffect(() => {
     if (show && anchorRef.current) {
-      const rect = anchorRef.current.getBoundingClientRect();
-      const padding = 8;
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-      let left = rect.left + rect.width / 2 - tooltipWidth / 2;
-      if (left < padding) left = padding;
-      if (left + tooltipWidth > viewportWidth - padding) {
-        left = viewportWidth - tooltipWidth - padding;
-      }
-      const posAbove = rect.top - tooltipHeight - padding;
-      const posBelow = rect.bottom + padding;
-      let top;
-      if (posAbove > padding) {
-        top = posAbove;
-      } else {
-        top = posBelow;
-      }
-      setPos({ top: top + window.scrollY, left: left + window.scrollX });
+      // Esperar al siguiente ciclo de render/layout
+      const timeout = setTimeout(() => {
+        if (anchorRef.current) {
+          const rect = anchorRef.current.getBoundingClientRect();
+          const newPos = calculateTooltipPosition(rect, tooltipWidth, tooltipHeight, preferredPosition);
+          setPos(newPos);
+        }
+      }, 0);
+      return () => clearTimeout(timeout);
+    } else if (show && !anchorRef.current) {
+      // DEBUG: log missing ref
+      console.warn("[AvatarTooltip] anchorRef.current is null");
     }
-  }, [show, anchorRef]);
+  }, [show, anchorRef, preferredPosition]);
 
   if (!show) return null;
   return ReactDOM.createPortal(

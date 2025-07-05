@@ -253,7 +253,7 @@ function TagWithPreview({ label, variant, images, children }) {
   );
 }
 
-function AvatarTooltip({ src, alt, anchorRef, show }) {
+function PerfilAvatarTooltip({ src, alt, anchorRef, show }) {
   const [pos, setPos] = useState({ top: 0, left: 0 });
   const tooltipWidth = 260;
   const tooltipHeight = 260;
@@ -327,7 +327,7 @@ function PerfilAvatarEdit({
             <AvatarImage src={imagePreview} alt={newName || "Avatar"} />
             <AvatarFallback>{newName?.[0] || "U"}</AvatarFallback>
           </Avatar>
-          <AvatarTooltip
+          <PerfilAvatarTooltip
             src={imagePreview}
             alt={newName || "Avatar"}
             anchorRef={avatarRef}
@@ -414,7 +414,7 @@ function PerfilAvatarView({ image, name, onEdit }) {
           <AvatarImage src={image || undefined} alt={name || "Avatar"} />
           <AvatarFallback>{name?.[0] || "U"}</AvatarFallback>
         </Avatar>
-        <AvatarTooltip
+        <PerfilAvatarTooltip
           src={image || undefined}
           alt={name || "Avatar"}
           anchorRef={avatarRef}

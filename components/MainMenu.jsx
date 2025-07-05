@@ -432,10 +432,10 @@ export default function MainMenu({ onSubirArchivo }) {
                             </NavigationMenuLink>
                             <NavigationMenuLink asChild>
                               <Link
-                                href="/admin/contenido"
+                                href="/admin/salas"
                                 className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm"
                               >
-                                Moderar Contenido
+                                Moderar Salas y Murales
                               </Link>
                             </NavigationMenuLink>
                           </>

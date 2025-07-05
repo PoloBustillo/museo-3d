@@ -1,6 +1,7 @@
 "use client";
 
 import ProtectedRoute from "../../../components/ProtectedRoute";
+import Unauthorized from "../../../components/Unauthorized";
 import { useSession } from "next-auth/react";
 import { Input } from "../../components/ui/input";
 import { Select, SelectItem } from "../../components/ui/select";
@@ -35,10 +36,7 @@ export default function AdminUsuariosPage() {
   if (status === "loading") return <div>Cargando...</div>;
   if (!session?.user || session.user.role !== "ADMIN") {
     return (
-      <div className="max-w-xl mx-auto py-16 text-center">
-        <h2 className="text-2xl font-bold mb-2">Acceso denegado</h2>
-        <p className="text-muted-foreground">Esta sección es solo para administradores.</p>
-      </div>
+      <Unauthorized title="Acceso denegado" message="Esta sección es solo para administradores." error="403" showLogin={true} redirectPath="/" />
     );
   }
 
