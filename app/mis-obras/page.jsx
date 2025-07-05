@@ -70,7 +70,6 @@ function DotsPattern() {
 // Componente Canvas para crear murales
 function CanvasEditor({ isOpen, onClose, onSave, editingMural = null }) {
   const canvasRef = useRef(null);
-  const [isDrawing, setIsDrawing] = useState(false);
   const [currentTool, setCurrentTool] = useState('brush');
   const [brushSize, setBrushSize] = useState(5);
   const [currentColor, setCurrentColor] = useState('#000000');
@@ -82,6 +81,7 @@ function CanvasEditor({ isOpen, onClose, onSave, editingMural = null }) {
     tecnica: editingMural?.tecnica || 'Digital',
     year: editingMural?.year || new Date().getFullYear(),
   });
+  const [muralDataError, setMuralDataError] = useState(null);
 
   const colors = [
     '#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF',
@@ -156,54 +156,112 @@ function CanvasEditor({ isOpen, onClose, onSave, editingMural = null }) {
     }
   };
 
-  const startDrawing = (e) => {
+  // Refs para siempre tener el valor actual de brushType y brushColor
+  const brushTypeRef = useRef(currentTool);
+  const brushColorRef = useRef(currentColor);
+  useEffect(() => { brushTypeRef.current = currentTool; }, [currentTool]);
+  useEffect(() => { brushColorRef.current = currentColor; }, [currentColor]);
+
+  // Un solo sistema de coordenadas y handlers
+  const [cursorPos, setCursorPos] = useState(null);
+  const handleMouseMove = (e) => {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const cssX = e.clientX - rect.left;
+    const cssY = e.clientY - rect.top;
+    setCursorPos({ x: cssX, y: cssY });
+    const x = (cssX * canvas.width) / rect.width;
+    const y = (cssY * canvas.height) / rect.height;
+    if (isDrawing) drawAt(x, y);
+  };
+  const handleMouseLeave = () => {
+    setCursorPos(null);
+    setIsDrawing(false);
+    setLastPoint(null);
+  };
+  const handleMouseUp = () => {
+    setIsDrawing(false);
+    setLastPoint(null);
+  };
+  const handleMouseDown = (e) => {
     setIsDrawing(true);
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
+    const cssX = e.clientX - rect.left;
+    const cssY = e.clientY - rect.top;
+    const x = (cssX * canvas.width) / rect.width;
+    const y = (cssY * canvas.height) / rect.height;
     const ctx = canvas.getContext('2d');
     ctx.beginPath();
     ctx.moveTo(x, y);
+    setLastPoint({ x, y });
   };
 
-  const draw = (e) => {
-    if (!isDrawing) return;
-    
+  // Dibuja usando siempre el valor actual de brushType y brushColor
+  const drawAt = (x, y) => {
     const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    
     const ctx = canvas.getContext('2d');
-    ctx.lineWidth = brushSize;
+    const type = brushTypeRef.current;
+    const color = brushColorRef.current;
     ctx.lineCap = 'round';
-    
-    if (currentTool === 'brush') {
+    if (type === 'brush') {
       ctx.globalCompositeOperation = 'source-over';
-      ctx.strokeStyle = currentColor;
-    } else if (currentTool === 'eraser') {
+      ctx.strokeStyle = color;
+      ctx.lineWidth = brushSize;
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    } else if (type === 'eraser') {
       ctx.globalCompositeOperation = 'destination-out';
+      ctx.lineWidth = brushSize;
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    } else if (type === 'aerosol') {
+      ctx.globalCompositeOperation = 'source-over';
+      for (let i = 0; i < brushSize * 4; i++) {
+        const angle = Math.random() * 2 * Math.PI;
+        const radius = Math.random() * brushSize * 1.2;
+        const px = x + Math.cos(angle) * radius;
+        const py = y + Math.sin(angle) * radius;
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.10 + Math.random() * 0.15;
+        ctx.beginPath();
+        ctx.arc(px, py, 0.8 + Math.random() * 1.8, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    } else if (type === 'carboncillo') {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = brushSize * (0.8 + Math.random() * 0.4);
+      ctx.globalAlpha = 0.18 + Math.random() * 0.18;
+      for (let i = 0; i < 2 + Math.floor(brushSize / 6); i++) {
+        ctx.beginPath();
+        ctx.moveTo(x + (Math.random() - 0.5) * brushSize * 0.3, y + (Math.random() - 0.5) * brushSize * 0.3);
+        ctx.lineTo(x + (Math.random() - 0.5) * brushSize * 0.3, y + (Math.random() - 0.5) * brushSize * 0.3);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    } else if (type === 'acuarela') {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = color;
+      ctx.lineWidth = brushSize * 2.2;
+      ctx.globalAlpha = 0.09 + Math.random() * 0.09;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = brushSize * 1.2;
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
     }
-    
-    ctx.lineTo(x, y);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-  };
-
-  const stopDrawing = () => {
-    setIsDrawing(false);
-    saveToHistory();
-  };
-
-  const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    saveToHistory();
+    setLastPoint({ x, y });
   };
 
   const handleSave = async () => {
@@ -276,37 +334,64 @@ function CanvasEditor({ isOpen, onClose, onSave, editingMural = null }) {
               <div className="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4">
                 <h3 className="font-semibold mb-3">Información de la Obra</h3>
                 <div className="space-y-3">
-                  <input
+                  <motion.input
                     type="text"
                     placeholder="Título de la obra"
                     value={muralData.titulo}
-                    onChange={(e) => setMuralData({...muralData, titulo: e.target.value})}
+                    onChange={e => {
+                      setMuralData({...muralData, titulo: e.target.value});
+                      if (muralDataError?.titulo) setMuralDataError(prev => ({ ...prev, titulo: undefined }));
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-700 text-foreground focus:ring-2 focus:ring-indigo-500"
+                    animate={muralDataError?.titulo ? { x: [0, -8, 8, -6, 6, -4, 4, 0, Math.random()] } : false}
+                    transition={{ duration: 0.4 }}
                   />
-                  <textarea
+                  {muralDataError?.titulo && <div className="text-pink-500 text-sm">{muralDataError.titulo}</div>}
+                  <motion.textarea
                     placeholder="Descripción (opcional)"
                     value={muralData.descripcion}
-                    onChange={(e) => setMuralData({...muralData, descripcion: e.target.value})}
+                    onChange={e => {
+                      setMuralData({...muralData, descripcion: e.target.value});
+                      if (muralDataError?.descripcion) setMuralDataError(prev => ({ ...prev, descripcion: undefined }));
+                    }}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-700 text-foreground focus:ring-2 focus:ring-indigo-500"
                     rows={3}
+                    animate={muralDataError?.descripcion ? { x: [0, -8, 8, -6, 6, -4, 4, 0, Math.random()] } : false}
+                    transition={{ duration: 0.4 }}
                   />
-                  <input
+                  {muralDataError?.descripcion && <div className="text-pink-500 text-sm">{muralDataError.descripcion}</div>}
+                  <motion.input
                     type="text"
                     placeholder="Técnica"
                     value={muralData.tecnica}
-                    onChange={(e) => setMuralData({...muralData, tecnica: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-700 text-foreground focus:ring-2 focus:ring-indigo-500"
-                  />
-                  <DatePicker
-                    value={muralData.year ? `${muralData.year}-01-01` : ""}
-                    onChange={dateString => {
-                      if (dateString) {
-                        const d = new Date(dateString);
-                        setMuralData({...muralData, year: d.getFullYear()});
-                      }
+                    onChange={e => {
+                      setMuralData({...muralData, tecnica: e.target.value});
+                      if (muralDataError?.tecnica) setMuralDataError(prev => ({ ...prev, tecnica: undefined }));
                     }}
-                    placeholder="Selecciona el año..."
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-700 text-foreground focus:ring-2 focus:ring-indigo-500"
+                    animate={muralDataError?.tecnica ? { x: [0, -8, 8, -6, 6, -4, 4, 0, Math.random()] } : false}
+                    transition={{ duration: 0.4 }}
                   />
+                  {muralDataError?.tecnica && <div className="text-pink-500 text-sm">{muralDataError.tecnica}</div>}
+                  <motion.div
+                    animate={muralDataError?.year ? { x: [0, -8, 8, -6, 6, -4, 4, 0, Math.random()] } : false}
+                    transition={{ duration: 0.4 }}
+                  >
+                    <DatePicker
+                      value={muralData.year ? `${muralData.year}-01-01` : null}
+                      onChange={dateString => {
+                        if (dateString) {
+                          const d = new Date(dateString);
+                          setMuralData({...muralData, year: d.getFullYear()});
+                          if (muralDataError?.year) setMuralDataError(prev => ({ ...prev, year: undefined }));
+                        } else {
+                          setMuralData({...muralData, year: null});
+                        }
+                      }}
+                      placeholder="Selecciona el año..."
+                    />
+                  </motion.div>
+                  {muralDataError?.year && <div className="text-pink-500 text-sm">{muralDataError.year}</div>}
                 </div>
               </div>
 
@@ -360,18 +445,29 @@ function CanvasEditor({ isOpen, onClose, onSave, editingMural = null }) {
               </div>
 
               {/* Tamaño del pincel */}
-              <div className="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4">
+              <div className="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4 flex flex-col gap-2">
                 <h3 className="font-semibold mb-3">Tamaño del Pincel</h3>
-                <input
-                  type="range"
-                  min="1"
-                  max="50"
-                  value={brushSize}
-                  onChange={(e) => setBrushSize(parseInt(e.target.value))}
-                  className="w-full"
-                />
-                <div className="text-center mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  {brushSize}px
+                <div className="flex gap-2 items-center mb-3">
+                  <label className="font-medium">Pincel:</label>
+                  <select value={currentTool} onChange={e => setCurrentTool(e.target.value)} className="rounded border px-2 py-1">
+                    <option value="brush">Pincel</option>
+                    <option value="eraser">Borrador</option>
+                  </select>
+                </div>
+                <div className="mb-3">
+                  <label className="font-medium mr-2">Color:</label>
+                  <input type="color" value={currentColor} onChange={e => setCurrentColor(e.target.value)} className="w-8 h-8 rounded align-middle" />
+                </div>
+                <div className="mt-2 mb-3">
+                  <input
+                    type="range"
+                    min="1"
+                    max="50"
+                    value={brushSize}
+                    onChange={e => setBrushSize(parseInt(e.target.value))}
+                    className="w-full max-w-xs"
+                  />
+                  <div className="text-center mt-2 text-sm text-gray-600 dark:text-gray-400">{brushSize}px</div>
                 </div>
               </div>
 
@@ -401,17 +497,19 @@ function CanvasEditor({ isOpen, onClose, onSave, editingMural = null }) {
             </div>
 
             {/* Canvas */}
-            <div className="lg:col-span-3">
-              <div className="bg-gray-100 dark:bg-neutral-800 rounded-lg p-4">
+            <div className="lg:col-span-3 flex items-center justify-center">
+              <div style={{ position: "relative", width: "100%", maxWidth: 900, aspectRatio: "4/3" }}>
                 <canvas
                   ref={canvasRef}
-                  onMouseDown={startDrawing}
-                  onMouseMove={draw}
-                  onMouseUp={stopDrawing}
-                  onMouseLeave={stopDrawing}
-                  className="border border-gray-300 dark:border-gray-600 rounded-lg cursor-crosshair max-w-full h-auto"
-                  style={{ maxHeight: '600px' }}
+                  width={800}
+                  height={600}
+                  style={{ width: "100%", height: "100%", display: "block", background: "#fff", borderRadius: 12 }}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseLeave}
                 />
+                {cursorPos && null}
               </div>
             </div>
           </div>
@@ -433,13 +531,24 @@ function CanvasEditor({ isOpen, onClose, onSave, editingMural = null }) {
             </button>
           </div>
         </div>
+
+        {isCanvasStep && (
+          <div style={{ position: 'absolute', top: 8, left: 8, zIndex: 200, background: 'rgba(0,0,0,0.7)', color: '#fff', padding: '8px 12px', borderRadius: 8, fontSize: 14, pointerEvents: 'none' }}>
+            <div><b>Debug:</b></div>
+            <div>Cursor CSS: {cursorPos ? `${Math.round(cursorPos.x)}, ${Math.round(cursorPos.y)}` : '--'}</div>
+            <div>Canvas: {cursorPos ? `${Math.round((cursorPos.x * (canvasRef.current?.width || 0)) / (canvasRef.current?.getBoundingClientRect().width || 1))}, ${Math.round((cursorPos.y * (canvasRef.current?.height || 0)) / (canvasRef.current?.getBoundingClientRect().height || 1))}` : '--'}</div>
+            <div>Color: <span style={{ background: currentColor, color: '#000', padding: '0 8px', borderRadius: 4 }}>{currentColor}</span></div>
+            <div>Pincel: {currentTool}</div>
+            <div>isDrawing: {isDrawing ? 'true' : 'false'}</div>
+          </div>
+        )}
       </motion.div>
     </div>
   );
 }
 
 // 2. Modal stepper moderno y centrado para crear mural
-function CrearObraModal({ isOpen, onClose, onCreate }) {
+function CrearObraModal({ isOpen, onClose, onCreate, session }) {
   const [step, setStep] = useState(0);
   const [titulo, setTitulo] = useState("");
   const [tecnica, setTecnica] = useState("");
@@ -455,7 +564,16 @@ function CrearObraModal({ isOpen, onClose, onCreate }) {
   const fileInputRef = useRef();
   const canvasRef = useRef();
 
-  // Dropzone para archivos (debe estar al inicio del componente)
+  // Función para obtener coordenadas escaladas en el canvas
+  const getScaledCoords = (e) => {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+    return { x, y };
+  };
+
+  // Dropzone para archivos (imagen principal)
   const onDrop = useCallback((acceptedFiles) => {
     if (acceptedFiles && acceptedFiles[0]) setImagen(acceptedFiles[0]);
   }, []);
@@ -465,6 +583,21 @@ function CrearObraModal({ isOpen, onClose, onCreate }) {
     multiple: false
   });
   const { getRootProps, getInputProps, isDragActive } = dropzone;
+
+  // Dropzone para fondo de canvas
+  const bgDropzone = useDropzone({
+    onDrop: (acceptedFiles) => {
+      if (acceptedFiles && acceptedFiles[0]) {
+        const file = acceptedFiles[0];
+        const reader = new FileReader();
+        reader.onload = (ev) => setCanvasBg(ev.target.result);
+        reader.readAsDataURL(file);
+      }
+    },
+    accept: { "image/*": [] },
+    multiple: false
+  });
+  const { getRootProps: getBgRootProps, getInputProps: getBgInputProps, isDragActive: isBgDragActive } = bgDropzone;
 
   const reset = () => {
     setStep(0);
@@ -528,55 +661,82 @@ function CrearObraModal({ isOpen, onClose, onCreate }) {
     setIsDrawing(true);
     const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    const x = e.nativeEvent.offsetX;
-    const y = e.nativeEvent.offsetY;
+    const cssX = e.clientX - rect.left;
+    const cssY = e.clientY - rect.top;
+    const x = (cssX * canvas.width) / rect.width;
+    const y = (cssY * canvas.height) / rect.height;
+    const ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.moveTo(x, y);
     setLastPoint({ x, y });
   };
   const draw = (e) => {
     if (!isDrawing) return;
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const x = e.nativeEvent.offsetX;
-    const y = e.nativeEvent.offsetY;
-    if (lastPoint) {
-      ctx.lineWidth = brushSize;
-      ctx.lineCap = "round";
+    const { x, y } = getScaledCoords(e);
+    const ctx = canvas.getContext('2d');
+    ctx.lineCap = 'round';
+    if (brushType === 'brush') {
+      ctx.globalCompositeOperation = 'source-over';
       ctx.strokeStyle = brushColor;
-      if (brushType === "brush") {
-        ctx.globalAlpha = 1;
-        ctx.globalCompositeOperation = "source-over";
+      ctx.lineWidth = brushSize;
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    } else if (brushType === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.lineWidth = brushSize;
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    } else if (brushType === 'aerosol') {
+      ctx.globalCompositeOperation = 'source-over';
+      for (let i = 0; i < brushSize * 4; i++) {
+        const angle = Math.random() * 2 * Math.PI;
+        const radius = Math.random() * brushSize * 1.2;
+        const px = x + Math.cos(angle) * radius;
+        const py = y + Math.sin(angle) * radius;
+        ctx.fillStyle = brushColor;
+        ctx.globalAlpha = 0.10 + Math.random() * 0.15;
         ctx.beginPath();
-        ctx.moveTo(lastPoint.x, lastPoint.y);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-      } else if (brushType === "aerosol") {
-        ctx.globalAlpha = 0.3;
-        for (let i = 0; i < 10 * brushSize; i++) {
-          const angle = Math.random() * 2 * Math.PI;
-          const radius = Math.random() * brushSize;
-          const dx = x + radius * Math.cos(angle);
-          const dy = y + radius * Math.sin(angle);
-          ctx.beginPath();
-          ctx.arc(dx, dy, 1, 0, 2 * Math.PI);
-          ctx.fillStyle = brushColor;
-          ctx.fill();
-        }
-      } else if (brushType === "carboncillo") {
-        ctx.globalAlpha = 0.7;
-        ctx.globalCompositeOperation = "multiply";
+        ctx.arc(px, py, 0.8 + Math.random() * 1.8, 0, 2 * Math.PI);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    } else if (brushType === 'carboncillo') {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = brushColor;
+      ctx.lineWidth = brushSize * (0.8 + Math.random() * 0.4);
+      ctx.globalAlpha = 0.18 + Math.random() * 0.18;
+      for (let i = 0; i < 2 + Math.floor(brushSize / 6); i++) {
         ctx.beginPath();
-        ctx.moveTo(lastPoint.x, lastPoint.y);
-        ctx.lineTo(x, y);
-        ctx.stroke();
-      } else if (brushType === "acuarela") {
-        ctx.globalAlpha = 0.2;
-        ctx.globalCompositeOperation = "lighter";
-        ctx.beginPath();
-        ctx.moveTo(lastPoint.x, lastPoint.y);
-        ctx.lineTo(x, y);
+        ctx.moveTo(x + (Math.random() - 0.5) * brushSize * 0.3, y + (Math.random() - 0.5) * brushSize * 0.3);
+        ctx.lineTo(x + (Math.random() - 0.5) * brushSize * 0.3, y + (Math.random() - 0.5) * brushSize * 0.3);
         ctx.stroke();
       }
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+    } else if (brushType === 'acuarela') {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = brushColor;
+      ctx.lineWidth = brushSize * 2.2;
+      ctx.globalAlpha = 0.09 + Math.random() * 0.09;
+      ctx.shadowColor = brushColor;
+      ctx.shadowBlur = brushSize * 1.2;
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
     }
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y);
     setLastPoint({ x, y });
   };
   const stopDrawing = () => {
@@ -600,37 +760,72 @@ function CrearObraModal({ isOpen, onClose, onCreate }) {
     }
   }, [canvasBg, imgMode]);
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!validateStep()) return;
+    let imgFile = null;
     let imgUrl = null;
     if (imgMode === "archivo" && imagen) {
-      imgUrl = URL.createObjectURL(imagen);
+      imgFile = imagen;
     } else if (imgMode === "canvas" && canvasImage) {
-      imgUrl = canvasImage;
+      // Convertir dataURL a Blob
+      const res = await fetch(canvasImage);
+      imgFile = await res.blob();
     }
-    onCreate({
-      id: Date.now(),
-      titulo,
-      tecnica,
-      year,
-      url_imagen: imgUrl,
-      autor: session?.user?.name || "Usuario",
-      userId: session?.user?.id,
-      createdAt: new Date().toISOString(),
-    });
-    onClose();
-    reset();
+
+    const formData = new FormData();
+    if (imgFile) formData.append("imagen", imgFile, titulo ? `${titulo}.png` : "obra.png");
+    formData.append("titulo", titulo);
+    formData.append("tecnica", tecnica);
+    formData.append("anio", year ? year.toString() : "");
+    formData.append("autor", session?.user?.name || "Usuario");
+    formData.append("userId", session?.user?.id || "");
+
+    try {
+      const response = await fetch("/api/murales", {
+        method: "POST",
+        body: formData,
+      });
+      if (response.ok) {
+        const result = await response.json();
+        onCreate(result);
+        toast.success("Obra creada exitosamente");
+        onClose();
+        reset();
+      } else {
+        const err = await response.json();
+        toast.error(err.error || "Error al crear la obra");
+      }
+    } catch (error) {
+      toast.error("Error al crear la obra");
+      console.error(error);
+    }
+  };
+
+  // Determinar si estamos en el paso de canvas
+  const isCanvasStep = step === 1 && imgMode === "canvas";
+
+  const [cursorPos, setCursorPos] = useState(null);
+  const handleMouseMove = (e) => {
+    const { x, y } = getScaledCoords(e);
+    setCursorPos({ x, y });
+    if (isDrawing) draw(e);
+  };
+  const handleMouseLeave = () => {
+    setCursorPos(null);
+    stopDrawing();
   };
 
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="bg-background dark:bg-neutral-900 border border-border rounded-2xl shadow-2xl w-full max-w-lg mx-auto p-0 overflow-hidden flex flex-col"
+        className={`fixed bg-background dark:bg-neutral-900 border border-border rounded-2xl shadow-2xl w-full ${isCanvasStep ? "max-w-5xl min-h-[700px]" : "max-w-lg"} mx-auto p-0 overflow-hidden flex flex-col z-[99999]`}
+        style={isCanvasStep ? { minHeight: 700, minWidth: 0 } : {}}
       >
+        {/* Header */}
         <div className="px-8 pt-8 pb-4 border-b border-border">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-xl font-bold text-foreground">Crear nueva obra</h2>
@@ -654,35 +849,55 @@ function CrearObraModal({ isOpen, onClose, onCreate }) {
             ))}
           </div>
         </div>
-        <div className="flex-1 px-8 py-6 flex flex-col gap-6">
+        {/* Contenido principal */}
+        <div className="flex-1 px-8 py-6 flex flex-col gap-6 justify-center">
           {step === 0 && (
             <>
-              <input
+              <motion.input
                 type="text"
                 placeholder="Título de la obra"
                 value={titulo}
-                onChange={e => setTitulo(e.target.value)}
+                onChange={e => {
+                  setTitulo(e.target.value);
+                  if (errors.titulo) setErrors(prev => ({ ...prev, titulo: undefined }));
+                }}
                 className="w-full px-4 py-3 rounded-xl border text-base bg-background dark:bg-neutral-800 border-border text-foreground dark:text-neutral-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                animate={errors.titulo ? { x: [0, -8, 8, -6, 6, -4, 4, 0, Math.random()] } : false}
+                transition={{ duration: 0.4 }}
               />
               {errors.titulo && <div className="text-pink-500 text-sm">{errors.titulo}</div>}
-              <input
+              <motion.input
                 type="text"
                 placeholder="Técnica"
                 value={tecnica}
-                onChange={e => setTecnica(e.target.value)}
+                onChange={e => {
+                  setTecnica(e.target.value);
+                  if (errors.tecnica) setErrors(prev => ({ ...prev, tecnica: undefined }));
+                }}
                 className="w-full px-4 py-3 rounded-xl border text-base bg-background dark:bg-neutral-800 border-border text-foreground dark:text-neutral-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                animate={errors.tecnica ? { x: [0, -8, 8, -6, 6, -4, 4, 0, Math.random()] } : false}
+                transition={{ duration: 0.4 }}
               />
               {errors.tecnica && <div className="text-pink-500 text-sm">{errors.tecnica}</div>}
-              <DatePicker
-                value={year ? `${year}-01-01` : ""}
-                onChange={dateString => {
-                  if (dateString) {
-                    const d = new Date(dateString);
-                    setYear(d.getFullYear());
-                  }
-                }}
-                placeholder="Selecciona el año..."
-              />
+              <motion.div
+                animate={errors.year ? { x: [0, -8, 8, -6, 6, -4, 4, 0, Math.random()] } : false}
+                transition={{ duration: 0.4 }}
+              >
+                <DatePicker
+                  value={year ? `${year}-01-01` : null}
+                  onChange={dateString => {
+                    if (dateString) {
+                      const d = new Date(dateString);
+                      setYear(d.getFullYear());
+                      if (errors.year) setErrors(prev => ({ ...prev, year: undefined }));
+                    } else {
+                      setYear(null);
+                    }
+                  }}
+                  placeholder="Selecciona el año..."
+                />
+              </motion.div>
+              {errors.year && <div className="text-pink-500 text-sm">{errors.year}</div>}
             </>
           )}
           {step === 1 && (
@@ -715,43 +930,87 @@ function CrearObraModal({ isOpen, onClose, onCreate }) {
                 </>
               )}
               {imgMode === "canvas" && (
-                <div className="flex flex-col gap-4">
-                  <div className="flex gap-2 items-center">
-                    <label className="font-medium">Fondo:</label>
-                    <input type="file" accept="image/*" onChange={handleCanvasBgChange} />
-                  </div>
-                  <div className="flex gap-2 items-center">
-                    <label className="font-medium">Pincel:</label>
-                    <select value={brushType} onChange={e => setBrushType(e.target.value)} className="rounded border px-2 py-1">
-                      <option value="brush">Pincel</option>
-                      <option value="aerosol">Aerosol</option>
-                      <option value="carboncillo">Carboncillo</option>
-                      <option value="acuarela">Acuarela</option>
-                    </select>
-                    <input type="color" value={brushColor} onChange={e => setBrushColor(e.target.value)} className="w-8 h-8 rounded" />
-                    <input type="range" min="1" max="40" value={brushSize} onChange={e => setBrushSize(Number(e.target.value))} />
-                    <span className="text-xs">{brushSize}px</span>
-                  </div>
-                  <div className="relative bg-white dark:bg-neutral-800 border rounded-xl overflow-hidden">
-                    <canvas
-                      ref={canvasRef}
-                      width={400}
-                      height={300}
-                      style={{ width: "100%", height: 300, background: "#fff", borderRadius: 12, display: "block" }}
-                      onMouseDown={startDrawing}
-                      onMouseMove={draw}
-                      onMouseUp={stopDrawing}
-                      onMouseLeave={stopDrawing}
-                    />
-                    {canvasBg && (
-                      <img
-                        src={canvasBg}
-                        alt="bg"
-                        style={{ position: "absolute", left: 0, top: 0, width: "100%", height: 300, objectFit: "cover", opacity: 0.3, pointerEvents: "none" }}
-                      />
-                    )}
-                  </div>
-                </div>
+                (() => {
+                  const cursorType = brushType === 'eraser' ? 'x' : brushType === 'hand' ? 'hand' : 'circle';
+                  return (
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                      {/* Panel de herramientas */}
+                      <div className="lg:col-span-1 space-y-6">
+                        {/* Herramientas */}
+                        <div className="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4 flex flex-col gap-4">
+                          <h3 className="font-semibold mb-3">Herramientas</h3>
+                          <div {...getBgRootProps()} className={`w-full border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition relative ${isBgDragActive ? "border-indigo-500 bg-indigo-50" : "border-border bg-muted/40"}`}>
+                            <input {...getBgInputProps()} />
+                            {canvasBg ? (
+                              <div className="relative inline-block w-full">
+                                <img src={canvasBg} alt="bg" className="w-full max-h-32 object-contain rounded-xl border mx-auto" />
+                                <button
+                                  type="button"
+                                  onClick={e => { e.stopPropagation(); setCanvasBg(null); }}
+                                  className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 z-10"
+                                  tabIndex={-1}
+                                  aria-label="Eliminar fondo"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">Arrastra una imagen de fondo aquí o haz clic para seleccionar</span>
+                            )}
+                          </div>
+                          <div className="flex gap-2 items-center mb-3">
+                            <label className="font-medium">Pincel:</label>
+                            <select value={brushType} onChange={e => setBrushType(e.target.value)} className="rounded border px-2 py-1">
+                              <option value="brush">Pincel</option>
+                              <option value="aerosol">Aerosol</option>
+                              <option value="carboncillo">Carboncillo</option>
+                              <option value="acuarela">Acuarela</option>
+                            </select>
+                          </div>
+                          <div className="mb-3">
+                            <label className="font-medium mr-2">Color:</label>
+                            <input type="color" value={brushColor} onChange={e => setBrushColor(e.target.value)} className="w-8 h-8 rounded align-middle" />
+                          </div>
+                          <div className="mt-2 mb-3">
+                            <input
+                              type="range"
+                              min="1"
+                              max="50"
+                              value={brushSize}
+                              onChange={e => setBrushSize(parseInt(e.target.value))}
+                              className="w-full max-w-xs"
+                            />
+                            <div className="text-center mt-2 text-sm text-gray-600 dark:text-gray-400">{brushSize}px</div>
+                          </div>
+                          <div className="flex gap-2 mb-3">
+                            <button onClick={() => {
+                              const canvas = canvasRef.current;
+                              const ctx = canvas.getContext('2d');
+                              ctx.fillStyle = '#FFFFFF';
+                              ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            }} className="px-3 py-1 rounded bg-red-600 text-white text-xs font-bold hover:bg-red-700">Limpiar</button>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Canvas grande */}
+                      <div className="lg:col-span-3 flex items-center justify-center">
+                        <div style={{ position: "relative", width: "100%", maxWidth: 900, aspectRatio: "4/3" }}>
+                          <canvas
+                            ref={canvasRef}
+                            width={800}
+                            height={600}
+                            style={{ width: "100%", height: "100%", display: "block", background: "#fff", borderRadius: 12 }}
+                            onMouseDown={startDrawing}
+                            onMouseMove={handleMouseMove}
+                            onMouseUp={stopDrawing}
+                            onMouseLeave={handleMouseLeave}
+                          />
+                          {cursorPos && null}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()
               )}
             </>
           )}
@@ -767,6 +1026,7 @@ function CrearObraModal({ isOpen, onClose, onCreate }) {
             </div>
           )}
         </div>
+        {/* Footer */}
         <div className="flex items-center justify-between gap-4 px-8 py-4 border-t border-border bg-muted/40">
           <button
             onClick={onClose}
@@ -804,6 +1064,13 @@ function CrearObraModal({ isOpen, onClose, onCreate }) {
     </div>
   );
 }
+
+// Hotspot offsets para cada tipo de cursor visual
+const cursorHotspot = {
+  circle: { x: 5, y: 5 }, // centro
+  x: { x: 12, y: 12 }, // ejemplo: centro de una X de 24x24px
+  hand: { x: 8, y: 2 }, // ejemplo: punta del dedo en un SVG de mano de 24x24px
+};
 
 export default function MisObras() {
   const { data: session, status } = useSession();
@@ -1319,6 +1586,7 @@ export default function MisObras() {
         isOpen={showCrearObraModal}
         onClose={() => setShowCrearObraModal(false)}
         onCreate={obra => setMurales([obra, ...murales])}
+        session={session}
       />
     </div>
   );

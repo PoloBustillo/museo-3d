@@ -22,6 +22,7 @@ import { useCardMouseGlow } from "../hooks/useCardMouseGlow";
 import { useTheme } from "../../providers/ThemeProvider";
 import { useSessionData } from "../../providers/SessionProvider";
 import { useCrearSalaStore } from "./crearSalaStore";
+import Stepper from "../../components/ui/Stepper";
 
 // Componentes de fondo animado (copiados de acerca-de)
 function AnimatedBlobsBackground() {
@@ -77,12 +78,10 @@ const schemaStep1 = yup.object().shape({
 });
 // Esquema para el paso 2 (textura y piso)
 const schemaStep2 = yup.object().shape({
-  textura: yup.string().required("Selecciona una textura de pared"),
+  texturaPared: yup.string().required("Selecciona una textura de pared"),
   color: yup.string().nullable(),
-  texturaPared: yup.string().nullable(),
-  texturaPiso: yup.string().nullable(),
+  texturaPiso: yup.string().required("Selecciona una textura de piso"),
   colorParedes: yup.string().required("Selecciona un color de pared"),
-  piso: yup.string().required("Selecciona una textura de piso"),
   tema: yup.string().nullable(),
 });
 // Esquema para el paso 3 (musica y otros)
@@ -495,83 +494,17 @@ export default function CrearSala() {
   };
 
   // Stepper visual mejorado, ahora dentro de la card
-  const Stepper = (
-    <div className="w-full flex flex-col items-center mb-8">
-      <div className="flex items-end justify-center gap-4 w-full">
-        {steps.map((s, i) => {
-          const isActive = i === step;
-          const isDark = theme === "dark";
-          return (
-            <motion.div
-              key={i}
-              initial={false}
-              animate={isActive ? { scale: 1.18, y: -6 } : { scale: 1, y: 0 }}
-              transition={{ type: "spring", stiffness: 400, damping: 18 }}
-              className="flex flex-col items-center flex-1 min-w-[110px]"
-            >
-              <div className="relative flex items-center justify-center">
-                {isActive && (
-                  <motion.div
-                    layoutId="step-glow"
-                    className={`absolute z-0 w-20 h-20 md:w-28 md:h-28 rounded-full ${
-                      isDark ? "bg-indigo-400/40" : "bg-indigo-500/30"
-                    } blur-3xl animate-pulse`}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1, scale: [1, 1.2, 1] }}
-                    exit={{ opacity: 0 }}
-                    transition={{
-                      duration: 0.7,
-                      repeat: Infinity,
-                      repeatType: "reverse",
-                    }}
-                  />
-                )}
-                <div
-                  className={`relative z-10 w-14 h-14 flex items-center justify-center rounded-full font-extrabold text-2xl border-4 transition-all duration-300 select-none
-                    ${
-                      isActive
-                        ? `${
-                            isDark
-                              ? "bg-indigo-400 text-white border-indigo-300"
-                              : "bg-indigo-600 text-white border-indigo-700"
-                          } shadow-2xl animate-bounce`
-                        : `${
-                            isDark
-                              ? "bg-slate-800 text-indigo-200 border-indigo-900"
-                              : "bg-white text-indigo-700 border-indigo-200"
-                          }`
-                    }
-                  `}
-                  style={{
-                    boxShadow: isActive
-                      ? isDark
-                        ? "0 0 0 12px #818cf822"
-                        : "0 0 0 12px #a5b4fc22"
-                      : undefined,
-                  }}
-                >
-                  {i + 1}
-                </div>
-              </div>
-              <div
-                className={
-                  `mt-3 text-sm font-semibold text-center min-w-[110px] h-10 flex items-center justify-center` +
-                  (isActive
-                    ? isDark
-                      ? " text-indigo-200"
-                      : " text-indigo-700"
-                    : isDark
-                    ? " text-indigo-400"
-                    : " text-gray-400")
-                }
-              >
-                {s.label}
-              </div>
-            </motion.div>
-          );
-        })}
-      </div>
-    </div>
+  // Reemplazado por el Stepper reutilizable
+  const StepperVisual = (
+    <Stepper
+      steps={steps}
+      activeStep={step}
+      color="indigo"
+      className="mb-8"
+      onStepClick={(i) => {
+        if (i < step) setStep(i);
+      }}
+    />
   );
 
   // Step 1: Sala config (animación mejorada + shake si error)
@@ -1017,7 +950,7 @@ export default function CrearSala() {
             onMouseMove={cardGlow.handleMouseMove}
             onMouseLeave={cardGlow.handleMouseLeave}
           >
-            {Stepper}
+            {StepperVisual}
             <form onSubmit={handleSubmit} className="w-full">
               <AnimatePresence initial={false} custom={direction} mode="wait">
                 {step === 0 && StepSala}

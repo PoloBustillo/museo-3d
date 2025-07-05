@@ -80,8 +80,50 @@ export async function PUT(req, context) {
   const { id } = params;
 
   try {
-    const data = await req.json();
+    const contentType = req.headers.get("content-type") || "";
+    let data;
+    let file;
+    let url_imagen = undefined;
 
+    if (contentType.includes("application/json")) {
+      data = await req.json();
+      url_imagen = data.url_imagen || data.imagenUrl;
+    } else if (contentType.includes("multipart/form-data")) {
+      const form = await req.formData();
+      data = Object.fromEntries(form.entries());
+      file = form.get("imagen");
+      url_imagen = data.url_imagen || data.imagenUrl;
+      // Si recibimos archivo, subimos a Cloudinary
+      if (
+        file &&
+        typeof file === "object" &&
+        file.type &&
+        file.type.startsWith("image/")
+      ) {
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        const cloudinary = require("../../../utils/cloudinary").default;
+        const upload = await new Promise((resolve, reject) => {
+          cloudinary.uploader
+            .upload_stream({ folder: "murales" }, (err, result) => {
+              if (err) reject(err);
+              else resolve(result);
+            })
+            .end(buffer);
+        });
+        url_imagen = upload.secure_url;
+      }
+    } else {
+      return new Response(
+        JSON.stringify({ error: "Content-Type no soportado." }),
+        {
+          status: 415,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Actualizar mural
     const mural = await prisma.mural.update({
       where: { id: Number(id) },
       data: {
@@ -93,11 +135,16 @@ export async function PUT(req, context) {
         ubicacion: data.ubicacion,
         dimensiones: data.dimensiones,
         estado: data.estado,
-        imagenUrl: data.imagenUrl,
+        url_imagen: url_imagen,
+        imagenUrl: url_imagen, // por compatibilidad
         imagenUrlWebp: data.imagenUrlWebp,
         latitud: data.latitud ? parseFloat(data.latitud) : null,
         longitud: data.longitud ? parseFloat(data.longitud) : null,
-        anio: data.anio ? Number(data.anio) : null,
+        anio: data.anio
+          ? Number(data.anio)
+          : data.year
+          ? Number(data.year)
+          : null,
       },
       include: {
         salas: {
