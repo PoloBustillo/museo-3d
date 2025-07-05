@@ -4,7 +4,6 @@ import { useSession } from "next-auth/react";
 import { toast } from "react-hot-toast";
 import { PageLoader, SectionLoader } from "../../components/LoadingSpinner";
 import GalleryCarousel from "../../components/GalleryCarousel";
-import GraffitiBackground from "../acerca-de/GraffitiBackground";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 

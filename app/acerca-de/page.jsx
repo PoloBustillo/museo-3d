@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import GraffitiBackground from "./GraffitiBackground";
 import { useRandomMurals } from "../hooks/useRandomMurals";
 import { SectionLoader } from "../../components/LoadingSpinner";
 import React, { useState } from "react";
@@ -74,13 +73,17 @@ function MuralImage({
   );
 }
 
+// Fondo animado de blobs para la página Acerca de
 function AnimatedBlobsBackground() {
   return (
     <>
-      <div className="absolute top-0 left-0 w-[520px] h-[520px] bg-orange-300/60 dark:bg-orange-700/30 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe" />
-      <div className="absolute bottom-0 right-0 w-[520px] h-[520px] bg-pink-300/60 dark:bg-pink-700/30 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe-delayed" />
+      {/* Blob superior izquierdo: celeste suave */}
+      <div className="absolute top-0 left-0 w-[520px] h-[520px] bg-sky-200/60 dark:bg-orange-700/30 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe" />
+      {/* Blob inferior derecho: lila suave */}
+      <div className="absolute bottom-0 right-0 w-[520px] h-[520px] bg-violet-200/60 dark:bg-pink-700/30 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe-delayed" />
+      {/* Blob central: amarillo pastel */}
       <div
-        className="absolute top-1/2 left-1/2 w-[340px] h-[340px] bg-fuchsia-200/50 dark:bg-fuchsia-800/20 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe"
+        className="absolute top-1/2 left-1/2 w-[340px] h-[340px] bg-yellow-100/50 dark:bg-fuchsia-800/20 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe"
         style={{ transform: "translate(-50%,-50%) scale(1.2)" }}
       />
     </>
@@ -138,7 +141,6 @@ export default function AcercaDe() {
       <div className="pointer-events-none absolute inset-0 w-full h-full z-0">
         <AnimatedBlobsBackground />
         <DotsPattern />
-        <GraffitiBackground />
       </div>
       <main className="relative z-10 w-full max-w-5xl mx-auto flex flex-col gap-16 px-4 sm:px-8 py-8 md:py-12">
         {/* Hero Section */}

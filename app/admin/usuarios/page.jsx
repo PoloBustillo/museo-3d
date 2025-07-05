@@ -5,7 +5,6 @@ import { useSession } from "next-auth/react";
 import { Input } from "../../components/ui/input";
 import { Select, SelectItem } from "../../components/ui/select";
 import { Button } from "../../components/ui/button";
-import GraffitiBackground from "../../acerca-de/GraffitiBackground";
 import defaultAvatar from "public/assets/default-avatar.svg";
 import { User as UserIcon, Mail as MailIcon, UserCog as RoleIcon, User2 as User2Icon, Settings as SettingsIcon } from "lucide-react";
 import UserAvatarCell from "../../components/admin/usuarios/UserAvatarCell";
@@ -50,7 +49,6 @@ export default function AdminUsuariosPage() {
         <div className="pointer-events-none absolute inset-0 w-full h-full z-0">
           <AnimatedBlobsBackground />
           <DotsPattern />
-          <GraffitiBackground />
         </div>
         <div className="relative z-10 w-full max-w-4xl mx-auto flex flex-col gap-8 px-2 sm:px-8 py-8 md:py-14">
           <h1 className="text-2xl font-bold mb-6 text-foreground">Administrar usuarios</h1>
