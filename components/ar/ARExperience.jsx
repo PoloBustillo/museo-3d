@@ -24,6 +24,14 @@ export default function ARExperience({
   const [fixedPosition, setFixedPosition] = useState(null);
   const [modelRotation, setModelRotation] = useState({ x: 0, y: 0, z: 0 });
   const textureRef = useRef();
+  
+  // Referencias para controles AR como sprites de Three.js
+  const arControlsRef = useRef({
+    instructionsSprite: null,
+    rotationSprites: [],
+    mainButtonSprite: null,
+    toggleSprite: null
+  });
 
   // Inicializar Three.js
   useEffect(() => {
@@ -185,268 +193,259 @@ export default function ARExperience({
     };
   }, [modelLoaded]);
 
-  // AR Management con controles DOM nativos
+  // AR Management con controles Three.js Sprites
   useEffect(() => {
     if (!rendererRef.current || !modelRef.current) return;
 
     const renderer = rendererRef.current;
     const model = modelRef.current;
 
-    // Crear controles AR como elementos DOM nativos
-    let arControlsContainer = null;
-    let instructionsEl = null;
-    let rotationControlsEl = null;
-    let mainButtonEl = null;
-    let toggleButtonEl = null;
+    // Función para crear un sprite con texto/botón
+    function createTextSprite(text, options = {}) {
+      const {
+        fontSize = 64,
+        fontColor = '#ffffff',
+        backgroundColor = 'rgba(0,0,0,0.8)',
+        borderColor = '#ff6600',
+        borderWidth = 4,
+        padding = 20,
+        borderRadius = 15,
+        width = null,
+        height = null
+      } = options;
 
-    function createARControls() {
-      // Container principal
-      arControlsContainer = document.createElement('div');
-      arControlsContainer.id = 'ar-controls-container';
-      arControlsContainer.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        pointer-events: none;
-        z-index: 99999999;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      `;
+      // Crear canvas para el texto
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
       
-      // Instrucciones
-      instructionsEl = document.createElement('div');
-      instructionsEl.style.cssText = `
-        position: fixed;
-        top: 10px;
-        left: 10px;
-        right: 10px;
-        background: rgba(0,0,0,0.95);
-        color: white;
-        padding: 15px;
-        border-radius: 12px;
-        font-size: 16px;
-        text-align: center;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.8);
-        pointer-events: none;
-      `;
+      // Configurar font
+      context.font = `bold ${fontSize}px Arial, sans-serif`;
+      const textMetrics = context.measureText(text);
       
-      // Controles de rotación
-      rotationControlsEl = document.createElement('div');
-      rotationControlsEl.style.cssText = `
-        position: fixed;
-        left: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        pointer-events: auto;
-      `;
+      // Calcular dimensiones
+      const textWidth = textMetrics.width;
+      const textHeight = fontSize;
+      const canvasWidth = width || textWidth + padding * 2;
+      const canvasHeight = height || textHeight + padding * 2;
       
-      // Crear botones de rotación
-      const rotationLabel = document.createElement('div');
-      rotationLabel.textContent = 'ROTAR';
-      rotationLabel.style.cssText = `
-        font-size: 12px;
-        color: white;
-        text-align: center;
-        font-weight: bold;
-        margin-bottom: 5px;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-      `;
-      rotationControlsEl.appendChild(rotationLabel);
+      canvas.width = canvasWidth;
+      canvas.height = canvasHeight;
       
-      const rotationButtons = [
-        { text: '⬆️', axis: 'x', angle: 0.1 },
-        { text: '⬇️', axis: 'x', angle: -0.1 },
-        { text: '⬅️', axis: 'y', angle: 0.1 },
-        { text: '➡️', axis: 'y', angle: -0.1 },
-        { text: '↗️', axis: 'z', angle: 0.1 },
-        { text: '↙️', axis: 'z', angle: -0.1 }
-      ];
+      // Dibujar fondo con bordes redondeados
+      context.fillStyle = backgroundColor;
+      context.strokeStyle = borderColor;
+      context.lineWidth = borderWidth;
       
-      rotationButtons.forEach(btn => {
-        const button = document.createElement('button');
-        button.textContent = btn.text;
-        button.style.cssText = `
-          width: 55px;
-          height: 55px;
-          background: rgba(255,255,255,0.95);
-          border: 3px solid #FF6600;
-          border-radius: 15px;
-          font-size: 22px;
-          cursor: pointer;
-          box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          pointer-events: auto;
-          touch-action: manipulation;
-          user-select: none;
-        `;
-        button.addEventListener('click', () => {
-          setModelRotation(prev => ({
-            ...prev,
-            [btn.axis]: prev[btn.axis] + btn.angle
-          }));
-        });
-        rotationControlsEl.appendChild(button);
+      // Función para dibujar rectángulo con bordes redondeados
+      function roundRect(x, y, w, h, r) {
+        context.beginPath();
+        context.moveTo(x + r, y);
+        context.lineTo(x + w - r, y);
+        context.quadraticCurveTo(x + w, y, x + w, y + r);
+        context.lineTo(x + w, y + h - r);
+        context.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        context.lineTo(x + r, y + h);
+        context.quadraticCurveTo(x, y + h, x, y + h - r);
+        context.lineTo(x, y + r);
+        context.quadraticCurveTo(x, y, x + r, y);
+        context.closePath();
+      }
+      
+      roundRect(borderWidth/2, borderWidth/2, canvasWidth - borderWidth, canvasHeight - borderWidth, borderRadius);
+      context.fill();
+      context.stroke();
+      
+      // Dibujar texto
+      context.fillStyle = fontColor;
+      context.font = `bold ${fontSize}px Arial, sans-serif`;
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      context.fillText(text, canvasWidth/2, canvasHeight/2);
+      
+      // Crear textura y sprite
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      
+      const spriteMaterial = new THREE.SpriteMaterial({ 
+        map: texture,
+        transparent: true,
+        alphaTest: 0.1
       });
       
-      // Botón principal de acción
-      mainButtonEl = document.createElement('button');
-      mainButtonEl.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        left: 20px;
-        right: 20px;
-        width: calc(100vw - 40px);
-        padding: 18px 24px;
-        background: #00C851;
-        color: white;
-        border: none;
-        border-radius: 15px;
-        cursor: pointer;
-        font-size: 18px;
-        font-weight: bold;
-        box-shadow: 0 6px 25px rgba(0,200,81,0.4);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        touch-action: manipulation;
-        pointer-events: auto;
-        user-select: none;
-      `;
+      const sprite = new THREE.Sprite(spriteMaterial);
       
-      // Toggle mundo real/virtual
-      toggleButtonEl = document.createElement('button');
-      toggleButtonEl.style.cssText = `
-        position: fixed;
-        top: 90px;
-        right: 10px;
-        padding: 10px 16px;
-        background: rgba(0,150,0,0.95);
-        color: white;
-        border: none;
-        border-radius: 25px;
-        cursor: pointer;
-        font-size: 12px;
-        font-weight: 600;
-        box-shadow: 0 3px 15px rgba(0,0,0,0.4);
-        min-width: 120px;
-        touch-action: manipulation;
-        pointer-events: auto;
-        user-select: none;
-      `;
-      toggleButtonEl.textContent = '🌍 Real';
+      // Escalar sprite basado en el canvas
+      const scale = 0.005; // Factor de escala para AR
+      sprite.scale.set(canvasWidth * scale, canvasHeight * scale, 1);
       
-      // Agregar event listeners
-      mainButtonEl.addEventListener('click', () => {
-        if (model && modelRef.current) {
+      return sprite;
+    }
+
+    // Función para crear controles AR como sprites
+    function createARSprites() {
+      const controls = arControlsRef.current;
+      
+      // Limpiar controles existentes
+      if (controls.instructionsSprite) {
+        sceneRef.current.remove(controls.instructionsSprite);
+      }
+      controls.rotationSprites.forEach(sprite => {
+        sceneRef.current.remove(sprite);
+      });
+      if (controls.mainButtonSprite) {
+        sceneRef.current.remove(controls.mainButtonSprite);
+      }
+      if (controls.toggleSprite) {
+        sceneRef.current.remove(controls.toggleSprite);
+      }
+      
+      // Reset arrays
+      controls.rotationSprites = [];
+      
+      // Crear instrucciones
+      const instructionsText = arMode === 'positioning' 
+        ? '🖼️ Posiciona tu cuadro\nMueve el teléfono y usa controles'
+        : '✅ Cuadro colocado\nCamina alrededor para verlo';
+        
+      controls.instructionsSprite = createTextSprite(instructionsText, {
+        fontSize: 32,
+        backgroundColor: 'rgba(0,0,0,0.9)',
+        width: 400,
+        height: 100
+      });
+      controls.instructionsSprite.position.set(0, 1.5, -0.5);
+      sceneRef.current.add(controls.instructionsSprite);
+      
+      // Crear controles de rotación (solo en modo positioning)
+      if (arMode === 'positioning') {
+        const rotationButtons = [
+          { text: '⬆️', position: [-0.8, 0.8, -0.5], axis: 'x', angle: 0.1 },
+          { text: '⬇️', position: [-0.8, 0.6, -0.5], axis: 'x', angle: -0.1 },
+          { text: '⬅️', position: [-0.8, 0.4, -0.5], axis: 'y', angle: 0.1 },
+          { text: '➡️', position: [-0.8, 0.2, -0.5], axis: 'y', angle: -0.1 },
+          { text: '↗️', position: [-0.8, 0.0, -0.5], axis: 'z', angle: 0.1 },
+          { text: '↙️', position: [-0.8, -0.2, -0.5], axis: 'z', angle: -0.1 }
+        ];
+        
+        rotationButtons.forEach(btn => {
+          const sprite = createTextSprite(btn.text, {
+            fontSize: 48,
+            backgroundColor: 'rgba(255,255,255,0.95)',
+            borderColor: '#FF6600',
+            width: 80,
+            height: 80
+          });
+          sprite.position.set(...btn.position);
+          sprite.userData = { axis: btn.axis, angle: btn.angle, type: 'rotation' };
+          controls.rotationSprites.push(sprite);
+          sceneRef.current.add(sprite);
+        });
+      }
+      
+      // Crear botón principal
+      const mainButtonText = arMode === 'positioning' 
+        ? '📍 COLOCAR CUADRO AQUÍ' 
+        : '🔄 CAMBIAR POSICIÓN';
+      const mainButtonColor = arMode === 'positioning' ? 'rgba(0,200,81,0.9)' : 'rgba(255,136,0,0.9)';
+      
+      controls.mainButtonSprite = createTextSprite(mainButtonText, {
+        fontSize: 36,
+        backgroundColor: mainButtonColor,
+        borderColor: '#ffffff',
+        width: 350,
+        height: 80
+      });
+      controls.mainButtonSprite.position.set(0, -0.8, -0.5);
+      controls.mainButtonSprite.userData = { type: 'mainButton' };
+      sceneRef.current.add(controls.mainButtonSprite);
+      
+      // Crear toggle
+      const toggleText = showRealWorld ? '🌍 Real' : '🎨 Virtual';
+      const toggleColor = showRealWorld ? 'rgba(0,150,0,0.95)' : 'rgba(100,100,255,0.95)';
+      
+      controls.toggleSprite = createTextSprite(toggleText, {
+        fontSize: 28,
+        backgroundColor: toggleColor,
+        width: 120,
+        height: 50
+      });
+      controls.toggleSprite.position.set(0.8, 1.2, -0.5);
+      controls.toggleSprite.userData = { type: 'toggle' };
+      sceneRef.current.add(controls.toggleSprite);
+    }
+
+    // Exponer función globalmente para actualizaciones
+    window.createARSprites = createARSprites;
+
+    // Función para manejar clicks en sprites usando raycasting
+    function handleSpriteClick(event) {
+      if (!renderer.xr.isPresenting || !cameraRef.current) return;
+      
+      // Crear raycaster
+      const raycaster = new THREE.Raycaster();
+      const mouse = new THREE.Vector2();
+      
+      // Calcular posición del mouse/touch normalizada
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      
+      // Configurar raycaster
+      raycaster.setFromCamera(mouse, cameraRef.current);
+      
+      // Obtener todos los sprites
+      const sprites = [
+        ...arControlsRef.current.rotationSprites,
+        arControlsRef.current.mainButtonSprite,
+        arControlsRef.current.toggleSprite
+      ].filter(Boolean);
+      
+      // Verificar intersecciones
+      const intersects = raycaster.intersectObjects(sprites);
+      
+      if (intersects.length > 0) {
+        const clickedSprite = intersects[0].object;
+        const userData = clickedSprite.userData;
+        
+        if (userData.type === 'rotation') {
+          // Manejar rotación
+          setModelRotation(prev => ({
+            ...prev,
+            [userData.axis]: prev[userData.axis] + userData.angle
+          }));
+        } else if (userData.type === 'mainButton') {
+          // Manejar botón principal
           if (arMode === 'positioning') {
-            // Fijar posición
-            setFixedPosition({
-              position: modelRef.current.position.clone(),
-              rotation: modelRef.current.rotation.clone()
-            });
-            setArMode('fixed');
+            if (modelRef.current) {
+              setFixedPosition({
+                position: modelRef.current.position.clone(),
+                rotation: modelRef.current.rotation.clone()
+              });
+              setArMode('fixed');
+            }
           } else {
-            // Reposicionar
             setArMode('positioning');
             setFixedPosition(null);
             setModelRotation({ x: 0, y: 0, z: 0 });
           }
-        }
-      });
-      
-      toggleButtonEl.addEventListener('click', () => {
-        setShowRealWorld(prev => {
-          const newValue = !prev;
-          // Actualizar escena inmediatamente
-          if (sceneRef.current) {
-            if (newValue) {
-              // Mundo real - fondo transparente
-              sceneRef.current.background = null;
-              sceneRef.current.environment = null;
-            } else {
-              // Ambiente virtual
-              if (textureRef.current) {
-                sceneRef.current.background = textureRef.current;
-                sceneRef.current.environment = textureRef.current;
+        } else if (userData.type === 'toggle') {
+          // Manejar toggle
+          setShowRealWorld(prev => {
+            const newValue = !prev;
+            if (sceneRef.current) {
+              if (newValue) {
+                sceneRef.current.background = null;
+                sceneRef.current.environment = null;
+              } else {
+                if (textureRef.current) {
+                  sceneRef.current.background = textureRef.current;
+                  sceneRef.current.environment = textureRef.current;
+                }
               }
             }
-          }
-          return newValue;
-        });
-      });
-      
-      // Agregar al DOM
-      arControlsContainer.appendChild(instructionsEl);
-      arControlsContainer.appendChild(rotationControlsEl);
-      arControlsContainer.appendChild(mainButtonEl);
-      arControlsContainer.appendChild(toggleButtonEl);
-      document.body.appendChild(arControlsContainer);
-      
-      // Event listener para actualizaciones
-      const handleUpdate = () => updateARControls();
-      document.addEventListener('updateARControls', handleUpdate);
-      
-      // Cleanup del event listener
-      arControlsContainer._cleanup = () => {
-        document.removeEventListener('updateARControls', handleUpdate);
-      };
-    }
-    
-    function updateARControls() {
-      if (!instructionsEl || !mainButtonEl || !rotationControlsEl) return;
-      
-      // Actualizar instrucciones
-      if (arMode === 'positioning') {
-        instructionsEl.innerHTML = `
-          🖼️ <strong>Posiciona tu cuadro</strong><br />
-          <span style="font-size: 14px; opacity: 0.9;">
-            Mueve el teléfono y usa los controles para el ángulo perfecto
-          </span>
-        `;
-        mainButtonEl.textContent = '📍 COLOCAR CUADRO AQUÍ';
-        mainButtonEl.style.background = '#00C851';
-        rotationControlsEl.style.display = 'flex';
-      } else {
-        instructionsEl.innerHTML = `
-          ✅ <strong>Cuadro colocado</strong><br />
-          <span style="font-size: 14px; opacity: 0.9;">
-            Camina alrededor para admirarlo desde todos los ángulos
-          </span>
-        `;
-        mainButtonEl.textContent = '🔄 CAMBIAR POSICIÓN';
-        mainButtonEl.style.background = '#FF8800';
-        rotationControlsEl.style.display = 'none';
-      }
-      
-      // Actualizar toggle
-      if (showRealWorld) {
-        toggleButtonEl.textContent = '🌍 Real';
-        toggleButtonEl.style.background = 'rgba(0,150,0,0.95)';
-      } else {
-        toggleButtonEl.textContent = '🎨 Virtual';
-        toggleButtonEl.style.background = 'rgba(100,100,255,0.95)';
-      }
-    }
-    
-    function removeARControls() {
-      if (arControlsContainer && arControlsContainer.parentNode) {
-        // Cleanup event listeners
-        if (arControlsContainer._cleanup) {
-          arControlsContainer._cleanup();
+            return newValue;
+          });
         }
-        arControlsContainer.parentNode.removeChild(arControlsContainer);
-        arControlsContainer = null;
-        instructionsEl = null;
-        rotationControlsEl = null;
-        mainButtonEl = null;
-        toggleButtonEl = null;
       }
     }
 
@@ -457,12 +456,16 @@ export default function ARExperience({
       setFixedPosition(null);
       setModelRotation({ x: 0, y: 0, z: 0 });
       
-      // Crear controles AR nativos
-      createARControls();
+      // Crear controles AR como sprites
+      createARSprites();
+      
+      // Agregar event listener para clicks
+      renderer.domElement.addEventListener('click', handleSpriteClick);
+      renderer.domElement.addEventListener('touchend', handleSpriteClick);
       
       // Posicionar para AR (modo búsqueda inicial)
-      model.position.set(0, 0, -0.8); // Un poco más lejos para mejor visibilidad
-      model.scale.setScalar(0.15); // Más grande para facilitar posicionamiento
+      model.position.set(0, 0, -0.8);
+      model.scale.setScalar(0.15);
       
       // Configurar fondo transparente para AR
       if (sceneRef.current) {
@@ -493,8 +496,28 @@ export default function ARExperience({
       setFixedPosition(null);
       setModelRotation({ x: 0, y: 0, z: 0 });
       
-      // Remover controles AR
-      removeARControls();
+      // Remover event listeners
+      renderer.domElement.removeEventListener('click', handleSpriteClick);
+      renderer.domElement.removeEventListener('touchend', handleSpriteClick);
+      
+      // Limpiar sprites AR
+      const controls = arControlsRef.current;
+      if (controls.instructionsSprite) {
+        sceneRef.current.remove(controls.instructionsSprite);
+        controls.instructionsSprite = null;
+      }
+      controls.rotationSprites.forEach(sprite => {
+        sceneRef.current.remove(sprite);
+      });
+      controls.rotationSprites = [];
+      if (controls.mainButtonSprite) {
+        sceneRef.current.remove(controls.mainButtonSprite);
+        controls.mainButtonSprite = null;
+      }
+      if (controls.toggleSprite) {
+        sceneRef.current.remove(controls.toggleSprite);
+        controls.toggleSprite = null;
+      }
       
       // Restaurar escena de fondo
       if (textureRef.current && sceneRef.current) {
@@ -551,25 +574,59 @@ export default function ARExperience({
       renderer.xr.removeEventListener("sessionstart", handleSessionStart);
       renderer.xr.removeEventListener("sessionend", handleSessionEnd);
       renderer.setAnimationLoop(null);
-      // Limpiar controles al desmontar
-      removeARControls();
+      
+      // Limpiar función global
+      delete window.createARSprites;
+      
+      // Limpiar sprites al desmontar
+      const controls = arControlsRef.current;
+      if (sceneRef.current) {
+        if (controls.instructionsSprite) {
+          sceneRef.current.remove(controls.instructionsSprite);
+        }
+        controls.rotationSprites.forEach(sprite => {
+          sceneRef.current.remove(sprite);
+        });
+        if (controls.mainButtonSprite) {
+          sceneRef.current.remove(controls.mainButtonSprite);
+        }
+        if (controls.toggleSprite) {
+          sceneRef.current.remove(controls.toggleSprite);
+        }
+      }
     };
-  }, [modelLoaded, arMode, showRealWorld]); // Agregar dependencias para actualizar controles
+  }, [modelLoaded]); // Simplificar dependencias
 
-  // Efecto para actualizar controles AR cuando cambian los estados
+  // Efecto para actualizar sprites AR cuando cambian los estados
   useEffect(() => {
-    if (isAR) {
-      // Pequeño delay para asegurar que los elementos DOM existan
+    if (isAR && rendererRef.current?.xr?.isPresenting) {
+      // Recrear sprites cuando cambien estados
       setTimeout(() => {
-        const container = document.getElementById('ar-controls-container');
-        if (container) {
-          // Forzar actualización de controles
-          const updateEvent = new CustomEvent('updateARControls');
-          document.dispatchEvent(updateEvent);
+        // Buscar la función createARSprites en el scope
+        const controls = arControlsRef.current;
+        
+        // Limpiar controles existentes
+        if (controls.instructionsSprite) {
+          sceneRef.current.remove(controls.instructionsSprite);
+        }
+        controls.rotationSprites.forEach(sprite => {
+          sceneRef.current.remove(sprite);
+        });
+        if (controls.mainButtonSprite) {
+          sceneRef.current.remove(controls.mainButtonSprite);
+        }
+        if (controls.toggleSprite) {
+          sceneRef.current.remove(controls.toggleSprite);
+        }
+        
+        // Recrear sprites actualizados
+        // Esta función se definirá en el useEffect principal
+        if (window.createARSprites) {
+          window.createARSprites();
         }
       }, 100);
     }
-  }, [arMode, showRealWorld, isAR]);
+  }, [arMode, showRealWorld]);
 
   // Función para alternar entre mundo real y ambiente virtual
   const toggleRealWorld = () => {
