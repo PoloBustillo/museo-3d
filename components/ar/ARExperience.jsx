@@ -337,60 +337,102 @@ export default function ARExperience({
     }
   };
 
-  // Estilo para botones de rotación
+  // Estilo para botones de rotación mejorado para AR
   const rotationButtonStyle = {
-    width: "45px",
-    height: "45px",
-    backgroundColor: "rgba(255,255,255,0.9)",
-    border: "2px solid #333",
-    borderRadius: "12px",
-    fontSize: "18px",
+    width: "50px",
+    height: "50px",
+    backgroundColor: "rgba(255,255,255,0.95)",
+    border: "3px solid #FF6600",
+    borderRadius: "15px",
+    fontSize: "20px",
     cursor: "pointer",
-    boxShadow: "0 3px 10px rgba(0,0,0,0.3)",
+    boxShadow: "0 4px 15px rgba(0,0,0,0.5)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
+    pointerEvents: "auto",
+    touchAction: "manipulation", // Mejorar respuesta táctil
   };
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        width: "100vw",
-        height: "100vh",
-        background: "#000",
-        top: 0,
-        left: 0,
-        zIndex: 3000,
-      }}
-    >
+    <>
+      {/* Container principal de THREE.js */}
+      <div
+        style={{
+          position: "fixed",
+          width: "100vw",
+          height: "100vh",
+          background: "#000",
+          top: 0,
+          left: 0,
+          zIndex: 3000,
+          pointerEvents: isAR ? "none" : "auto", // Deshabilitar eventos en AR para que pasen a los controles
+        }}
+      >
+        <div
+          ref={mountRef}
+          style={{
+            width: "100vw",
+            height: "100vh",
+          }}
+        />
+
+        {/* Botón cerrar - Solo si no estamos en AR */}
+        {showCloseButton && onClose && !isAR && (
+          <button
+            onClick={onClose}
+            style={{
+              position: "absolute",
+              top: 20,
+              left: 20,
+              padding: "10px 15px",
+              backgroundColor: "rgba(255,255,255,0.9)",
+              border: "none",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontSize: "14px",
+              zIndex: 9999,
+              pointerEvents: "auto",
+            }}
+          >
+            ← Cerrar
+          </button>
+        )}
+      </div>
+
+      {/* CONTROLES AR - Fuera del container principal con z-index más alto */}
       {/* Instrucciones dinámicas según el modo AR */}
       {isAR && (
         <div
           style={{
-            position: "absolute",
+            position: "fixed",
             top: "10px",
             left: "10px",
             right: "10px",
-            background: "rgba(0,0,0,0.9)",
+            background: "rgba(0,0,0,0.95)",
             color: "#fff",
             padding: "15px",
             borderRadius: "12px",
             fontSize: "16px",
-            zIndex: 9999,
+            zIndex: 999999,
             textAlign: "center",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.8)",
+            pointerEvents: "none",
           }}
         >
           {arMode === 'positioning' ? (
             <>
-              �️ <strong>Busca el lugar perfecto</strong><br />
-              Mueve el teléfono para posicionar el cuadro
+              🖼️ <strong>Posiciona tu cuadro</strong><br />
+              <span style={{ fontSize: "14px", opacity: 0.9 }}>
+                Mueve el teléfono y usa los controles para el ángulo perfecto
+              </span>
             </>
           ) : (
             <>
               ✅ <strong>Cuadro colocado</strong><br />
-              Camina alrededor para verlo desde diferentes ángulos
+              <span style={{ fontSize: "14px", opacity: 0.9 }}>
+                Camina alrededor para admirarlo desde todos los ángulos
+              </span>
             </>
           )}
         </div>
@@ -400,14 +442,15 @@ export default function ARExperience({
       {isAR && arMode === 'positioning' && (
         <div
           style={{
-            position: "absolute",
+            position: "fixed",
             left: "10px",
             top: "50%",
             transform: "translateY(-50%)",
             display: "flex",
             flexDirection: "column",
             gap: "8px",
-            zIndex: 9999,
+            zIndex: 999999,
+            pointerEvents: "auto",
           }}
         >
           <div style={{ fontSize: "12px", color: "#fff", textAlign: "center", fontWeight: "bold", marginBottom: "5px" }}>
@@ -429,11 +472,12 @@ export default function ARExperience({
       {isAR && (
         <div
           style={{
-            position: "absolute",
+            position: "fixed",
             bottom: "20px",
             left: "20px",
             right: "20px",
-            zIndex: 9999,
+            zIndex: 999999,
+            pointerEvents: "auto",
           }}
         >
           {arMode === 'positioning' ? (
@@ -454,6 +498,8 @@ export default function ARExperience({
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "10px",
+                touchAction: "manipulation",
+                pointerEvents: "auto",
               }}
             >
               📍 COLOCAR CUADRO AQUÍ
@@ -476,6 +522,8 @@ export default function ARExperience({
                 alignItems: "center",
                 justifyContent: "center",
                 gap: "10px",
+                touchAction: "manipulation",
+                pointerEvents: "auto",
               }}
             >
               🔄 CAMBIAR POSICIÓN
@@ -488,10 +536,11 @@ export default function ARExperience({
       {isAR && (
         <div
           style={{
-            position: "absolute",
+            position: "fixed",
             top: "90px",
             right: "10px",
-            zIndex: 9999,
+            zIndex: 999999,
+            pointerEvents: "auto",
           }}
         >
           <button
@@ -509,41 +558,14 @@ export default function ARExperience({
               fontWeight: 600,
               boxShadow: "0 3px 15px rgba(0,0,0,0.4)",
               minWidth: "120px",
+              touchAction: "manipulation",
+              pointerEvents: "auto",
             }}
           >
             {showRealWorld ? "🌍 Real" : "🎨 Virtual"}
           </button>
         </div>
       )}
-
-      <div
-        ref={mountRef}
-        style={{
-          width: "100vw",
-          height: "100vh",
-        }}
-      />
-
-      {/* Botón cerrar */}
-      {showCloseButton && onClose && (
-        <button
-          onClick={onClose}
-          style={{
-            position: "absolute",
-            top: 20,
-            left: 20,
-            padding: "10px 15px",
-            backgroundColor: "rgba(255,255,255,0.9)",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-            fontSize: "14px",
-            zIndex: 9999,
-          }}
-        >
-          ← Cerrar
-        </button>
-      )}
-    </div>
+    </>
   );
 }
