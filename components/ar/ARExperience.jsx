@@ -274,8 +274,8 @@ export default function ARExperience({
       
       const sprite = new THREE.Sprite(spriteMaterial);
       
-      // Escalar sprite basado en el canvas
-      const scale = 0.005; // Factor de escala para AR
+      // Escalar sprite basado en el canvas - MUCHO MÁS PEQUEÑO
+      const scale = 0.001; // Factor de escala reducido para AR
       sprite.scale.set(canvasWidth * scale, canvasHeight * scale, 1);
       
       return sprite;
@@ -302,38 +302,38 @@ export default function ARExperience({
       // Reset arrays
       controls.rotationSprites = [];
       
-      // Crear instrucciones
+      // Crear instrucciones - MÁS PEQUEÑAS
       const instructionsText = arMode === 'positioning' 
-        ? '🖼️ Posiciona tu cuadro\nMueve el teléfono y usa controles'
-        : '✅ Cuadro colocado\nCamina alrededor para verlo';
+        ? 'Posiciona tu cuadro'
+        : 'Cuadro colocado';
         
       controls.instructionsSprite = createTextSprite(instructionsText, {
-        fontSize: 32,
+        fontSize: 24,
         backgroundColor: 'rgba(0,0,0,0.9)',
-        width: 400,
-        height: 100
+        width: 200,
+        height: 60
       });
-      controls.instructionsSprite.position.set(0, 1.5, -0.5);
+      controls.instructionsSprite.position.set(0, 0.3, -0.5);
       sceneRef.current.add(controls.instructionsSprite);
       
-      // Crear controles de rotación (solo en modo positioning)
+      // Crear controles de rotación (solo en modo positioning) - MÁS PEQUEÑOS
       if (arMode === 'positioning') {
         const rotationButtons = [
-          { text: '⬆️', position: [-0.8, 0.8, -0.5], axis: 'x', angle: 0.1 },
-          { text: '⬇️', position: [-0.8, 0.6, -0.5], axis: 'x', angle: -0.1 },
-          { text: '⬅️', position: [-0.8, 0.4, -0.5], axis: 'y', angle: 0.1 },
-          { text: '➡️', position: [-0.8, 0.2, -0.5], axis: 'y', angle: -0.1 },
-          { text: '↗️', position: [-0.8, 0.0, -0.5], axis: 'z', angle: 0.1 },
-          { text: '↙️', position: [-0.8, -0.2, -0.5], axis: 'z', angle: -0.1 }
+          { text: '⬆️', position: [-0.3, 0.15, -0.5], axis: 'x', angle: 0.1 },
+          { text: '⬇️', position: [-0.3, 0.05, -0.5], axis: 'x', angle: -0.1 },
+          { text: '⬅️', position: [-0.3, -0.05, -0.5], axis: 'y', angle: 0.1 },
+          { text: '➡️', position: [-0.3, -0.15, -0.5], axis: 'y', angle: -0.1 },
+          { text: '↗️', position: [0.3, 0.05, -0.5], axis: 'z', angle: 0.1 },
+          { text: '↙️', position: [0.3, -0.05, -0.5], axis: 'z', angle: -0.1 }
         ];
         
         rotationButtons.forEach(btn => {
           const sprite = createTextSprite(btn.text, {
-            fontSize: 48,
+            fontSize: 32,
             backgroundColor: 'rgba(255,255,255,0.95)',
             borderColor: '#FF6600',
-            width: 80,
-            height: 80
+            width: 50,
+            height: 50
           });
           sprite.position.set(...btn.position);
           sprite.userData = { axis: btn.axis, angle: btn.angle, type: 'rotation' };
@@ -342,34 +342,34 @@ export default function ARExperience({
         });
       }
       
-      // Crear botón principal
+      // Crear botón principal - MÁS PEQUEÑO
       const mainButtonText = arMode === 'positioning' 
-        ? '📍 COLOCAR CUADRO AQUÍ' 
-        : '🔄 CAMBIAR POSICIÓN';
+        ? 'COLOCAR' 
+        : 'CAMBIAR';
       const mainButtonColor = arMode === 'positioning' ? 'rgba(0,200,81,0.9)' : 'rgba(255,136,0,0.9)';
       
       controls.mainButtonSprite = createTextSprite(mainButtonText, {
-        fontSize: 36,
+        fontSize: 24,
         backgroundColor: mainButtonColor,
         borderColor: '#ffffff',
-        width: 350,
-        height: 80
-      });
-      controls.mainButtonSprite.position.set(0, -0.8, -0.5);
-      controls.mainButtonSprite.userData = { type: 'mainButton' };
-      sceneRef.current.add(controls.mainButtonSprite);
-      
-      // Crear toggle
-      const toggleText = showRealWorld ? '🌍 Real' : '🎨 Virtual';
-      const toggleColor = showRealWorld ? 'rgba(0,150,0,0.95)' : 'rgba(100,100,255,0.95)';
-      
-      controls.toggleSprite = createTextSprite(toggleText, {
-        fontSize: 28,
-        backgroundColor: toggleColor,
         width: 120,
         height: 50
       });
-      controls.toggleSprite.position.set(0.8, 1.2, -0.5);
+      controls.mainButtonSprite.position.set(0, -0.25, -0.5);
+      controls.mainButtonSprite.userData = { type: 'mainButton' };
+      sceneRef.current.add(controls.mainButtonSprite);
+      
+      // Crear toggle - MÁS PEQUEÑO
+      const toggleText = showRealWorld ? 'Real' : 'Virtual';
+      const toggleColor = showRealWorld ? 'rgba(0,150,0,0.95)' : 'rgba(100,100,255,0.95)';
+      
+      controls.toggleSprite = createTextSprite(toggleText, {
+        fontSize: 18,
+        backgroundColor: toggleColor,
+        width: 80,
+        height: 35
+      });
+      controls.toggleSprite.position.set(0.25, 0.25, -0.5);
       controls.toggleSprite.userData = { type: 'toggle' };
       sceneRef.current.add(controls.toggleSprite);
     }
@@ -377,21 +377,18 @@ export default function ARExperience({
     // Exponer función globalmente para actualizaciones
     window.createARSprites = createARSprites;
 
-    // Función para manejar clicks en sprites usando raycasting
+    // Función para manejar clicks en sprites usando raycasting de XR
     function handleSpriteClick(event) {
       if (!renderer.xr.isPresenting || !cameraRef.current) return;
       
       // Crear raycaster
       const raycaster = new THREE.Raycaster();
-      const mouse = new THREE.Vector2();
       
-      // Calcular posición del mouse/touch normalizada
-      const rect = renderer.domElement.getBoundingClientRect();
-      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      // Para AR, usar el centro de la pantalla ya que el usuario "apunta" con el teléfono
+      const centerMouse = new THREE.Vector2(0, 0);
       
-      // Configurar raycaster
-      raycaster.setFromCamera(mouse, cameraRef.current);
+      // Configurar raycaster desde la cámara XR
+      raycaster.setFromCamera(centerMouse, renderer.xr.getCamera());
       
       // Obtener todos los sprites
       const sprites = [
@@ -406,6 +403,12 @@ export default function ARExperience({
       if (intersects.length > 0) {
         const clickedSprite = intersects[0].object;
         const userData = clickedSprite.userData;
+        
+        // Feedback visual simple
+        clickedSprite.scale.multiplyScalar(1.2);
+        setTimeout(() => {
+          clickedSprite.scale.divideScalar(1.2);
+        }, 150);
         
         if (userData.type === 'rotation') {
           // Manejar rotación
@@ -575,8 +578,11 @@ export default function ARExperience({
       renderer.xr.removeEventListener("sessionend", handleSessionEnd);
       renderer.setAnimationLoop(null);
       
-      // Limpiar función global
-      delete window.createARSprites;
+      // Remover event listeners si existen
+      if (renderer.domElement) {
+        renderer.domElement.removeEventListener('click', handleSpriteClick);
+        renderer.domElement.removeEventListener('touchend', handleSpriteClick);
+      }
       
       // Limpiar sprites al desmontar
       const controls = arControlsRef.current;
