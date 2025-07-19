@@ -19,10 +19,6 @@ export default function ARExperience({
   const modelRef = useRef();
   const [modelLoaded, setModelLoaded] = useState(false);
   const [isAR, setIsAR] = useState(false);
-  const [showRealWorld, setShowRealWorld] = useState(true);
-  const [arMode, setArMode] = useState('positioning'); // 'positioning' o 'fixed'
-  const [fixedPosition, setFixedPosition] = useState(null);
-  const textureRef = useRef();
 
   // Inicializar Three.js
   useEffect(() => {
@@ -68,16 +64,6 @@ export default function ARExperience({
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
     scene.add(ambientLight);
 
-    // Cargar escena de fondo básica
-    const textureLoader = new THREE.TextureLoader();
-    textureLoader.load('/images/image360.jpg', (texture) => {
-      texture.mapping = THREE.EquirectangularReflectionMapping;
-      texture.colorSpace = THREE.SRGBColorSpace;
-      scene.background = texture;
-      scene.environment = texture;
-      textureRef.current = texture;
-    });
-
     // Render loop simple
     function animate() {
       requestAnimationFrame(animate);
@@ -96,9 +82,6 @@ export default function ARExperience({
         if (mountRef.current && renderer.domElement) {
           mountRef.current.removeChild(renderer.domElement);
         }
-      }
-      if (textureRef.current) {
-        textureRef.current.dispose();
       }
     };
   }, []);
@@ -189,19 +172,10 @@ export default function ARExperience({
 
     function handleSessionStart() {
       setIsAR(true);
-      setShowRealWorld(true);
-      setArMode('positioning'); // Empezar en modo posicionamiento
-      setFixedPosition(null);
       
-      // Posicionar para AR (modo búsqueda inicial)
-      model.position.set(0, 0, -0.8); // Un poco más lejos para mejor visibilidad
-      model.scale.setScalar(0.15); // Más grande para facilitar posicionamiento
-      
-      // Configurar fondo transparente para AR
-      if (sceneRef.current) {
-        sceneRef.current.background = null;
-        sceneRef.current.environment = null;
-      }
+      // Posicionar para AR
+      model.position.set(0, 0, -0.5);
+      model.scale.setScalar(0.1);
       
       // REFORZAR configuraciones anti-oclusión
       model.traverse((child) => {
@@ -221,49 +195,14 @@ export default function ARExperience({
 
     function handleSessionEnd() {
       setIsAR(false);
-      setShowRealWorld(true);
-      setArMode('positioning');
-      setFixedPosition(null);
-      
-      // Restaurar escena de fondo
-      if (textureRef.current && sceneRef.current) {
-        sceneRef.current.background = textureRef.current;
-        sceneRef.current.environment = textureRef.current;
-      }
     }
 
     renderer.xr.addEventListener("sessionstart", handleSessionStart);
     renderer.xr.addEventListener("sessionend", handleSessionEnd);
 
-    // AR render loop con lógica de posicionamiento
+    // AR render loop
     renderer.setAnimationLoop(() => {
-      if (renderer.xr.isPresenting && sceneRef.current && cameraRef.current && modelRef.current) {
-        const xrCamera = renderer.xr.getCamera();
-        
-        if (arMode === 'positioning') {
-          // FASE 1: Modelo sigue la cámara (como llevar un cuadro en la mano)
-          const cameraDirection = new THREE.Vector3();
-          xrCamera.getWorldDirection(cameraDirection);
-          
-          // Posicionar el modelo frente a la cámara
-          const distance = 0.8; // 80cm de distancia
-          const targetPosition = new THREE.Vector3();
-          targetPosition.copy(xrCamera.position);
-          targetPosition.add(cameraDirection.multiplyScalar(distance));
-          
-          // Actualizar posición del modelo suavemente
-          modelRef.current.position.lerp(targetPosition, 0.1);
-          
-          // Hacer que el modelo mire hacia la cámara
-          modelRef.current.lookAt(xrCamera.position);
-          modelRef.current.rotateY(Math.PI); // Girar para que se vea de frente
-          
-        } else if (arMode === 'fixed' && fixedPosition) {
-          // FASE 2: Modelo fijo en el mundo real
-          modelRef.current.position.copy(fixedPosition.position);
-          modelRef.current.rotation.copy(fixedPosition.rotation);
-        }
-        
+      if (renderer.xr.isPresenting && sceneRef.current && cameraRef.current) {
         renderer.render(sceneRef.current, cameraRef.current);
       }
     });
@@ -274,42 +213,6 @@ export default function ARExperience({
       renderer.setAnimationLoop(null);
     };
   }, [modelLoaded]);
-
-  // Función para alternar entre mundo real y ambiente virtual
-  const toggleRealWorld = () => {
-    setShowRealWorld(!showRealWorld);
-    
-    if (isAR && sceneRef.current) {
-      if (!showRealWorld) {
-        // Cambiar a mundo real (fondo transparente)
-        sceneRef.current.background = null;
-        sceneRef.current.environment = null;
-      } else {
-        // Cambiar a ambiente virtual
-        if (textureRef.current) {
-          sceneRef.current.background = textureRef.current;
-          sceneRef.current.environment = textureRef.current;
-        }
-      }
-    }
-  };
-
-  // Función para fijar el modelo en la posición actual
-  const fixModelPosition = () => {
-    if (modelRef.current && arMode === 'positioning') {
-      setFixedPosition({
-        position: modelRef.current.position.clone(),
-        rotation: modelRef.current.rotation.clone()
-      });
-      setArMode('fixed');
-    }
-  };
-
-  // Función para volver al modo posicionamiento
-  const repositionModel = () => {
-    setArMode('positioning');
-    setFixedPosition(null);
-  };
 
   return (
     <div
@@ -323,7 +226,7 @@ export default function ARExperience({
         zIndex: 3000,
       }}
     >
-      {/* Instrucciones dinámicas según el modo AR */}
+      {/* Instrucción AR móvil */}
       {isAR && (
         <div
           style={{
@@ -331,116 +234,16 @@ export default function ARExperience({
             top: 20,
             left: "50%",
             transform: "translateX(-50%)",
-            background: "rgba(0,0,0,0.9)",
+            background: "rgba(0,0,0,0.8)",
             color: "#fff",
             padding: "12px 20px",
             borderRadius: "10px",
             fontSize: "14px",
             zIndex: 9999,
             textAlign: "center",
-            maxWidth: "90vw",
           }}
         >
-          {arMode === 'positioning' ? (
-            <>
-              �️ <strong>Busca el lugar perfecto</strong><br />
-              Mueve el teléfono para posicionar el cuadro
-            </>
-          ) : (
-            <>
-              ✅ <strong>Cuadro colocado</strong><br />
-              Camina alrededor para verlo desde diferentes ángulos
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Botones de control según el modo */}
-      {isAR && (
-        <div
-          style={{
-            position: "absolute",
-            bottom: 100,
-            left: "50%",
-            transform: "translateX(-50%)",
-            display: "flex",
-            gap: "12px",
-            zIndex: 9999,
-          }}
-        >
-          {arMode === 'positioning' ? (
-            <button
-              onClick={fixModelPosition}
-              style={{
-                padding: "12px 24px",
-                backgroundColor: "rgba(0,200,0,0.9)",
-                color: "#fff",
-                border: "none",
-                borderRadius: "25px",
-                cursor: "pointer",
-                fontSize: "16px",
-                fontWeight: 600,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              📍 Colocar Aquí
-            </button>
-          ) : (
-            <button
-              onClick={repositionModel}
-              style={{
-                padding: "12px 24px",
-                backgroundColor: "rgba(255,150,0,0.9)",
-                color: "#fff",
-                border: "none",
-                borderRadius: "25px",
-                cursor: "pointer",
-                fontSize: "16px",
-                fontWeight: 600,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-              }}
-            >
-              🔄 Reposicionar
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Toggle mundo real / ambiente virtual */}
-      {isAR && (
-        <div
-          style={{
-            position: "absolute",
-            top: 80,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 9999,
-          }}
-        >
-          <button
-            onClick={toggleRealWorld}
-            style={{
-              padding: "8px 16px",
-              backgroundColor: showRealWorld
-                ? "rgba(0,150,0,0.9)"
-                : "rgba(100,100,255,0.9)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "20px",
-              cursor: "pointer",
-              fontSize: "12px",
-              fontWeight: 600,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-            }}
-          >
-            {showRealWorld ? "🌍 Mundo Real" : "🎨 Ambiente Virtual"}
-          </button>
+          📱 Mueve el teléfono para posicionar el modelo
         </div>
       )}
 
