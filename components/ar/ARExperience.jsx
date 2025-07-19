@@ -185,12 +185,270 @@ export default function ARExperience({
     };
   }, [modelLoaded]);
 
-  // AR Management
+  // AR Management con controles DOM nativos
   useEffect(() => {
     if (!rendererRef.current || !modelRef.current) return;
 
     const renderer = rendererRef.current;
     const model = modelRef.current;
+
+    // Crear controles AR como elementos DOM nativos
+    let arControlsContainer = null;
+    let instructionsEl = null;
+    let rotationControlsEl = null;
+    let mainButtonEl = null;
+    let toggleButtonEl = null;
+
+    function createARControls() {
+      // Container principal
+      arControlsContainer = document.createElement('div');
+      arControlsContainer.id = 'ar-controls-container';
+      arControlsContainer.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        pointer-events: none;
+        z-index: 99999999;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      `;
+      
+      // Instrucciones
+      instructionsEl = document.createElement('div');
+      instructionsEl.style.cssText = `
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.95);
+        color: white;
+        padding: 15px;
+        border-radius: 12px;
+        font-size: 16px;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+        pointer-events: none;
+      `;
+      
+      // Controles de rotación
+      rotationControlsEl = document.createElement('div');
+      rotationControlsEl.style.cssText = `
+        position: fixed;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        pointer-events: auto;
+      `;
+      
+      // Crear botones de rotación
+      const rotationLabel = document.createElement('div');
+      rotationLabel.textContent = 'ROTAR';
+      rotationLabel.style.cssText = `
+        font-size: 12px;
+        color: white;
+        text-align: center;
+        font-weight: bold;
+        margin-bottom: 5px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+      `;
+      rotationControlsEl.appendChild(rotationLabel);
+      
+      const rotationButtons = [
+        { text: '⬆️', axis: 'x', angle: 0.1 },
+        { text: '⬇️', axis: 'x', angle: -0.1 },
+        { text: '⬅️', axis: 'y', angle: 0.1 },
+        { text: '➡️', axis: 'y', angle: -0.1 },
+        { text: '↗️', axis: 'z', angle: 0.1 },
+        { text: '↙️', axis: 'z', angle: -0.1 }
+      ];
+      
+      rotationButtons.forEach(btn => {
+        const button = document.createElement('button');
+        button.textContent = btn.text;
+        button.style.cssText = `
+          width: 55px;
+          height: 55px;
+          background: rgba(255,255,255,0.95);
+          border: 3px solid #FF6600;
+          border-radius: 15px;
+          font-size: 22px;
+          cursor: pointer;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          pointer-events: auto;
+          touch-action: manipulation;
+          user-select: none;
+        `;
+        button.addEventListener('click', () => {
+          setModelRotation(prev => ({
+            ...prev,
+            [btn.axis]: prev[btn.axis] + btn.angle
+          }));
+        });
+        rotationControlsEl.appendChild(button);
+      });
+      
+      // Botón principal de acción
+      mainButtonEl = document.createElement('button');
+      mainButtonEl.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        right: 20px;
+        width: calc(100vw - 40px);
+        padding: 18px 24px;
+        background: #00C851;
+        color: white;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: bold;
+        box-shadow: 0 6px 25px rgba(0,200,81,0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        touch-action: manipulation;
+        pointer-events: auto;
+        user-select: none;
+      `;
+      
+      // Toggle mundo real/virtual
+      toggleButtonEl = document.createElement('button');
+      toggleButtonEl.style.cssText = `
+        position: fixed;
+        top: 90px;
+        right: 10px;
+        padding: 10px 16px;
+        background: rgba(0,150,0,0.95);
+        color: white;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 600;
+        box-shadow: 0 3px 15px rgba(0,0,0,0.4);
+        min-width: 120px;
+        touch-action: manipulation;
+        pointer-events: auto;
+        user-select: none;
+      `;
+      toggleButtonEl.textContent = '🌍 Real';
+      
+      // Agregar event listeners
+      mainButtonEl.addEventListener('click', () => {
+        if (model && modelRef.current) {
+          if (arMode === 'positioning') {
+            // Fijar posición
+            setFixedPosition({
+              position: modelRef.current.position.clone(),
+              rotation: modelRef.current.rotation.clone()
+            });
+            setArMode('fixed');
+          } else {
+            // Reposicionar
+            setArMode('positioning');
+            setFixedPosition(null);
+            setModelRotation({ x: 0, y: 0, z: 0 });
+          }
+        }
+      });
+      
+      toggleButtonEl.addEventListener('click', () => {
+        setShowRealWorld(prev => {
+          const newValue = !prev;
+          // Actualizar escena inmediatamente
+          if (sceneRef.current) {
+            if (newValue) {
+              // Mundo real - fondo transparente
+              sceneRef.current.background = null;
+              sceneRef.current.environment = null;
+            } else {
+              // Ambiente virtual
+              if (textureRef.current) {
+                sceneRef.current.background = textureRef.current;
+                sceneRef.current.environment = textureRef.current;
+              }
+            }
+          }
+          return newValue;
+        });
+      });
+      
+      // Agregar al DOM
+      arControlsContainer.appendChild(instructionsEl);
+      arControlsContainer.appendChild(rotationControlsEl);
+      arControlsContainer.appendChild(mainButtonEl);
+      arControlsContainer.appendChild(toggleButtonEl);
+      document.body.appendChild(arControlsContainer);
+      
+      // Event listener para actualizaciones
+      const handleUpdate = () => updateARControls();
+      document.addEventListener('updateARControls', handleUpdate);
+      
+      // Cleanup del event listener
+      arControlsContainer._cleanup = () => {
+        document.removeEventListener('updateARControls', handleUpdate);
+      };
+    }
+    
+    function updateARControls() {
+      if (!instructionsEl || !mainButtonEl || !rotationControlsEl) return;
+      
+      // Actualizar instrucciones
+      if (arMode === 'positioning') {
+        instructionsEl.innerHTML = `
+          🖼️ <strong>Posiciona tu cuadro</strong><br />
+          <span style="font-size: 14px; opacity: 0.9;">
+            Mueve el teléfono y usa los controles para el ángulo perfecto
+          </span>
+        `;
+        mainButtonEl.textContent = '📍 COLOCAR CUADRO AQUÍ';
+        mainButtonEl.style.background = '#00C851';
+        rotationControlsEl.style.display = 'flex';
+      } else {
+        instructionsEl.innerHTML = `
+          ✅ <strong>Cuadro colocado</strong><br />
+          <span style="font-size: 14px; opacity: 0.9;">
+            Camina alrededor para admirarlo desde todos los ángulos
+          </span>
+        `;
+        mainButtonEl.textContent = '🔄 CAMBIAR POSICIÓN';
+        mainButtonEl.style.background = '#FF8800';
+        rotationControlsEl.style.display = 'none';
+      }
+      
+      // Actualizar toggle
+      if (showRealWorld) {
+        toggleButtonEl.textContent = '🌍 Real';
+        toggleButtonEl.style.background = 'rgba(0,150,0,0.95)';
+      } else {
+        toggleButtonEl.textContent = '🎨 Virtual';
+        toggleButtonEl.style.background = 'rgba(100,100,255,0.95)';
+      }
+    }
+    
+    function removeARControls() {
+      if (arControlsContainer && arControlsContainer.parentNode) {
+        // Cleanup event listeners
+        if (arControlsContainer._cleanup) {
+          arControlsContainer._cleanup();
+        }
+        arControlsContainer.parentNode.removeChild(arControlsContainer);
+        arControlsContainer = null;
+        instructionsEl = null;
+        rotationControlsEl = null;
+        mainButtonEl = null;
+        toggleButtonEl = null;
+      }
+    }
 
     function handleSessionStart() {
       setIsAR(true);
@@ -198,6 +456,9 @@ export default function ARExperience({
       setArMode('positioning'); // Empezar en modo posicionamiento
       setFixedPosition(null);
       setModelRotation({ x: 0, y: 0, z: 0 });
+      
+      // Crear controles AR nativos
+      createARControls();
       
       // Posicionar para AR (modo búsqueda inicial)
       model.position.set(0, 0, -0.8); // Un poco más lejos para mejor visibilidad
@@ -231,6 +492,9 @@ export default function ARExperience({
       setArMode('positioning');
       setFixedPosition(null);
       setModelRotation({ x: 0, y: 0, z: 0 });
+      
+      // Remover controles AR
+      removeARControls();
       
       // Restaurar escena de fondo
       if (textureRef.current && sceneRef.current) {
@@ -287,8 +551,25 @@ export default function ARExperience({
       renderer.xr.removeEventListener("sessionstart", handleSessionStart);
       renderer.xr.removeEventListener("sessionend", handleSessionEnd);
       renderer.setAnimationLoop(null);
+      // Limpiar controles al desmontar
+      removeARControls();
     };
-  }, [modelLoaded]);
+  }, [modelLoaded, arMode, showRealWorld]); // Agregar dependencias para actualizar controles
+
+  // Efecto para actualizar controles AR cuando cambian los estados
+  useEffect(() => {
+    if (isAR) {
+      // Pequeño delay para asegurar que los elementos DOM existan
+      setTimeout(() => {
+        const container = document.getElementById('ar-controls-container');
+        if (container) {
+          // Forzar actualización de controles
+          const updateEvent = new CustomEvent('updateARControls');
+          document.dispatchEvent(updateEvent);
+        }
+      }, 100);
+    }
+  }, [arMode, showRealWorld, isAR]);
 
   // Función para alternar entre mundo real y ambiente virtual
   const toggleRealWorld = () => {
@@ -400,172 +681,7 @@ export default function ARExperience({
         )}
       </div>
 
-      {/* CONTROLES AR - Fuera del container principal con z-index más alto */}
-      {/* Instrucciones dinámicas según el modo AR */}
-      {isAR && (
-        <div
-          style={{
-            position: "fixed",
-            top: "10px",
-            left: "10px",
-            right: "10px",
-            background: "rgba(0,0,0,0.95)",
-            color: "#fff",
-            padding: "15px",
-            borderRadius: "12px",
-            fontSize: "16px",
-            zIndex: 999999,
-            textAlign: "center",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.8)",
-            pointerEvents: "none",
-          }}
-        >
-          {arMode === 'positioning' ? (
-            <>
-              🖼️ <strong>Posiciona tu cuadro</strong><br />
-              <span style={{ fontSize: "14px", opacity: 0.9 }}>
-                Mueve el teléfono y usa los controles para el ángulo perfecto
-              </span>
-            </>
-          ) : (
-            <>
-              ✅ <strong>Cuadro colocado</strong><br />
-              <span style={{ fontSize: "14px", opacity: 0.9 }}>
-                Camina alrededor para admirarlo desde todos los ángulos
-              </span>
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Controles de rotación - Solo en modo posicionamiento */}
-      {isAR && arMode === 'positioning' && (
-        <div
-          style={{
-            position: "fixed",
-            left: "10px",
-            top: "50%",
-            transform: "translateY(-50%)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
-            zIndex: 999999,
-            pointerEvents: "auto",
-          }}
-        >
-          <div style={{ fontSize: "12px", color: "#fff", textAlign: "center", fontWeight: "bold", marginBottom: "5px" }}>
-            ROTAR
-          </div>
-          {/* Rotación X (inclinar hacia arriba/abajo) */}
-          <button onClick={() => rotateModel('x', 0.1)} style={rotationButtonStyle}>⬆️</button>
-          <button onClick={() => rotateModel('x', -0.1)} style={rotationButtonStyle}>⬇️</button>
-          {/* Rotación Y (girar izquierda/derecha) */}
-          <button onClick={() => rotateModel('y', 0.1)} style={rotationButtonStyle}>⬅️</button>
-          <button onClick={() => rotateModel('y', -0.1)} style={rotationButtonStyle}>➡️</button>
-          {/* Rotación Z (inclinar lateral) */}
-          <button onClick={() => rotateModel('z', 0.1)} style={rotationButtonStyle}>↗️</button>
-          <button onClick={() => rotateModel('z', -0.1)} style={rotationButtonStyle}>↙️</button>
-        </div>
-      )}
-
-      {/* Botón principal de acción - Centrado y grande */}
-      {isAR && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "20px",
-            left: "20px",
-            right: "20px",
-            zIndex: 999999,
-            pointerEvents: "auto",
-          }}
-        >
-          {arMode === 'positioning' ? (
-            <button
-              onClick={fixModelPosition}
-              style={{
-                width: "100%",
-                padding: "18px 24px",
-                backgroundColor: "#00C851",
-                color: "#fff",
-                border: "none",
-                borderRadius: "15px",
-                cursor: "pointer",
-                fontSize: "18px",
-                fontWeight: "bold",
-                boxShadow: "0 6px 25px rgba(0,200,81,0.4)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "10px",
-                touchAction: "manipulation",
-                pointerEvents: "auto",
-              }}
-            >
-              📍 COLOCAR CUADRO AQUÍ
-            </button>
-          ) : (
-            <button
-              onClick={repositionModel}
-              style={{
-                width: "100%",
-                padding: "18px 24px",
-                backgroundColor: "#FF8800",
-                color: "#fff",
-                border: "none",
-                borderRadius: "15px",
-                cursor: "pointer",
-                fontSize: "18px",
-                fontWeight: "bold",
-                boxShadow: "0 6px 25px rgba(255,136,0,0.4)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "10px",
-                touchAction: "manipulation",
-                pointerEvents: "auto",
-              }}
-            >
-              🔄 CAMBIAR POSICIÓN
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Toggle mundo real / ambiente virtual - Esquina superior derecha */}
-      {isAR && (
-        <div
-          style={{
-            position: "fixed",
-            top: "90px",
-            right: "10px",
-            zIndex: 999999,
-            pointerEvents: "auto",
-          }}
-        >
-          <button
-            onClick={toggleRealWorld}
-            style={{
-              padding: "10px 16px",
-              backgroundColor: showRealWorld
-                ? "rgba(0,150,0,0.95)"
-                : "rgba(100,100,255,0.95)",
-              color: "#fff",
-              border: "none",
-              borderRadius: "25px",
-              cursor: "pointer",
-              fontSize: "12px",
-              fontWeight: 600,
-              boxShadow: "0 3px 15px rgba(0,0,0,0.4)",
-              minWidth: "120px",
-              touchAction: "manipulation",
-              pointerEvents: "auto",
-            }}
-          >
-            {showRealWorld ? "🌍 Real" : "🎨 Virtual"}
-          </button>
-        </div>
-      )}
+      {/* Los controles AR ahora se crean como elementos DOM nativos en handleSessionStart */}
     </>
   );
 }
