@@ -8,7 +8,7 @@ import { ARButton } from "three/examples/jsm/webxr/ARButton.js";
 export default function ARExperience({
   modelUrl,
   onClose,
-  showCloseButton,
+  showCloseButton = true,
   restoreMaterials,
 }) {
   const mountRef = useRef();
@@ -22,6 +22,7 @@ export default function ARExperience({
   const [showRealWorld, setShowRealWorld] = useState(true);
   const [arMode, setArMode] = useState('positioning'); // 'positioning' o 'fixed'
   const [fixedPosition, setFixedPosition] = useState(null);
+  const [modelRotation, setModelRotation] = useState({ x: 0, y: 0, z: 0 });
   const textureRef = useRef();
 
   // Inicializar Three.js
@@ -155,21 +156,25 @@ export default function ARExperience({
     });
   }, [modelUrl, restoreMaterials]);
 
-  // Botón AR
+  // Botón AR mejorado para móvil
   useEffect(() => {
     if (!modelLoaded || !rendererRef.current) return;
 
     const arButton = ARButton.createButton(rendererRef.current);
     arButton.style.position = "fixed";
-    arButton.style.bottom = "20px";
+    arButton.style.bottom = "120px"; // Más arriba para que no se corte
     arButton.style.right = "20px";
-    arButton.style.padding = "12px 24px";
-    arButton.style.background = "#ff6600";
+    arButton.style.left = "20px"; // Ancho completo en móvil
+    arButton.style.padding = "16px 24px";
+    arButton.style.background = "linear-gradient(135deg, #ff6600, #ff8800)";
     arButton.style.color = "white";
     arButton.style.border = "none";
-    arButton.style.borderRadius = "8px";
+    arButton.style.borderRadius = "12px";
+    arButton.style.fontSize = "18px";
+    arButton.style.fontWeight = "bold";
     arButton.style.zIndex = "9999";
-    arButton.textContent = "Entrar AR";
+    arButton.style.boxShadow = "0 4px 20px rgba(255,102,0,0.4)";
+    arButton.textContent = "🥽 Iniciar Experiencia AR";
 
     document.body.appendChild(arButton);
 
@@ -192,6 +197,7 @@ export default function ARExperience({
       setShowRealWorld(true);
       setArMode('positioning'); // Empezar en modo posicionamiento
       setFixedPosition(null);
+      setModelRotation({ x: 0, y: 0, z: 0 });
       
       // Posicionar para AR (modo búsqueda inicial)
       model.position.set(0, 0, -0.8); // Un poco más lejos para mejor visibilidad
@@ -224,6 +230,7 @@ export default function ARExperience({
       setShowRealWorld(true);
       setArMode('positioning');
       setFixedPosition(null);
+      setModelRotation({ x: 0, y: 0, z: 0 });
       
       // Restaurar escena de fondo
       if (textureRef.current && sceneRef.current) {
@@ -235,28 +242,36 @@ export default function ARExperience({
     renderer.xr.addEventListener("sessionstart", handleSessionStart);
     renderer.xr.addEventListener("sessionend", handleSessionEnd);
 
-    // AR render loop con lógica de posicionamiento
+    // AR render loop con lógica de posicionamiento y rotación
     renderer.setAnimationLoop(() => {
       if (renderer.xr.isPresenting && sceneRef.current && cameraRef.current && modelRef.current) {
         const xrCamera = renderer.xr.getCamera();
         
         if (arMode === 'positioning') {
-          // FASE 1: Modelo sigue la cámara (como llevar un cuadro en la mano)
+          // FASE 1: Modelo sigue la cámara con rotación personalizada
           const cameraDirection = new THREE.Vector3();
           xrCamera.getWorldDirection(cameraDirection);
           
           // Posicionar el modelo frente a la cámara
-          const distance = 0.8; // 80cm de distancia
+          const distance = 0.8;
           const targetPosition = new THREE.Vector3();
           targetPosition.copy(xrCamera.position);
           targetPosition.add(cameraDirection.multiplyScalar(distance));
           
-          // Actualizar posición del modelo suavemente
+          // Actualizar posición suavemente
           modelRef.current.position.lerp(targetPosition, 0.1);
           
-          // Hacer que el modelo mire hacia la cámara
-          modelRef.current.lookAt(xrCamera.position);
-          modelRef.current.rotateY(Math.PI); // Girar para que se vea de frente
+          // Aplicar rotación personalizada + orientación hacia cámara
+          const baseRotation = new THREE.Euler();
+          baseRotation.setFromQuaternion(xrCamera.quaternion);
+          baseRotation.y += Math.PI; // Girar para que se vea de frente
+          
+          // Agregar rotaciones personalizadas
+          modelRef.current.rotation.set(
+            baseRotation.x + modelRotation.x,
+            baseRotation.y + modelRotation.y,
+            baseRotation.z + modelRotation.z
+          );
           
         } else if (arMode === 'fixed' && fixedPosition) {
           // FASE 2: Modelo fijo en el mundo real
@@ -309,6 +324,32 @@ export default function ARExperience({
   const repositionModel = () => {
     setArMode('positioning');
     setFixedPosition(null);
+    setModelRotation({ x: 0, y: 0, z: 0 });
+  };
+
+  // Funciones para rotar el modelo
+  const rotateModel = (axis, angle) => {
+    if (arMode === 'positioning') {
+      setModelRotation(prev => ({
+        ...prev,
+        [axis]: prev[axis] + angle
+      }));
+    }
+  };
+
+  // Estilo para botones de rotación
+  const rotationButtonStyle = {
+    width: "45px",
+    height: "45px",
+    backgroundColor: "rgba(255,255,255,0.9)",
+    border: "2px solid #333",
+    borderRadius: "12px",
+    fontSize: "18px",
+    cursor: "pointer",
+    boxShadow: "0 3px 10px rgba(0,0,0,0.3)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   };
 
   return (
@@ -328,17 +369,17 @@ export default function ARExperience({
         <div
           style={{
             position: "absolute",
-            top: 20,
-            left: "50%",
-            transform: "translateX(-50%)",
+            top: "10px",
+            left: "10px",
+            right: "10px",
             background: "rgba(0,0,0,0.9)",
             color: "#fff",
-            padding: "12px 20px",
-            borderRadius: "10px",
-            fontSize: "14px",
+            padding: "15px",
+            borderRadius: "12px",
+            fontSize: "16px",
             zIndex: 9999,
             textAlign: "center",
-            maxWidth: "90vw",
+            boxShadow: "0 4px 20px rgba(0,0,0,0.5)",
           }}
         >
           {arMode === 'positioning' ? (
@@ -355,16 +396,43 @@ export default function ARExperience({
         </div>
       )}
 
-      {/* Botones de control según el modo */}
+      {/* Controles de rotación - Solo en modo posicionamiento */}
+      {isAR && arMode === 'positioning' && (
+        <div
+          style={{
+            position: "absolute",
+            left: "10px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+            zIndex: 9999,
+          }}
+        >
+          <div style={{ fontSize: "12px", color: "#fff", textAlign: "center", fontWeight: "bold", marginBottom: "5px" }}>
+            ROTAR
+          </div>
+          {/* Rotación X (inclinar hacia arriba/abajo) */}
+          <button onClick={() => rotateModel('x', 0.1)} style={rotationButtonStyle}>⬆️</button>
+          <button onClick={() => rotateModel('x', -0.1)} style={rotationButtonStyle}>⬇️</button>
+          {/* Rotación Y (girar izquierda/derecha) */}
+          <button onClick={() => rotateModel('y', 0.1)} style={rotationButtonStyle}>⬅️</button>
+          <button onClick={() => rotateModel('y', -0.1)} style={rotationButtonStyle}>➡️</button>
+          {/* Rotación Z (inclinar lateral) */}
+          <button onClick={() => rotateModel('z', 0.1)} style={rotationButtonStyle}>↗️</button>
+          <button onClick={() => rotateModel('z', -0.1)} style={rotationButtonStyle}>↙️</button>
+        </div>
+      )}
+
+      {/* Botón principal de acción - Centrado y grande */}
       {isAR && (
         <div
           style={{
             position: "absolute",
-            bottom: 100,
-            left: "50%",
-            transform: "translateX(-50%)",
-            display: "flex",
-            gap: "12px",
+            bottom: "20px",
+            left: "20px",
+            right: "20px",
             zIndex: 9999,
           }}
         >
@@ -372,74 +440,78 @@ export default function ARExperience({
             <button
               onClick={fixModelPosition}
               style={{
-                padding: "12px 24px",
-                backgroundColor: "rgba(0,200,0,0.9)",
+                width: "100%",
+                padding: "18px 24px",
+                backgroundColor: "#00C851",
                 color: "#fff",
                 border: "none",
-                borderRadius: "25px",
+                borderRadius: "15px",
                 cursor: "pointer",
-                fontSize: "16px",
-                fontWeight: 600,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                fontSize: "18px",
+                fontWeight: "bold",
+                boxShadow: "0 6px 25px rgba(0,200,81,0.4)",
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
+                justifyContent: "center",
+                gap: "10px",
               }}
             >
-              📍 Colocar Aquí
+              📍 COLOCAR CUADRO AQUÍ
             </button>
           ) : (
             <button
               onClick={repositionModel}
               style={{
-                padding: "12px 24px",
-                backgroundColor: "rgba(255,150,0,0.9)",
+                width: "100%",
+                padding: "18px 24px",
+                backgroundColor: "#FF8800",
                 color: "#fff",
                 border: "none",
-                borderRadius: "25px",
+                borderRadius: "15px",
                 cursor: "pointer",
-                fontSize: "16px",
-                fontWeight: 600,
-                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                fontSize: "18px",
+                fontWeight: "bold",
+                boxShadow: "0 6px 25px rgba(255,136,0,0.4)",
                 display: "flex",
                 alignItems: "center",
-                gap: "8px",
+                justifyContent: "center",
+                gap: "10px",
               }}
             >
-              🔄 Reposicionar
+              🔄 CAMBIAR POSICIÓN
             </button>
           )}
         </div>
       )}
 
-      {/* Toggle mundo real / ambiente virtual */}
+      {/* Toggle mundo real / ambiente virtual - Esquina superior derecha */}
       {isAR && (
         <div
           style={{
             position: "absolute",
-            top: 80,
-            left: "50%",
-            transform: "translateX(-50%)",
+            top: "90px",
+            right: "10px",
             zIndex: 9999,
           }}
         >
           <button
             onClick={toggleRealWorld}
             style={{
-              padding: "8px 16px",
+              padding: "10px 16px",
               backgroundColor: showRealWorld
-                ? "rgba(0,150,0,0.9)"
-                : "rgba(100,100,255,0.9)",
+                ? "rgba(0,150,0,0.95)"
+                : "rgba(100,100,255,0.95)",
               color: "#fff",
               border: "none",
-              borderRadius: "20px",
+              borderRadius: "25px",
               cursor: "pointer",
               fontSize: "12px",
               fontWeight: 600,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+              boxShadow: "0 3px 15px rgba(0,0,0,0.4)",
+              minWidth: "120px",
             }}
           >
-            {showRealWorld ? "🌍 Mundo Real" : "🎨 Ambiente Virtual"}
+            {showRealWorld ? "🌍 Real" : "🎨 Virtual"}
           </button>
         </div>
       )}
