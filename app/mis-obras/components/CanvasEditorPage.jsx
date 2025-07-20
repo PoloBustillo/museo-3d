@@ -20,6 +20,8 @@ import {
   Zap,
   MoreHorizontal,
   Target,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 
 // Mapeo de iconos para evitar uso de eval()
@@ -195,6 +197,128 @@ if (typeof document !== "undefined") {
 export default function CanvasEditorPage({ onSave, editingMural = null }) {
   // Estado para el modal de pinceles
   const [showBrushModal, setShowBrushModal] = useState(false);
+  
+  // Estado para controlar secciones expandidas del modal
+  const [expandedSections, setExpandedSections] = useState({
+    basic: true,    // Básicos expandido por defecto
+    artistic: false,
+    stamp: false,
+    spray: false,
+    sketch: false,
+    special: false,
+  });
+
+  // Función para toggle de secciones
+  const toggleSection = (sectionKey) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey]
+    }));
+  };
+
+  // Función para expandir todas las secciones
+  const expandAllSections = () => {
+    setExpandedSections({
+      basic: true,
+      artistic: true,
+      stamp: true,
+      spray: true,
+      sketch: true,
+      special: true,
+    });
+  };
+
+  // Función para colapsar todas las secciones
+  const collapseAllSections = () => {
+    setExpandedSections({
+      basic: false,
+      artistic: false,
+      stamp: false,
+      spray: false,
+      sketch: false,
+      special: false,
+    });
+  };
+
+  // Componente reutilizable para secciones colapsables
+  const CollapsibleBrushSection = ({ 
+    sectionKey, 
+    title, 
+    description, 
+    icon: IconComponent, 
+    bgGradient, 
+    hoverBg,
+    selectedBg,
+    borderColor,
+    iconGradient
+  }) => {
+    const sectionTools = tools.filter(t => t.category === sectionKey);
+    const isExpanded = expandedSections[sectionKey];
+
+    return (
+      <div className={`${bgGradient} rounded-2xl border ${borderColor} overflow-hidden h-auto min-h-[120px]`}>
+        <button
+          onClick={() => toggleSection(sectionKey)}
+          className={`w-full flex items-center justify-between p-6 ${hoverBg} transition-colors cursor-pointer`}
+        >
+          <div className="flex items-center">
+            <div className={`w-12 h-12 ${iconGradient} rounded-xl flex items-center justify-center mr-3`}>
+              <IconComponent className="h-6 w-6 text-white" />
+            </div>
+            <div className="text-left">
+              <h3 className="text-xl font-bold text-gray-800 dark:text-gray-200">{title}</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">{description}</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              {sectionTools.length} herramientas
+            </span>
+            <ChevronDown 
+              className={`h-5 w-5 text-gray-500 transition-transform duration-300 ${
+                isExpanded ? 'rotate-180' : ''
+              }`} 
+            />
+          </div>
+        </button>
+        
+        {/* Contenido expandible con margen superior */}
+        <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          isExpanded 
+            ? 'max-h-96 opacity-100 pb-6 px-6 pt-4' 
+            : 'max-h-0 opacity-0'
+        }`}>
+          <div className="grid grid-cols-4 gap-3 brush-grid mt-2">
+            {sectionTools.map(tool => {
+              const Icon = tool.icon;
+              return (
+                <button
+                  key={tool.id}
+                  onClick={() => {
+                    setCurrentTool(tool.id);
+                    setShowBrushModal(false);
+                  }}
+                  className={`group relative p-4 rounded-xl transition-all duration-300 brush-button ${
+                    currentTool === tool.id
+                      ? `${selectedBg} text-white shadow-lg scale-105`
+                      : "bg-white/80 dark:bg-neutral-800/80 hover:bg-white dark:hover:bg-neutral-700 text-gray-700 dark:text-gray-200 hover:scale-105 hover:shadow-md"
+                  }`}
+                  style={{ cursor: "pointer" }}
+                  title={tool.name}
+                >
+                  <Icon className="h-6 w-6 mx-auto mb-2" />
+                  <span className="text-xs font-medium text-center block">{tool.name}</span>
+                  {currentTool === tool.id && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border-2 border-white"></div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Historial de canvas con hook especializado
   const {
@@ -393,393 +517,412 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
   };
 
   return (
-    <div className="w-full h-full">
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-full">
-        {/* Panel de herramientas */}
-        <div className="lg:col-span-1">
-          {/* Card de herramientas unificado */}
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-md p-4 flex flex-col gap-6 w-full mx-auto mb-6">
-            <h3 className="text-lg font-bold mb-2 text-indigo-700 dark:text-indigo-200 text-center">
-              Herramientas
-            </h3>
-            {/* Selector de color de fondo simple */}
-            <div className="flex flex-col items-center gap-2">
-              <h4 className="font-semibold text-sm mb-1">Color de fondo</h4>
-              <input
-                type="color"
-                value={canvasBgColor}
-                onChange={(e) => applyBgColor(e.target.value)}
-                className="w-16 h-10 rounded-xl border-2 border-indigo-300 shadow-sm bg-white dark:bg-neutral-700"
-                style={{ margin: "0 auto" }}
-              />
-            </div>
-            {/* Selector de pinceles usando el componente del modal */}
-            <BrushSelector
-              brushes={tools.map((t) => ({
-                key: t.id,
-                icon: t.icon,
-                label: t.name,
-              }))}
-              currentBrush={currentTool}
-              onSelectBrush={setCurrentTool}
-              onOpenModal={() => setShowBrushModal(true)}
-            />
+    <div className="w-full h-full min-h-screen bg-gradient-to-br from-gray-50 to-indigo-50 dark:from-gray-900 dark:to-indigo-950">
+      {/* Layout responsivo mejorado */}
+      <div className="flex flex-col lg:flex-row gap-4 p-4 h-full">
+        
+        {/* Panel de herramientas - Responsive */}
+        <div className="w-full lg:w-80 lg:min-w-80 order-2 lg:order-1">
+          <div className="sticky top-4">
+            {/* Herramientas principales */}
+            <div className="bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg p-6 mb-4">
+              <div className="flex items-center justify-center mb-6 pb-2 border-b border-gray-200 dark:border-gray-700">
+                <PaletteIcon className="h-5 w-5 text-indigo-600 mr-2" />
+                <h3 className="text-lg font-bold text-gray-800 dark:text-gray-200">
+                  Herramientas Creativas
+                </h3>
+              </div>
+              
+              {/* Color de fondo */}
+              <div className="mb-6">
+                <div className="flex items-center mb-3">
+                  <Square className="h-4 w-4 text-indigo-500 mr-2" />
+                  <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+                    Fondo del Lienzo
+                  </h4>
+                </div>
+                <div className="flex items-center justify-center">
+                  <div className="relative">
+                    <input
+                      type="color"
+                      value={canvasBgColor}
+                      onChange={(e) => applyBgColor(e.target.value)}
+                      className="w-12 h-12 rounded-full border-4 border-white shadow-lg cursor-pointer hover:scale-110 transition-transform"
+                    />
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-indigo-500 rounded-full border-2 border-white"></div>
+                  </div>
+                </div>
+              </div>
 
-            {/* Tamaño del pincel */}
-            <div className="flex flex-col items-center gap-2 mt-2">
-              <h4 className="font-semibold text-sm mb-1">Tamaño del pincel</h4>
-              <input
-                type="range"
-                min="1"
-                max="50"
-                value={brushSize}
-                onChange={(e) => setBrushSize(parseInt(e.target.value))}
-                className="w-3/4 sm:w-2/3 h-3 accent-indigo-600"
-                style={{ minWidth: 120, maxWidth: 240 }}
-              />
-              <div className="text-center mt-1 text-lg font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full shadow-sm">
-                {brushSize}px
+              {/* Selector de pinceles */}
+              <div className="mb-6">
+                <div className="flex items-center mb-3">
+                  <Brush className="h-4 w-4 text-indigo-500 mr-2" />
+                  <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+                    Pinceles Digitales
+                  </h4>
+                </div>
+                <BrushSelector
+                  brushes={tools.map((t) => ({
+                    key: t.id,
+                    icon: t.icon,
+                    label: t.name,
+                  }))}
+                  currentBrush={currentTool}
+                  onSelectBrush={setCurrentTool}
+                  onOpenModal={() => setShowBrushModal(true)}
+                />
+              </div>
+
+              {/* Tamaño del pincel */}
+              <div className="mb-6">
+                <div className="flex items-center mb-3">
+                  <Target className="h-4 w-4 text-indigo-500 mr-2" />
+                  <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+                    Tamaño del Trazo
+                  </h4>
+                </div>
+                <div className="space-y-3">
+                  <input
+                    type="range"
+                    min="1"
+                    max="50"
+                    value={brushSize}
+                    onChange={(e) => setBrushSize(parseInt(e.target.value))}
+                    className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none slider accent-indigo-600"
+                  />
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs text-gray-500">1px</span>
+                    <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-3 py-1 rounded-full text-sm font-bold shadow-md">
+                      {brushSize}px
+                    </div>
+                    <span className="text-xs text-gray-500">50px</span>
+                  </div>
+                  {/* Visualización del tamaño */}
+                  <div className="flex justify-center py-2">
+                    <div
+                      className="rounded-full border-2 border-dashed border-gray-400 bg-gray-100 dark:bg-gray-800"
+                      style={{
+                        width: Math.min(brushSize * 2, 60),
+                        height: Math.min(brushSize * 2, 60),
+                        backgroundColor: brushColor + '20',
+                        borderColor: brushColor,
+                      }}
+                    ></div>
+                  </div>
+                </div>
               </div>
             </div>
-            {/* Paleta de colores simple */}
-            <div className="flex flex-col items-center gap-2 mt-2">
-              <h4 className="font-semibold text-sm mb-1">Color</h4>
-              <div className="grid grid-cols-4 gap-2">
-                {paletteColors.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    className={`w-8 h-8 rounded border-2 shadow transition ${
-                      brushColor === color
-                        ? "border-indigo-500 scale-110"
-                        : "border-gray-300 hover:scale-105"
-                    }`}
-                    style={{
-                      backgroundColor: color,
-                      cursor: "pointer",
-                    }}
-                    onClick={() => handleSetBrushColor(color)}
-                    aria-label={`Color ${color}`}
-                  />
-                ))}
+
+            {/* Paleta de colores mejorada */}
+            <div className="bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg p-6">
+              <div className="flex items-center justify-center mb-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+                <PaletteIcon className="h-5 w-5 text-purple-600 mr-2" />
+                <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300">
+                  Paleta de Colores
+                </h4>
               </div>
-              <input
-                type="color"
-                value={brushColor}
-                onChange={(e) => handleSetBrushColor(e.target.value)}
-                className="w-16 h-10 rounded-xl border-2 border-indigo-300 shadow-sm bg-white dark:bg-neutral-700"
-                style={{ margin: "0 auto" }}
-              />
+              
+              {/* Color actual */}
+              <div className="mb-4 text-center">
+                <div className="relative inline-block">
+                  <div
+                    className="w-16 h-16 rounded-2xl shadow-lg border-4 border-white mx-auto"
+                    style={{ backgroundColor: brushColor }}
+                  ></div>
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded-full">
+                    {brushColor.toUpperCase()}
+                  </div>
+                </div>
+              </div>
+
+              {/* Colores predefinidos */}
+              <div className="mb-4">
+                <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Colores básicos</h5>
+                <div className="grid grid-cols-6 gap-2">
+                  {colors.slice(0, 12).map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      className={`w-8 h-8 rounded-xl shadow-md transition-all duration-200 ${
+                        brushColor === color
+                          ? "border-4 border-indigo-500 scale-110 shadow-lg"
+                          : "border-2 border-gray-200 hover:scale-105 hover:shadow-lg"
+                      }`}
+                      style={{ backgroundColor: color }}
+                      onClick={() => handleSetBrushColor(color)}
+                      title={color}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Colores recientes */}
+              {recentColors.length > 0 && (
+                <div className="mb-4">
+                  <h5 className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Recientes</h5>
+                  <div className="flex gap-2 justify-center">
+                    {recentColors.slice(0, 6).map((color, index) => (
+                      <button
+                        key={`${color}-${index}`}
+                        type="button"
+                        className={`w-6 h-6 rounded-lg shadow transition-all ${
+                          brushColor === color
+                            ? "border-2 border-indigo-500 scale-110"
+                            : "border border-gray-200 hover:scale-105"
+                        }`}
+                        style={{ backgroundColor: color }}
+                        onClick={() => handleSetBrushColor(color)}
+                        title={color}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Selector de color personalizado */}
+              <div className="text-center">
+                <label className="text-xs font-medium text-gray-600 dark:text-gray-400 block mb-2">
+                  Color personalizado
+                </label>
+                <input
+                  type="color"
+                  value={brushColor}
+                  onChange={(e) => handleSetBrushColor(e.target.value)}
+                  className="w-12 h-12 rounded-xl border-2 border-gray-200 shadow-md cursor-pointer hover:scale-105 transition-transform mx-auto"
+                />
+              </div>
             </div>
           </div>
         </div>
-        {/* Canvas con controles de zoom y acciones */}
-        <div className="lg:col-span-3 flex flex-col items-center">
-          {/* Botones de acción arriba del canvas */}
-          <ToolActions
-            undo={undo}
-            redo={redo}
-            clear={clearCanvas}
-            download={downloadCanvas}
-            save={handleSave}
-            historyIndex={historyIndex}
-            canvasHistory={history}
-            canUndo={canUndo}
-            canRedo={canRedo}
-          />
 
-          <div
-            style={{
-              position: "relative",
-              width: "100%",
-              maxWidth: 900,
-              aspectRatio: "4/3",
-            }}
-            className="mb-4"
-          >
-            <canvas
-              ref={canvasRef}
-              width={800}
-              height={600}
-              style={{
-                width: 800,
-                height: 600,
-                background: canvasBgColor,
-                borderRadius: 16,
-                boxShadow: "0 2px 16px rgba(0,0,0,0.12)",
-                cursor: "crosshair",
-              }}
-              onMouseDown={handleMouseDownWithHistory}
-              onMouseMove={handleMouseMoveWithHistory}
-              onMouseUp={handleMouseUpWithHistory}
-              onMouseLeave={handleMouseLeaveWithHistory}
-            />
+        {/* Área del canvas */}
+        <div className="flex-1 order-1 lg:order-2">
+          <div className="bg-white/95 dark:bg-neutral-900/95 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-gray-700 shadow-lg p-6 h-full">
+            
+            {/* Barra de acciones */}
+            <div className="mb-6">
+              <ToolActions
+                undo={undo}
+                redo={redo}
+                clear={clearCanvas}
+                download={downloadCanvas}
+                save={handleSave}
+                historyIndex={historyIndex}
+                canvasHistory={history}
+                canUndo={canUndo}
+                canRedo={canRedo}
+              />
+            </div>
+
+            {/* Container del canvas responsive */}
+            <div className="flex justify-center items-center">
+              <div className="relative w-full max-w-4xl">
+                {/* Canvas con aspect ratio fijo */}
+                <div className="relative w-full" style={{ aspectRatio: '4/3' }}>
+                  <canvas
+                    ref={canvasRef}
+                    width={800}
+                    height={600}
+                    className="w-full h-full rounded-xl shadow-2xl border-4 border-white dark:border-gray-700 bg-white"
+                    style={{
+                      background: canvasBgColor,
+                      cursor: currentTool === 'eraser' ? 'crosshair' : 'crosshair',
+                      touchAction: 'none', // Mejor soporte para dispositivos táctiles
+                    }}
+                    onMouseDown={handleMouseDownWithHistory}
+                    onMouseMove={handleMouseMoveWithHistory}
+                    onMouseUp={handleMouseUpWithHistory}
+                    onMouseLeave={handleMouseLeaveWithHistory}
+                  />
+                  
+                  {/* Overlay para información del canvas */}
+                  <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg backdrop-blur-sm">
+                    {currentTool} • {brushSize}px
+                  </div>
+                  
+                  {/* Indicador de posición del cursor (opcional) */}
+                  {cursorPos && (
+                    <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg backdrop-blur-sm">
+                      {Math.round(cursorPos.x)}, {Math.round(cursorPos.y)}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Modal de pinceles */}
+      {/* Modal de pinceles mejorado */}
       {showBrushModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 max-w-4xl max-h-[80vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                Seleccionar Pincel
-              </h2>
-              <button
-                onClick={() => setShowBrushModal(false)}
-                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                style={{ cursor: "pointer" }}
-              >
-                <X className="h-6 w-6" />
-              </button>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 brush-modal-overlay">
+          <div className="bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-6xl w-full max-h-[90vh] overflow-hidden brush-modal-content">
+            
+            {/* Header del modal */}
+            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-white">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center">
+                  <Brush className="h-6 w-6 mr-3" />
+                  <div>
+                    <h2 className="text-2xl font-bold">Galería de Pinceles</h2>
+                    <p className="text-indigo-100 text-sm">Elige tu herramienta creativa perfecta</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  {/* Botones de control */}
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={expandAllSections}
+                      className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1"
+                      title="Expandir todas las secciones"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                      <span>Expandir</span>
+                    </button>
+                    <button
+                      onClick={collapseAllSections}
+                      className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1"
+                      title="Colapsar todas las secciones"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                      <span>Colapsar</span>
+                    </button>
+                  </div>
+                  
+                  <button
+                    onClick={() => setShowBrushModal(false)}
+                    className="group relative p-3 rounded-full bg-white hover:bg-gray-50 border-2 border-gray-200 hover:border-red-300 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110 modal-close-button"
+                    style={{ cursor: "pointer" }}
+                    title="Cerrar modal"
+                  >
+                    <X className="h-5 w-5 text-gray-600 group-hover:text-red-600 transition-colors duration-300 drop-shadow-sm" />
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-red-50 to-pink-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* Pinceles organizados por categorías */}
-            <div className="space-y-6">
-              {/* Pinceles básicos */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
-                  Básicos
-                </h3>
-                <div className="grid grid-cols-8 gap-2">
-                  {tools
-                    .filter((t) => t.category === "basic")
-                    .map((tool) => {
-                      const Icon = tool.icon;
+            {/* Contenido del modal con scroll */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+              
+              {/* Pincel actualmente seleccionado */}
+              <div className="mb-8 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl border border-blue-200 dark:border-blue-700">
+                <div className="flex items-center justify-center">
+                  <div className="flex items-center bg-white dark:bg-neutral-800 rounded-xl p-4 shadow-md">
+                    {(() => {
+                      const selectedTool = tools.find(t => t.id === currentTool);
+                      const Icon = selectedTool?.icon || Brush;
                       return (
-                        <button
-                          key={tool.id}
-                          onClick={() => {
-                            setCurrentTool(tool.id);
-                            setShowBrushModal(false);
-                          }}
-                          className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
-                            currentTool === tool.id
-                              ? "bg-blue-100 border-blue-400 text-blue-700"
-                              : "bg-white dark:bg-neutral-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-blue-50 hover:border-blue-400"
-                          }`}
-                          style={{ cursor: "pointer" }}
-                          title={tool.name}
-                        >
-                          <Icon className="h-6 w-6 mb-1" />
-                          <span className="text-xs text-center">
-                            {tool.name}
-                          </span>
-                        </button>
+                        <>
+                          <Icon className="h-8 w-8 text-indigo-600 mr-3" />
+                          <div>
+                            <div className="font-semibold text-gray-800 dark:text-gray-200">
+                              {selectedTool?.name || "Pincel Básico"}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              Seleccionado actualmente
+                            </div>
+                          </div>
+                        </>
                       );
-                    })}
+                    })()}
+                  </div>
                 </div>
               </div>
 
-              {/* Pinceles artísticos */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
-                  Artísticos
-                </h3>
-                <div className="grid grid-cols-8 gap-2">
-                  {tools
-                    .filter((t) => t.category === "artistic")
-                    .map((tool) => {
-                      const Icon = tool.icon;
-                      return (
-                        <button
-                          key={tool.id}
-                          onClick={() => {
-                            setCurrentTool(tool.id);
-                            setShowBrushModal(false);
-                          }}
-                          className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
-                            currentTool === tool.id
-                              ? "bg-green-100 border-green-400 text-green-700"
-                              : "bg-white dark:bg-neutral-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-green-50 hover:border-green-400"
-                          }`}
-                          style={{ cursor: "pointer" }}
-                          title={tool.name}
-                        >
-                          <Icon className="h-6 w-6 mb-1" />
-                          <span className="text-xs text-center">
-                            {tool.name}
-                          </span>
-                        </button>
-                      );
-                    })}
-                </div>
-              </div>
+              {/* Grid de categorías de pinceles con altura uniforme */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                
+                <CollapsibleBrushSection
+                  sectionKey="basic"
+                  title="Pinceles Básicos"
+                  description="Para trazos fundamentales"
+                  icon={Brush}
+                  bgGradient="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/10 dark:to-cyan-900/10"
+                  hoverBg="hover:bg-blue-100/50 dark:hover:bg-blue-900/20"
+                  selectedBg="bg-blue-500"
+                  borderColor="border-blue-100 dark:border-blue-800"
+                  iconGradient="bg-gradient-to-r from-blue-500 to-cyan-500"
+                />
 
-              {/* Pinceles de estampado */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
-                  Estampado
-                </h3>
-                <div className="grid grid-cols-8 gap-2">
-                  {tools
-                    .filter((t) => t.category === "stamp")
-                    .map((tool) => {
-                      const Icon = tool.icon;
-                      return (
-                        <button
-                          key={tool.id}
-                          onClick={() => {
-                            setCurrentTool(tool.id);
-                            setShowBrushModal(false);
-                          }}
-                          className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
-                            currentTool === tool.id
-                              ? "bg-pink-100 border-pink-400 text-pink-700"
-                              : "bg-white dark:bg-neutral-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-pink-50 hover:border-pink-400"
-                          }`}
-                          style={{ cursor: "pointer" }}
-                          title={tool.name}
-                        >
-                          <Icon className="h-6 w-6 mb-1" />
-                          <span className="text-xs text-center">
-                            {tool.name}
-                          </span>
-                        </button>
-                      );
-                    })}
-                </div>
-              </div>
+                <CollapsibleBrushSection
+                  sectionKey="artistic"
+                  title="Pinceles Artísticos"
+                  description="Para efectos creativos"
+                  icon={Sparkles}
+                  bgGradient="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10"
+                  hoverBg="hover:bg-green-100/50 dark:hover:bg-green-900/20"
+                  selectedBg="bg-green-500"
+                  borderColor="border-green-100 dark:border-green-800"
+                  iconGradient="bg-gradient-to-r from-green-500 to-emerald-500"
+                />
 
-              {/* Pinceles de patrón */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
-                  Patrón
-                </h3>
-                <div className="grid grid-cols-8 gap-2">
-                  {tools
-                    .filter((t) => t.category === "pattern")
-                    .map((tool) => {
-                      const Icon = tool.icon;
-                      return (
-                        <button
-                          key={tool.id}
-                          onClick={() => {
-                            setCurrentTool(tool.id);
-                            setShowBrushModal(false);
-                          }}
-                          className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
-                            currentTool === tool.id
-                              ? "bg-orange-100 border-orange-400 text-orange-700"
-                              : "bg-white dark:bg-neutral-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-orange-50 hover:border-orange-400"
-                          }`}
-                          style={{ cursor: "pointer" }}
-                          title={tool.name}
-                        >
-                          <Icon className="h-6 w-6 mb-1" />
-                          <span className="text-xs text-center">
-                            {tool.name}
-                          </span>
-                        </button>
-                      );
-                    })}
-                </div>
-              </div>
+                <CollapsibleBrushSection
+                  sectionKey="stamp"
+                  title="Estampado"
+                  description="Patrones y texturas"
+                  icon={Target}
+                  bgGradient="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/10 dark:to-rose-900/10"
+                  hoverBg="hover:bg-pink-100/50 dark:hover:bg-pink-900/20"
+                  selectedBg="bg-pink-500"
+                  borderColor="border-pink-100 dark:border-pink-800"
+                  iconGradient="bg-gradient-to-r from-pink-500 to-rose-500"
+                />
 
-              {/* Pinceles de spray */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
-                  Spray
-                </h3>
-                <div className="grid grid-cols-8 gap-2">
-                  {tools
-                    .filter((t) => t.category === "spray")
-                    .map((tool) => {
-                      const Icon = tool.icon;
-                      return (
-                        <button
-                          key={tool.id}
-                          onClick={() => {
-                            setCurrentTool(tool.id);
-                            setShowBrushModal(false);
-                          }}
-                          className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
-                            currentTool === tool.id
-                              ? "bg-cyan-100 border-cyan-400 text-cyan-700"
-                              : "bg-white dark:bg-neutral-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-cyan-50 hover:border-cyan-400"
-                          }`}
-                          style={{ cursor: "pointer" }}
-                          title={tool.name}
-                        >
-                          <Icon className="h-6 w-6 mb-1" />
-                          <span className="text-xs text-center">
-                            {tool.name}
-                          </span>
-                        </button>
-                      );
-                    })}
-                </div>
-              </div>
+                <CollapsibleBrushSection
+                  sectionKey="spray"
+                  title="Spray & Efectos"
+                  description="Efectos atmosféricos"
+                  icon={Droplets}
+                  bgGradient="bg-gradient-to-br from-cyan-50 to-sky-50 dark:from-cyan-900/10 dark:to-sky-900/10"
+                  hoverBg="hover:bg-cyan-100/50 dark:hover:bg-cyan-900/20"
+                  selectedBg="bg-cyan-500"
+                  borderColor="border-cyan-100 dark:border-cyan-800"
+                  iconGradient="bg-gradient-to-r from-cyan-500 to-sky-500"
+                />
 
-              {/* Pinceles de sketch/harmony */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
-                  Sketch/Harmony
-                </h3>
-                <div className="grid grid-cols-8 gap-2">
-                  {tools
-                    .filter((t) => t.category === "sketch")
-                    .map((tool) => {
-                      const Icon = tool.icon;
-                      return (
-                        <button
-                          key={tool.id}
-                          onClick={() => {
-                            setCurrentTool(tool.id);
-                            setShowBrushModal(false);
-                          }}
-                          className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
-                            currentTool === tool.id
-                              ? "bg-yellow-100 border-yellow-400 text-yellow-700"
-                              : "bg-white dark:bg-neutral-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-yellow-50 hover:border-yellow-400"
-                          }`}
-                          style={{ cursor: "pointer" }}
-                          title={tool.name}
-                        >
-                          <Icon className="h-6 w-6 mb-1" />
-                          <span className="text-xs text-center">
-                            {tool.name}
-                          </span>
-                        </button>
-                      );
-                    })}
-                </div>
-              </div>
+                <CollapsibleBrushSection
+                  sectionKey="sketch"
+                  title="Sketch & Líneas"
+                  description="Trazos precisos"
+                  icon={Minus}
+                  bgGradient="bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/10 dark:to-amber-900/10"
+                  hoverBg="hover:bg-yellow-100/50 dark:hover:bg-yellow-900/20"
+                  selectedBg="bg-yellow-500"
+                  borderColor="border-yellow-100 dark:border-yellow-800"
+                  iconGradient="bg-gradient-to-r from-yellow-500 to-amber-500"
+                />
 
-              {/* Pinceles especiales */}
-              <div>
-                <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
-                  Especiales
-                </h3>
-                <div className="grid grid-cols-8 gap-2">
-                  {tools
-                    .filter((t) => t.category === "special")
-                    .map((tool) => {
-                      const Icon = tool.icon;
-                      return (
-                        <button
-                          key={tool.id}
-                          onClick={() => {
-                            setCurrentTool(tool.id);
-                            setShowBrushModal(false);
-                          }}
-                          className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
-                            currentTool === tool.id
-                              ? "bg-purple-100 border-purple-400 text-purple-700"
-                              : "bg-white dark:bg-neutral-800 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-purple-50 hover:border-purple-400"
-                          }`}
-                          style={{ cursor: "pointer" }}
-                          title={tool.name}
-                        >
-                          <Icon className="h-6 w-6 mb-1" />
-                          <span className="text-xs text-center">
-                            {tool.name}
-                          </span>
-                        </button>
-                      );
-                    })}
+                <CollapsibleBrushSection
+                  sectionKey="special"
+                  title="Especiales"
+                  description="Efectos únicos"
+                  icon={Zap}
+                  bgGradient="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/10 dark:to-indigo-900/10"
+                  hoverBg="hover:bg-purple-100/50 dark:hover:bg-purple-900/20"
+                  selectedBg="bg-purple-500"
+                  borderColor="border-purple-100 dark:border-purple-800"
+                  iconGradient="bg-gradient-to-r from-purple-500 to-indigo-500"
+                />
+
+              </div>
+            </div>
+
+            {/* Footer del modal */}
+            <div className="bg-gray-50 dark:bg-neutral-800 p-4 border-t border-gray-200 dark:border-gray-700">
+              <div className="flex justify-between items-center">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  {tools.length} pinceles disponibles
                 </div>
+                <button
+                  onClick={() => setShowBrushModal(false)}
+                  className="group px-8 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center space-x-2"
+                  style={{ cursor: "pointer" }}
+                >
+                  <span>Cerrar</span>
+                  <X className="h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
+                </button>
               </div>
             </div>
           </div>
