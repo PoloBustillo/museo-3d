@@ -1338,6 +1338,32 @@ html.dark .graffiti-gradient-bg {
   transform: scale(1.1);
 }
 
+/* Estilos específicos para botones de prueba AR */
+.ar-test-button {
+  position: fixed !important;
+  z-index: 999999 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  background: linear-gradient(135deg, #ff0000, #ff6600) !important;
+  color: white !important;
+  border: 5px solid #000 !important;
+  border-radius: 20px !important;
+  font-size: 24px !important;
+  font-weight: bold !important;
+  cursor: pointer !important;
+  padding: 20px 40px !important;
+}
+
+/* Asegurar que los botones AR sean visibles */
+button[style*="position: fixed"] {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  pointer-events: auto !important;
+}
+
 /* === Glow y glassmorphism para cards de perfil === */
 .card-mouse-glow {
   position: relative;
@@ -1784,4 +1810,44 @@ html.dark .graffiti-gradient-bg {
 
 [data-theme="light"] .cloud-layer-3 {
   opacity: 0.9;
+}
+
+/* Asegurar que los botones AR sean visibles */
+button[style*="position: fixed"] {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  pointer-events: auto !important;
+}
+
+/* Estilos específicos para botones de prueba */
+.test-button {
+  position: fixed !important;
+  z-index: 999999 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  background: red !important;
+  color: white !important;
+  border: 2px solid black !important;
+  border-radius: 5px !important;
+  font-size: 16px !important;
+  font-weight: bold !important;
+  cursor: pointer !important;
+  padding: 10px 20px !important;
+}
+
+/* Asegurar que todos los elementos con position fixed sean visibles, EXCEPTO mouse trail */
+[style*="position: fixed"]:not(.mouse-trail-dot) {
+  visibility: visible !important;
+  opacity: 1 !important;
+  display: block !important;
+  pointer-events: auto !important;
+}
+
+/* Asegurar que el mouse trail NO interfiera con clicks */
+.mouse-trail-dot {
+  pointer-events: none !important;
+  z-index: 9999;
 }

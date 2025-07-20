@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 
 // Importar ARExperience dinámicamente para evitar problemas de SSR
@@ -47,6 +47,31 @@ export default function TestARSimplePage() {
     };
   }
 
+  // Crear un botón de prueba inmediatamente cuando la página se carga
+  useEffect(() => {
+    console.log("🚨 Página de prueba cargada, creando botón de prueba...");
+    
+    const testButton = document.createElement('button');
+    testButton.textContent = "🚨 BOTÓN DE PRUEBA SIMPLE";
+    testButton.className = "ar-test-button";
+    testButton.style.top = "100px";
+    testButton.style.left = "50%";
+    testButton.style.transform = "translateX(-50%)";
+    testButton.onclick = () => {
+      alert("¡Botón de prueba simple funciona!");
+      console.log("🚨 Botón de prueba simple clickeado");
+    };
+    
+    document.body.appendChild(testButton);
+    console.log("🚨 Botón de prueba simple creado y agregado al DOM");
+
+    return () => {
+      if (testButton.parentNode) {
+        testButton.parentNode.removeChild(testButton);
+      }
+    };
+  }, []);
+
   // URL de un modelo 3D que sabemos que funciona
   const testModelUrl =
     "https://res.cloudinary.com/daol1ohso/raw/upload/v1752871063/modelos3d/modelo_mural_22_1752871061895.glb";
@@ -55,6 +80,22 @@ export default function TestARSimplePage() {
     <div style={{ padding: "20px", maxWidth: "1200px", margin: "0 auto" }}>
       <h1>🧪 Prueba AR Simple</h1>
       <p>Página de prueba sin dependencias de base de datos</p>
+
+      {/* Botón de prueba directo en JSX */}
+      <button
+        className="ar-test-button"
+        style={{
+          top: "150px",
+          left: "50%",
+          transform: "translateX(-50%)",
+        }}
+        onClick={() => {
+          alert("¡Botón JSX funciona!");
+          console.log("🚨 Botón JSX clickeado");
+        }}
+      >
+        🚨 BOTÓN JSX
+      </button>
 
       <div
         style={{

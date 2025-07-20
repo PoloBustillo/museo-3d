@@ -174,56 +174,55 @@ export default function CrearMuralStepper() {
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        console.log("📋 Datos parseados:", parsed);
+        console.log("📋 Datos parseados desde localStorage:", parsed);
 
         setMural((prev) => {
-          // Solo cargar datos si no tenemos datos ya cargados o si el userId coincide
-          const shouldLoadData =
-            !prev.titulo ||
-            !prev.descripcion ||
-            !prev.tecnica ||
-            parsed.userId === session?.user?.id;
-
-          // Verificar si los datos parseados tienen contenido significativo
-          const hasParsedData =
-            parsed.titulo ||
-            parsed.descripcion ||
-            parsed.tecnica ||
-            parsed.anio !== 2025 ||
-            parsed.dimensiones ||
-            parsed.latitud ||
-            parsed.longitud ||
-            parsed.ubicacion ||
-            parsed.salaId ||
-            parsed.estado ||
-            parsed.autor ||
-            parsed.artistId ||
-            (parsed.colaboradores && parsed.colaboradores.length > 0);
-
-          // Siempre cargar si tenemos datos válidos guardados, dando prioridad a los datos más completos
-          if (hasParsedData) {
-            const newMural = {
-              ...prev,
-              ...parsed,
-              // Mantener la imagen actual si existe (no sobrescribir con null)
-              url_imagen: prev.url_imagen || parsed.url_imagen,
-              // Asegurar que userId se mantenga si ya está establecido
-              userId: session?.user?.id || prev.userId || parsed.userId,
-              // Si hay campos vacíos en parsed pero con datos en prev, mantener prev
-              titulo: parsed.titulo || prev.titulo,
-              tecnica: parsed.tecnica || prev.tecnica,
-              descripcion: parsed.descripcion || prev.descripcion,
-              anio: parsed.anio !== 2025 ? parsed.anio : (prev.anio || parsed.anio),
-            };
-            console.log("🔄 Estado del mural actualizado:", newMural);
-            return newMural;
-          } else {
-            console.log(
-              "⏭️ Saltando carga de datos - datos insuficientes",
-              { shouldLoadData, hasParsedData }
-            );
-            return prev;
-          }
+          console.log("� Estado previo del mural:", prev);
+          
+          // Siempre usar los datos de localStorage cuando están disponibles
+          // para evitar que se pierdan al regresar del canvas
+          const newMural = {
+            // Base por defecto
+            titulo: "",
+            descripcion: "",
+            tecnica: "",
+            anio: new Date().getFullYear(),
+            dimensiones: "",
+            tags: [],
+            url_imagen: null,
+            imagenesSecundarias: [],
+            imagenUrlWebp: "",
+            videoUrl: "",
+            audioUrl: "",
+            modelo3dUrl: "",
+            ubicacion: "",
+            latitud: "",
+            longitud: "",
+            salaId: "",
+            exposiciones: [],
+            estado: "",
+            publica: true,
+            destacada: false,
+            orden: 0,
+            autor: "",
+            artistId: "",
+            colaboradores: [],
+            tagsInput: "",
+            userId: session?.user?.id || "",
+            // Sobrescribir con datos guardados
+            ...parsed,
+            // Asegurar que userId siempre esté actualizado
+            userId: session?.user?.id || parsed.userId || prev.userId,
+          };
+          
+          console.log("✅ Nuevo estado del mural desde localStorage:", {
+            titulo: newMural.titulo,
+            tecnica: newMural.tecnica,
+            anio: newMural.anio,
+            userId: newMural.userId,
+          });
+          
+          return newMural;
         });
       } catch (error) {
         console.error("❌ Error parsing saved mural data:", error);
@@ -231,9 +230,11 @@ export default function CrearMuralStepper() {
     }
 
     if (savedStep) {
-      setStep(parseInt(savedStep));
+      const stepNumber = parseInt(savedStep);
+      console.log("📍 Restaurando step:", stepNumber);
+      setStep(stepNumber);
     }
-  }, [session?.user?.id]); // Depender de session.user.id para recargar cuando esté disponible
+  }, [session?.user?.id]);
 
   // Establecer userId cuando la sesión esté disponible (solo si no está ya establecido)
   useEffect(() => {
@@ -242,6 +243,24 @@ export default function CrearMuralStepper() {
       setMural((prev) => ({ ...prev, userId: session.user.id }));
     }
   }, [session, mural.userId]);
+
+  // Auto-guardar los datos del mural cada vez que cambien (excepto si estamos cargando)
+  useEffect(() => {
+    // Solo guardar si tenemos datos significativos y la sesión está lista
+    const hasSignificantData = mural.titulo || mural.descripcion || mural.tecnica || 
+                               (mural.anio && mural.anio !== new Date().getFullYear());
+    
+    if (hasSignificantData && session?.user?.id) {
+      console.log("💾 Auto-guardando datos del mural:", {
+        titulo: mural.titulo,
+        tecnica: mural.tecnica,
+        anio: mural.anio,
+        step: step
+      });
+      localStorage.setItem("muralDraftData", JSON.stringify(mural));
+      localStorage.setItem("muralStep", step.toString());
+    }
+  }, [mural, step, session?.user?.id]);
 
   // Cargar lista de artistas
   useEffect(() => {
@@ -290,40 +309,32 @@ export default function CrearMuralStepper() {
         .then((compressedImage) => {
           console.log("✅ Imagen comprimida, actualizando estado");
           setMural((m) => {
-            // Preservar todos los datos existentes del mural, dando prioridad a los datos del estado actual
+            console.log("🔧 Estado actual del mural antes de actualizar:", m);
+            console.log("🗂️ Datos del localStorage:", existingData);
+            
+            // Siempre usar localStorage como base y solo completar campos faltantes
             const updatedMural = {
-              ...existingData, // Datos del localStorage
-              ...m, // Datos del estado actual (tienen prioridad)
-              url_imagen: compressedImage, // Nueva imagen
-              // Asegurarse de que campos importantes no se pierdan
-              titulo: m.titulo || existingData.titulo || "",
-              tecnica: m.tecnica || existingData.tecnica || "",
-              descripcion: m.descripcion || existingData.descripcion || "",
-              anio: m.anio || existingData.anio,
-              dimensiones: m.dimensiones || existingData.dimensiones || "",
-              ubicacion: m.ubicacion || existingData.ubicacion || "",
-              latitud: m.latitud || existingData.latitud || "",
-              longitud: m.longitud || existingData.longitud || "",
-              salaId: m.salaId || existingData.salaId || "",
-              estado: m.estado || existingData.estado || "",
-              autor: m.autor || existingData.autor || "",
-              artistId: m.artistId || existingData.artistId || "",
-              colaboradores: m.colaboradores || existingData.colaboradores || [],
-              tags: m.tags || existingData.tags || [],
-              publica: m.publica !== undefined ? m.publica : (existingData.publica !== undefined ? existingData.publica : true),
-              destacada: m.destacada !== undefined ? m.destacada : (existingData.destacada !== undefined ? existingData.destacada : false),
-              orden: m.orden !== undefined ? m.orden : (existingData.orden !== undefined ? existingData.orden : 0),
-              userId: m.userId || existingData.userId,
+              ...existingData, // localStorage como base SIEMPRE
+              url_imagen: compressedImage, // Nueva imagen del canvas
+              // Completar campos que puedan faltar en localStorage con valores por defecto
+              userId: m.userId || existingData.userId || session?.user?.id,
+              // Asegurar que los arrays existen
+              colaboradores: existingData.colaboradores || [],
+              tags: existingData.tags || [],
+              // Valores por defecto para campos booleanos
+              publica: existingData.publica !== undefined ? existingData.publica : true,
+              destacada: existingData.destacada !== undefined ? existingData.destacada : false,
+              orden: existingData.orden !== undefined ? existingData.orden : 0,
             };
 
             // Verificar que los datos se preservaron correctamente
-            console.log("🔍 Verificación de preservación de datos:", {
-              tituloAntes: m.titulo,
-              tituloDespues: updatedMural.titulo,
-              tecnicaAntes: m.tecnica,
-              tecnicaDespues: updatedMural.tecnica,
-              existingDataTitulo: existingData.titulo,
-              existingDataTecnica: existingData.tecnica,
+            console.log("🔍 Verificación final de preservación de datos:", {
+              tituloLocalStorage: existingData.titulo,
+              tituloFinal: updatedMural.titulo,
+              tecnicaLocalStorage: existingData.tecnica,
+              tecnicaFinal: updatedMural.tecnica,
+              estadoAnterior: m.titulo,
+              preservado: updatedMural.titulo === existingData.titulo
             });
             console.log("🎨 Mural actualizado con imagen:", {
               titulo: updatedMural.titulo,
@@ -346,6 +357,7 @@ export default function CrearMuralStepper() {
               console.log("💾 Guardado inmediato después de cargar imagen:", {
                 titulo: muralWithoutImage.titulo,
                 tecnica: muralWithoutImage.tecnica,
+                anio: muralWithoutImage.anio,
               });
             }, 100);
 
@@ -958,6 +970,65 @@ export default function CrearMuralStepper() {
         {step === 2 && <GeolocateIfNeeded mural={mural} setMural={setMural} />}
         {step === 0 && (
           <div className="flex flex-col gap-10 mb-8">
+            {/* Botón de debug temporal */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <h4 className="text-yellow-800 font-semibold mb-2">🔧 Debug - Step 0</h4>
+              <div className="flex gap-4 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    console.log("🔍 Estado actual del mural:", mural);
+                    const localData = localStorage.getItem("muralDraftData");
+                    if (localData) {
+                      console.log("📂 Datos en localStorage:", JSON.parse(localData));
+                    } else {
+                      console.log("📂 No hay datos en localStorage");
+                    }
+                  }}
+                  className="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white text-sm rounded"
+                >
+                  Ver Estado Actual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const localData = localStorage.getItem("muralDraftData");
+                    if (localData) {
+                      const parsed = JSON.parse(localData);
+                      setMural(prev => ({
+                        ...prev,
+                        titulo: parsed.titulo || prev.titulo,
+                        tecnica: parsed.tecnica || prev.tecnica,
+                        anio: parsed.anio || prev.anio,
+                        descripcion: parsed.descripcion || prev.descripcion,
+                      }));
+                      console.log("🔄 Datos recargados desde localStorage");
+                    }
+                  }}
+                  className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded"
+                >
+                  Recargar desde localStorage
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.removeItem("muralDraftData");
+                    localStorage.removeItem("muralStep");
+                    localStorage.removeItem("canvasImage");
+                    console.log("🗑️ localStorage limpiado");
+                  }}
+                  className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-sm rounded"
+                >
+                  Limpiar localStorage
+                </button>
+              </div>
+              <div className="mt-2 text-sm text-yellow-700">
+                Estado: {mural.titulo ? `"${mural.titulo}"` : 'Sin título'} | 
+                Técnica: {mural.tecnica ? `"${mural.tecnica}"` : 'Sin técnica'} | 
+                Año: {mural.anio || 'Sin año'}
+              </div>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div>
                 <label htmlFor="titulo" className={labelClass}>

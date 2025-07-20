@@ -164,47 +164,70 @@ export default function MuralImageStep({ value, onChange, muralData = {} }) {
               profesionales, más espacio de trabajo y mejor experiencia de
               usuario.
             </p>
-            <button
-              onClick={() => {
-                // Guardar TODOS los datos actuales en localStorage antes de navegar
-                const currentData = {
-                  ...muralData, // Preservar todos los datos existentes
-                  // Solo sobrescribir campos específicos si están vacíos
-                  titulo: muralData.titulo || "",
-                  tecnica: muralData.tecnica || "",
-                  year: muralData.anio || muralData.year || undefined,
-                  descripcion: muralData.descripcion || "",
-                  // Preservar otros campos importantes
-                  dimensiones: muralData.dimensiones || "",
-                  ubicacion: muralData.ubicacion || "",
-                  latitud: muralData.latitud || "",
-                  longitud: muralData.longitud || "",
-                  salaId: muralData.salaId || "",
-                  estado: muralData.estado || "",
-                  autor: muralData.autor || "",
-                  artistId: muralData.artistId || "",
-                  colaboradores: muralData.colaboradores || [],
-                  tags: muralData.tags || [],
-                  publica: muralData.publica,
-                  destacada: muralData.destacada,
-                  orden: muralData.orden,
-                  userId: muralData.userId,
-                };
-                
-                console.log("💾 Guardando datos completos antes de ir al canvas:", currentData);
-                localStorage.setItem(
-                  "muralDraftData",
-                  JSON.stringify(currentData)
-                );
+            <div className="flex flex-col gap-4">
+              {/* Botón de debug temporal */}
+              <button
+                onClick={() => {
+                  console.log("🔍 Estado actual de muralData:", muralData);
+                  const currentMuralData = localStorage.getItem("muralDraftData");
+                  if (currentMuralData) {
+                    try {
+                      const parsed = JSON.parse(currentMuralData);
+                      console.log("📂 Datos en localStorage:", parsed);
+                    } catch (error) {
+                      console.error("Error parsing localStorage:", error);
+                    }
+                  } else {
+                    console.log("📂 No hay datos en localStorage");
+                  }
+                }}
+                className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white text-sm rounded-lg"
+              >
+                🔍 Debug: Ver estado actual
+              </button>
+              
+              <button
+                onClick={() => {
+                  // Guardar TODOS los datos actuales en localStorage antes de navegar
+                  const currentData = {
+                    ...muralData, // Preservar todos los datos existentes
+                    // Solo sobrescribir campos específicos si están vacíos
+                    titulo: muralData.titulo || "",
+                    tecnica: muralData.tecnica || "",
+                    year: muralData.anio || muralData.year || undefined,
+                    descripcion: muralData.descripcion || "",
+                    // Preservar otros campos importantes
+                    dimensiones: muralData.dimensiones || "",
+                    ubicacion: muralData.ubicacion || "",
+                    latitud: muralData.latitud || "",
+                    longitud: muralData.longitud || "",
+                    salaId: muralData.salaId || "",
+                    estado: muralData.estado || "",
+                    autor: muralData.autor || "",
+                    artistId: muralData.artistId || "",
+                    colaboradores: muralData.colaboradores || [],
+                    tags: muralData.tags || [],
+                    publica: muralData.publica,
+                    destacada: muralData.destacada,
+                    orden: muralData.orden,
+                    userId: muralData.userId,
+                  };
+                  
+                  console.log("💾 Guardando datos completos antes de ir al canvas:", currentData);
+                  localStorage.setItem(
+                    "muralDraftData",
+                    JSON.stringify(currentData)
+                  );
 
-                // Navegar a la página del canvas
-                router.push("/mis-obras/crear/canvas");
-              }}
-              className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              style={{ cursor: "pointer" }}
-            >
-              Abrir editor de dibujo
-            </button>
+                  // Navegar a la página del canvas
+                  router.push("/mis-obras/crear/canvas");
+                }}
+                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                style={{ cursor: "pointer" }}
+              >
+                Abrir editor de dibujo
+              </button>
+            </div>
           </div>
         </div>
       )}

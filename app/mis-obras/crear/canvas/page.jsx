@@ -13,44 +13,61 @@ export default function CanvasPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Obtener datos del mural desde URL params o localStorage
-  const [muralData, setMuralData] = useState({
-    titulo: searchParams.get("titulo") || "",
-    tecnica: searchParams.get("tecnica") || "",
-    year: searchParams.get("year")
-      ? parseInt(searchParams.get("year"))
-      : undefined,
-    descripcion: searchParams.get("descripcion") || "",
-  });
+  // Obtener datos del mural - inicializar vacío y esperar localStorage
+  const [muralData, setMuralData] = useState(null); // Inicializar como null para indicar "cargando"
 
   const [canvasImage, setCanvasImage] = useState(null);
 
-  // Cargar datos desde localStorage si no están en URL
+  // Cargar datos desde localStorage
   useEffect(() => {
     const savedData = localStorage.getItem("muralDraftData");
+    console.log("📋 Datos guardados en localStorage:", savedData ? "Sí" : "No");
+    
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        console.log("📋 Cargando datos completos en canvas:", parsed);
-        // Si no hay datos en URL, usar todos los datos de localStorage
-        if (!searchParams.get("titulo")) {
-          setMuralData(parsed);
-        } else {
-          // Si hay datos en URL, combinar con localStorage preservando URL
-          setMuralData((prev) => ({
-            ...parsed, // Datos completos de localStorage
-            ...prev,   // Datos de URL (tienen prioridad)
-          }));
-        }
+        console.log("📋 Cargando datos completos en canvas:", {
+          titulo: parsed.titulo,
+          tecnica: parsed.tecnica,
+          descripcion: parsed.descripcion,
+          anio: parsed.anio
+        });
+        
+        // Usar los datos de localStorage completos
+        setMuralData(parsed);
+        
       } catch (error) {
         console.error("Error parsing saved mural data:", error);
+        // Si hay error, inicializar con datos vacíos
+        setMuralData({
+          titulo: "",
+          tecnica: "",
+          descripcion: "",
+          anio: new Date().getFullYear()
+        });
       }
+    } else {
+      console.log("❌ No hay datos en localStorage, inicializando vacío");
+      // Si no hay datos, inicializar vacío
+      setMuralData({
+        titulo: "",
+        tecnica: "",
+        descripcion: "",
+        anio: new Date().getFullYear()
+      });
     }
-  }, [searchParams]);
+  }, []); // Solo ejecutar una vez al montar
 
-  // Guardar datos en localStorage
+  // Guardar datos en localStorage solo si tiene contenido significativo
   useEffect(() => {
-    localStorage.setItem("muralDraftData", JSON.stringify(muralData));
+    // Solo guardar si muralData no es null y tiene datos reales para evitar sobrescribir con datos vacíos
+    if (muralData && (muralData.titulo || muralData.tecnica || muralData.descripcion)) {
+      console.log("💾 Guardando datos actualizados en localStorage:", {
+        titulo: muralData.titulo,
+        tecnica: muralData.tecnica
+      });
+      localStorage.setItem("muralDraftData", JSON.stringify(muralData));
+    }
   }, [muralData]);
 
   const handleCanvasSave = (imageDataUrl) => {
@@ -112,11 +129,26 @@ export default function CanvasPage() {
     }
 
     const link = document.createElement("a");
-    link.download = `${muralData.titulo || "obra"}.png`;
+    link.download = `${(muralData?.titulo) || "obra"}.png`;
     link.href = canvasImage;
     link.click();
     toast.success("Dibujo descargado");
   };
+
+  // Mostrar loading mientras se cargan los datos
+  if (!muralData) {
+    return (
+      <ProtectedRoute>
+        <div className="relative min-h-screen flex items-center justify-center">
+          <AnimatedBackground />
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Cargando datos del mural...</p>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+  }
 
   return (
     <ProtectedRoute>
@@ -143,14 +175,34 @@ export default function CanvasPage() {
                   Crear obra - Editor de dibujo
                 </h1>
                 <p className="text-sm text-muted-foreground">
-                  {muralData.titulo ? `"${muralData.titulo}"` : "Sin título"}
-                  {muralData.tecnica && ` • ${muralData.tecnica}`}
-                  {muralData.year && ` • ${muralData.year}`}
+                  {muralData?.titulo ? `"${muralData.titulo}"` : "Sin título"}
+                  {muralData?.tecnica && ` • ${muralData.tecnica}`}
+                  {muralData?.year && ` • ${muralData.year}`}
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
+              {/* Botón debug temporal */}
+              <button
+                type="button"
+                onClick={() => {
+                  console.log("🔍 Debug Canvas - Estado actual:", {
+                    muralData,
+                    canvasImage: !!canvasImage,
+                  });
+                  const savedData = localStorage.getItem("muralDraftData");
+                  if (savedData) {
+                    console.log("📂 localStorage muralDraftData:", JSON.parse(savedData));
+                  }
+                  const savedCanvas = localStorage.getItem("canvasImage");
+                  console.log("🎨 localStorage canvasImage:", !!savedCanvas);
+                }}
+                className="px-2 py-1 bg-purple-500 text-white text-xs rounded"
+              >
+                Debug
+              </button>
+              
               {/* Botón de test */}
               <button
                 type="button"

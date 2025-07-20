@@ -46,6 +46,35 @@ export default function ARExperience({
     } else {
       setWebXRSupported(false);
     }
+
+    // Crear un botón de prueba inmediatamente
+    const immediateTestButton = document.createElement('button');
+    immediateTestButton.textContent = "🚨 BOTÓN INMEDIATO";
+    immediateTestButton.style.position = "fixed";
+    immediateTestButton.style.top = "50px";
+    immediateTestButton.style.left = "20px";
+    immediateTestButton.style.padding = "15px 25px";
+    immediateTestButton.style.background = "linear-gradient(135deg, #00ff00, #00cc00)";
+    immediateTestButton.style.color = "white";
+    immediateTestButton.style.border = "3px solid #000";
+    immediateTestButton.style.borderRadius = "10px";
+    immediateTestButton.style.fontSize = "18px";
+    immediateTestButton.style.fontWeight = "bold";
+    immediateTestButton.style.zIndex = "999999";
+    immediateTestButton.style.cursor = "pointer";
+    immediateTestButton.onclick = () => {
+      alert("¡Botón inmediato funciona!");
+      console.log("🚨 Botón inmediato clickeado");
+    };
+    
+    document.body.appendChild(immediateTestButton);
+    console.log("🚨 Botón inmediato creado");
+
+    return () => {
+      if (immediateTestButton.parentNode) {
+        immediateTestButton.parentNode.removeChild(immediateTestButton);
+      }
+    };
   }, []);
 
   // Inicializar Three.js
@@ -207,6 +236,30 @@ export default function ARExperience({
     }
 
     try {
+      // PRIMERO: Crear un botón de prueba simple para verificar que funciona
+      const testButton = document.createElement('button');
+      testButton.textContent = "🧪 BOTÓN DE PRUEBA";
+      testButton.style.position = "fixed";
+      testButton.style.bottom = "200px";
+      testButton.style.right = "20px";
+      testButton.style.left = "20px";
+      testButton.style.padding = "20px 30px";
+      testButton.style.background = "linear-gradient(135deg, #ff0000, #ff6600)";
+      testButton.style.color = "white";
+      testButton.style.border = "5px solid #fff";
+      testButton.style.borderRadius = "15px";
+      testButton.style.fontSize = "24px";
+      testButton.style.fontWeight = "bold";
+      testButton.style.zIndex = "999999";
+      testButton.style.cursor = "pointer";
+      testButton.onclick = () => {
+        alert("¡Botón de prueba funciona!");
+        console.log("🧪 Botón de prueba clickeado");
+      };
+      
+      document.body.appendChild(testButton);
+      console.log("🧪 Botón de prueba creado y agregado al DOM");
+
       const arButton = ARButton.createButton(rendererRef.current);
       
       if (!arButton) {
@@ -695,13 +748,18 @@ export default function ARExperience({
               console.log("🔧 Botón de prueba AR clickeado");
               // Intentar iniciar AR manualmente
               if (rendererRef.current?.xr?.isPresenting === false) {
-                rendererRef.current.xr.getSession().then(session => {
-                  if (session) {
-                    console.log("🔧 Sesión AR iniciada manualmente");
-                  }
-                }).catch(error => {
-                  console.error("🔧 Error iniciando AR manualmente:", error);
-                });
+                const session = rendererRef.current.xr.getSession();
+                if (session && typeof session.then === 'function') {
+                  session.then(session => {
+                    if (session) {
+                      console.log("🔧 Sesión AR iniciada manualmente");
+                    }
+                  }).catch(error => {
+                    console.error("🔧 Error iniciando AR manualmente:", error);
+                  });
+                } else {
+                  console.log("🔧 No hay sesión AR disponible o no es una promesa");
+                }
               }
             }}
             style={{
