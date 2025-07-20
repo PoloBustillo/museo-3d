@@ -21,17 +21,10 @@ export default function CanvasPage() {
   // Cargar datos desde localStorage
   useEffect(() => {
     const savedData = localStorage.getItem("muralDraftData");
-    console.log("📋 Datos guardados en localStorage:", savedData ? "Sí" : "No");
     
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        console.log("📋 Cargando datos completos en canvas:", {
-          titulo: parsed.titulo,
-          tecnica: parsed.tecnica,
-          descripcion: parsed.descripcion,
-          anio: parsed.anio
-        });
         
         // Usar los datos de localStorage completos
         setMuralData(parsed);
@@ -47,7 +40,6 @@ export default function CanvasPage() {
         });
       }
     } else {
-      console.log("❌ No hay datos en localStorage, inicializando vacío");
       // Si no hay datos, inicializar vacío
       setMuralData({
         titulo: "",
@@ -62,42 +54,30 @@ export default function CanvasPage() {
   useEffect(() => {
     // Solo guardar si muralData no es null y tiene datos reales para evitar sobrescribir con datos vacíos
     if (muralData && (muralData.titulo || muralData.tecnica || muralData.descripcion)) {
-      console.log("💾 Guardando datos actualizados en localStorage:", {
-        titulo: muralData.titulo,
-        tecnica: muralData.tecnica
-      });
       localStorage.setItem("muralDraftData", JSON.stringify(muralData));
     }
   }, [muralData]);
 
   const handleCanvasSave = (imageDataUrl) => {
-    console.log("📸 Guardando imagen del canvas:", !!imageDataUrl);
     setCanvasImage(imageDataUrl);
     toast.success("Dibujo guardado correctamente");
   };
 
   const handleContinue = (e) => {
-    console.log("🔥 handleContinue EJECUTADO!", e);
     e?.preventDefault();
     e?.stopPropagation();
-    console.log("▶️ Intentando continuar:", { hasImage: !!canvasImage });
     
     if (!canvasImage) {
-      console.log("❌ No hay imagen del canvas");
       toast.error("Debes guardar tu dibujo antes de continuar");
       return;
     }
 
     try {
-      console.log("💾 Guardando imagen en localStorage...");
       // Guardar la imagen del canvas en localStorage
       localStorage.setItem("canvasImage", canvasImage);
-      console.log("✅ Imagen guardada en localStorage");
 
-      console.log("🔄 Navegando de vuelta al stepper...");
       // Regresar al stepper en el paso 1 (imágenes)
       router.push("/mis-obras/crear");
-      console.log("✅ Navegación iniciada");
     } catch (error) {
       console.error("❌ Error en handleContinue:", error);
       toast.error("Error al continuar");
@@ -105,14 +85,11 @@ export default function CanvasPage() {
   };
 
   const handleBack = (e) => {
-    console.log("🔥 handleBack EJECUTADO!", e);
     e?.preventDefault();
     e?.stopPropagation();
-    console.log("⬅️ Regresando sin guardar imagen");
     
     try {
       router.push("/mis-obras/crear");
-      console.log("✅ Navegación de regreso iniciada");
     } catch (error) {
       console.error("❌ Error en handleBack:", error);
       toast.error("Error al regresar");
@@ -122,7 +99,6 @@ export default function CanvasPage() {
   const handleDownload = (e) => {
     e?.preventDefault();
     e?.stopPropagation();
-    console.log("⬇️ Intentando descargar:", { hasImage: !!canvasImage });
     if (!canvasImage) {
       toast.error("No hay dibujo para descargar");
       return;
@@ -162,8 +138,6 @@ export default function CanvasPage() {
               <button
                 type="button"
                 onClick={handleBack}
-                onMouseDown={(e) => console.log("🖱️ Volver mouseDown", e)}
-                onMouseUp={(e) => console.log("🖱️ Volver mouseUp", e)}
                 className="flex items-center gap-2 px-3 py-2 text-muted-foreground hover:text-foreground bg-transparent border border-border rounded-md hover:bg-accent transition-colors"
                 style={{ cursor: "pointer", pointerEvents: "auto" }}
               >
@@ -183,37 +157,6 @@ export default function CanvasPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Botón debug temporal */}
-              <button
-                type="button"
-                onClick={() => {
-                  console.log("🔍 Debug Canvas - Estado actual:", {
-                    muralData,
-                    canvasImage: !!canvasImage,
-                  });
-                  const savedData = localStorage.getItem("muralDraftData");
-                  if (savedData) {
-                    console.log("📂 localStorage muralDraftData:", JSON.parse(savedData));
-                  }
-                  const savedCanvas = localStorage.getItem("canvasImage");
-                  console.log("🎨 localStorage canvasImage:", !!savedCanvas);
-                }}
-                className="px-2 py-1 bg-purple-500 text-white text-xs rounded"
-              >
-                Debug
-              </button>
-              
-              {/* Botón de test */}
-              <button
-                type="button"
-                onClick={() => {
-                  console.log("🧪 BOTÓN DE TEST FUNCIONANDO!");
-                  toast.success("¡Los botones funcionan!");
-                }}
-                className="px-2 py-1 bg-yellow-500 text-white text-xs rounded"
-              >
-                Test
-              </button>
               
               {canvasImage && (
                 <div className="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 rounded-full text-sm">
@@ -228,8 +171,6 @@ export default function CanvasPage() {
                 <button
                   type="button"
                   onClick={handleDownload}
-                  onMouseDown={(e) => console.log("🖱️ Descargar mouseDown", e)}
-                  onMouseUp={(e) => console.log("🖱️ Descargar mouseUp", e)}
                   className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors"
                   style={{ cursor: "pointer", pointerEvents: "auto" }}
                 >
@@ -241,8 +182,6 @@ export default function CanvasPage() {
               <button
                 type="button"
                 onClick={handleContinue}
-                onMouseDown={(e) => console.log("🖱️ Continuar mouseDown", e)}
-                onMouseUp={(e) => console.log("🖱️ Continuar mouseUp", e)}
                 disabled={!canvasImage}
                 className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-colors ${
                   canvasImage

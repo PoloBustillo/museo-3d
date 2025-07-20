@@ -231,7 +231,6 @@ export default function CrearMuralStepper() {
 
     if (savedStep) {
       const stepNumber = parseInt(savedStep);
-      console.log("📍 Restaurando step:", stepNumber);
       setStep(stepNumber);
     }
   }, [session?.user?.id]);
@@ -239,7 +238,6 @@ export default function CrearMuralStepper() {
   // Establecer userId cuando la sesión esté disponible (solo si no está ya establecido)
   useEffect(() => {
     if (session?.user?.id && !mural.userId) {
-      console.log("👤 Estableciendo userId:", session.user.id);
       setMural((prev) => ({ ...prev, userId: session.user.id }));
     }
   }, [session, mural.userId]);
@@ -251,12 +249,6 @@ export default function CrearMuralStepper() {
                                (mural.anio && mural.anio !== new Date().getFullYear());
     
     if (hasSignificantData && session?.user?.id) {
-      console.log("💾 Auto-guardando datos del mural:", {
-        titulo: mural.titulo,
-        tecnica: mural.tecnica,
-        anio: mural.anio,
-        step: step
-      });
       localStorage.setItem("muralDraftData", JSON.stringify(mural));
       localStorage.setItem("muralStep", step.toString());
     }
@@ -267,7 +259,6 @@ export default function CrearMuralStepper() {
     fetch("/api/artists?limit=100")
       .then((res) => res.json())
       .then((data) => {
-        console.log("🎨 Artistas cargados:", data.artists?.length || 0);
         setArtistList(data.artists || []);
       })
       .catch((error) => {
@@ -309,9 +300,6 @@ export default function CrearMuralStepper() {
         .then((compressedImage) => {
           console.log("✅ Imagen comprimida, actualizando estado");
           setMural((m) => {
-            console.log("🔧 Estado actual del mural antes de actualizar:", m);
-            console.log("🗂️ Datos del localStorage:", existingData);
-            
             // Siempre usar localStorage como base y solo completar campos faltantes
             const updatedMural = {
               ...existingData, // localStorage como base SIEMPRE
@@ -326,16 +314,6 @@ export default function CrearMuralStepper() {
               destacada: existingData.destacada !== undefined ? existingData.destacada : false,
               orden: existingData.orden !== undefined ? existingData.orden : 0,
             };
-
-            // Verificar que los datos se preservaron correctamente
-            console.log("🔍 Verificación final de preservación de datos:", {
-              tituloLocalStorage: existingData.titulo,
-              tituloFinal: updatedMural.titulo,
-              tecnicaLocalStorage: existingData.tecnica,
-              tecnicaFinal: updatedMural.tecnica,
-              estadoAnterior: m.titulo,
-              preservado: updatedMural.titulo === existingData.titulo
-            });
             console.log("🎨 Mural actualizado con imagen:", {
               titulo: updatedMural.titulo,
               tecnica: updatedMural.tecnica,
@@ -896,59 +874,6 @@ export default function CrearMuralStepper() {
         }}
       />
 
-      {/* Botón de debug temporal */}
-      <div className="flex justify-center mb-4 gap-2">
-        <button
-          onClick={() => {
-            console.log("🔍 Estado actual del mural:", mural);
-            console.log("📂 localStorage:", {
-              muralDraftData: localStorage.getItem("muralDraftData"),
-              muralStep: localStorage.getItem("muralStep"),
-              canvasImage: localStorage.getItem("canvasImage"),
-            });
-            console.log("👤 Session:", session);
-            console.log("🎯 Step actual:", step);
-          }}
-          className="px-4 py-2 bg-gray-500 text-white rounded-lg text-sm hover:bg-gray-600 transition-colors"
-        >
-          🔍 Debug Estado
-        </button>
-        <button
-          onClick={() => {
-            localStorage.removeItem("muralDraftData");
-            localStorage.removeItem("muralStep");
-            localStorage.removeItem("canvasImage");
-            console.log("🧹 localStorage limpiado");
-            window.location.reload();
-          }}
-          className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition-colors"
-        >
-          🧹 Limpiar localStorage
-        </button>
-        <button
-          onClick={() => {
-            const savedData = localStorage.getItem("muralDraftData");
-            if (savedData) {
-              try {
-                const parsedData = JSON.parse(savedData);
-                setMural(parsedData);
-                console.log(
-                  "🔄 Datos restaurados desde localStorage:",
-                  parsedData
-                );
-              } catch (error) {
-                console.error("❌ Error restaurando datos:", error);
-              }
-            } else {
-              console.log("📭 No hay datos guardados en localStorage");
-            }
-          }}
-          className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm hover:bg-green-600 transition-colors"
-        >
-          🔄 Restaurar Datos
-        </button>
-      </div>
-
       {/* Separador visual */}
       <div className="w-full flex items-center justify-center mb-10">
         <div className="w-full h-[2px] bg-gradient-to-r from-indigo-200 via-indigo-400 to-indigo-200 dark:from-indigo-900 dark:via-indigo-700 dark:to-indigo-900 rounded-full shadow-md" />
@@ -970,65 +895,6 @@ export default function CrearMuralStepper() {
         {step === 2 && <GeolocateIfNeeded mural={mural} setMural={setMural} />}
         {step === 0 && (
           <div className="flex flex-col gap-10 mb-8">
-            {/* Botón de debug temporal */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-              <h4 className="text-yellow-800 font-semibold mb-2">🔧 Debug - Step 0</h4>
-              <div className="flex gap-4 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => {
-                    console.log("🔍 Estado actual del mural:", mural);
-                    const localData = localStorage.getItem("muralDraftData");
-                    if (localData) {
-                      console.log("📂 Datos en localStorage:", JSON.parse(localData));
-                    } else {
-                      console.log("📂 No hay datos en localStorage");
-                    }
-                  }}
-                  className="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-white text-sm rounded"
-                >
-                  Ver Estado Actual
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const localData = localStorage.getItem("muralDraftData");
-                    if (localData) {
-                      const parsed = JSON.parse(localData);
-                      setMural(prev => ({
-                        ...prev,
-                        titulo: parsed.titulo || prev.titulo,
-                        tecnica: parsed.tecnica || prev.tecnica,
-                        anio: parsed.anio || prev.anio,
-                        descripcion: parsed.descripcion || prev.descripcion,
-                      }));
-                      console.log("🔄 Datos recargados desde localStorage");
-                    }
-                  }}
-                  className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded"
-                >
-                  Recargar desde localStorage
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    localStorage.removeItem("muralDraftData");
-                    localStorage.removeItem("muralStep");
-                    localStorage.removeItem("canvasImage");
-                    console.log("🗑️ localStorage limpiado");
-                  }}
-                  className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-sm rounded"
-                >
-                  Limpiar localStorage
-                </button>
-              </div>
-              <div className="mt-2 text-sm text-yellow-700">
-                Estado: {mural.titulo ? `"${mural.titulo}"` : 'Sin título'} | 
-                Técnica: {mural.tecnica ? `"${mural.tecnica}"` : 'Sin técnica'} | 
-                Año: {mural.anio || 'Sin año'}
-              </div>
-            </div>
-            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div>
                 <label htmlFor="titulo" className={labelClass}>
@@ -1434,24 +1300,6 @@ export default function CrearMuralStepper() {
         )}
         {/* Navegación */}
         <div className="flex gap-2 justify-end mt-8">
-          {/* Botón de debug temporal */}
-          <Button
-            variant="ghost"
-            onClick={() => {
-              console.log("🔍 Estado actual del mural:", mural);
-              console.log("📂 localStorage:", {
-                muralDraftData: localStorage.getItem("muralDraftData"),
-                muralStep: localStorage.getItem("muralStep"),
-                canvasImage: !!localStorage.getItem("canvasImage"),
-              });
-              alert(
-                `Estado del mural:\nTítulo: ${mural.titulo || "Vacío"}\nTécnica: ${mural.tecnica || "Vacío"}\nAño: ${mural.anio || "Vacío"}\nImagen: ${mural.url_imagen ? "Sí" : "No"}`
-              );
-            }}
-            className="text-blue-600 hover:text-blue-700"
-          >
-            Debug Estado
-          </Button>
           <Button
             variant="ghost"
             onClick={() => {

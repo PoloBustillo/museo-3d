@@ -153,39 +153,17 @@ export default function MuralImageStep({ value, onChange, muralData = {} }) {
         "
         >
           <div className="flex flex-col items-center text-center">
-            <span role="img" aria-label="Dibujar" className="text-6xl mb-4">
-              🎨
-            </span>
-            <h3 className="text-xl font-semibold mb-2 text-gray-700 dark:text-gray-100">
-              Editor de dibujo dedicado
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
-              Accede a un editor de dibujo completo con herramientas
-              profesionales, más espacio de trabajo y mejor experiencia de
-              usuario.
-            </p>
-            <div className="flex flex-col gap-4">
-              {/* Botón de debug temporal */}
-              <button
-                onClick={() => {
-                  console.log("🔍 Estado actual de muralData:", muralData);
-                  const currentMuralData = localStorage.getItem("muralDraftData");
-                  if (currentMuralData) {
-                    try {
-                      const parsed = JSON.parse(currentMuralData);
-                      console.log("📂 Datos en localStorage:", parsed);
-                    } catch (error) {
-                      console.error("Error parsing localStorage:", error);
-                    }
-                  } else {
-                    console.log("📂 No hay datos en localStorage");
-                  }
-                }}
-                className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white text-sm rounded-lg"
-              >
-                🔍 Debug: Ver estado actual
-              </button>
-              
+              <span role="img" aria-label="Dibujar" className="text-6xl mb-4">
+                🎨
+              </span>
+              <h3 className="text-xl font-semibold mb-2 text-gray-700 dark:text-gray-100">
+                Editor de dibujo dedicado
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
+                Accede a un editor de dibujo completo con herramientas
+                profesionales, más espacio de trabajo y mejor experiencia de
+                usuario.
+              </p>
               <button
                 onClick={() => {
                   // Guardar TODOS los datos actuales en localStorage antes de navegar
@@ -213,7 +191,6 @@ export default function MuralImageStep({ value, onChange, muralData = {} }) {
                     userId: muralData.userId,
                   };
                   
-                  console.log("💾 Guardando datos completos antes de ir al canvas:", currentData);
                   localStorage.setItem(
                     "muralDraftData",
                     JSON.stringify(currentData)
@@ -228,7 +205,6 @@ export default function MuralImageStep({ value, onChange, muralData = {} }) {
                 Abrir editor de dibujo
               </button>
             </div>
-          </div>
         </div>
       )}
       {previewUrl && (

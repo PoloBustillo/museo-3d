@@ -325,6 +325,9 @@ export default function ARExperience({
         if (arButton.parentNode) {
           arButton.parentNode.removeChild(arButton);
         }
+        if (testButton.parentNode) {
+          testButton.parentNode.removeChild(testButton);
+        }
         if (indicator.parentNode) {
           indicator.parentNode.removeChild(indicator);
         }
@@ -632,6 +635,82 @@ export default function ARExperience({
     }
   }, [arMode]);
 
+  // Efecto para crear un botón de fallback cuando estés en AR
+  useEffect(() => {
+    if (isAR) {
+      console.log("🔧 Creando botón de fallback para AR...");
+      
+      // Crear un botón de fallback directamente en el DOM
+      const fallbackButton = document.createElement('button');
+      fallbackButton.textContent = "🥽 INICIAR AR (DOM)";
+      fallbackButton.style.position = "fixed";
+      fallbackButton.style.bottom = "100px";
+      fallbackButton.style.left = "50%";
+      fallbackButton.style.transform = "translateX(-50%)";
+      fallbackButton.style.padding = "20px 40px";
+      fallbackButton.style.background = "linear-gradient(135deg, #00ff00, #00cc00)";
+      fallbackButton.style.color = "white";
+      fallbackButton.style.border = "3px solid #000";
+      fallbackButton.style.borderRadius = "15px";
+      fallbackButton.style.fontSize = "20px";
+      fallbackButton.style.fontWeight = "bold";
+      fallbackButton.style.zIndex = "999999";
+      fallbackButton.style.cursor = "pointer";
+      fallbackButton.style.pointerEvents = "auto";
+      fallbackButton.onclick = () => {
+        console.log("🔧 Botón de fallback DOM clickeado");
+        alert("¡Botón de fallback DOM funciona!");
+      };
+      
+      document.body.appendChild(fallbackButton);
+      console.log("🔧 Botón de fallback DOM creado");
+
+      return () => {
+        if (fallbackButton.parentNode) {
+          fallbackButton.parentNode.removeChild(fallbackButton);
+        }
+      };
+    }
+  }, [isAR]);
+
+  // Efecto para crear un botón cuando el modelo esté cargado
+  useEffect(() => {
+    if (modelLoaded) {
+      console.log("🔧 Modelo cargado, creando botón de modelo...");
+      
+      // Crear un botón cuando el modelo esté cargado
+      const modelButton = document.createElement('button');
+      modelButton.textContent = "🎨 MODELO CARGADO";
+      modelButton.style.position = "fixed";
+      modelButton.style.top = "150px";
+      modelButton.style.left = "50%";
+      modelButton.style.transform = "translateX(-50%)";
+      modelButton.style.padding = "15px 30px";
+      modelButton.style.background = "linear-gradient(135deg, #0000ff, #0066ff)";
+      modelButton.style.color = "white";
+      modelButton.style.border = "3px solid #fff";
+      modelButton.style.borderRadius = "12px";
+      modelButton.style.fontSize = "18px";
+      modelButton.style.fontWeight = "bold";
+      modelButton.style.zIndex = "999999";
+      modelButton.style.cursor = "pointer";
+      modelButton.style.pointerEvents = "auto";
+      modelButton.onclick = () => {
+        console.log("🔧 Botón de modelo clickeado");
+        alert("¡Modelo cargado correctamente!");
+      };
+      
+      document.body.appendChild(modelButton);
+      console.log("🔧 Botón de modelo creado");
+
+      return () => {
+        if (modelButton.parentNode) {
+          modelButton.parentNode.removeChild(modelButton);
+        }
+      };
+    }
+  }, [modelLoaded]);
+
   // Función para alternar entre mundo real y ambiente virtual
   const toggleRealWorld = () => {
     setShowRealWorld(!showRealWorld);
@@ -748,18 +827,13 @@ export default function ARExperience({
               console.log("🔧 Botón de prueba AR clickeado");
               // Intentar iniciar AR manualmente
               if (rendererRef.current?.xr?.isPresenting === false) {
-                const session = rendererRef.current.xr.getSession();
-                if (session && typeof session.then === 'function') {
-                  session.then(session => {
-                    if (session) {
-                      console.log("🔧 Sesión AR iniciada manualmente");
-                    }
-                  }).catch(error => {
-                    console.error("🔧 Error iniciando AR manualmente:", error);
-                  });
-                } else {
-                  console.log("🔧 No hay sesión AR disponible o no es una promesa");
-                }
+                rendererRef.current.xr.getSession().then(session => {
+                  if (session) {
+                    console.log("🔧 Sesión AR iniciada manualmente");
+                  }
+                }).catch(error => {
+                  console.error("🔧 Error iniciando AR manualmente:", error);
+                });
               }
             }}
             style={{
@@ -817,6 +891,44 @@ export default function ARExperience({
         >
           WebXR: {webXRSupported ? "✅ Soportado" : "❌ No soportado"}
         </div>
+
+        {/* Botón de fallback para AR - SIEMPRE visible cuando estés en AR */}
+        {isAR && (
+          <button
+            onClick={() => {
+              console.log("🔧 Botón de fallback AR clickeado");
+              // Intentar iniciar AR manualmente
+              if (rendererRef.current?.xr?.isPresenting === false) {
+                rendererRef.current.xr.getSession().then(session => {
+                  if (session) {
+                    console.log("🔧 Sesión AR iniciada manualmente desde fallback");
+                  }
+                }).catch(error => {
+                  console.error("🔧 Error iniciando AR manualmente desde fallback:", error);
+                });
+              }
+            }}
+            style={{
+              position: "fixed",
+              bottom: "50px",
+              left: "50%",
+              transform: "translateX(-50%)",
+              padding: "20px 40px",
+              backgroundColor: "rgba(255,102,0,0.95)",
+              color: "white",
+              border: "3px solid #fff",
+              borderRadius: "15px",
+              cursor: "pointer",
+              fontSize: "20px",
+              fontWeight: "bold",
+              zIndex: "999999",
+              pointerEvents: "auto",
+              boxShadow: "0 8px 30px rgba(255,102,0,0.6)",
+            }}
+          >
+            🥽 INICIAR AR (FALLBACK)
+          </button>
+        )}
       </div>
 
       {/* Los controles AR ahora se crean como elementos DOM nativos en handleSessionStart */}
