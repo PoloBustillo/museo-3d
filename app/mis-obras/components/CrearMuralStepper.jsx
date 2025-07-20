@@ -36,28 +36,33 @@ import {
 import { uploadModelToCloudinary } from "../../../utils/uploadToCloudinary";
 import { validateGLB, diagnoseModel } from "../../../utils/validateGLB";
 
-const STEPS = [
-  { label: "Datos básicos", subtitle: "Información principal", icon: <User /> },
-  {
-    label: "Imágenes y medios",
-    subtitle: "Sube o crea tu imagen",
-    icon: <ImageIcon />,
-  },
-  {
-    label: "Ubicación y sala",
-    subtitle: "Dónde está el mural",
-    icon: <MapPin />,
-  },
-  { label: "Estado", subtitle: "Visibilidad y orden", icon: <Eye /> },
-  { label: "Autores", subtitle: "Artistas y colaboradores", icon: <Users /> },
-  { label: "Confirmar", subtitle: "Revisa y crea", icon: <CheckCircle /> },
-];
-
-export default function CrearMuralStepper() {
+export default function CrearMuralStepper({ initialData = null, editMode = false, onSuccess }) {
   const router = useRouter();
   const { data: session } = useSession();
   const [step, setStep] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
+
+  // Steps dinámicos según el modo
+  const STEPS_DYNAMIC = [
+    { label: "Datos básicos", subtitle: "Información principal", icon: <User /> },
+    {
+      label: "Imágenes y medios",
+      subtitle: "Sube o crea tu imagen",
+      icon: <ImageIcon />,
+    },
+    {
+      label: "Ubicación y sala",
+      subtitle: "Dónde está el mural",
+      icon: <MapPin />,
+    },
+    { label: "Estado", subtitle: "Visibilidad y orden", icon: <Eye /> },
+    { label: "Autores", subtitle: "Artistas y colaboradores", icon: <Users /> },
+    { 
+      label: "Confirmar", 
+      subtitle: editMode ? "Revisa y actualiza" : "Revisa y crea", 
+      icon: <CheckCircle /> 
+    },
+  ];
   const canvasImageLoaded = useRef(false);
 
   // Función para comprimir imagen si es muy grande
@@ -137,6 +142,42 @@ export default function CrearMuralStepper() {
       setMural((prev) => ({ ...prev, anio: new Date().getFullYear() }));
     }
   }, [mural.anio]);
+
+  // useEffect para cargar datos iniciales en modo edición
+  React.useEffect(() => {
+    if (editMode && initialData) {
+      console.log("🎨 Cargando datos para edición en stepper:", initialData);
+      
+      setMural({
+        titulo: initialData.titulo || "",
+        descripcion: initialData.descripcion || "",
+        tecnica: initialData.tecnica || "",
+        anio: initialData.anio || new Date().getFullYear(),
+        dimensiones: initialData.dimensiones || "",
+        tags: initialData.tags || [],
+        url_imagen: initialData.url_imagen || null,
+        imagenesSecundarias: initialData.imagenesSecundarias || [],
+        imagenUrlWebp: initialData.imagenUrlWebp || "",
+        videoUrl: initialData.videoUrl || "",
+        audioUrl: initialData.audioUrl || "",
+        modelo3dUrl: initialData.modelo3dUrl || "",
+        ubicacion: initialData.ubicacion || "",
+        latitud: initialData.latitud || "",
+        longitud: initialData.longitud || "",
+        salaId: initialData.salaId || "",
+        exposiciones: initialData.exposiciones || [],
+        estado: initialData.estado || "",
+        publica: initialData.publica !== undefined ? initialData.publica : true,
+        destacada: initialData.destacada !== undefined ? initialData.destacada : false,
+        orden: initialData.orden || 0,
+        autor: initialData.autor || "",
+        artistId: initialData.artistId || "",
+        colaboradores: initialData.colaboradores || [],
+        tagsInput: "", // Se llenará dinámicamente si hay tags
+        userId: initialData.userId || "",
+      });
+    }
+  }, [editMode, initialData]);
 
   // Validación simple por step
   const validateStep = () => {
@@ -746,29 +787,38 @@ export default function CrearMuralStepper() {
       });
 
       // Enviar a la API
-      const response = await fetch("/api/murales", {
-        method: "POST",
+      const apiUrl = editMode ? `/api/murales/${initialData.id}` : "/api/murales";
+      const method = editMode ? "PUT" : "POST";
+      
+      const response = await fetch(apiUrl, {
+        method: method,
         body: formData,
       });
 
       if (response.ok) {
         const result = await response.json();
-        console.log("✅ Obra creada exitosamente:", result);
+        console.log(editMode ? "✅ Obra actualizada exitosamente:" : "✅ Obra creada exitosamente:", result);
 
         // Mostrar mensaje de éxito
-        setSuccessMessage("¡Obra creada exitosamente!");
+        setSuccessMessage(editMode ? "¡Obra actualizada exitosamente!" : "¡Obra creada exitosamente!");
 
-        // Limpiar localStorage
-        localStorage.removeItem("muralDraftData");
-        localStorage.removeItem("muralStep");
-        localStorage.removeItem("canvasImage");
+        // Limpiar localStorage solo si es creación nueva
+        if (!editMode) {
+          localStorage.removeItem("muralDraftData");
+          localStorage.removeItem("muralStep");
+          localStorage.removeItem("canvasImage");
+        }
 
         // Redirigir después de un breve delay para mostrar el mensaje
         setTimeout(() => {
-          router.push("/mis-obras");
+          if (onSuccess) {
+            onSuccess(result);
+          } else {
+            router.push("/mis-obras");
+          }
         }, 1000);
       } else {
-        let errorMsg = "Error al crear la obra";
+        let errorMsg = editMode ? "Error al actualizar la obra" : "Error al crear la obra";
         let errorDetails = "";
         try {
           const error = await response.json();
@@ -842,7 +892,7 @@ export default function CrearMuralStepper() {
   }
 
   // Determinar estados de los steps para feedback visual
-  const stepStates = STEPS.map((stepObj, i) => {
+  const stepStates = STEPS_DYNAMIC.map((stepObj, i) => {
     if (i < step)
       return {
         ...stepObj,
@@ -883,7 +933,7 @@ export default function CrearMuralStepper() {
         {/* Título del paso actual */}
         <div className="mb-6 text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {STEPS[step].label}
+            {STEPS_DYNAMIC[step].label}
           </h2>
           {step === 0 && (
             <p className="text-sm text-muted-foreground mt-2">
@@ -1048,6 +1098,8 @@ export default function CrearMuralStepper() {
             value={mural.url_imagen}
             onChange={(img) => setMural((m) => ({ ...m, url_imagen: img }))}
             muralData={mural}
+            editMode={editMode}
+            obraId={initialData?.id}
           />
         )}
         {/* Step 3: Ubicación y sala */}
@@ -1288,10 +1340,10 @@ export default function CrearMuralStepper() {
                         {modelGenerationStep || "Generando modelo 3D..."}
                       </div>
                     ) : (
-                      "Creando obra..."
+                      editMode ? "Actualizando obra..." : "Creando obra..."
                     )
                   ) : (
-                    "Crear obra"
+                    editMode ? "Actualizar obra" : "Crear obra"
                   )}
                 </Button>
               </div>
@@ -1351,7 +1403,7 @@ export default function CrearMuralStepper() {
               Atrás
             </Button>
           )}
-          {step < STEPS.length - 1 && (
+          {step < STEPS_DYNAMIC.length - 1 && (
             <Button onClick={handleNext}>Siguiente</Button>
           )}
         </div>

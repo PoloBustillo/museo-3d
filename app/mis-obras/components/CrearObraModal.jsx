@@ -447,6 +447,8 @@ export default function CrearObraModal({
   session,
   asPage = false,
   hideClose = false,
+  initialData = null,
+  editMode = false,
 }) {
   const { theme } = useTheme();
   const [step, setStep] = useState(0);
@@ -529,9 +531,9 @@ export default function CrearObraModal({
   const [generatingModel, setGeneratingModel] = useState(false);
   const [modelGenerationStep, setModelGenerationStep] = useState("");
 
-  // Función auxiliar para obtener texto del botón de crear
+  // Función auxiliar para obtener texto del botón de crear/actualizar
   const getCreateButtonText = () => {
-    if (!isSubmitting) return "Crear obra";
+    if (!isSubmitting) return editMode ? "Actualizar obra" : "Crear obra";
 
     if (generatingModel && modelGenerationStep) {
       return (
@@ -542,7 +544,7 @@ export default function CrearObraModal({
       );
     }
 
-    return "Creando...";
+    return editMode ? "Actualizando..." : "Creando...";
   };
 
   useEffect(() => {
@@ -628,6 +630,80 @@ export default function CrearObraModal({
     getInputProps: getPatternImgInputProps,
     isDragActive: isPatternImgDragActive,
   } = patternImageDropzone;
+
+  // useEffect para cargar datos iniciales en modo edición
+  useEffect(() => {
+    if (editMode && initialData) {
+      console.log("🎨 Cargando datos para edición:", initialData);
+      
+      // Precargar campos básicos
+      setTitulo(initialData.titulo || "");
+      setTecnica(initialData.tecnica || "");
+      setYear(initialData.anio || new Date().getFullYear());
+      setDescripcion(initialData.descripcion || "");
+      setAutor(initialData.autor || "");
+      setArtistId(initialData.artistId || "");
+      
+      // Cargar imagen si existe
+      if (initialData.url_imagen) {
+        // Crear un objeto File ficticio para la imagen existente
+        fetch(initialData.url_imagen)
+          .then(res => res.blob())
+          .then(blob => {
+            const file = new File([blob], "imagen-existente.jpg", { type: blob.type });
+            setImagen(file);
+          })
+          .catch(err => console.warn("No se pudo cargar imagen existente:", err));
+      }
+
+      // Si hay imagen de canvas guardada, cargarla
+      if (initialData.canvasImageData) {
+        setCanvasImage(initialData.canvasImageData);
+        setImgMode("canvas");
+      }
+    }
+  }, [editMode, initialData]);
+
+  // useEffect para cargar imagen existente en el canvas
+  useEffect(() => {
+    if (editMode && initialData?.url_imagen && canvasRef.current && imgMode === "canvas") {
+      const loadImageToCanvas = async () => {
+        try {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          
+          img.onload = () => {
+            const canvas = canvasRef.current;
+            const ctx = canvas.getContext("2d");
+            
+            // Limpiar canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Dibujar imagen manteniendo proporciones
+            const scale = Math.min(
+              canvas.width / img.width,
+              canvas.height / img.height
+            );
+            const scaledWidth = img.width * scale;
+            const scaledHeight = img.height * scale;
+            const x = (canvas.width - scaledWidth) / 2;
+            const y = (canvas.height - scaledHeight) / 2;
+            
+            ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
+            
+            // Actualizar el canvasImage
+            setCanvasImage(canvas.toDataURL("image/png"));
+          };
+          
+          img.src = initialData.url_imagen;
+        } catch (error) {
+          console.warn("Error cargando imagen al canvas:", error);
+        }
+      };
+      
+      loadImageToCanvas();
+    }
+  }, [editMode, initialData, imgMode]);
 
   const reset = () => {
     setStep(0);
@@ -2540,7 +2616,11 @@ export default function CrearObraModal({
   async function sendForm(imgFile) {
     const formData = new FormData();
     let url_imagen = null;
-    if (imgFile) {
+    
+    // En modo edición, usar la imagen existente si no hay nueva
+    if (editMode && initialData?.url_imagen && !imgFile) {
+      url_imagen = initialData.url_imagen;
+    } else if (imgFile) {
       formData.append("imagen", imgFile, titulo ? `${titulo}.png` : "obra.png");
       // Subir imagen primero para obtener la URL
       const resImg = await fetch("/api/upload", {
@@ -2640,8 +2720,12 @@ export default function CrearObraModal({
     };
 
     try {
-      const response = await fetch("/api/murales", {
-        method: "POST",
+      // Determinar URL y método según el modo
+      const apiUrl = editMode ? `/api/murales/${initialData.id}` : "/api/murales";
+      const method = editMode ? "PUT" : "POST";
+      
+      const response = await fetch(apiUrl, {
+        method: method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(muralData),
       });
@@ -2649,10 +2733,10 @@ export default function CrearObraModal({
       if (response.ok) {
         const result = await response.json();
         onCreate(result);
-        toast.success("Obra creada exitosamente");
+        toast.success(editMode ? "Obra actualizada exitosamente" : "Obra creada exitosamente");
         if (typeof onClose === "function") onClose();
       } else {
-        let errorMsg = "Error al crear la obra";
+        let errorMsg = editMode ? "Error al actualizar la obra" : "Error al crear la obra";
         try {
           const error = await response.json();
           if (error && error.message) errorMsg = error.message;
@@ -2660,7 +2744,7 @@ export default function CrearObraModal({
         toast.error(errorMsg);
       }
     } catch (error) {
-      toast.error("Error al crear la obra");
+      toast.error(editMode ? "Error al actualizar la obra" : "Error al crear la obra");
       console.error(error);
     } finally {
       setIsSubmitting(false);

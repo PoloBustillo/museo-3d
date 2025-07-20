@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { ARButton } from "three/examples/jsm/webxr/ARButton.js";
+import * as Sentry from "@sentry/nextjs";
 
 export default function ARExperience({
   modelUrl,
@@ -33,6 +34,175 @@ export default function ARExperience({
     buttonElement: null
   });
 
+  // --- BOTÓN 3D EN AR ---
+  const arButtonSpriteRef = useRef();
+
+  // Función para crear un sprite con texto/botón
+  function createTextSprite(text, options = {}) {
+    const {
+      fontSize = 64,
+      fontColor = '#ffffff',
+      backgroundColor = 'rgba(0,0,0,0.8)',
+      borderColor = '#ff6600',
+      borderWidth = 4,
+      padding = 20,
+      borderRadius = 15,
+      width = null,
+      height = null
+    } = options;
+
+    // Crear canvas para el texto
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    // Configurar font
+    context.font = `bold ${fontSize}px Arial, sans-serif`;
+    const textMetrics = context.measureText(text);
+    
+    // Calcular dimensiones
+    const textWidth = textMetrics.width;
+    const textHeight = fontSize;
+    const canvasWidth = width || textWidth + padding * 2;
+    const canvasHeight = height || textHeight + padding * 2;
+    
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    
+    // Dibujar fondo con bordes redondeados
+    context.fillStyle = backgroundColor;
+    context.strokeStyle = borderColor;
+    context.lineWidth = borderWidth;
+    
+    // Función para dibujar rectángulo con bordes redondeados
+    function roundRect(x, y, w, h, r) {
+      context.beginPath();
+      context.moveTo(x + r, y);
+      context.lineTo(x + w - r, y);
+      context.quadraticCurveTo(x + w, y, x + w, y + r);
+      context.lineTo(x + w, y + h - r);
+      context.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      context.lineTo(x + r, y + h);
+      context.quadraticCurveTo(x, y + h, x, y + h - r);
+      context.lineTo(x, y + r);
+      context.quadraticCurveTo(x, y, x + r, y);
+      context.closePath();
+    }
+    
+    roundRect(borderWidth/2, borderWidth/2, canvasWidth - borderWidth, canvasHeight - borderWidth, borderRadius);
+    context.fill();
+    context.stroke();
+    
+    // Dibujar texto
+    context.fillStyle = fontColor;
+    context.font = `bold ${fontSize}px Arial, sans-serif`;
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(text, canvasWidth/2, canvasHeight/2);
+    
+    // Crear textura y sprite
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    
+    const spriteMaterial = new THREE.SpriteMaterial({ 
+      map: texture,
+      transparent: true,
+      alphaTest: 0.1
+    });
+    
+    const sprite = new THREE.Sprite(spriteMaterial);
+    
+    // Escalar sprite basado en el canvas - MUCHO MÁS PEQUEÑO
+    const scale = 0.001; // Factor de escala reducido para AR
+    sprite.scale.set(canvasWidth * scale, canvasHeight * scale, 1);
+    
+    return sprite;
+  }
+
+  // Función para crear el botón 3D
+  function createARButton3D() {
+    // Eliminar sprite anterior si existe
+    if (arButtonSpriteRef.current && sceneRef.current) {
+      sceneRef.current.remove(arButtonSpriteRef.current);
+      arButtonSpriteRef.current = null;
+    }
+    // Crear sprite con texto
+    const sprite = createTextSprite("ACCION AR", {
+      fontSize: 80,
+      fontColor: '#fff',
+      backgroundColor: 'rgba(255,102,0,0.95)',
+      borderColor: '#fff',
+      borderWidth: 6,
+      borderRadius: 30,
+      padding: 40
+    });
+    // Posicionar el botón frente a la cámara
+    sprite.position.set(0, -0.2, -0.7); // Frente y un poco abajo
+    arButtonSpriteRef.current = sprite;
+    sceneRef.current.add(sprite);
+  }
+
+  // Función para crear botón HTML que funciona en AR
+  function createARButton() {
+    // Remover botón existente
+    if (arControlsRef.current.buttonElement) {
+      document.body.removeChild(arControlsRef.current.buttonElement);
+      arControlsRef.current.buttonElement = null;
+    }
+    
+    // Crear botón HTML
+    const button = document.createElement('button');
+    const buttonText = arMode === 'positioning' ? 'COLOCAR AQUÍ' : 'REPOSICIONAR';
+    button.textContent = buttonText;
+    
+    // Estilo del botón para AR
+    button.style.position = 'fixed';
+    button.style.bottom = '50px';
+    button.style.left = '50%';
+    button.style.transform = 'translateX(-50%)';
+    button.style.padding = '15px 30px';
+    button.style.fontSize = '18px';
+    button.style.fontWeight = 'bold';
+    button.style.color = 'white';
+    button.style.backgroundColor = arMode === 'positioning' ? '#00c851' : '#ff8800';
+    button.style.border = 'none';
+    button.style.borderRadius = '25px';
+    button.style.boxShadow = '0 4px 20px rgba(0,0,0,0.5)';
+    button.style.zIndex = '99999'; // Z-index muy alto
+    button.style.pointerEvents = 'auto';
+    button.style.cursor = 'pointer';
+    button.style.touchAction = 'manipulation';
+    
+    // Event listener del botón
+    button.addEventListener('click', () => {
+      console.log('Botón HTML clickeado!'); // Debug
+      
+      if (arMode === 'positioning') {
+        // Colocar el modelo
+        if (modelRef.current) {
+          setFixedPosition({
+            position: modelRef.current.position.clone(),
+            rotation: modelRef.current.rotation.clone()
+          });
+          setArMode('fixed');
+          console.log('Modelo colocado');
+        }
+      } else {
+        // Reposicionar el modelo
+        setArMode('positioning');
+        setFixedPosition(null);
+        setModelRotation({ x: 0, y: 0, z: 0 });
+        console.log('Modo reposicionamiento');
+      }
+    });
+    
+    // Agregar al DOM
+    document.body.appendChild(button);
+    arControlsRef.current.buttonElement = button;
+  }
+
+  // Exponer función globalmente para actualizaciones
+  window.createARButton = createARButton;
+
   // Función para agregar logs visuales
   const addDebugLog = (message, type = 'info') => {
     const timestamp = new Date().toLocaleTimeString();
@@ -61,99 +231,9 @@ export default function ARExperience({
       setWebXRSupported(false);
     }
 
-    // Crear botones de debug inmediatamente
-    createDebugButtons();
+    // Eliminar todos los overlays y botones HTML relacionados con AR, debug y fallback
+    // Mantener solo el botón 3D (sprite) en la escena AR
   }, []);
-
-  // Función para crear botones de debug
-  const createDebugButtons = () => {
-    const buttons = [];
-    
-    // Botón de debug principal
-    const debugButton = document.createElement('button');
-    debugButton.textContent = "🐛 DEBUG";
-    debugButton.style.position = "fixed";
-    debugButton.style.top = "20px";
-    debugButton.style.right = "20px";
-    debugButton.style.padding = "10px 15px";
-    debugButton.style.background = "linear-gradient(135deg, #ff6600, #ff8800)";
-    debugButton.style.color = "white";
-    debugButton.style.border = "2px solid #000";
-    debugButton.style.borderRadius = "8px";
-    debugButton.style.fontSize = "14px";
-    debugButton.style.fontWeight = "bold";
-    debugButton.style.zIndex = "999999";
-    debugButton.style.cursor = "pointer";
-    debugButton.onclick = () => {
-      setShowDebugUI(!showDebugUI);
-      addDebugLog(`Debug UI: ${!showDebugUI ? 'ON' : 'OFF'}`);
-    };
-    
-    document.body.appendChild(debugButton);
-    buttons.push(debugButton);
-
-    // Botón de test AR
-    const arTestButton = document.createElement('button');
-    arTestButton.textContent = "🥽 TEST AR";
-    arTestButton.style.position = "fixed";
-    arTestButton.style.top = "70px";
-    arTestButton.style.right = "20px";
-    arTestButton.style.padding = "10px 15px";
-    arTestButton.style.background = "linear-gradient(135deg, #00ff00, #00cc00)";
-    arTestButton.style.color = "white";
-    arTestButton.style.border = "2px solid #000";
-    arTestButton.style.borderRadius = "8px";
-    arTestButton.style.fontSize = "14px";
-    arTestButton.style.fontWeight = "bold";
-    arTestButton.style.zIndex = "999999";
-    arTestButton.style.cursor = "pointer";
-    arTestButton.onclick = () => {
-      addDebugLog("Botón AR test clickeado");
-      alert("¡Botón AR test funciona!");
-    };
-    
-    document.body.appendChild(arTestButton);
-    buttons.push(arTestButton);
-
-    // Botón de info
-    const infoButton = document.createElement('button');
-    infoButton.textContent = "ℹ️ INFO";
-    infoButton.style.position = "fixed";
-    infoButton.style.top = "120px";
-    infoButton.style.right = "20px";
-    infoButton.style.padding = "10px 15px";
-    infoButton.style.background = "linear-gradient(135deg, #0066ff, #0088ff)";
-    infoButton.style.color = "white";
-    infoButton.style.border = "2px solid #000";
-    infoButton.style.borderRadius = "8px";
-    infoButton.style.fontSize = "14px";
-    infoButton.style.fontWeight = "bold";
-    infoButton.style.zIndex = "999999";
-    infoButton.style.cursor = "pointer";
-    infoButton.onclick = () => {
-      const info = `
-        WebXR: ${webXRSupported ? 'SÍ' : 'NO'}
-        Modelo: ${modelLoaded ? 'Cargado' : 'No cargado'}
-        AR: ${isAR ? 'Activo' : 'Inactivo'}
-        Real World: ${showRealWorld ? 'SÍ' : 'NO'}
-      `;
-      alert(info);
-      addDebugLog("Info mostrada");
-    };
-    
-    document.body.appendChild(infoButton);
-    buttons.push(infoButton);
-
-    addDebugLog(`Botones de debug creados: ${buttons.length}`);
-
-    return () => {
-      buttons.forEach(button => {
-        if (button.parentNode) {
-          button.parentNode.removeChild(button);
-        }
-      });
-    };
-  };
 
   // Inicializar Three.js
   useEffect(() => {
@@ -449,149 +529,6 @@ export default function ARExperience({
     const renderer = rendererRef.current;
     const model = modelRef.current;
 
-    // Función para crear un sprite con texto/botón
-    function createTextSprite(text, options = {}) {
-      const {
-        fontSize = 64,
-        fontColor = '#ffffff',
-        backgroundColor = 'rgba(0,0,0,0.8)',
-        borderColor = '#ff6600',
-        borderWidth = 4,
-        padding = 20,
-        borderRadius = 15,
-        width = null,
-        height = null
-      } = options;
-
-      // Crear canvas para el texto
-      const canvas = document.createElement('canvas');
-      const context = canvas.getContext('2d');
-      
-      // Configurar font
-      context.font = `bold ${fontSize}px Arial, sans-serif`;
-      const textMetrics = context.measureText(text);
-      
-      // Calcular dimensiones
-      const textWidth = textMetrics.width;
-      const textHeight = fontSize;
-      const canvasWidth = width || textWidth + padding * 2;
-      const canvasHeight = height || textHeight + padding * 2;
-      
-      canvas.width = canvasWidth;
-      canvas.height = canvasHeight;
-      
-      // Dibujar fondo con bordes redondeados
-      context.fillStyle = backgroundColor;
-      context.strokeStyle = borderColor;
-      context.lineWidth = borderWidth;
-      
-      // Función para dibujar rectángulo con bordes redondeados
-      function roundRect(x, y, w, h, r) {
-        context.beginPath();
-        context.moveTo(x + r, y);
-        context.lineTo(x + w - r, y);
-        context.quadraticCurveTo(x + w, y, x + w, y + r);
-        context.lineTo(x + w, y + h - r);
-        context.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        context.lineTo(x + r, y + h);
-        context.quadraticCurveTo(x, y + h, x, y + h - r);
-        context.lineTo(x, y + r);
-        context.quadraticCurveTo(x, y, x + r, y);
-        context.closePath();
-      }
-      
-      roundRect(borderWidth/2, borderWidth/2, canvasWidth - borderWidth, canvasHeight - borderWidth, borderRadius);
-      context.fill();
-      context.stroke();
-      
-      // Dibujar texto
-      context.fillStyle = fontColor;
-      context.font = `bold ${fontSize}px Arial, sans-serif`;
-      context.textAlign = 'center';
-      context.textBaseline = 'middle';
-      context.fillText(text, canvasWidth/2, canvasHeight/2);
-      
-      // Crear textura y sprite
-      const texture = new THREE.CanvasTexture(canvas);
-      texture.needsUpdate = true;
-      
-      const spriteMaterial = new THREE.SpriteMaterial({ 
-        map: texture,
-        transparent: true,
-        alphaTest: 0.1
-      });
-      
-      const sprite = new THREE.Sprite(spriteMaterial);
-      
-      // Escalar sprite basado en el canvas - MUCHO MÁS PEQUEÑO
-      const scale = 0.001; // Factor de escala reducido para AR
-      sprite.scale.set(canvasWidth * scale, canvasHeight * scale, 1);
-      
-      return sprite;
-    }
-
-    // Función para crear botón HTML que funciona en AR
-    function createARButton() {
-      // Remover botón existente
-      if (arControlsRef.current.buttonElement) {
-        document.body.removeChild(arControlsRef.current.buttonElement);
-        arControlsRef.current.buttonElement = null;
-      }
-      
-      // Crear botón HTML
-      const button = document.createElement('button');
-      const buttonText = arMode === 'positioning' ? 'COLOCAR AQUÍ' : 'REPOSICIONAR';
-      button.textContent = buttonText;
-      
-      // Estilo del botón para AR
-      button.style.position = 'fixed';
-      button.style.bottom = '50px';
-      button.style.left = '50%';
-      button.style.transform = 'translateX(-50%)';
-      button.style.padding = '15px 30px';
-      button.style.fontSize = '18px';
-      button.style.fontWeight = 'bold';
-      button.style.color = 'white';
-      button.style.backgroundColor = arMode === 'positioning' ? '#00c851' : '#ff8800';
-      button.style.border = 'none';
-      button.style.borderRadius = '25px';
-      button.style.boxShadow = '0 4px 20px rgba(0,0,0,0.5)';
-      button.style.zIndex = '99999'; // Z-index muy alto
-      button.style.pointerEvents = 'auto';
-      button.style.cursor = 'pointer';
-      button.style.touchAction = 'manipulation';
-      
-      // Event listener del botón
-      button.addEventListener('click', () => {
-        console.log('Botón HTML clickeado!'); // Debug
-        
-        if (arMode === 'positioning') {
-          // Colocar el modelo
-          if (modelRef.current) {
-            setFixedPosition({
-              position: modelRef.current.position.clone(),
-              rotation: modelRef.current.rotation.clone()
-            });
-            setArMode('fixed');
-            console.log('Modelo colocado');
-          }
-        } else {
-          // Reposicionar el modelo
-          setArMode('positioning');
-          setFixedPosition(null);
-          setModelRotation({ x: 0, y: 0, z: 0 });
-          console.log('Modo reposicionamiento');
-        }
-      });
-      
-      // Agregar al DOM
-      document.body.appendChild(button);
-      arControlsRef.current.buttonElement = button;
-    }
-
-    // Exponer función globalmente para actualizaciones
-    window.createARButton = createARButton;
-
     function handleSessionStart() {
       setIsAR(true);
       setShowRealWorld(true);
@@ -713,6 +650,71 @@ export default function ARExperience({
       }, 100);
     }
   }, [arMode]);
+
+  // Detectar toque/click en el botón 3D en AR
+  useEffect(() => {
+    if (!isAR || !rendererRef.current || !sceneRef.current || !cameraRef.current) return;
+    const renderer = rendererRef.current;
+    const scene = sceneRef.current;
+    const camera = cameraRef.current;
+    let lastTouch = 0;
+
+    function onSelect(event) {
+      // Raycasting para detectar si el sprite fue tocado
+      const session = renderer.xr.getSession();
+      if (!session) return;
+      const inputSource = event.inputSource;
+      if (!inputSource || !inputSource.targetRaySpace) return;
+      const referenceSpace = renderer.xr.getReferenceSpace();
+      const pose = event.frame.getPose(inputSource.targetRaySpace, referenceSpace);
+      if (!pose) return;
+      // Convertir la posición del rayo a Three.js
+      const { x, y, z } = pose.transform.position;
+      const rayOrigin = new THREE.Vector3(x, y, z);
+      const { x: qx, y: qy, z: qz, w: qw } = pose.transform.orientation;
+      const rayDirection = new THREE.Vector3(0, 0, -1).applyQuaternion(new THREE.Quaternion(qx, qy, qz, qw));
+      // Raycaster
+      const raycaster = new THREE.Raycaster(rayOrigin, rayDirection);
+      const sprite = arButtonSpriteRef.current;
+      const scene = sceneRef.current;
+      if (
+        sprite &&
+        scene &&
+        scene.children.includes(sprite)
+      ) {
+        try {
+          const intersects = raycaster.intersectObject(sprite, true);
+          if (intersects.length > 0) {
+            // Log a Sentry
+            Sentry.captureMessage("Botón AR 3D tocado en mundo real", {
+              level: "info",
+              tags: { action: "ar_button_3d_tap" },
+              extra: { timestamp: new Date().toISOString() }
+            });
+          }
+        } catch (err) {
+          Sentry.captureException(err, {
+            tags: { action: "ar_button_3d_raycast_error" }
+          });
+        }
+      }
+    }
+
+    renderer.xr.getSession()?.addEventListener('select', onSelect);
+    return () => {
+      renderer.xr.getSession()?.removeEventListener('select', onSelect);
+    };
+  }, [isAR]);
+
+  // Crear el botón 3D solo cuando inicia AR
+  useEffect(() => {
+    if (isAR && sceneRef.current) {
+      createARButton3D();
+    } else if (!isAR && sceneRef.current && arButtonSpriteRef.current) {
+      sceneRef.current.remove(arButtonSpriteRef.current);
+      arButtonSpriteRef.current = null;
+    }
+  }, [isAR]);
 
   // Efecto para crear un botón de fallback cuando estés en AR
   useEffect(() => {

@@ -1,10 +1,12 @@
 import React from "react";
-import { Undo2, Redo2, Trash2, Download, Save } from "lucide-react";
+import { Undo2, Redo2, Trash2, Download, Save, RotateCcw } from "lucide-react";
 
 export default function ToolActions({
   undo,
   redo,
   clear,
+  resetToOriginal,
+  hasOriginalImage = false,
   download,
   save,
   historyIndex,
@@ -47,6 +49,22 @@ export default function ToolActions({
         <Trash2 className="h-6 w-6" />
         <span className="sr-only">Limpiar</span>
       </button>
+      
+      {/* Botón para restablecer imagen original - solo si hay imagen original */}
+      {hasOriginalImage && (
+        <button
+          type="button"
+          onClick={resetToOriginal}
+          className="group p-2 rounded-full bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-800 transition"
+          title="Restablecer imagen original"
+          aria-label="Restablecer imagen original"
+          style={{ cursor: "pointer" }}
+        >
+          <RotateCcw className="h-6 w-6" />
+          <span className="sr-only">Restablecer imagen original</span>
+        </button>
+      )}
+      
       <button
         type="button"
         onClick={download}

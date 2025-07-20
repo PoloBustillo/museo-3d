@@ -1,7 +1,7 @@
 "use client";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import CrearObraModal from "../../components/CrearObraModal";
+import CrearMuralStepper from "../../components/CrearMuralStepper";
 import AnimatedBackground from "../../../../components/shared/AnimatedBackground";
 import { motion } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
@@ -46,15 +46,75 @@ export default function EditarObraPage() {
   const isOwner =
     obra && (userProfile?.id === obra.userId || user?.id === obra.userId);
 
-  if (loading) return <div className="pt-32 text-center">Cargando obra...</div>;
+  if (loading) return (
+    <ProtectedRoute>
+      <div className="relative min-h-screen flex items-center justify-center">
+        <AnimatedBackground />
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando obra...</p>
+        </div>
+      </div>
+    </ProtectedRoute>
+  );
+  
   if (error)
-    return <div className="pt-32 text-center text-red-500">{error}</div>;
-  if (!obra) return <div className="pt-32 text-center">Obra no encontrada</div>;
+    return (
+      <ProtectedRoute>
+        <div className="relative min-h-screen flex items-center justify-center">
+          <AnimatedBackground />
+          <div className="text-center">
+            <div className="text-red-500 text-lg mb-4">❌ Error</div>
+            <p className="text-red-400">{error}</p>
+            <Button 
+              variant="outline" 
+              onClick={() => router.push("/mis-obras")}
+              className="mt-4"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" /> Volver a mis obras
+            </Button>
+          </div>
+        </div>
+      </ProtectedRoute>
+    );
+    
+  if (!obra) return (
+    <ProtectedRoute>
+      <div className="relative min-h-screen flex items-center justify-center">
+        <AnimatedBackground />
+        <div className="text-center">
+          <div className="text-gray-500 text-lg mb-4">📭 No encontrada</div>
+          <p className="text-gray-400">Obra no encontrada</p>
+          <Button 
+            variant="outline" 
+            onClick={() => router.push("/mis-obras")}
+            className="mt-4"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" /> Volver a mis obras
+          </Button>
+        </div>
+      </div>
+    </ProtectedRoute>
+  );
+  
   if (!isOwner)
     return (
-      <div className="pt-32 text-center text-red-500">
-        No tienes permiso para editar esta obra.
-      </div>
+      <ProtectedRoute>
+        <div className="relative min-h-screen flex items-center justify-center">
+          <AnimatedBackground />
+          <div className="text-center">
+            <div className="text-red-500 text-lg mb-4">🔒 Sin permisos</div>
+            <p className="text-red-400">No tienes permiso para editar esta obra.</p>
+            <Button 
+              variant="outline" 
+              onClick={() => router.push("/mis-obras")}
+              className="mt-4"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" /> Volver a mis obras
+            </Button>
+          </div>
+        </div>
+      </ProtectedRoute>
     );
 
   return (
@@ -68,25 +128,33 @@ export default function EditarObraPage() {
             transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <div className="w-full flex flex-col gap-4 items-start">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.back()}
-                className="mb-2"
-              >
-                <ArrowLeft className="w-4 h-4 mr-1" /> Volver
-              </Button>
-              <CrearObraModal
-                isOpen={true}
-                asPage={true}
-                onClose={null}
-                onCreate={() => {
-                  setTimeout(() => router.push("/mis-obras"), 1200);
-                }}
-                session={{ user: userProfile || user }}
-                hideClose={true}
+              <div className="flex items-center gap-4 mb-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => router.push("/mis-obras")}
+                  className="flex items-center gap-2 px-3 py-2 text-muted-foreground hover:text-foreground bg-transparent border border-border rounded-md hover:bg-accent transition-colors"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  Volver a mis obras
+                </Button>
+                <div>
+                  <h1 className="text-lg font-semibold text-foreground">
+                    Editar obra
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    {obra?.titulo ? `"${obra.titulo}"` : "Sin título"}
+                    {obra?.tecnica && ` • ${obra.tecnica}`}
+                    {obra?.anio && ` • ${obra.anio}`}
+                  </p>
+                </div>
+              </div>
+              <CrearMuralStepper
                 initialData={obra}
                 editMode={true}
+                onSuccess={() => {
+                  setTimeout(() => router.push("/mis-obras"), 1200);
+                }}
               />
             </div>
           </motion.div>

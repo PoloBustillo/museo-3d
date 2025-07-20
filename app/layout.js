@@ -93,6 +93,15 @@ export default function RootLayout({ children }) {
             },
           }}
         />
+        {/* VConsole solo en desarrollo */}
+        {process.env.NODE_ENV !== "production" && (
+          <>
+            <script src="https://unpkg.com/vconsole/dist/vconsole.min.js"></script>
+            <script
+              dangerouslySetInnerHTML={{ __html: "new window.VConsole();" }}
+            />
+          </>
+        )}
       </body>
     </html>
   );

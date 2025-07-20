@@ -58,6 +58,7 @@ function useCanvasSimple({
   initialColor = "#000000",
   initialSize = 15,
   initialTool = "brush",
+  initialImage = null, // Nueva prop para imagen inicial
 }) {
   const canvasRef = useRef(null);
   const [isDrawing, setIsDrawing] = useState(false);
@@ -86,6 +87,59 @@ function useCanvasSimple({
       setCurrentTool("brush");
     }
   }, [currentTool]);
+
+  // Cargar imagen inicial si está disponible
+  useEffect(() => {
+    if (initialImage && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      const img = new Image();
+      
+      img.onload = () => {
+        // Limpiar canvas primero
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Establecer fondo blanco
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Calcular dimensiones manteniendo aspecto
+        const canvasAspect = canvas.width / canvas.height;
+        const imgAspect = img.width / img.height;
+        
+        let drawWidth, drawHeight, drawX, drawY;
+        
+        if (imgAspect > canvasAspect) {
+          // Imagen más ancha que canvas
+          drawWidth = canvas.width;
+          drawHeight = drawWidth / imgAspect;
+          drawX = 0;
+          drawY = (canvas.height - drawHeight) / 2;
+        } else {
+          // Imagen más alta que canvas
+          drawHeight = canvas.height;
+          drawWidth = drawHeight * imgAspect;
+          drawX = (canvas.width - drawWidth) / 2;
+          drawY = 0;
+        }
+        
+        // Dibujar la imagen
+        ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+        console.log("🖼️ Imagen inicial cargada en canvas");
+      };
+      
+      img.onerror = () => {
+        console.error("❌ Error al cargar imagen inicial");
+      };
+      
+      // Manejar URLs de Cloudinary con crossOrigin
+      if (initialImage.includes('cloudinary.com')) {
+        img.crossOrigin = "anonymous";
+      }
+      
+      img.src = initialImage;
+    }
+  }, [initialImage]); // Solo ejecutar cuando cambie initialImage
 
   const getScaledCoords = (e, canvas) => {
     const rect = canvas.getBoundingClientRect();
@@ -171,6 +225,61 @@ function useCanvasSimple({
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   };
 
+  // Nueva función para restablecer la imagen original
+  const resetToOriginalImage = () => {
+    if (!canvasRef.current || !initialImage) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    
+    img.onload = () => {
+      // Limpiar canvas primero
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Establecer fondo blanco
+      ctx.fillStyle = "#FFFFFF";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Calcular dimensiones manteniendo aspecto
+      const canvasAspect = canvas.width / canvas.height;
+      const imgAspect = img.width / img.height;
+      
+      let drawWidth, drawHeight, drawX, drawY;
+      
+      if (imgAspect > canvasAspect) {
+        // Imagen más ancha que canvas
+        drawWidth = canvas.width;
+        drawHeight = drawWidth / imgAspect;
+        drawX = 0;
+        drawY = (canvas.height - drawHeight) / 2;
+      } else {
+        // Imagen más alta que canvas
+        drawHeight = canvas.height;
+        drawWidth = drawHeight * imgAspect;
+        drawX = (canvas.width - drawWidth) / 2;
+        drawY = 0;
+      }
+      
+      // Dibujar la imagen
+      ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
+      console.log("🔄 Imagen original restablecida");
+      toast.success("Imagen original restablecida");
+    };
+    
+    img.onerror = () => {
+      console.error("❌ Error al restablecer imagen original");
+      toast.error("Error al cargar la imagen original");
+    };
+    
+    // Manejar URLs de Cloudinary con crossOrigin
+    if (initialImage.includes('cloudinary.com')) {
+      img.crossOrigin = "anonymous";
+    }
+    
+    img.src = initialImage;
+  };
+
   const exportImage = () => {
     if (!canvasRef.current) return null;
     return canvasRef.current.toDataURL("image/png");
@@ -190,6 +299,7 @@ function useCanvasSimple({
     handleMouseUp,
     handleMouseLeave,
     clearCanvas,
+    resetToOriginalImage, // Nueva función
     exportImage,
     cursorPos,
   };
@@ -507,12 +617,14 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
     handleMouseUp,
     handleMouseLeave,
     clearCanvas,
+    resetToOriginalImage, // Nueva función
     exportImage,
     cursorPos,
   } = useCanvasSimple({
     initialColor: "#000000",
     initialSize: 15,
     initialTool: "brush",
+    initialImage: editingMural?.url_imagen, // Pasar la imagen existente
   });
 
   // Guardar en historial después de cada trazo
@@ -674,10 +786,35 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
 
   return (
     <div className="w-full h-full min-h-screen bg-gradient-to-br from-gray-50 to-indigo-50 dark:from-gray-900 dark:to-indigo-950">
+      
+      {/* Notificación de edición */}
+      {editingMural?.url_imagen && (
+        <div className="mx-4 mt-4 mb-2">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 mt-0.5">
+                ℹ
+              </div>
+              <div>
+                <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-1">
+                  Editando imagen existente
+                </h3>
+                <p className="text-blue-700 dark:text-blue-300 text-sm mb-2">
+                  Se ha cargado la imagen original de la obra. Opciones disponibles:
+                </p>
+                <ul className="text-blue-700 dark:text-blue-300 text-sm space-y-1 pl-4">
+                  <li>• <strong>Dibujar encima:</strong> Usa las herramientas para añadir elementos</li>
+                  <li>• <strong>Limpiar lienzo:</strong> Botón rojo para empezar de cero con fondo blanco</li>
+                  <li>• <strong>Restablecer original:</strong> Botón naranja para volver a la imagen original</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Layout responsivo mejorado */}
-      <div className="flex flex-col lg:flex-row gap-4 p-4 h-full">
-        
-        {/* Panel de herramientas - Responsive */}
+      <div className="flex flex-col lg:flex-row gap-4 p-4 h-full">{/* Panel de herramientas - Responsive */}
         <div className="w-full lg:w-80 lg:min-w-80 order-2 lg:order-1">
           <div className="sticky top-4">
             {/* Herramientas principales */}
@@ -862,6 +999,8 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
                 undo={undo}
                 redo={redo}
                 clear={clearCanvas}
+                resetToOriginal={resetToOriginalImage}
+                hasOriginalImage={!!editingMural?.url_imagen}
                 download={downloadCanvas}
                 save={handleSave}
                 historyIndex={historyIndex}

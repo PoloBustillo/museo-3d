@@ -8,7 +8,7 @@ import CanvasEditor from "./CanvasEditor";
 import { useFileUpload } from "../hooks/useFileUpload";
 import { useRouter } from "next/navigation";
 
-export default function MuralImageStep({ value, onChange, muralData = {} }) {
+export default function MuralImageStep({ value, onChange, muralData = {}, editMode = false, obraId = null }) {
   const router = useRouter();
   const [tab, setTab] = useState(0);
   const [localImage, setLocalImage] = useState(null); // base64 o File
@@ -145,66 +145,93 @@ export default function MuralImageStep({ value, onChange, muralData = {} }) {
           </label>
         </div>
       )}
-      {tab === 1 && !previewUrl && (
-        <div
-          className="flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-8 mb-2 w-full transition-all
-          border-gray-300 bg-gray-50 dark:bg-neutral-900/70
-          hover:border-indigo-400 hover:bg-indigo-50 dark:hover:border-indigo-400 dark:hover:bg-neutral-800/80
-        "
-        >
-          <div className="flex flex-col items-center text-center">
-              <span role="img" aria-label="Dibujar" className="text-6xl mb-4">
-                🎨
-              </span>
-              <h3 className="text-xl font-semibold mb-2 text-gray-700 dark:text-gray-100">
-                Editor de dibujo dedicado
-              </h3>
-              <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
-                Accede a un editor de dibujo completo con herramientas
-                profesionales, más espacio de trabajo y mejor experiencia de
-                usuario.
-              </p>
-              <button
-                onClick={() => {
-                  // Guardar TODOS los datos actuales en localStorage antes de navegar
-                  const currentData = {
-                    ...muralData, // Preservar todos los datos existentes
-                    // Solo sobrescribir campos específicos si están vacíos
-                    titulo: muralData.titulo || "",
-                    tecnica: muralData.tecnica || "",
-                    year: muralData.anio || muralData.year || undefined,
-                    descripcion: muralData.descripcion || "",
-                    // Preservar otros campos importantes
-                    dimensiones: muralData.dimensiones || "",
-                    ubicacion: muralData.ubicacion || "",
-                    latitud: muralData.latitud || "",
-                    longitud: muralData.longitud || "",
-                    salaId: muralData.salaId || "",
-                    estado: muralData.estado || "",
-                    autor: muralData.autor || "",
-                    artistId: muralData.artistId || "",
-                    colaboradores: muralData.colaboradores || [],
-                    tags: muralData.tags || [],
-                    publica: muralData.publica,
-                    destacada: muralData.destacada,
-                    orden: muralData.orden,
-                    userId: muralData.userId,
-                  };
-                  
-                  localStorage.setItem(
-                    "muralDraftData",
-                    JSON.stringify(currentData)
-                  );
+      {tab === 1 && (
+        <div>
+          {/* Botón del editor de dibujo - siempre disponible */}
+          <div
+            className="flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-8 mb-4 w-full transition-all
+            border-gray-300 bg-gray-50 dark:bg-neutral-900/70
+            hover:border-indigo-400 hover:bg-indigo-50 dark:hover:border-indigo-400 dark:hover:bg-neutral-800/80
+          "
+          >
+            <div className="flex flex-col items-center text-center">
+                <span role="img" aria-label="Dibujar" className="text-6xl mb-4">
+                  🎨
+                </span>
+                <h3 className="text-xl font-semibold mb-2 text-gray-700 dark:text-gray-100">
+                  Editor de dibujo dedicado
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
+                  {previewUrl 
+                    ? "Edita la imagen existente o crea una nueva en el editor completo con herramientas profesionales."
+                    : "Accede a un editor de dibujo completo con herramientas profesionales, más espacio de trabajo y mejor experiencia de usuario."
+                  }
+                </p>
+                <button
+                  onClick={() => {
+                    // Guardar TODOS los datos actuales en localStorage antes de navegar
+                    const currentData = {
+                      ...muralData, // Preservar todos los datos existentes
+                      // Solo sobrescribir campos específicos si están vacíos
+                      titulo: muralData.titulo || "",
+                      tecnica: muralData.tecnica || "",
+                      year: muralData.anio || muralData.year || undefined,
+                      descripcion: muralData.descripcion || "",
+                      // Preservar otros campos importantes
+                      dimensiones: muralData.dimensiones || "",
+                      ubicacion: muralData.ubicacion || "",
+                      latitud: muralData.latitud || "",
+                      longitud: muralData.longitud || "",
+                      salaId: muralData.salaId || "",
+                      estado: muralData.estado || "",
+                      autor: muralData.autor || "",
+                      artistId: muralData.artistId || "",
+                      colaboradores: muralData.colaboradores || [],
+                      tags: muralData.tags || [],
+                      publica: muralData.publica,
+                      destacada: muralData.destacada,
+                      orden: muralData.orden,
+                      userId: muralData.userId,
+                    };
+                    
+                    localStorage.setItem(
+                      "muralDraftData",
+                      JSON.stringify(currentData)
+                    );
 
-                  // Navegar a la página del canvas
-                  router.push("/mis-obras/crear/canvas");
-                }}
-                className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                style={{ cursor: "pointer" }}
-              >
-                Abrir editor de dibujo
-              </button>
+                    // Navegar a la página del canvas según el modo
+                    if (editMode && obraId) {
+                      router.push(`/mis-obras/editar/${obraId}/canvas`);
+                    } else {
+                      router.push("/mis-obras/crear/canvas");
+                    }
+                  }}
+                  className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                  style={{ cursor: "pointer" }}
+                >
+                  {previewUrl ? "Editar en canvas" : "Abrir editor de dibujo"}
+                </button>
             </div>
+          </div>
+
+          {/* Mostrar preview si existe */}
+          {previewUrl && (
+            <div className="flex flex-col items-center mt-4">
+              <div className="relative inline-block">
+                <img
+                  src={previewUrl}
+                  alt="preview"
+                  className="max-w-full h-auto max-h-64 rounded-lg shadow-md"
+                />
+                <div className="absolute top-2 right-2 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  {canvasImage ? "Creada en canvas" : "Imagen existente"}
+                </div>
+              </div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                Haz clic en "Editar en canvas" para modificar esta imagen
+              </p>
+            </div>
+          )}
         </div>
       )}
       {previewUrl && (
