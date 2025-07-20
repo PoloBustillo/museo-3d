@@ -25,9 +25,9 @@ export default function ARExperience({
   const [modelRotation, setModelRotation] = useState({ x: 0, y: 0, z: 0 });
   const textureRef = useRef();
   
-  // Referencias para controles AR - Solo el botón principal
+  // Referencias para controles AR - Botón HTML tradicional
   const arControlsRef = useRef({
-    mainButtonSprite: null
+    buttonElement: null
   });
 
   // Inicializar Three.js
@@ -278,108 +278,67 @@ export default function ARExperience({
       return sprite;
     }
 
-    // Función para crear solo el botón principal AR como sprite
-    function createARSprites() {
-      const controls = arControlsRef.current;
-      
-      // Limpiar controles existentes
-      if (controls.mainButtonSprite) {
-        sceneRef.current.remove(controls.mainButtonSprite);
-        controls.mainButtonSprite = null;
+    // Función para crear botón HTML que funciona en AR
+    function createARButton() {
+      // Remover botón existente
+      if (arControlsRef.current.buttonElement) {
+        document.body.removeChild(arControlsRef.current.buttonElement);
+        arControlsRef.current.buttonElement = null;
       }
       
-      // Crear solo el botón principal
-      const mainButtonText = arMode === 'positioning' 
-        ? 'COLOCAR AQUÍ' 
-        : 'REPOSICIONAR';
-      const mainButtonColor = arMode === 'positioning' ? 'rgba(0,200,81,0.9)' : 'rgba(255,136,0,0.9)';
+      // Crear botón HTML
+      const button = document.createElement('button');
+      const buttonText = arMode === 'positioning' ? 'COLOCAR AQUÍ' : 'REPOSICIONAR';
+      button.textContent = buttonText;
       
-      controls.mainButtonSprite = createTextSprite(mainButtonText, {
-        fontSize: 28,
-        backgroundColor: mainButtonColor,
-        borderColor: '#ffffff',
-        width: 180,
-        height: 60
+      // Estilo del botón para AR
+      button.style.position = 'fixed';
+      button.style.bottom = '50px';
+      button.style.left = '50%';
+      button.style.transform = 'translateX(-50%)';
+      button.style.padding = '15px 30px';
+      button.style.fontSize = '18px';
+      button.style.fontWeight = 'bold';
+      button.style.color = 'white';
+      button.style.backgroundColor = arMode === 'positioning' ? '#00c851' : '#ff8800';
+      button.style.border = 'none';
+      button.style.borderRadius = '25px';
+      button.style.boxShadow = '0 4px 20px rgba(0,0,0,0.5)';
+      button.style.zIndex = '99999'; // Z-index muy alto
+      button.style.pointerEvents = 'auto';
+      button.style.cursor = 'pointer';
+      button.style.touchAction = 'manipulation';
+      
+      // Event listener del botón
+      button.addEventListener('click', () => {
+        console.log('Botón HTML clickeado!'); // Debug
+        
+        if (arMode === 'positioning') {
+          // Colocar el modelo
+          if (modelRef.current) {
+            setFixedPosition({
+              position: modelRef.current.position.clone(),
+              rotation: modelRef.current.rotation.clone()
+            });
+            setArMode('fixed');
+            console.log('Modelo colocado');
+          }
+        } else {
+          // Reposicionar el modelo
+          setArMode('positioning');
+          setFixedPosition(null);
+          setModelRotation({ x: 0, y: 0, z: 0 });
+          console.log('Modo reposicionamiento');
+        }
       });
       
-      // El sprite se posicionará dinámicamente en el render loop
-      controls.mainButtonSprite.userData = { type: 'mainButton' };
-      sceneRef.current.add(controls.mainButtonSprite);
+      // Agregar al DOM
+      document.body.appendChild(button);
+      arControlsRef.current.buttonElement = button;
     }
 
     // Exponer función globalmente para actualizaciones
-    window.createARSprites = createARSprites;
-
-    // Exponer función globalmente para actualizaciones
-    window.createARSprites = createARSprites;
-
-    // Función para manejar clicks en el botón usando raycasting más simple
-    function handleSpriteClick(event) {
-      if (!renderer.xr.isPresenting) return;
-      
-      event.preventDefault();
-      event.stopPropagation();
-      
-      console.log('Click detectado en AR'); // Debug
-      
-      // Crear raycaster
-      const raycaster = new THREE.Raycaster();
-      
-      // Calcular posición del touch/click
-      let clientX, clientY;
-      if (event.type === 'touchend' && event.changedTouches) {
-        clientX = event.changedTouches[0].clientX;
-        clientY = event.changedTouches[0].clientY;
-      } else {
-        clientX = event.clientX || window.innerWidth / 2;
-        clientY = event.clientY || window.innerHeight / 2;
-      }
-      
-      // Convertir a coordenadas normalizadas
-      const rect = renderer.domElement.getBoundingClientRect();
-      const mouse = new THREE.Vector2();
-      mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
-      
-      // Configurar raycaster
-      raycaster.setFromCamera(mouse, renderer.xr.getCamera());
-      
-      // Verificar intersección solo con el botón
-      if (arControlsRef.current.mainButtonSprite) {
-        const intersects = raycaster.intersectObject(arControlsRef.current.mainButtonSprite);
-        
-        if (intersects.length > 0) {
-          console.log('Botón clickeado!'); // Debug
-          
-          // Feedback visual
-          arControlsRef.current.mainButtonSprite.scale.multiplyScalar(1.3);
-          setTimeout(() => {
-            if (arControlsRef.current.mainButtonSprite) {
-              arControlsRef.current.mainButtonSprite.scale.divideScalar(1.3);
-            }
-          }, 200);
-          
-          // Acción del botón
-          if (arMode === 'positioning') {
-            // Colocar el modelo
-            if (modelRef.current) {
-              setFixedPosition({
-                position: modelRef.current.position.clone(),
-                rotation: modelRef.current.rotation.clone()
-              });
-              setArMode('fixed');
-              console.log('Modelo colocado');
-            }
-          } else {
-            // Reposicionar el modelo
-            setArMode('positioning');
-            setFixedPosition(null);
-            setModelRotation({ x: 0, y: 0, z: 0 });
-            console.log('Modo reposicionamiento');
-          }
-        }
-      }
-    }
+    window.createARButton = createARButton;
 
     function handleSessionStart() {
       setIsAR(true);
@@ -388,12 +347,8 @@ export default function ARExperience({
       setFixedPosition(null);
       setModelRotation({ x: 0, y: 0, z: 0 });
       
-      // Crear controles AR como sprites
-      createARSprites();
-      
-      // Agregar event listener para clicks
-      renderer.domElement.addEventListener('click', handleSpriteClick);
-      renderer.domElement.addEventListener('touchend', handleSpriteClick);
+      // Crear botón HTML para AR
+      createARButton();
       
       // Posicionar para AR (modo búsqueda inicial)
       model.position.set(0, 0, -0.8);
@@ -428,15 +383,10 @@ export default function ARExperience({
       setFixedPosition(null);
       setModelRotation({ x: 0, y: 0, z: 0 });
       
-      // Remover event listeners
-      renderer.domElement.removeEventListener('click', handleSpriteClick);
-      renderer.domElement.removeEventListener('touchend', handleSpriteClick);
-      
-      // Limpiar sprite del botón
-      const controls = arControlsRef.current;
-      if (controls.mainButtonSprite) {
-        sceneRef.current.remove(controls.mainButtonSprite);
-        controls.mainButtonSprite = null;
+      // Remover botón HTML
+      if (arControlsRef.current.buttonElement) {
+        document.body.removeChild(arControlsRef.current.buttonElement);
+        arControlsRef.current.buttonElement = null;
       }
       
       // Restaurar escena de fondo
@@ -449,7 +399,7 @@ export default function ARExperience({
     renderer.xr.addEventListener("sessionstart", handleSessionStart);
     renderer.xr.addEventListener("sessionend", handleSessionEnd);
 
-    // AR render loop con lógica de posicionamiento y botón que sigue al modelo
+    // AR render loop simplificado - solo modelo
     renderer.setAnimationLoop(() => {
       if (renderer.xr.isPresenting && sceneRef.current && cameraRef.current && modelRef.current) {
         const xrCamera = renderer.xr.getCamera();
@@ -486,16 +436,6 @@ export default function ARExperience({
           modelRef.current.rotation.copy(fixedPosition.rotation);
         }
         
-        // Posicionar el botón debajo del modelo
-        if (arControlsRef.current.mainButtonSprite && modelRef.current) {
-          const buttonPosition = modelRef.current.position.clone();
-          buttonPosition.y -= 0.3; // Debajo del modelo
-          arControlsRef.current.mainButtonSprite.position.copy(buttonPosition);
-          
-          // Hacer que el botón siempre mire hacia la cámara
-          arControlsRef.current.mainButtonSprite.lookAt(xrCamera.position);
-        }
-        
         renderer.render(sceneRef.current, cameraRef.current);
       }
     });
@@ -505,25 +445,19 @@ export default function ARExperience({
       renderer.xr.removeEventListener("sessionend", handleSessionEnd);
       renderer.setAnimationLoop(null);
       
-      // Remover event listeners si existen
-      if (renderer.domElement) {
-        renderer.domElement.removeEventListener('click', handleSpriteClick);
-        renderer.domElement.removeEventListener('touchend', handleSpriteClick);
-      }
-      
-      // Limpiar sprite del botón al desmontar
-      const controls = arControlsRef.current;
-      if (sceneRef.current && controls.mainButtonSprite) {
-        sceneRef.current.remove(controls.mainButtonSprite);
+      // Limpiar botón HTML al desmontar
+      if (arControlsRef.current.buttonElement) {
+        document.body.removeChild(arControlsRef.current.buttonElement);
+        arControlsRef.current.buttonElement = null;
       }
     };
   }, [modelLoaded]); // Simplificar dependencias
 
   // Efecto para actualizar el botón AR cuando cambia el modo
   useEffect(() => {
-    if (isAR && rendererRef.current?.xr?.isPresenting && window.createARSprites) {
+    if (isAR && rendererRef.current?.xr?.isPresenting && window.createARButton) {
       setTimeout(() => {
-        window.createARSprites();
+        window.createARButton();
       }, 100);
     }
   }, [arMode]);
@@ -604,7 +538,7 @@ export default function ARExperience({
           top: 0,
           left: 0,
           zIndex: 3000,
-          pointerEvents: isAR ? "none" : "auto", // Deshabilitar eventos en AR para que pasen a los controles
+          pointerEvents: "auto", // Siempre permitir eventos para que el botón funcione
         }}
       >
         <div
