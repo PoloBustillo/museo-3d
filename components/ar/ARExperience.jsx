@@ -25,8 +25,6 @@ export default function ARExperience({
   const [fixedPosition, setFixedPosition] = useState(null);
   const [modelRotation, setModelRotation] = useState({ x: 0, y: 0, z: 0 });
   const [webXRSupported, setWebXRSupported] = useState(false);
-  const [debugLogs, setDebugLogs] = useState([]);
-  const [showDebugUI, setShowDebugUI] = useState(true);
   const textureRef = useRef();
   
   // Referencias para controles AR - Botón HTML tradicional
@@ -142,31 +140,22 @@ export default function ARExperience({
   // Exponer función globalmente para actualizaciones
   // Eliminar arControlsRef y createARButton y cualquier referencia a window.createARButton
 
-  // Función para agregar logs visuales
-  const addDebugLog = (message, type = 'info') => {
-    const timestamp = new Date().toLocaleTimeString();
-    setDebugLogs(prev => [
-      ...prev.slice(-5), // Mantener solo los últimos 5 logs
-      { message, type, timestamp }
-    ]);
-    console.log(`🔧 [${timestamp}] ${message}`);
-  };
+  // Eliminar debugLogs, showDebugUI, addDebugLog, y cualquier render o estado relacionado
 
   // Verificar soporte WebXR al inicio
   useEffect(() => {
-    addDebugLog("Verificando soporte WebXR...");
-    addDebugLog(`navigator.xr disponible: ${!!navigator.xr}`);
+    // Eliminar debugLogs, showDebugUI, addDebugLog, y cualquier render o estado relacionado
     
     if (navigator.xr) {
       navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
-        addDebugLog(`WebXR AR soportado: ${supported}`, supported ? 'success' : 'error');
+        // Eliminar debugLogs, showDebugUI, addDebugLog, y cualquier render o estado relacionado
         setWebXRSupported(supported);
       }).catch((error) => {
-        addDebugLog(`Error verificando WebXR AR: ${error.message}`, 'error');
+        // Eliminar debugLogs, showDebugUI, addDebugLog, y cualquier render o estado relacionado
         setWebXRSupported(false);
       });
     } else {
-      addDebugLog("WebXR no disponible", 'error');
+      // Eliminar debugLogs, showDebugUI, addDebugLog, y cualquier render o estado relacionado
       setWebXRSupported(false);
     }
 
@@ -257,7 +246,7 @@ export default function ARExperience({
   useEffect(() => {
     if (!sceneRef.current || !modelUrl) return;
 
-    addDebugLog(`Iniciando carga del modelo: ${modelUrl}`);
+    // Eliminar debugLogs, showDebugUI, addDebugLog, y cualquier render o estado relacionado
 
     // Limpiar modelo anterior
     if (modelRef.current) {
@@ -266,7 +255,7 @@ export default function ARExperience({
 
     const loader = new GLTFLoader();
     loader.load(modelUrl, (gltf) => {
-      addDebugLog("Modelo cargado exitosamente", 'success');
+      // Eliminar debugLogs, showDebugUI, addDebugLog, y cualquier render o estado relacionado
       const model = gltf.scene;
 
       // Centrar y escalar
@@ -305,27 +294,26 @@ export default function ARExperience({
       sceneRef.current.add(model);
       modelRef.current = model;
       setModelLoaded(true);
-      addDebugLog("Modelo agregado a la escena", 'success');
+      // Eliminar debugLogs, showDebugUI, addDebugLog, y cualquier render o estado relacionado
     }, 
     // Progress callback
     (progress) => {
-      const percent = (progress.loaded / progress.total * 100).toFixed(2);
-      addDebugLog(`Progreso de carga: ${percent}%`);
+      // Eliminar debugLogs, showDebugUI, addDebugLog, y cualquier render o estado relacionado
     },
     // Error callback
     (error) => {
-      addDebugLog(`Error cargando modelo: ${error.message}`, 'error');
+      // Eliminar debugLogs, showDebugUI, addDebugLog, y cualquier render o estado relacionado
     });
   }, [modelUrl, restoreMaterials]);
 
   // Botón AR mejorado para móvil
   useEffect(() => {
     if (!modelLoaded || !rendererRef.current || !webXRSupported) {
-      addDebugLog(`No creando botón AR - modelLoaded: ${modelLoaded}, renderer: ${!!rendererRef.current}, WebXR: ${webXRSupported}`);
+      // Eliminar debugLogs, showDebugUI, addDebugLog, y cualquier render o estado relacionado
       return;
     }
 
-    addDebugLog("Creando botón AR inicial...");
+    // Eliminar debugLogs, showDebugUI, addDebugLog, y cualquier render o estado relacionado
 
     // Verificar que el renderer tenga WebXR habilitado
     if (!rendererRef.current.xr) {
@@ -614,13 +602,178 @@ export default function ARExperience({
     };
   }, [isAR]);
 
-  // Crear el botón 3D solo cuando inicia AR
+  // 1. Botón 3D como plano
+  const arButtonPlaneRef = useRef();
+
+  function createARButtonPlane() {
+    if (arButtonPlaneRef.current && sceneRef.current) {
+      sceneRef.current.remove(arButtonPlaneRef.current);
+      arButtonPlaneRef.current = null;
+    }
+    // Crear plano con material llamativo
+    const geometry = new THREE.PlaneGeometry(0.25, 0.1); // 25cm x 10cm
+    const material = new THREE.MeshBasicMaterial({ color: 0xff3300 });
+    const plane = new THREE.Mesh(geometry, material);
+    plane.position.set(0, -0.2, -1); // Frente a la cámara
+    plane.name = "ARButtonPlane";
+    arButtonPlaneRef.current = plane;
+    sceneRef.current.add(plane);
+    // Cubo de prueba
+    const cubeGeo = new THREE.BoxGeometry(0.1, 0.1, 0.1);
+    const cubeMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+    const cube = new THREE.Mesh(cubeGeo, cubeMat);
+    cube.position.set(0.3, 0, -1);
+    cube.name = "DebugCube";
+    sceneRef.current.add(cube);
+    // Log children
+    console.log("[AR] Objetos en la escena tras añadir plano y cubo:", sceneRef.current.children.map(o => o.name || o.type));
+  }
+
+  // 2. Hit test para colocar el modelo
+  const [hitTestActive, setHitTestActive] = useState(true);
+  const hitTestRef = useRef(null);
+
+  useEffect(() => {
+    if (!isAR || !rendererRef.current) return;
+    const renderer = rendererRef.current;
+    let hitTestSource = null;
+    let localRefSpace = null;
+    let placed = false;
+
+    function onSessionStart() {
+      const session = renderer.xr.getSession();
+      if (!session) return;
+      session.requestReferenceSpace('viewer').then((refSpace) => {
+        session.requestHitTestSource({ space: refSpace }).then((source) => {
+          hitTestSource = source;
+          localRefSpace = renderer.xr.getReferenceSpace();
+          hitTestRef.current = { hitTestSource, localRefSpace };
+        });
+      });
+    }
+    function onSessionEnd() {
+      hitTestSource = null;
+      hitTestRef.current = null;
+    }
+    renderer.xr.addEventListener('sessionstart', onSessionStart);
+    renderer.xr.addEventListener('sessionend', onSessionEnd);
+    return () => {
+      renderer.xr.removeEventListener('sessionstart', onSessionStart);
+      renderer.xr.removeEventListener('sessionend', onSessionEnd);
+    };
+  }, [isAR]);
+
+  // Render loop para hit test
+  useEffect(() => {
+    if (!isAR || !rendererRef.current || !modelRef.current) return;
+    const renderer = rendererRef.current;
+    let placed = false;
+    renderer.setAnimationLoop((timestamp, frame) => {
+      if (!hitTestActive || placed) return;
+      const session = renderer.xr.getSession();
+      if (!session || !frame || !hitTestRef.current) return;
+      const { hitTestSource, localRefSpace } = hitTestRef.current;
+      const hitTestResults = frame.getHitTestResults(hitTestSource);
+      if (hitTestResults.length > 0) {
+        const hit = hitTestResults[0];
+        const pose = hit.getPose(localRefSpace);
+        if (pose && modelRef.current) {
+          modelRef.current.visible = true;
+          modelRef.current.position.set(pose.transform.position.x, pose.transform.position.y, pose.transform.position.z);
+          modelRef.current.quaternion.set(
+            pose.transform.orientation.x,
+            pose.transform.orientation.y,
+            pose.transform.orientation.z,
+            pose.transform.orientation.w
+          );
+        }
+      }
+    });
+    return () => {
+      renderer.setAnimationLoop(null);
+    };
+  }, [isAR, hitTestActive]);
+
+  // Evento para colocar el modelo por hit test
+  useEffect(() => {
+    if (!isAR || !rendererRef.current) return;
+    const renderer = rendererRef.current;
+    function onSelect(event) {
+      if (!hitTestActive) return;
+      if (modelRef.current) {
+        setHitTestActive(false);
+        console.log("[HIT TEST] Modelo colocado en el mundo real");
+        Sentry.captureMessage("[HIT TEST] Modelo colocado en el mundo real", {
+          level: "info",
+          tags: { action: "ar_hit_test_place" },
+          extra: { timestamp: new Date().toISOString() }
+        });
+      }
+    }
+    renderer.xr.getSession()?.addEventListener('select', onSelect);
+    return () => {
+      renderer.xr.getSession()?.removeEventListener('select', onSelect);
+    };
+  }, [isAR, hitTestActive]);
+
+  // Evento para click en el botón 3D plano
+  useEffect(() => {
+    if (!isAR || !rendererRef.current || !sceneRef.current) return;
+    const renderer = rendererRef.current;
+    function onSelect(event) {
+      const session = renderer.xr.getSession();
+      if (!session) return;
+      const inputSource = event.inputSource;
+      if (!inputSource || !inputSource.targetRaySpace) return;
+      const referenceSpace = renderer.xr.getReferenceSpace();
+      const pose = event.frame.getPose(inputSource.targetRaySpace, referenceSpace);
+      if (!pose) return;
+      const { x, y, z } = pose.transform.position;
+      const rayOrigin = new THREE.Vector3(x, y, z);
+      const { x: qx, y: qy, z: qz, w: qw } = pose.transform.orientation;
+      const rayDirection = new THREE.Vector3(0, 0, -1).applyQuaternion(new THREE.Quaternion(qx, qy, qz, qw));
+      const raycaster = new THREE.Raycaster(rayOrigin, rayDirection);
+      const plane = arButtonPlaneRef.current;
+      const scene = sceneRef.current;
+      if (
+        plane &&
+        scene &&
+        scene.children.includes(plane) &&
+        plane.matrixWorld
+      ) {
+        try {
+          const intersects = raycaster.intersectObject(plane, true);
+          if (intersects.length > 0) {
+            console.log("[PLANO 3D] Botón AR plano tocado en mundo real");
+            Sentry.captureMessage("[PLANO 3D] Botón AR plano tocado en mundo real", {
+              level: "info",
+              tags: { action: "ar_button_3d_plane_tap" },
+              extra: { timestamp: new Date().toISOString() }
+            });
+          }
+        } catch (err) {
+          Sentry.captureException(err, {
+            tags: { action: "ar_button_3d_plane_raycast_error" }
+          });
+        }
+      }
+    }
+    renderer.xr.getSession()?.addEventListener('select', onSelect);
+    return () => {
+      renderer.xr.getSession()?.removeEventListener('select', onSelect);
+    };
+  }, [isAR]);
+
+  // Crear el botón plano solo cuando inicia AR
   useEffect(() => {
     if (isAR && sceneRef.current) {
-      createARButton3D();
-    } else if (!isAR && sceneRef.current && arButtonSpriteRef.current) {
-      sceneRef.current.remove(arButtonSpriteRef.current);
-      arButtonSpriteRef.current = null;
+      createARButtonPlane();
+    } else if (!isAR && sceneRef.current && arButtonPlaneRef.current) {
+      sceneRef.current.remove(arButtonPlaneRef.current);
+      arButtonPlaneRef.current = null;
+      // Remover cubo de debug si existe
+      const debugCube = sceneRef.current.getObjectByName("DebugCube");
+      if (debugCube) sceneRef.current.remove(debugCube);
     }
   }, [isAR]);
 
