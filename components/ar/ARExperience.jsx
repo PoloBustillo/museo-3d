@@ -819,6 +819,146 @@ export default function ARExperience({
     }
   };
 
+  // Estado para escala y rotación del modelo
+  const [modelScale, setModelScale] = useState(0.15);
+  const [modelRotationY, setModelRotationY] = useState(0);
+  const [modelFixed, setModelFixed] = useState(false);
+
+  // Botones HTML flotantes para escalar y rotar
+  function renderARControls() {
+    if (!isAR || !modelFixed) return null;
+    return (
+      <div style={{
+        position: 'fixed',
+        bottom: 40,
+        left: 0,
+        right: 0,
+        display: 'flex',
+        justifyContent: 'center',
+        gap: 16,
+        zIndex: 10000,
+        pointerEvents: 'auto',
+      }}>
+        <button style={arBtnStyle} onClick={() => {
+          setModelScale(s => Math.max(0.05, s - 0.05));
+          logSentryStep('Botón: Escalar -');
+        }}>-</button>
+        <button style={arBtnStyle} onClick={() => {
+          setModelScale(s => Math.min(1, s + 0.05));
+          logSentryStep('Botón: Escalar +');
+        }}>+</button>
+        <button style={arBtnStyle} onClick={() => {
+          setModelRotationY(r => r - Math.PI / 12);
+          logSentryStep('Botón: Rotar ⟲');
+        }}>⟲</button>
+        <button style={arBtnStyle} onClick={() => {
+          setModelRotationY(r => r + Math.PI / 12);
+          logSentryStep('Botón: Rotar ⟳');
+        }}>⟳</button>
+      </div>
+    );
+  }
+  const arBtnStyle = {
+    fontSize: 28,
+    padding: '12px 18px',
+    borderRadius: 12,
+    border: 'none',
+    background: 'rgba(255,255,255,0.95)',
+    color: '#222',
+    fontWeight: 'bold',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+    cursor: 'pointer',
+  };
+
+  // Gestos multitouch para escalar y rotar
+  useEffect(() => {
+    if (!isAR || !modelFixed) return;
+    let lastDist = null;
+    let lastAngle = null;
+    function onTouchMove(e) {
+      if (e.touches.length === 2) {
+        const dx = e.touches[0].clientX - e.touches[1].clientX;
+        const dy = e.touches[0].clientY - e.touches[1].clientY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const angle = Math.atan2(dy, dx);
+        if (lastDist !== null) {
+          // Pinch para escalar
+          const scaleDelta = (dist - lastDist) * 0.001;
+          setModelScale(s => Math.max(0.05, Math.min(1, s + scaleDelta)));
+          logSentryStep('Gesto: Pinch para escalar');
+        }
+        if (lastAngle !== null) {
+          // Rotar con dos dedos
+          const rotDelta = angle - lastAngle;
+          setModelRotationY(r => r + rotDelta);
+          logSentryStep('Gesto: Rotar con dos dedos');
+        }
+        lastDist = dist;
+        lastAngle = angle;
+      }
+    }
+    function onTouchEnd(e) {
+      lastDist = null;
+      lastAngle = null;
+    }
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd);
+    return () => {
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [isAR, modelFixed]);
+
+  // Toggle fijar/mover modelo con cada tap
+  useEffect(() => {
+    if (!isAR || !rendererRef.current) return;
+    const renderer = rendererRef.current;
+    function onSelect(event) {
+      setModelFixed(fixed => {
+        const newFixed = !fixed;
+        logSentryStep(`[HIT TEST] Modelo ${newFixed ? 'fijado' : 'liberado'} en el mundo real`);
+        return newFixed;
+      });
+    }
+    renderer.xr.getSession()?.addEventListener('select', onSelect);
+    return () => {
+      renderer.xr.getSession()?.removeEventListener('select', onSelect);
+    };
+  }, [isAR]);
+
+  // En el render loop, aplicar escala y rotación solo si el modelo no está fijo
+  useEffect(() => {
+    if (!isAR || !rendererRef.current || !sceneRef.current || !cameraRef.current) return;
+    const renderer = rendererRef.current;
+    let frameCount = 0;
+    renderer.setAnimationLoop(() => {
+      frameCount++;
+      if (modelRef.current && cameraRef.current && !modelFixed) {
+        modelRef.current.position.set(0, 0, -0.8);
+        modelRef.current.position.applyMatrix4(cameraRef.current.matrixWorld);
+        modelRef.current.quaternion.copy(cameraRef.current.quaternion);
+      }
+      // Aplicar escala y rotación Y siempre
+      if (modelRef.current) {
+        modelRef.current.scale.setScalar(modelScale);
+        modelRef.current.rotation.y = modelRotationY;
+      }
+      if (frameCount % 300 === 0) {
+        logSentryStep(`Render loop activo. Frame: ${frameCount}`);
+      }
+      try {
+        renderer.render(sceneRef.current, cameraRef.current);
+      } catch (err) {
+        console.error("[AR] Error en render loop:", err);
+        Sentry.captureException(err, { tags: { action: "ar_render_loop_error" } });
+      }
+    });
+    return () => {
+      renderer.setAnimationLoop(null);
+    };
+  }, [isAR, modelFixed, modelScale, modelRotationY]);
+
+  // En el render, renderARControls()
   // Estilo para botones de rotación mejorado para AR
   const rotationButtonStyle = {
     width: "50px",
@@ -946,6 +1086,7 @@ export default function ARExperience({
             ← Cerrar
           </button>
         )}
+        {renderARControls()}
       </div>
 
       {/* Eliminar todos los demás overlays y botones HTML */}
