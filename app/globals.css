@@ -1956,7 +1956,7 @@ button[style*="position: fixed"] {
 }
 
 .collapse-section.expanded {
-  max-height: 400px; /* Ajusta según necesidad */
+  max-height: 300px; /* Altura fija para scroll */
   opacity: 1;
 }
 
@@ -1965,6 +1965,57 @@ button[style*="position: fixed"] {
   opacity: 0;
   padding-top: 0;
   padding-bottom: 0;
+}
+
+/* Scroll para secciones de pinceles */
+.brush-grid-container {
+  max-height: 260px; /* Altura máxima antes de mostrar scroll */
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px; /* Espacio para scrollbar personalizada */
+  margin-right: -4px; /* Compensar el padding */
+}
+
+/* Scrollbar personalizada para secciones de pinceles */
+.brush-grid-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.brush-grid-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.brush-grid-container::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+.brush-grid-container::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+}
+
+/* Para Firefox */
+.brush-grid-container {
+  scrollbar-width: thin;
+  scrollbar-color: #667eea rgba(255, 255, 255, 0.1);
+}
+
+/* Fade effect en el scroll */
+.brush-grid-container::after {
+  content: '';
+  position: sticky;
+  bottom: 0;
+  height: 20px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.1));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.brush-grid-container:hover::after {
+  opacity: 1;
 }
 
 /* Hover effects para headers de secciones */
@@ -2089,4 +2140,66 @@ button[style*="position: fixed"] {
     grid-template-columns: repeat(3, 1fr);
     gap: 0.75rem;
   }
+}
+
+/* Animaciones del modal de pinceles */
+.brush-modal-overlay {
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+.brush-modal-content {
+  animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: center center;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(4px);
+  }
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Efecto de hover mejorado para el overlay */
+.brush-modal-overlay:hover {
+  cursor: pointer;
+}
+
+.brush-modal-content:hover {
+  cursor: default;
+}
+
+/* Animación del botón cerrar con efecto de brillo */
+.shine-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.shine-effect::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.7s;
+}
+
+.shine-effect:hover::before {
+  left: 100%;
 }

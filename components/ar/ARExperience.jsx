@@ -24,6 +24,8 @@ export default function ARExperience({
   const [fixedPosition, setFixedPosition] = useState(null);
   const [modelRotation, setModelRotation] = useState({ x: 0, y: 0, z: 0 });
   const [webXRSupported, setWebXRSupported] = useState(false);
+  const [debugLogs, setDebugLogs] = useState([]);
+  const [showDebugUI, setShowDebugUI] = useState(true);
   const textureRef = useRef();
   
   // Referencias para controles AR - Botón HTML tradicional
@@ -31,51 +33,127 @@ export default function ARExperience({
     buttonElement: null
   });
 
+  // Función para agregar logs visuales
+  const addDebugLog = (message, type = 'info') => {
+    const timestamp = new Date().toLocaleTimeString();
+    setDebugLogs(prev => [
+      ...prev.slice(-5), // Mantener solo los últimos 5 logs
+      { message, type, timestamp }
+    ]);
+    console.log(`🔧 [${timestamp}] ${message}`);
+  };
+
   // Verificar soporte WebXR al inicio
   useEffect(() => {
-    console.log("🔧 Verificando soporte WebXR...");
-    console.log("🔧 navigator.xr disponible:", !!navigator.xr);
+    addDebugLog("Verificando soporte WebXR...");
+    addDebugLog(`navigator.xr disponible: ${!!navigator.xr}`);
+    
     if (navigator.xr) {
       navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
-        console.log("🔧 WebXR AR soportado:", supported);
+        addDebugLog(`WebXR AR soportado: ${supported}`, supported ? 'success' : 'error');
         setWebXRSupported(supported);
       }).catch((error) => {
-        console.error("🔧 Error verificando soporte WebXR AR:", error);
+        addDebugLog(`Error verificando WebXR AR: ${error.message}`, 'error');
         setWebXRSupported(false);
       });
     } else {
+      addDebugLog("WebXR no disponible", 'error');
       setWebXRSupported(false);
     }
 
-    // Crear un botón de prueba inmediatamente
-    const immediateTestButton = document.createElement('button');
-    immediateTestButton.textContent = "🚨 BOTÓN INMEDIATO";
-    immediateTestButton.style.position = "fixed";
-    immediateTestButton.style.top = "50px";
-    immediateTestButton.style.left = "20px";
-    immediateTestButton.style.padding = "15px 25px";
-    immediateTestButton.style.background = "linear-gradient(135deg, #00ff00, #00cc00)";
-    immediateTestButton.style.color = "white";
-    immediateTestButton.style.border = "3px solid #000";
-    immediateTestButton.style.borderRadius = "10px";
-    immediateTestButton.style.fontSize = "18px";
-    immediateTestButton.style.fontWeight = "bold";
-    immediateTestButton.style.zIndex = "999999";
-    immediateTestButton.style.cursor = "pointer";
-    immediateTestButton.onclick = () => {
-      alert("¡Botón inmediato funciona!");
-      console.log("🚨 Botón inmediato clickeado");
+    // Crear botones de debug inmediatamente
+    createDebugButtons();
+  }, []);
+
+  // Función para crear botones de debug
+  const createDebugButtons = () => {
+    const buttons = [];
+    
+    // Botón de debug principal
+    const debugButton = document.createElement('button');
+    debugButton.textContent = "🐛 DEBUG";
+    debugButton.style.position = "fixed";
+    debugButton.style.top = "20px";
+    debugButton.style.right = "20px";
+    debugButton.style.padding = "10px 15px";
+    debugButton.style.background = "linear-gradient(135deg, #ff6600, #ff8800)";
+    debugButton.style.color = "white";
+    debugButton.style.border = "2px solid #000";
+    debugButton.style.borderRadius = "8px";
+    debugButton.style.fontSize = "14px";
+    debugButton.style.fontWeight = "bold";
+    debugButton.style.zIndex = "999999";
+    debugButton.style.cursor = "pointer";
+    debugButton.onclick = () => {
+      setShowDebugUI(!showDebugUI);
+      addDebugLog(`Debug UI: ${!showDebugUI ? 'ON' : 'OFF'}`);
     };
     
-    document.body.appendChild(immediateTestButton);
-    console.log("🚨 Botón inmediato creado");
+    document.body.appendChild(debugButton);
+    buttons.push(debugButton);
+
+    // Botón de test AR
+    const arTestButton = document.createElement('button');
+    arTestButton.textContent = "🥽 TEST AR";
+    arTestButton.style.position = "fixed";
+    arTestButton.style.top = "70px";
+    arTestButton.style.right = "20px";
+    arTestButton.style.padding = "10px 15px";
+    arTestButton.style.background = "linear-gradient(135deg, #00ff00, #00cc00)";
+    arTestButton.style.color = "white";
+    arTestButton.style.border = "2px solid #000";
+    arTestButton.style.borderRadius = "8px";
+    arTestButton.style.fontSize = "14px";
+    arTestButton.style.fontWeight = "bold";
+    arTestButton.style.zIndex = "999999";
+    arTestButton.style.cursor = "pointer";
+    arTestButton.onclick = () => {
+      addDebugLog("Botón AR test clickeado");
+      alert("¡Botón AR test funciona!");
+    };
+    
+    document.body.appendChild(arTestButton);
+    buttons.push(arTestButton);
+
+    // Botón de info
+    const infoButton = document.createElement('button');
+    infoButton.textContent = "ℹ️ INFO";
+    infoButton.style.position = "fixed";
+    infoButton.style.top = "120px";
+    infoButton.style.right = "20px";
+    infoButton.style.padding = "10px 15px";
+    infoButton.style.background = "linear-gradient(135deg, #0066ff, #0088ff)";
+    infoButton.style.color = "white";
+    infoButton.style.border = "2px solid #000";
+    infoButton.style.borderRadius = "8px";
+    infoButton.style.fontSize = "14px";
+    infoButton.style.fontWeight = "bold";
+    infoButton.style.zIndex = "999999";
+    infoButton.style.cursor = "pointer";
+    infoButton.onclick = () => {
+      const info = `
+        WebXR: ${webXRSupported ? 'SÍ' : 'NO'}
+        Modelo: ${modelLoaded ? 'Cargado' : 'No cargado'}
+        AR: ${isAR ? 'Activo' : 'Inactivo'}
+        Real World: ${showRealWorld ? 'SÍ' : 'NO'}
+      `;
+      alert(info);
+      addDebugLog("Info mostrada");
+    };
+    
+    document.body.appendChild(infoButton);
+    buttons.push(infoButton);
+
+    addDebugLog(`Botones de debug creados: ${buttons.length}`);
 
     return () => {
-      if (immediateTestButton.parentNode) {
-        immediateTestButton.parentNode.removeChild(immediateTestButton);
-      }
+      buttons.forEach(button => {
+        if (button.parentNode) {
+          button.parentNode.removeChild(button);
+        }
+      });
     };
-  }, []);
+  };
 
   // Inicializar Three.js
   useEffect(() => {
@@ -160,7 +238,7 @@ export default function ARExperience({
   useEffect(() => {
     if (!sceneRef.current || !modelUrl) return;
 
-    console.log("🔧 Iniciando carga del modelo:", modelUrl); // Debug
+    addDebugLog(`Iniciando carga del modelo: ${modelUrl}`);
 
     // Limpiar modelo anterior
     if (modelRef.current) {
@@ -169,7 +247,7 @@ export default function ARExperience({
 
     const loader = new GLTFLoader();
     loader.load(modelUrl, (gltf) => {
-      console.log("🔧 Modelo cargado exitosamente"); // Debug
+      addDebugLog("Modelo cargado exitosamente", 'success');
       const model = gltf.scene;
 
       // Centrar y escalar
@@ -208,26 +286,27 @@ export default function ARExperience({
       sceneRef.current.add(model);
       modelRef.current = model;
       setModelLoaded(true);
-      console.log("🔧 Modelo agregado a la escena, modelLoaded = true"); // Debug
+      addDebugLog("Modelo agregado a la escena", 'success');
     }, 
     // Progress callback
     (progress) => {
-      console.log("🔧 Progreso de carga:", (progress.loaded / progress.total * 100).toFixed(2) + "%"); // Debug
+      const percent = (progress.loaded / progress.total * 100).toFixed(2);
+      addDebugLog(`Progreso de carga: ${percent}%`);
     },
     // Error callback
     (error) => {
-      console.error("🔧 Error cargando modelo:", error); // Debug
+      addDebugLog(`Error cargando modelo: ${error.message}`, 'error');
     });
   }, [modelUrl, restoreMaterials]);
 
   // Botón AR mejorado para móvil
   useEffect(() => {
     if (!modelLoaded || !rendererRef.current || !webXRSupported) {
-      console.log("🔧 No creando botón AR - modelLoaded:", modelLoaded, "rendererRef.current:", !!rendererRef.current, "webXRSupported:", webXRSupported);
+      addDebugLog(`No creando botón AR - modelLoaded: ${modelLoaded}, renderer: ${!!rendererRef.current}, WebXR: ${webXRSupported}`);
       return;
     }
 
-    console.log("🔧 Creando botón AR inicial..."); // Debug
+    addDebugLog("Creando botón AR inicial...");
 
     // Verificar que el renderer tenga WebXR habilitado
     if (!rendererRef.current.xr) {
@@ -932,6 +1011,60 @@ export default function ARExperience({
       </div>
 
       {/* Los controles AR ahora se crean como elementos DOM nativos en handleSessionStart */}
+
+      {/* UI de Debug Visual - Solo visible cuando showDebugUI es true */}
+      {showDebugUI && (
+        <div
+          style={{
+            position: "fixed",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            background: "rgba(0, 0, 0, 0.8)",
+            color: "white",
+            padding: "20px",
+            borderRadius: "10px",
+            fontSize: "14px",
+            fontFamily: "monospace",
+            zIndex: "999999",
+            maxWidth: "300px",
+            maxHeight: "200px",
+            overflow: "auto",
+            border: "2px solid #ff6600",
+          }}
+        >
+          <div style={{ marginBottom: "10px", fontWeight: "bold", color: "#ff6600" }}>
+            🐛 DEBUG INFO
+          </div>
+          <div style={{ marginBottom: "5px" }}>
+            WebXR: {webXRSupported ? "✅" : "❌"}
+          </div>
+          <div style={{ marginBottom: "5px" }}>
+            Modelo: {modelLoaded ? "✅" : "⏳"}
+          </div>
+          <div style={{ marginBottom: "5px" }}>
+            AR: {isAR ? "✅" : "❌"}
+          </div>
+          <div style={{ marginBottom: "5px" }}>
+            Real World: {showRealWorld ? "✅" : "❌"}
+          </div>
+          <div style={{ marginBottom: "10px", borderTop: "1px solid #666", paddingTop: "5px" }}>
+            <strong>Logs:</strong>
+          </div>
+          {debugLogs.map((log, index) => (
+            <div 
+              key={index} 
+              style={{ 
+                marginBottom: "3px",
+                fontSize: "12px",
+                color: log.type === 'error' ? '#ff6666' : log.type === 'success' ? '#66ff66' : '#ffffff'
+              }}
+            >
+              [{log.timestamp}] {log.message}
+            </div>
+          ))}
+        </div>
+      )}
     </>
   );
 }

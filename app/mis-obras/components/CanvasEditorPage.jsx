@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import {
   X,
   Brush,
@@ -22,6 +22,7 @@ import {
   Target,
   ChevronDown,
   ChevronRight,
+  Search,
 } from "lucide-react";
 
 // Mapeo de iconos para evitar uso de eval()
@@ -198,13 +199,22 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
   // Estado para el modal de pinceles
   const [showBrushModal, setShowBrushModal] = useState(false);
   
+  // Estado para búsqueda de pinceles
+  const [searchTerm, setSearchTerm] = useState("");
+  
   // Estado para controlar secciones expandidas del modal
   const [expandedSections, setExpandedSections] = useState({
     basic: true,    // Básicos expandido por defecto
     artistic: false,
     stamp: false,
+    pattern: false,
     spray: false,
     sketch: false,
+    nature: false,
+    materials: false,
+    effects: false,
+    emotions: false,
+    styles: false,
     special: false,
   });
 
@@ -222,8 +232,14 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
       basic: true,
       artistic: true,
       stamp: true,
+      pattern: true,
       spray: true,
       sketch: true,
+      nature: true,
+      materials: true,
+      effects: true,
+      emotions: true,
+      styles: true,
       special: true,
     });
   };
@@ -234,11 +250,105 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
       basic: false,
       artistic: false,
       stamp: false,
+      pattern: false,
       spray: false,
       sketch: false,
+      nature: false,
+      materials: false,
+      effects: false,
+      emotions: false,
+      styles: false,
       special: false,
     });
   };
+
+  // Filtrar pinceles según el término de búsqueda
+  const filteredBrushConfigs = useMemo(() => {
+    if (!searchTerm.trim()) return BRUSH_CONFIGS;
+    
+    const term = searchTerm.toLowerCase().trim();
+    return BRUSH_CONFIGS.filter(brush => 
+      brush.name.toLowerCase().includes(term) ||
+      brush.category?.toLowerCase().includes(term) ||
+      (brush.description && brush.description.toLowerCase().includes(term))
+    );
+  }, [searchTerm]);
+
+  // Función para obtener descripciones de categorías
+  const getCategoryDescription = (categoryId) => {
+    const descriptions = {
+      basic: "Herramientas fundamentales",
+      artistic: "Técnicas artísticas variadas",
+      stamp: "Sellos específicos",
+      pattern: "Diseños y texturas",
+      spray: "Efectos de spray",
+      sketch: "Técnicas de dibujo",
+      nature: "Elementos naturales",
+      materials: "Texturas de materiales",
+      effects: "Efectos especiales",
+      emotions: "Expresiones emocionales",
+      styles: "Estilos artísticos diversos",
+      special: "Efectos únicos y avanzados"
+    };
+    return descriptions[categoryId] || "Herramientas especializadas";
+  };
+
+  // Agrupar pinceles filtrados por categoría
+  const filteredBrushCategories = useMemo(() => {
+    const filtered = {};
+    
+    // Convertir BRUSH_CATEGORIES objeto a array con [id, category]
+    Object.entries(BRUSH_CATEGORIES).forEach(([categoryKey, category]) => {
+      const categoryId = categoryKey.toLowerCase();
+      const brushesInCategory = filteredBrushConfigs.filter(
+        brush => brush.category === categoryId
+      );
+      
+      if (brushesInCategory.length > 0) {
+        filtered[categoryId] = {
+          id: categoryId,
+          name: category.name,
+          description: getCategoryDescription(categoryId),
+          brushes: brushesInCategory
+        };
+      }
+    });
+    
+    return filtered;
+  }, [filteredBrushConfigs]);
+
+  // Efecto para expandir todas las categorías cuando hay búsqueda
+  useEffect(() => {
+    if (searchTerm.trim()) {
+      // Expandir todas las categorías que tienen resultados
+      const categoriesToExpand = Object.keys(filteredBrushCategories);
+      setExpandedSections(prev => ({
+        ...prev,
+        ...categoriesToExpand.reduce((acc, catId) => ({ ...acc, [catId]: true }), {})
+      }));
+    }
+  }, [searchTerm, filteredBrushCategories]);
+
+  // Efecto para cerrar modal con tecla ESC
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape' && showBrushModal) {
+        setShowBrushModal(false);
+      }
+    };
+
+    if (showBrushModal) {
+      document.addEventListener('keydown', handleKeyDown);
+      // Prevenir scroll del body cuando el modal está abierto
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      // Restaurar scroll del body
+      document.body.style.overflow = 'unset';
+    };
+  }, [showBrushModal]);
 
   // Componente reutilizable para secciones colapsables
   const CollapsibleBrushSection = ({ 
@@ -250,9 +360,11 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
     hoverBg,
     selectedBg,
     borderColor,
-    iconGradient
+    iconGradient,
+    brushes // Nueva prop para pinceles filtrados
   }) => {
-    const sectionTools = tools.filter(t => t.category === sectionKey);
+    // Usar pinceles filtrados si se proporcionan, sino filtrar por categoría
+    const sectionTools = brushes || tools.filter(t => t.category === sectionKey);
     const isExpanded = expandedSections[sectionKey];
 
     return (
@@ -288,8 +400,9 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
             ? 'max-h-96 opacity-100 pb-6 px-6 pt-4' 
             : 'max-h-0 opacity-0'
         }`}>
-          <div className="grid grid-cols-4 gap-3 brush-grid mt-2">
-            {sectionTools.map(tool => {
+          <div className="brush-grid-container">
+            <div className="grid grid-cols-4 gap-3 brush-grid mt-2">
+              {sectionTools.map(tool => {
               const Icon = tool.icon;
               return (
                 <button
@@ -314,6 +427,7 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
                 </button>
               );
             })}
+          </div>
           </div>
         </div>
       </div>
@@ -756,17 +870,32 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
 
       {/* Modal de pinceles mejorado */}
       {showBrushModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 brush-modal-overlay">
-          <div className="bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-6xl w-full max-h-[90vh] overflow-hidden brush-modal-content">
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 brush-modal-overlay"
+          onClick={(e) => {
+            // Cerrar modal si se hace click en el overlay (fuera del contenido)
+            if (e.target === e.currentTarget) {
+              setShowBrushModal(false);
+            }
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
+          aria-describedby="modal-description"
+        >
+          <div 
+            className="bg-white dark:bg-neutral-900 rounded-3xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-6xl w-full max-h-[90vh] overflow-hidden brush-modal-content"
+            onClick={(e) => e.stopPropagation()} // Prevenir que el click en el contenido cierre el modal
+          >
             
             {/* Header del modal */}
             <div className="bg-gradient-to-r from-indigo-500 to-purple-600 p-6 text-white">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center">
                   <Brush className="h-6 w-6 mr-3" />
                   <div>
-                    <h2 className="text-2xl font-bold">Galería de Pinceles</h2>
-                    <p className="text-indigo-100 text-sm">Elige tu herramienta creativa perfecta</p>
+                    <h2 id="modal-title" className="text-2xl font-bold">Galería de Pinceles</h2>
+                    <p id="modal-description" className="text-indigo-100 text-sm">Elige tu herramienta creativa perfecta</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
@@ -801,6 +930,38 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
                   </button>
                 </div>
               </div>
+              
+              {/* Buscador de Pinceles */}
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-white/70" />
+                </div>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Buscar pinceles... (nombre, categoría, descripción)"
+                  className="block w-full pl-10 pr-3 py-3 border border-white/30 rounded-lg bg-white/10 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-transparent backdrop-blur-sm"
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  >
+                    <X className="h-4 w-4 text-white/70 hover:text-white" />
+                  </button>
+                )}
+              </div>
+              
+              {/* Contador de resultados */}
+              {searchTerm && (
+                <div className="mt-3 text-sm text-white/80">
+                  {filteredBrushConfigs.length} pinceles encontrados
+                  {filteredBrushConfigs.length !== BRUSH_CONFIGS.length && 
+                    ` de ${BRUSH_CONFIGS.length} total`
+                  }
+                </div>
+              )}
             </div>
 
             {/* Contenido del modal con scroll */}
@@ -832,97 +993,180 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
               </div>
 
               {/* Grid de categorías de pinceles con altura uniforme */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 items-start">
                 
-                <CollapsibleBrushSection
-                  sectionKey="basic"
-                  title="Pinceles Básicos"
-                  description="Para trazos fundamentales"
-                  icon={Brush}
-                  bgGradient="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/10 dark:to-cyan-900/10"
-                  hoverBg="hover:bg-blue-100/50 dark:hover:bg-blue-900/20"
-                  selectedBg="bg-blue-500"
-                  borderColor="border-blue-100 dark:border-blue-800"
-                  iconGradient="bg-gradient-to-r from-blue-500 to-cyan-500"
-                />
+                {/* Mostrar mensaje si no hay resultados de búsqueda */}
+                {searchTerm && Object.keys(filteredBrushCategories).length === 0 && (
+                  <div className="col-span-full text-center py-12">
+                    <Search className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                      No se encontraron pinceles
+                    </h3>
+                    <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                      Intenta con otros términos de búsqueda como "básico", "artístico", "spray", etc.
+                    </p>
+                  </div>
+                )}
+                
+                {/* Renderizar categorías filtradas o todas si no hay búsqueda */}
+                {(searchTerm ? Object.entries(filteredBrushCategories) : Object.entries(BRUSH_CATEGORIES).map(([key, cat]) => [key.toLowerCase(), { id: key.toLowerCase(), name: cat.name, description: getCategoryDescription(key.toLowerCase()) }])).map(([categoryId, category]) => {
+                  // Definir props visuales para cada categoría
+                  const categoryProps = {
+                    basic: {
+                      icon: Brush,
+                      bgGradient: "bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/10 dark:to-cyan-900/10",
+                      hoverBg: "hover:bg-blue-100/50 dark:hover:bg-blue-900/20",
+                      selectedBg: "bg-blue-500",
+                      borderColor: "border-blue-100 dark:border-blue-800",
+                      iconGradient: "bg-gradient-to-r from-blue-500 to-cyan-500"
+                    },
+                    artistic: {
+                      icon: PaletteIcon,
+                      bgGradient: "bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10",
+                      hoverBg: "hover:bg-green-100/50 dark:hover:bg-green-900/20",
+                      selectedBg: "bg-green-500",
+                      borderColor: "border-green-100 dark:border-green-800",
+                      iconGradient: "bg-gradient-to-r from-green-500 to-emerald-500"
+                    },
+                    stamp: {
+                      icon: Target,
+                      bgGradient: "bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/10 dark:to-rose-900/10",
+                      hoverBg: "hover:bg-pink-100/50 dark:hover:bg-pink-900/20",
+                      selectedBg: "bg-pink-500",
+                      borderColor: "border-pink-100 dark:border-pink-800",
+                      iconGradient: "bg-gradient-to-r from-pink-500 to-rose-500"
+                    },
+                    pattern: {
+                      icon: Grid3X3,
+                      bgGradient: "bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10",
+                      hoverBg: "hover:bg-amber-100/50 dark:hover:bg-amber-900/20",
+                      selectedBg: "bg-amber-500",
+                      borderColor: "border-amber-100 dark:border-amber-800",
+                      iconGradient: "bg-gradient-to-r from-amber-500 to-orange-500"
+                    },
+                    spray: {
+                      icon: Droplets,
+                      bgGradient: "bg-gradient-to-br from-cyan-50 to-sky-50 dark:from-cyan-900/10 dark:to-sky-900/10",
+                      hoverBg: "hover:bg-cyan-100/50 dark:hover:bg-cyan-900/20",
+                      selectedBg: "bg-cyan-500",
+                      borderColor: "border-cyan-100 dark:border-cyan-800",
+                      iconGradient: "bg-gradient-to-r from-cyan-500 to-sky-500"
+                    },
+                    sketch: {
+                      icon: Minus,
+                      bgGradient: "bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/10 dark:to-amber-900/10",
+                      hoverBg: "hover:bg-yellow-100/50 dark:hover:bg-yellow-900/20",
+                      selectedBg: "bg-yellow-500",
+                      borderColor: "border-yellow-100 dark:border-yellow-800",
+                      iconGradient: "bg-gradient-to-r from-yellow-500 to-amber-500"
+                    },
+                    nature: {
+                      icon: Sparkles,
+                      bgGradient: "bg-gradient-to-br from-green-50 to-lime-50 dark:from-green-900/10 dark:to-lime-900/10",
+                      hoverBg: "hover:bg-green-100/50 dark:hover:bg-green-900/20",
+                      selectedBg: "bg-green-600",
+                      borderColor: "border-green-100 dark:border-green-800",
+                      iconGradient: "bg-gradient-to-r from-green-600 to-lime-500"
+                    },
+                    materials: {
+                      icon: Square,
+                      bgGradient: "bg-gradient-to-br from-stone-50 to-slate-50 dark:from-stone-900/10 dark:to-slate-900/10",
+                      hoverBg: "hover:bg-stone-100/50 dark:hover:bg-stone-900/20",
+                      selectedBg: "bg-stone-600",
+                      borderColor: "border-stone-100 dark:border-stone-800",
+                      iconGradient: "bg-gradient-to-r from-stone-600 to-slate-500"
+                    },
+                    effects: {
+                      icon: Sparkles,
+                      bgGradient: "bg-gradient-to-br from-violet-50 to-fuchsia-50 dark:from-violet-900/10 dark:to-fuchsia-900/10",
+                      hoverBg: "hover:bg-violet-100/50 dark:hover:bg-violet-900/20",
+                      selectedBg: "bg-violet-600",
+                      borderColor: "border-violet-100 dark:border-violet-800",
+                      iconGradient: "bg-gradient-to-r from-violet-600 to-fuchsia-500"
+                    },
+                    emotions: {
+                      icon: Sparkles,
+                      bgGradient: "bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-900/10 dark:to-pink-900/10",
+                      hoverBg: "hover:bg-red-100/50 dark:hover:bg-red-900/20",
+                      selectedBg: "bg-red-500",
+                      borderColor: "border-red-100 dark:border-red-800",
+                      iconGradient: "bg-gradient-to-r from-red-500 to-pink-500"
+                    },
+                    styles: {
+                      icon: PaletteIcon,
+                      bgGradient: "bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/10 dark:to-blue-900/10",
+                      hoverBg: "hover:bg-indigo-100/50 dark:hover:bg-indigo-900/20",
+                      selectedBg: "bg-indigo-600",
+                      borderColor: "border-indigo-100 dark:border-indigo-800",
+                      iconGradient: "bg-gradient-to-r from-indigo-600 to-blue-500"
+                    },
+                    special: {
+                      icon: Zap,
+                      bgGradient: "bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/10 dark:to-indigo-900/10",
+                      hoverBg: "hover:bg-purple-100/50 dark:hover:bg-purple-900/20",
+                      selectedBg: "bg-purple-500",
+                      borderColor: "border-purple-100 dark:border-purple-800",
+                      iconGradient: "bg-gradient-to-r from-purple-500 to-indigo-500"
+                    }
+                  };
 
-                <CollapsibleBrushSection
-                  sectionKey="artistic"
-                  title="Pinceles Artísticos"
-                  description="Para efectos creativos"
-                  icon={Sparkles}
-                  bgGradient="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/10 dark:to-emerald-900/10"
-                  hoverBg="hover:bg-green-100/50 dark:hover:bg-green-900/20"
-                  selectedBg="bg-green-500"
-                  borderColor="border-green-100 dark:border-green-800"
-                  iconGradient="bg-gradient-to-r from-green-500 to-emerald-500"
-                />
-
-                <CollapsibleBrushSection
-                  sectionKey="stamp"
-                  title="Estampado"
-                  description="Patrones y texturas"
-                  icon={Target}
-                  bgGradient="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/10 dark:to-rose-900/10"
-                  hoverBg="hover:bg-pink-100/50 dark:hover:bg-pink-900/20"
-                  selectedBg="bg-pink-500"
-                  borderColor="border-pink-100 dark:border-pink-800"
-                  iconGradient="bg-gradient-to-r from-pink-500 to-rose-500"
-                />
-
-                <CollapsibleBrushSection
-                  sectionKey="spray"
-                  title="Spray & Efectos"
-                  description="Efectos atmosféricos"
-                  icon={Droplets}
-                  bgGradient="bg-gradient-to-br from-cyan-50 to-sky-50 dark:from-cyan-900/10 dark:to-sky-900/10"
-                  hoverBg="hover:bg-cyan-100/50 dark:hover:bg-cyan-900/20"
-                  selectedBg="bg-cyan-500"
-                  borderColor="border-cyan-100 dark:border-cyan-800"
-                  iconGradient="bg-gradient-to-r from-cyan-500 to-sky-500"
-                />
-
-                <CollapsibleBrushSection
-                  sectionKey="sketch"
-                  title="Sketch & Líneas"
-                  description="Trazos precisos"
-                  icon={Minus}
-                  bgGradient="bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/10 dark:to-amber-900/10"
-                  hoverBg="hover:bg-yellow-100/50 dark:hover:bg-yellow-900/20"
-                  selectedBg="bg-yellow-500"
-                  borderColor="border-yellow-100 dark:border-yellow-800"
-                  iconGradient="bg-gradient-to-r from-yellow-500 to-amber-500"
-                />
-
-                <CollapsibleBrushSection
-                  sectionKey="special"
-                  title="Especiales"
-                  description="Efectos únicos"
-                  icon={Zap}
-                  bgGradient="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/10 dark:to-indigo-900/10"
-                  hoverBg="hover:bg-purple-100/50 dark:hover:bg-purple-900/20"
-                  selectedBg="bg-purple-500"
-                  borderColor="border-purple-100 dark:border-purple-800"
-                  iconGradient="bg-gradient-to-r from-purple-500 to-indigo-500"
-                />
+                  const props = categoryProps[categoryId] || categoryProps.basic;
+                  
+                  return (
+                    <CollapsibleBrushSection
+                      key={categoryId}
+                      sectionKey={categoryId}
+                      title={category.name}
+                      description={category.description}
+                      icon={props.icon}
+                      bgGradient={props.bgGradient}
+                      hoverBg={props.hoverBg}
+                      selectedBg={props.selectedBg}
+                      borderColor={props.borderColor}
+                      iconGradient={props.iconGradient}
+                      brushes={searchTerm ? category.brushes : undefined}
+                    />
+                  );
+                })}
 
               </div>
             </div>
 
-            {/* Footer del modal */}
-            <div className="bg-gray-50 dark:bg-neutral-800 p-4 border-t border-gray-200 dark:border-gray-700">
+            {/* Footer del modal mejorado */}
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-neutral-800 dark:to-neutral-900 p-6 border-t border-gray-200 dark:border-gray-700">
               <div className="flex justify-between items-center">
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  {tools.length} pinceles disponibles
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                  <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {searchTerm ? (
+                      <>
+                        Mostrando <span className="font-bold text-indigo-600 dark:text-indigo-400">{filteredBrushConfigs.length}</span> de {BRUSH_CONFIGS.length} pinceles
+                      </>
+                    ) : (
+                      <>
+                        <span className="font-bold text-indigo-600 dark:text-indigo-400">{BRUSH_CONFIGS.length}</span> pinceles disponibles
+                      </>
+                    )}
+                  </div>
                 </div>
-                <button
-                  onClick={() => setShowBrushModal(false)}
-                  className="group px-8 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-xl font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg flex items-center space-x-2"
-                  style={{ cursor: "pointer" }}
-                >
-                  <span>Cerrar</span>
-                  <X className="h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
-                </button>
+                
+                {/* Botón de cerrar mejorado */}
+                <div className="flex items-center space-x-3">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
+                    Click fuera del modal o presiona ESC para cerrar
+                  </div>
+                  <button
+                    onClick={() => setShowBrushModal(false)}
+                    className="group relative px-6 py-3 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 transform active:scale-95 flex items-center space-x-2 border border-red-400/30"
+                    style={{ cursor: "pointer" }}
+                  >
+                    {/* Efecto de brillo */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 rounded-xl transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                    
+                    <span className="relative z-10">Cerrar Galería</span>
+                    <X className="relative z-10 h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>

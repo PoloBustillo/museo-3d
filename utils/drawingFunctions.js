@@ -586,6 +586,11 @@ export class BrushEngine {
       // Execute brush-specific drawing
       brushImpl.call(this, { x, y, lastPoint, color, size });
 
+      // Handle smooth curves buffer cleanup when stroke ends
+      if (type === "smooth_curves" && lastPoint === null && this.pointsBuffer) {
+        this.resetSmoothCurvesBuffer();
+      }
+
       // Restore context state
       this.#ctx.restore();
 
@@ -660,6 +665,8 @@ export class BrushEngine {
       // Spray brushes
       aerosol: this.#drawAerosol,
       spray: this.#drawSpray,
+      airbrush_soft: this.#drawAirbrushSoft,
+      smooth_curves: this.#drawSmoothCurves,
       spray_time: this.#drawSprayTime,
       spray_speed: this.#drawSpraySpeed,
 
@@ -1421,151 +1428,1494 @@ export class BrushEngine {
   #drawFur({ x, y, color, size }) {
     this.#drawLines({ x, y, color, size });
   }
+  /**
+   * Leaves brush - Natural leaf patterns
+   * @private
+   */
   #drawLeaves({ x, y, color, size }) {
-    this.#drawBasicBrush({ x, y, color, size });
-  }
-  #drawRain({ x, y, color, size }) {
-    this.#drawLines({ x, y, color, size });
-  }
-  #drawSnow({ x, y, color, size }) {
-    this.#drawDots({ x, y, color, size });
-  }
-  #drawStars({ x, y, color, size }) {
-    this.#drawBasicBrush({ x, y, color, size });
-  }
-  #drawHearts({ x, y, color, size }) {
-    this.#drawBasicBrush({ x, y, color, size });
-  }
-  #drawFlowers({ x, y, color, size }) {
-    this.#drawBasicBrush({ x, y, color, size });
-  }
-  #drawBubbles({ x, y, color, size }) {
-    this.#drawDots({ x, y, color, size });
-  }
-  #drawLightning({ x, y, lastPoint, color, size }) {
-    // Rayo zig-zag
-    if (lastPoint) {
-      const x1 = lastPoint.x;
-      const y1 = lastPoint.y;
-      const x2 = x;
-      const y2 = y;
-      const steps = 8;
+    this.#ctx.globalCompositeOperation = "source-over";
+
+    // Draw multiple leaves
+    const leafCount = Math.floor(size / 6) + 2;
+    for (let i = 0; i < leafCount; i++) {
+      const leafX = x + (Math.random() - 0.5) * size;
+      const leafY = y + (Math.random() - 0.5) * size;
+      const leafSize = size * (0.3 + Math.random() * 0.4);
+      const rotation = Math.random() * Math.PI * 2;
+
       this.#ctx.save();
-      this.#ctx.globalCompositeOperation = "lighter";
-      for (let j = 0; j < 2; j++) {
-        this.#ctx.beginPath();
-        this.#ctx.moveTo(x1, y1);
-        for (let i = 1; i < steps; i++) {
-          const t = i / steps;
-          const nx = x1 + (x2 - x1) * t + (Math.random() - 0.5) * 12;
-          const ny = y1 + (y2 - y1) * t + (Math.random() - 0.5) * 12;
-          this.#ctx.lineTo(nx, ny);
-        }
-        this.#ctx.lineTo(x2, y2);
-        this.#ctx.strokeStyle = j === 0 ? "#fff" : "yellow";
-        this.#ctx.lineWidth = j === 0 ? size * 1.2 : size * 0.7;
-        this.#ctx.shadowColor = "yellow";
-        this.#ctx.shadowBlur = 8;
-        this.#ctx.globalAlpha = j === 0 ? 0.7 : 0.5;
-        this.#ctx.stroke();
-      }
+      this.#ctx.translate(leafX, leafY);
+      this.#ctx.rotate(rotation);
+
+      // Leaf shape
+      this.#ctx.beginPath();
+      this.#ctx.ellipse(0, 0, leafSize, leafSize * 1.8, 0, 0, Math.PI * 2);
+      
+      // Leaf color variation
+      const leafColor = ColorUtils.shadeColor(color, Math.random() * 40 - 20);
+      this.#ctx.fillStyle = leafColor;
+      this.#ctx.globalAlpha = 0.6 + Math.random() * 0.3;
+      this.#ctx.fill();
+
+      // Leaf stem
+      this.#ctx.strokeStyle = ColorUtils.shadeColor(color, -20);
+      this.#ctx.lineWidth = Math.max(0.5, leafSize * 0.1);
+      this.#ctx.globalAlpha = 0.8;
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(0, leafSize * 1.5);
+      this.#ctx.lineTo(0, leafSize * 2);
+      this.#ctx.stroke();
+
       this.#ctx.restore();
     }
   }
+
+  /**
+   * Rain brush - Diagonal rain droplets
+   * @private
+   */
+  #drawRain({ x, y, color, size }) {
+    this.#ctx.globalCompositeOperation = "source-over";
+
+    const dropCount = Math.floor(size * 1.5);
+    for (let i = 0; i < dropCount; i++) {
+      const dropX = x + (Math.random() - 0.5) * size * 2;
+      const dropY = y + (Math.random() - 0.5) * size * 2;
+      const dropLength = size * (0.3 + Math.random() * 0.7);
+      const angle = Math.PI / 6; // Rain angle
+
+      this.#ctx.strokeStyle = color;
+      this.#ctx.lineWidth = Math.max(0.5, Math.random() * 2);
+      this.#ctx.globalAlpha = 0.4 + Math.random() * 0.4;
+      this.#ctx.lineCap = "round";
+
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(dropX, dropY);
+      this.#ctx.lineTo(
+        dropX + Math.cos(angle) * dropLength,
+        dropY + Math.sin(angle) * dropLength
+      );
+      this.#ctx.stroke();
+    }
+  }
+
+  /**
+   * Snow brush - Soft snowflakes
+   * @private
+   */
+  #drawSnow({ x, y, color, size }) {
+    this.#ctx.globalCompositeOperation = "source-over";
+
+    const snowflakeCount = Math.floor(size / 3) + 2;
+    for (let i = 0; i < snowflakeCount; i++) {
+      const snowX = x + (Math.random() - 0.5) * size * 2;
+      const snowY = y + (Math.random() - 0.5) * size * 2;
+      const snowSize = Math.random() * size * 0.3 + 2;
+
+      // Snowflake center
+      this.#ctx.fillStyle = color;
+      this.#ctx.globalAlpha = 0.8 + Math.random() * 0.2;
+      this.#ctx.beginPath();
+      this.#ctx.arc(snowX, snowY, snowSize, 0, Math.PI * 2);
+      this.#ctx.fill();
+
+      // Snowflake arms
+      this.#ctx.strokeStyle = color;
+      this.#ctx.lineWidth = Math.max(0.5, snowSize * 0.2);
+      this.#ctx.globalAlpha = 0.6 + Math.random() * 0.3;
+
+      for (let arm = 0; arm < 6; arm++) {
+        const angle = (arm * Math.PI) / 3;
+        const armLength = snowSize * 1.5;
+        
+        this.#ctx.beginPath();
+        this.#ctx.moveTo(snowX, snowY);
+        this.#ctx.lineTo(
+          snowX + Math.cos(angle) * armLength,
+          snowY + Math.sin(angle) * armLength
+        );
+        this.#ctx.stroke();
+      }
+    }
+  }
+
+  /**
+   * Stars brush - Twinkling stars
+   * @private
+   */
+  #drawStars({ x, y, color, size }) {
+    this.#ctx.globalCompositeOperation = "lighter";
+
+    const starCount = Math.floor(size / 4) + 2;
+    for (let i = 0; i < starCount; i++) {
+      const starX = x + (Math.random() - 0.5) * size * 2;
+      const starY = y + (Math.random() - 0.5) * size * 2;
+      const starSize = size * (0.2 + Math.random() * 0.4);
+      
+      // Use drawStar utility
+      drawStar(this.#ctx, starX, starY, starSize, starSize * 0.5, 5, color);
+      
+      // Add twinkle effect
+      if (Math.random() < 0.3) {
+        this.#ctx.save();
+        this.#ctx.globalAlpha = 0.8;
+        this.#ctx.shadowColor = color;
+        this.#ctx.shadowBlur = starSize * 2;
+        this.#ctx.fillStyle = "#ffffff";
+        this.#ctx.beginPath();
+        this.#ctx.arc(starX, starY, starSize * 0.3, 0, Math.PI * 2);
+        this.#ctx.fill();
+        this.#ctx.restore();
+      }
+    }
+  }
+
+  /**
+   * Hearts brush - Romantic heart shapes
+   * @private
+   */
+  #drawHearts({ x, y, color, size }) {
+    this.#ctx.globalCompositeOperation = "source-over";
+
+    const heartCount = Math.floor(size / 8) + 1;
+    for (let i = 0; i < heartCount; i++) {
+      const heartX = x + (Math.random() - 0.5) * size * 1.5;
+      const heartY = y + (Math.random() - 0.5) * size * 1.5;
+      const heartSize = size * (0.2 + Math.random() * 0.3);
+      const heartColor = i === 0 ? color : ColorUtils.shadeColor(color, Math.random() * 30 - 15);
+
+      this.#ctx.save();
+      this.#ctx.translate(heartX, heartY);
+      this.#ctx.fillStyle = heartColor;
+      this.#ctx.globalAlpha = 0.7 + Math.random() * 0.3;
+
+      // Draw heart shape
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(0, 0);
+      this.#ctx.bezierCurveTo(0, -heartSize * 0.4, -heartSize * 0.5, -heartSize * 0.4, -heartSize * 0.5, 0);
+      this.#ctx.bezierCurveTo(-heartSize * 0.5, heartSize * 0.5, 0, heartSize * 0.7, 0, heartSize * 1.1);
+      this.#ctx.bezierCurveTo(0, heartSize * 0.7, heartSize * 0.5, heartSize * 0.5, heartSize * 0.5, 0);
+      this.#ctx.bezierCurveTo(heartSize * 0.5, -heartSize * 0.4, 0, -heartSize * 0.4, 0, 0);
+      this.#ctx.closePath();
+      this.#ctx.fill();
+
+      this.#ctx.restore();
+    }
+  }
+
+  /**
+   * Flowers brush - Delicate flower petals
+   * @private
+   */
+  #drawFlowers({ x, y, color, size }) {
+    this.#ctx.globalCompositeOperation = "source-over";
+
+    const flowerCount = Math.floor(size / 10) + 1;
+    for (let i = 0; i < flowerCount; i++) {
+      const flowerX = x + (Math.random() - 0.5) * size * 1.2;
+      const flowerY = y + (Math.random() - 0.5) * size * 1.2;
+      const flowerSize = size * (0.3 + Math.random() * 0.4);
+      const petalCount = 5 + Math.floor(Math.random() * 3);
+
+      this.#ctx.save();
+      this.#ctx.translate(flowerX, flowerY);
+
+      // Draw petals
+      for (let petal = 0; petal < petalCount; petal++) {
+        const angle = (petal * 2 * Math.PI) / petalCount;
+        this.#ctx.save();
+        this.#ctx.rotate(angle);
+
+        // Petal shape
+        this.#ctx.fillStyle = ColorUtils.shadeColor(color, Math.random() * 20 - 10);
+        this.#ctx.globalAlpha = 0.6 + Math.random() * 0.3;
+        this.#ctx.beginPath();
+        this.#ctx.ellipse(0, flowerSize * 0.6, flowerSize * 0.3, flowerSize * 0.6, 0, 0, Math.PI * 2);
+        this.#ctx.fill();
+
+        this.#ctx.restore();
+      }
+
+      // Flower center
+      this.#ctx.fillStyle = ColorUtils.shadeColor(color, -30);
+      this.#ctx.globalAlpha = 0.8;
+      this.#ctx.beginPath();
+      this.#ctx.arc(0, 0, flowerSize * 0.2, 0, Math.PI * 2);
+      this.#ctx.fill();
+
+      this.#ctx.restore();
+    }
+  }
+
+  /**
+   * Bubbles brush - Floating soap bubbles
+   * @private
+   */
+  #drawBubbles({ x, y, color, size }) {
+    this.#ctx.globalCompositeOperation = "source-over";
+
+    const bubbleCount = Math.floor(size / 4) + 2;
+    for (let i = 0; i < bubbleCount; i++) {
+      const bubbleX = x + (Math.random() - 0.5) * size * 2;
+      const bubbleY = y + (Math.random() - 0.5) * size * 2;
+      const bubbleSize = size * (0.2 + Math.random() * 0.4);
+
+      // Bubble outline
+      this.#ctx.strokeStyle = color;
+      this.#ctx.lineWidth = Math.max(0.5, bubbleSize * 0.1);
+      this.#ctx.globalAlpha = 0.6 + Math.random() * 0.3;
+      this.#ctx.beginPath();
+      this.#ctx.arc(bubbleX, bubbleY, bubbleSize, 0, Math.PI * 2);
+      this.#ctx.stroke();
+
+      // Bubble highlight
+      this.#ctx.fillStyle = "#ffffff";
+      this.#ctx.globalAlpha = 0.4 + Math.random() * 0.3;
+      this.#ctx.beginPath();
+      this.#ctx.arc(
+        bubbleX - bubbleSize * 0.3,
+        bubbleY - bubbleSize * 0.3,
+        bubbleSize * 0.2,
+        0,
+        Math.PI * 2
+      );
+      this.#ctx.fill();
+
+      // Secondary highlight
+      this.#ctx.globalAlpha = 0.2;
+      this.#ctx.beginPath();
+      this.#ctx.arc(
+        bubbleX + bubbleSize * 0.4,
+        bubbleY + bubbleSize * 0.4,
+        bubbleSize * 0.1,
+        0,
+        Math.PI * 2
+      );
+      this.#ctx.fill();
+    }
+  }
+
+  /**
+   * Lightning brush - Electric lightning bolts
+   * @private
+   */
+  #drawLightning({ x, y, lastPoint, color, size }) {
+    if (!lastPoint) return;
+
+    this.#ctx.globalCompositeOperation = "lighter";
+
+    const x1 = lastPoint.x;
+    const y1 = lastPoint.y;
+    const x2 = x;
+    const y2 = y;
+    const segments = 8;
+
+    // Main lightning bolt
+    this.#ctx.save();
+    for (let layer = 0; layer < 3; layer++) {
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(x1, y1);
+
+      for (let i = 1; i < segments; i++) {
+        const t = i / segments;
+        const jitterX = (Math.random() - 0.5) * size * 0.8;
+        const jitterY = (Math.random() - 0.5) * size * 0.8;
+        const segmentX = x1 + (x2 - x1) * t + jitterX;
+        const segmentY = y1 + (y2 - y1) * t + jitterY;
+        this.#ctx.lineTo(segmentX, segmentY);
+      }
+
+      this.#ctx.lineTo(x2, y2);
+
+      // Layer styling
+      this.#ctx.strokeStyle = layer === 0 ? "#ffffff" : layer === 1 ? "#aaaaff" : color;
+      this.#ctx.lineWidth = size * (1.5 - layer * 0.4);
+      this.#ctx.globalAlpha = 0.9 - layer * 0.2;
+      this.#ctx.shadowColor = "#ffffff";
+      this.#ctx.shadowBlur = size * (2 - layer * 0.5);
+      this.#ctx.stroke();
+    }
+
+    // Branch lightning
+    if (Math.random() < 0.3) {
+      const branchCount = 2 + Math.floor(Math.random() * 3);
+      for (let branch = 0; branch < branchCount; branch++) {
+        const branchStart = Math.random() * 0.8 + 0.1;
+        const startX = x1 + (x2 - x1) * branchStart;
+        const startY = y1 + (y2 - y1) * branchStart;
+        const branchLength = size * (0.5 + Math.random() * 0.7);
+        const branchAngle = (Math.random() - 0.5) * Math.PI;
+
+        this.#ctx.beginPath();
+        this.#ctx.moveTo(startX, startY);
+
+        const branchSegments = 4;
+        for (let i = 1; i <= branchSegments; i++) {
+          const t = i / branchSegments;
+          const jitter = (Math.random() - 0.5) * size * 0.5;
+          const branchX = startX + Math.cos(branchAngle) * branchLength * t + jitter;
+          const branchY = startY + Math.sin(branchAngle) * branchLength * t + jitter;
+          this.#ctx.lineTo(branchX, branchY);
+        }
+
+        this.#ctx.strokeStyle = "#aaaaff";
+        this.#ctx.lineWidth = size * 0.6;
+        this.#ctx.globalAlpha = 0.7;
+        this.#ctx.shadowBlur = size * 1.2;
+        this.#ctx.stroke();
+      }
+    }
+
+    this.#ctx.restore();
+  }
+
+  /**
+   * Smoke brush - Wispy smoke clouds
+   * @private
+   */
   #drawSmoke({ x, y, color, size }) {
-    this.#drawBasicBrush({ x, y, color, size });
+    this.#ctx.globalCompositeOperation = "multiply";
+
+    // Multiple smoke puffs with varying opacity
+    const puffCount = Math.floor(size / 5) + 2;
+    for (let i = 0; i < puffCount; i++) {
+      const puffX = x + (Math.random() - 0.5) * size * 1.5;
+      const puffY = y + (Math.random() - 0.5) * size * 1.5;
+      const puffSize = size * (0.4 + Math.random() * 0.6);
+      const puffColor = ColorUtils.shadeColor(color, Math.random() * 30 - 15);
+
+      // Create gradient for smoke puff
+      const gradient = this.#ctx.createRadialGradient(
+        puffX, puffY, 0,
+        puffX, puffY, puffSize
+      );
+      gradient.addColorStop(0, ColorUtils.hexToRgba(puffColor, 0.3 + Math.random() * 0.4));
+      gradient.addColorStop(0.6, ColorUtils.hexToRgba(puffColor, 0.1 + Math.random() * 0.2));
+      gradient.addColorStop(1, "transparent");
+
+      this.#ctx.fillStyle = gradient;
+      this.#ctx.beginPath();
+      this.#ctx.arc(puffX, puffY, puffSize, 0, Math.PI * 2);
+      this.#ctx.fill();
+    }
+
+    // Wispy tendrils
+    const tendrilCount = Math.floor(size / 8);
+    for (let i = 0; i < tendrilCount; i++) {
+      const tendrilX = x + (Math.random() - 0.5) * size;
+      const tendrilY = y + (Math.random() - 0.5) * size;
+      const tendrilLength = size * (0.5 + Math.random() * 1);
+      const tendrilAngle = Math.random() * Math.PI * 2;
+
+      this.#ctx.strokeStyle = ColorUtils.hexToRgba(color, 0.2 + Math.random() * 0.3);
+      this.#ctx.lineWidth = Math.max(0.5, Math.random() * 2);
+      this.#ctx.lineCap = "round";
+
+      // Curved tendril
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(tendrilX, tendrilY);
+      
+      const segments = 5;
+      for (let j = 1; j <= segments; j++) {
+        const t = j / segments;
+        const curvature = Math.sin(t * Math.PI) * size * 0.3;
+        const segmentX = tendrilX + Math.cos(tendrilAngle) * tendrilLength * t;
+        const segmentY = tendrilY + Math.sin(tendrilAngle) * tendrilLength * t + curvature;
+        this.#ctx.lineTo(segmentX, segmentY);
+      }
+      
+      this.#ctx.stroke();
+    }
   }
+
+  /**
+   * Grass brush - Natural grass blades
+   * @private
+   */
   #drawGrass({ x, y, color, size }) {
-    this.#drawLines({ x, y, color, size });
+    this.#ctx.globalCompositeOperation = "source-over";
+
+    const grassCount = Math.floor(size * 1.2);
+    for (let i = 0; i < grassCount; i++) {
+      const grassX = x + (Math.random() - 0.5) * size * 1.2;
+      const grassY = y + (Math.random() - 0.5) * size * 0.8;
+      const grassHeight = size * (0.5 + Math.random() * 0.8);
+      const grassWidth = Math.max(0.5, Math.random() * 2);
+      const grassColor = ColorUtils.shadeColor(color, Math.random() * 40 - 20);
+      const bend = (Math.random() - 0.5) * size * 0.3;
+
+      this.#ctx.strokeStyle = grassColor;
+      this.#ctx.lineWidth = grassWidth;
+      this.#ctx.lineCap = "round";
+      this.#ctx.globalAlpha = 0.6 + Math.random() * 0.4;
+
+      // Draw grass blade with slight curve
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(grassX, grassY);
+      this.#ctx.quadraticCurveTo(
+        grassX + bend,
+        grassY - grassHeight / 2,
+        grassX + bend * 1.5,
+        grassY - grassHeight
+      );
+      this.#ctx.stroke();
+    }
   }
-  #drawWood({ x, y, color, size }) {
-    this.#drawLines({ x, y, color, size });
+
+  /**
+   * Wood brush - Wood grain texture
+   * @private
+   */
+  #drawWood({ x, y, lastPoint, color, size }) {
+    this.#ctx.globalCompositeOperation = "multiply";
+
+    // Wood grain lines
+    if (lastPoint) {
+      const grainCount = Math.floor(size / 3);
+      for (let i = 0; i < grainCount; i++) {
+        const offset = (i - grainCount / 2) * 2;
+        const grainColor = ColorUtils.shadeColor(color, Math.random() * 30 - 15);
+        
+        this.#ctx.strokeStyle = grainColor;
+        this.#ctx.lineWidth = Math.max(0.5, Math.random() * 2);
+        this.#ctx.globalAlpha = 0.3 + Math.random() * 0.4;
+        this.#ctx.lineCap = "round";
+
+        this.#ctx.beginPath();
+        this.#ctx.moveTo(lastPoint.x + offset, lastPoint.y);
+        this.#ctx.lineTo(x + offset, y);
+        this.#ctx.stroke();
+      }
+    }
+
+    // Wood knots
+    if (Math.random() < 0.1) {
+      const knotSize = size * (0.3 + Math.random() * 0.4);
+      this.#ctx.strokeStyle = ColorUtils.shadeColor(color, -30);
+      this.#ctx.lineWidth = Math.max(1, knotSize * 0.2);
+      this.#ctx.globalAlpha = 0.6;
+      
+      this.#ctx.beginPath();
+      this.#ctx.arc(x, y, knotSize, 0, Math.PI * 2);
+      this.#ctx.stroke();
+    }
+
+    // Wood texture points
+    const textureCount = Math.floor(size * 0.8);
+    for (let i = 0; i < textureCount; i++) {
+      const texX = x + (Math.random() - 0.5) * size;
+      const texY = y + (Math.random() - 0.5) * size;
+      const texSize = Math.random() * 1 + 0.5;
+
+      this.#ctx.globalAlpha = 0.2 + Math.random() * 0.3;
+      this.#ctx.fillStyle = ColorUtils.shadeColor(color, Math.random() * 20 - 10);
+      this.#ctx.beginPath();
+      this.#ctx.arc(texX, texY, texSize, 0, Math.PI * 2);
+      this.#ctx.fill();
+    }
   }
-  #drawMetal({ x, y, color, size }) {
-    this.#drawBasicBrush({ x, y, color, size });
+  /**
+   * Metal brush - Metallic surface texture
+   * @private
+   */
+  #drawMetal({ x, y, lastPoint, color, size }) {
+    this.#ctx.globalCompositeOperation = "source-over";
+
+    // Base metallic stroke
+    if (lastPoint) {
+      this.#ctx.strokeStyle = color;
+      this.#ctx.lineWidth = size;
+      this.#ctx.lineCap = "round";
+      this.#ctx.globalAlpha = 0.8;
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(lastPoint.x, lastPoint.y);
+      this.#ctx.lineTo(x, y);
+      this.#ctx.stroke();
+    }
+
+    // Metallic highlights
+    const highlightCount = Math.floor(size / 4);
+    for (let i = 0; i < highlightCount; i++) {
+      const highlightX = x + (Math.random() - 0.5) * size;
+      const highlightY = y + (Math.random() - 0.5) * size;
+      const highlightSize = Math.random() * size * 0.3 + 2;
+
+      // Bright metallic shine
+      this.#ctx.fillStyle = "#ffffff";
+      this.#ctx.globalAlpha = 0.6 + Math.random() * 0.3;
+      this.#ctx.beginPath();
+      this.#ctx.arc(highlightX, highlightY, highlightSize, 0, Math.PI * 2);
+      this.#ctx.fill();
+      
+      // Secondary reflection
+      this.#ctx.fillStyle = ColorUtils.shadeColor(color, 40);
+      this.#ctx.globalAlpha = 0.4 + Math.random() * 0.3;
+      this.#ctx.beginPath();
+      this.#ctx.arc(highlightX + highlightSize * 0.5, highlightY + highlightSize * 0.5, 
+                   highlightSize * 0.6, 0, Math.PI * 2);
+      this.#ctx.fill();
+    }
+
+    // Metallic scratches
+    if (Math.random() < 0.3) {
+      const scratchCount = Math.floor(size / 6);
+      for (let i = 0; i < scratchCount; i++) {
+        const scratchAngle = Math.random() * Math.PI * 2;
+        const scratchLength = size * (0.3 + Math.random() * 0.5);
+        const scratchX = x + (Math.random() - 0.5) * size;
+        const scratchY = y + (Math.random() - 0.5) * size;
+
+        this.#ctx.strokeStyle = ColorUtils.shadeColor(color, -20);
+        this.#ctx.lineWidth = Math.max(0.5, Math.random() * 1.5);
+        this.#ctx.globalAlpha = 0.3 + Math.random() * 0.4;
+        
+        this.#ctx.beginPath();
+        this.#ctx.moveTo(scratchX, scratchY);
+        this.#ctx.lineTo(
+          scratchX + Math.cos(scratchAngle) * scratchLength,
+          scratchY + Math.sin(scratchAngle) * scratchLength
+        );
+        this.#ctx.stroke();
+      }
+    }
   }
+
+  /**
+   * Glass brush - Transparent glass effect
+   * @private
+   */
   #drawGlass({ x, y, color, size }) {
-    this.#drawBasicBrush({ x, y, color, size });
+    this.#ctx.globalCompositeOperation = "source-over";
+
+    // Glass base with transparency
+    this.#ctx.fillStyle = ColorUtils.hexToRgba(color, 0.3);
+    this.#ctx.beginPath();
+    this.#ctx.arc(x, y, size * 0.8, 0, Math.PI * 2);
+    this.#ctx.fill();
+
+    // Glass highlight
+    this.#ctx.fillStyle = "#ffffff";
+    this.#ctx.globalAlpha = 0.8;
+    this.#ctx.beginPath();
+    this.#ctx.arc(x - size * 0.3, y - size * 0.3, size * 0.3, 0, Math.PI * 2);
+    this.#ctx.fill();
+
+    // Secondary reflection
+    this.#ctx.globalAlpha = 0.4;
+    this.#ctx.beginPath();
+    this.#ctx.arc(x + size * 0.4, y + size * 0.2, size * 0.15, 0, Math.PI * 2);
+    this.#ctx.fill();
+
+    // Glass edge reflection
+    this.#ctx.strokeStyle = "#ffffff";
+    this.#ctx.lineWidth = Math.max(1, size * 0.1);
+    this.#ctx.globalAlpha = 0.6;
+    this.#ctx.beginPath();
+    this.#ctx.arc(x, y, size * 0.8, Math.PI * 0.2, Math.PI * 0.8);
+    this.#ctx.stroke();
+
+    this.#ctx.globalAlpha = 1;
   }
+
+  /**
+   * Water brush - Fluid water effect (uses existing watercolor)
+   * @private
+   */
   #drawWater({ x, y, color, size }) {
     this.#drawWatercolor({ x, y, color, size });
+
+    // Add water ripples
+    const rippleCount = Math.floor(size / 8) + 1;
+    this.#ctx.globalCompositeOperation = "source-over";
+    
+    for (let i = 0; i < rippleCount; i++) {
+      const rippleRadius = size * (0.4 + i * 0.3);
+      const rippleAlpha = 0.3 - i * 0.1;
+      
+      if (rippleAlpha > 0) {
+        this.#ctx.strokeStyle = ColorUtils.hexToRgba(color, rippleAlpha);
+        this.#ctx.lineWidth = Math.max(0.5, 2 - i * 0.5);
+        this.#ctx.beginPath();
+        this.#ctx.arc(x, y, rippleRadius, 0, Math.PI * 2);
+        this.#ctx.stroke();
+      }
+    }
   }
+
+  /**
+   * Sand brush - Granular sand texture
+   * @private
+   */
   #drawSand({ x, y, color, size }) {
-    this.#drawDots({ x, y, color, size });
+    this.#ctx.globalCompositeOperation = "source-over";
+
+    // Dense sand grains
+    const grainCount = Math.floor(size * 4);
+    for (let i = 0; i < grainCount; i++) {
+      const grainX = x + (Math.random() - 0.5) * size * 1.2;
+      const grainY = y + (Math.random() - 0.5) * size * 1.2;
+      const grainSize = Math.random() * 1.5 + 0.5;
+      const grainColor = ColorUtils.shadeColor(color, Math.random() * 20 - 10);
+
+      this.#ctx.fillStyle = grainColor;
+      this.#ctx.globalAlpha = 0.6 + Math.random() * 0.4;
+      this.#ctx.beginPath();
+      this.#ctx.arc(grainX, grainY, grainSize, 0, Math.PI * 2);
+      this.#ctx.fill();
+    }
+
+    // Larger sand clusters
+    const clusterCount = Math.floor(size / 6);
+    for (let i = 0; i < clusterCount; i++) {
+      const clusterX = x + (Math.random() - 0.5) * size;
+      const clusterY = y + (Math.random() - 0.5) * size;
+      const clusterSize = size * (0.1 + Math.random() * 0.2);
+      const clusterColor = ColorUtils.shadeColor(color, Math.random() * 30 - 15);
+
+      this.#ctx.fillStyle = clusterColor;
+      this.#ctx.globalAlpha = 0.4 + Math.random() * 0.3;
+      this.#ctx.beginPath();
+      this.#ctx.arc(clusterX, clusterY, clusterSize, 0, Math.PI * 2);
+      this.#ctx.fill();
+    }
   }
-  #drawStone({ x, y, color, size }) {
-    this.#drawCharcoal({ x, y, color, size });
+
+  /**
+   * Stone brush - Rocky stone texture (uses enhanced charcoal)
+   * @private
+   */
+  #drawStone({ x, y, lastPoint, color, size }) {
+    // Use charcoal base for rough texture
+    this.#drawCharcoal({ x, y, lastPoint, color, size });
+
+    // Add stone-specific details
+    this.#ctx.globalCompositeOperation = "multiply";
+
+    // Stone cracks
+    if (Math.random() < 0.3) {
+      const crackCount = Math.floor(size / 8);
+      for (let i = 0; i < crackCount; i++) {
+        const crackAngle = Math.random() * Math.PI * 2;
+        const crackLength = size * (0.2 + Math.random() * 0.4);
+        const crackX = x + (Math.random() - 0.5) * size * 0.8;
+        const crackY = y + (Math.random() - 0.5) * size * 0.8;
+
+        this.#ctx.strokeStyle = ColorUtils.shadeColor(color, -30);
+        this.#ctx.lineWidth = Math.max(0.5, Math.random() * 1.5);
+        this.#ctx.globalAlpha = 0.4 + Math.random() * 0.3;
+        
+        this.#ctx.beginPath();
+        this.#ctx.moveTo(crackX, crackY);
+        this.#ctx.lineTo(
+          crackX + Math.cos(crackAngle) * crackLength,
+          crackY + Math.sin(crackAngle) * crackLength
+        );
+        this.#ctx.stroke();
+      }
+    }
+
+    // Stone mineral flecks
+    const fleckCount = Math.floor(size * 0.6);
+    for (let i = 0; i < fleckCount; i++) {
+      const fleckX = x + (Math.random() - 0.5) * size;
+      const fleckY = y + (Math.random() - 0.5) * size;
+      const fleckSize = Math.random() * 2 + 0.5;
+      const fleckColor = Math.random() < 0.5 
+        ? ColorUtils.shadeColor(color, 20) 
+        : ColorUtils.shadeColor(color, -20);
+
+      this.#ctx.fillStyle = fleckColor;
+      this.#ctx.globalAlpha = 0.3 + Math.random() * 0.4;
+      this.#ctx.beginPath();
+      this.#ctx.arc(fleckX, fleckY, fleckSize, 0, Math.PI * 2);
+      this.#ctx.fill();
+    }
   }
+
+  /**
+   * Cloud brush - Fluffy cloud texture
+   * @private
+   */
   #drawCloud({ x, y, color, size }) {
-    this.#drawBasicBrush({ x, y, color, size });
+    this.#ctx.globalCompositeOperation = "source-over";
+
+    // Multiple cloud puffs with soft edges
+    const puffCount = Math.floor(size / 4) + 3;
+    for (let i = 0; i < puffCount; i++) {
+      const puffX = x + (Math.random() - 0.5) * size * 1.2;
+      const puffY = y + (Math.random() - 0.5) * size * 1.2;
+      const puffSize = size * (0.3 + Math.random() * 0.5);
+
+      // Soft cloud gradient
+      const gradient = this.#ctx.createRadialGradient(
+        puffX, puffY, 0,
+        puffX, puffY, puffSize
+      );
+      gradient.addColorStop(0, ColorUtils.hexToRgba(color, 0.8));
+      gradient.addColorStop(0.5, ColorUtils.hexToRgba(color, 0.4));
+      gradient.addColorStop(1, "transparent");
+
+      this.#ctx.fillStyle = gradient;
+      this.#ctx.beginPath();
+      this.#ctx.arc(puffX, puffY, puffSize, 0, Math.PI * 2);
+      this.#ctx.fill();
+    }
+
+    // Cloud wisps
+    const wispCount = Math.floor(size / 6);
+    for (let i = 0; i < wispCount; i++) {
+      const wispX = x + (Math.random() - 0.5) * size * 1.5;
+      const wispY = y + (Math.random() - 0.5) * size * 1.5;
+      const wispLength = size * (0.3 + Math.random() * 0.6);
+      const wispAngle = Math.random() * Math.PI * 2;
+
+      this.#ctx.strokeStyle = ColorUtils.hexToRgba(color, 0.3 + Math.random() * 0.4);
+      this.#ctx.lineWidth = size * (0.1 + Math.random() * 0.2);
+      this.#ctx.lineCap = "round";
+
+      // Curved wisp
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(wispX, wispY);
+      
+      const segments = 4;
+      for (let j = 1; j <= segments; j++) {
+        const t = j / segments;
+        const curve = Math.sin(t * Math.PI) * size * 0.2;
+        const segmentX = wispX + Math.cos(wispAngle) * wispLength * t;
+        const segmentY = wispY + Math.sin(wispAngle) * wispLength * t + curve;
+        this.#ctx.lineTo(segmentX, segmentY);
+      }
+      
+      this.#ctx.stroke();
+    }
   }
+
+  /**
+   * Galaxy brush - Starry galaxy effect
+   * @private
+   */
   #drawGalaxy({ x, y, color, size }) {
-    this.#drawGlow({ x, y, color, size });
+    this.#ctx.globalCompositeOperation = "lighter";
+
+    // Galaxy core
+    const coreGradient = this.#ctx.createRadialGradient(
+      x, y, 0,
+      x, y, size * 0.8
+    );
+    coreGradient.addColorStop(0, ColorUtils.hexToRgba(color, 0.8));
+    coreGradient.addColorStop(0.3, ColorUtils.hexToRgba(color, 0.5));
+    coreGradient.addColorStop(1, "transparent");
+
+    this.#ctx.fillStyle = coreGradient;
+    this.#ctx.beginPath();
+    this.#ctx.arc(x, y, size * 0.8, 0, Math.PI * 2);
+    this.#ctx.fill();
+
+    // Spiral arms
+    const armCount = 2;
+    for (let arm = 0; arm < armCount; arm++) {
+      const armAngle = (arm * Math.PI) + Math.random() * 0.5;
+      const armLength = size * 1.5;
+      
+      for (let i = 0; i < 20; i++) {
+        const t = i / 20;
+        const spiral = armAngle + t * Math.PI * 4;
+        const radius = t * armLength;
+        const armX = x + Math.cos(spiral) * radius;
+        const armY = y + Math.sin(spiral) * radius;
+        
+        // Arm particles
+        const particleCount = Math.floor((1 - t) * 8) + 2;
+        for (let j = 0; j < particleCount; j++) {
+          const particleX = armX + (Math.random() - 0.5) * size * 0.3 * (1 - t);
+          const particleY = armY + (Math.random() - 0.5) * size * 0.3 * (1 - t);
+          const particleSize = Math.random() * 2 + 0.5;
+          const particleColor = `hsl(${Math.random() * 60 + 200}, 70%, ${60 + Math.random() * 40}%)`;
+
+          this.#ctx.fillStyle = particleColor;
+          this.#ctx.globalAlpha = 0.6 + Math.random() * 0.4;
+          this.#ctx.beginPath();
+          this.#ctx.arc(particleX, particleY, particleSize, 0, Math.PI * 2);
+          this.#ctx.fill();
+        }
+      }
+    }
+
+    // Scattered stars
+    const starCount = Math.floor(size / 3);
+    for (let i = 0; i < starCount; i++) {
+      const starX = x + (Math.random() - 0.5) * size * 2;
+      const starY = y + (Math.random() - 0.5) * size * 2;
+      const starSize = Math.random() * 3 + 1;
+
+      this.#ctx.fillStyle = "#ffffff";
+      this.#ctx.globalAlpha = 0.7 + Math.random() * 0.3;
+      this.#ctx.beginPath();
+      this.#ctx.arc(starX, starY, starSize, 0, Math.PI * 2);
+      this.#ctx.fill();
+
+      // Star twinkle
+      if (Math.random() < 0.3) {
+        this.#ctx.shadowColor = "#ffffff";
+        this.#ctx.shadowBlur = starSize * 3;
+        this.#ctx.beginPath();
+        this.#ctx.arc(starX, starY, starSize * 0.5, 0, Math.PI * 2);
+        this.#ctx.fill();
+        this.#ctx.shadowBlur = 0;
+      }
+    }
+
+    this.#ctx.globalAlpha = 1;
   }
+
+  /**
+   * Plasma brush - Electric plasma effect
+   * @private
+   */
   #drawPlasma({ x, y, color, size }) {
-    this.#drawGlow({ x, y, color, size });
+    this.#ctx.globalCompositeOperation = "lighter";
+
+    // Plasma core
+    const colors = ["#ff00ff", "#00ffff", "#ffff00", "#ff0080"];
+    const coreColor = colors[Math.floor(Math.random() * colors.length)];
+    
+    this.#ctx.fillStyle = coreColor;
+    this.#ctx.globalAlpha = 0.8;
+    this.#ctx.beginPath();
+    this.#ctx.arc(x, y, size * 0.3, 0, Math.PI * 2);
+    this.#ctx.fill();
+
+    // Plasma tentacles
+    const tentacleCount = 8;
+    for (let i = 0; i < tentacleCount; i++) {
+      const angle = (i / tentacleCount) * Math.PI * 2;
+      const tentacleLength = size * (0.8 + Math.random() * 0.7);
+      const tentacleColor = colors[Math.floor(Math.random() * colors.length)];
+      
+      // Organic tentacle path
+      this.#ctx.strokeStyle = tentacleColor;
+      this.#ctx.lineWidth = size * (0.1 + Math.random() * 0.2);
+      this.#ctx.globalAlpha = 0.6 + Math.random() * 0.3;
+      this.#ctx.lineCap = "round";
+
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(x, y);
+      
+      const segments = 8;
+      for (let j = 1; j <= segments; j++) {
+        const t = j / segments;
+        const wobble = Math.sin(t * Math.PI * 4) * size * 0.2;
+        const tentacleX = x + Math.cos(angle) * tentacleLength * t + wobble;
+        const tentacleY = y + Math.sin(angle) * tentacleLength * t;
+        this.#ctx.lineTo(tentacleX, tentacleY);
+      }
+      
+      this.#ctx.stroke();
+
+      // Plasma sparks along tentacle
+      for (let j = 0; j < 5; j++) {
+        const sparkT = Math.random();
+        const sparkX = x + Math.cos(angle) * tentacleLength * sparkT;
+        const sparkY = y + Math.sin(angle) * tentacleLength * sparkT;
+        const sparkSize = Math.random() * 2 + 1;
+
+        this.#ctx.fillStyle = "#ffffff";
+        this.#ctx.globalAlpha = 0.8 + Math.random() * 0.2;
+        this.#ctx.beginPath();
+        this.#ctx.arc(sparkX, sparkY, sparkSize, 0, Math.PI * 2);
+        this.#ctx.fill();
+      }
+    }
+
+    this.#ctx.globalAlpha = 1;
   }
-  #drawElectric({ x, y, color, size }) {
-    this.#drawNeon({ x, y, color, size });
+
+  /**
+   * Electric brush - High voltage electric effect
+   * @private
+   */
+  #drawElectric({ x, y, lastPoint, color, size }) {
+    // Use enhanced neon as base
+    this.#drawNeon({ x, y, lastPoint, color, size });
+
+    // Add electric arcs
+    this.#ctx.globalCompositeOperation = "lighter";
+    
+    const arcCount = Math.floor(size / 4) + 2;
+    for (let i = 0; i < arcCount; i++) {
+      const arcAngle = Math.random() * Math.PI * 2;
+      const arcLength = size * (0.5 + Math.random() * 1);
+      const arcX = x + (Math.random() - 0.5) * size * 0.5;
+      const arcY = y + (Math.random() - 0.5) * size * 0.5;
+
+      // Jagged electric arc
+      this.#ctx.strokeStyle = "#ffffff";
+      this.#ctx.lineWidth = Math.max(1, Math.random() * 3);
+      this.#ctx.globalAlpha = 0.8 + Math.random() * 0.2;
+      this.#ctx.shadowColor = "#00ffff";
+      this.#ctx.shadowBlur = size * 0.5;
+
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(arcX, arcY);
+      
+      const segments = 6;
+      for (let j = 1; j <= segments; j++) {
+        const t = j / segments;
+        const jitter = (Math.random() - 0.5) * size * 0.4;
+        const segmentX = arcX + Math.cos(arcAngle) * arcLength * t + jitter;
+        const segmentY = arcY + Math.sin(arcAngle) * arcLength * t + jitter;
+        this.#ctx.lineTo(segmentX, segmentY);
+      }
+      
+      this.#ctx.stroke();
+    }
+
+    this.#ctx.shadowBlur = 0;
   }
+  /**
+   * Crystal brush - Geometric crystalline patterns
+   * @private
+   */
   #drawCrystal({ x, y, color, size }) {
-    this.#drawPixel({ x, y, color, size });
+    this.#ctx.globalCompositeOperation = "source-over";
+
+    // Crystal facets
+    const facetCount = Math.floor(size / 6) + 3;
+    for (let i = 0; i < facetCount; i++) {
+      const facetX = x + (Math.random() - 0.5) * size;
+      const facetY = y + (Math.random() - 0.5) * size;
+      const facetSize = size * (0.2 + Math.random() * 0.3);
+      const rotation = Math.random() * Math.PI * 2;
+      const sides = 4 + Math.floor(Math.random() * 4); // 4-7 sided crystals
+
+      this.#ctx.save();
+      this.#ctx.translate(facetX, facetY);
+      this.#ctx.rotate(rotation);
+
+      // Draw crystal facet
+      this.#ctx.beginPath();
+      for (let side = 0; side < sides; side++) {
+        const angle = (side / sides) * Math.PI * 2;
+        const sideX = Math.cos(angle) * facetSize;
+        const sideY = Math.sin(angle) * facetSize;
+        
+        if (side === 0) this.#ctx.moveTo(sideX, sideY);
+        else this.#ctx.lineTo(sideX, sideY);
+      }
+      this.#ctx.closePath();
+
+      // Crystal color with transparency
+      this.#ctx.fillStyle = ColorUtils.hexToRgba(color, 0.6 + Math.random() * 0.3);
+      this.#ctx.fill();
+
+      // Crystal outline
+      this.#ctx.strokeStyle = ColorUtils.shadeColor(color, 30);
+      this.#ctx.lineWidth = Math.max(0.5, facetSize * 0.1);
+      this.#ctx.stroke();
+
+      // Crystal highlight
+      this.#ctx.fillStyle = "#ffffff";
+      this.#ctx.globalAlpha = 0.4 + Math.random() * 0.4;
+      this.#ctx.beginPath();
+      this.#ctx.arc(-facetSize * 0.3, -facetSize * 0.3, facetSize * 0.2, 0, Math.PI * 2);
+      this.#ctx.fill();
+
+      this.#ctx.restore();
+    }
   }
+
+  /**
+   * Magic brush - Mystical sparkle effect
+   * @private
+   */
   #drawMagic({ x, y, color, size }) {
-    this.#drawGlow({ x, y, color, size });
+    this.#ctx.globalCompositeOperation = "lighter";
+
+    // Magic aura
+    const auraGradient = this.#ctx.createRadialGradient(
+      x, y, 0,
+      x, y, size * 1.2
+    );
+    auraGradient.addColorStop(0, ColorUtils.hexToRgba(color, 0.6));
+    auraGradient.addColorStop(0.5, ColorUtils.hexToRgba(color, 0.3));
+    auraGradient.addColorStop(1, "transparent");
+
+    this.#ctx.fillStyle = auraGradient;
+    this.#ctx.beginPath();
+    this.#ctx.arc(x, y, size * 1.2, 0, Math.PI * 2);
+    this.#ctx.fill();
+
+    // Magic sparkles
+    const sparkleCount = Math.floor(size / 3) + 5;
+    const sparkleColors = ["#ffff00", "#ff00ff", "#00ffff", "#ffffff"];
+    
+    for (let i = 0; i < sparkleCount; i++) {
+      const sparkleX = x + (Math.random() - 0.5) * size * 2;
+      const sparkleY = y + (Math.random() - 0.5) * size * 2;
+      const sparkleSize = Math.random() * size * 0.2 + 1;
+      const sparkleColor = sparkleColors[Math.floor(Math.random() * sparkleColors.length)];
+
+      // Sparkle core
+      this.#ctx.fillStyle = sparkleColor;
+      this.#ctx.globalAlpha = 0.8 + Math.random() * 0.2;
+      this.#ctx.beginPath();
+      this.#ctx.arc(sparkleX, sparkleY, sparkleSize, 0, Math.PI * 2);
+      this.#ctx.fill();
+
+      // Sparkle rays
+      if (Math.random() < 0.5) {
+        this.#ctx.strokeStyle = sparkleColor;
+        this.#ctx.lineWidth = Math.max(0.5, sparkleSize * 0.3);
+        this.#ctx.globalAlpha = 0.6;
+
+        // Four-pointed star
+        const rayLength = sparkleSize * 2;
+        for (let ray = 0; ray < 4; ray++) {
+          const angle = (ray * Math.PI) / 2 + Math.PI / 4;
+          this.#ctx.beginPath();
+          this.#ctx.moveTo(
+            sparkleX + Math.cos(angle) * rayLength * 0.3,
+            sparkleY + Math.sin(angle) * rayLength * 0.3
+          );
+          this.#ctx.lineTo(
+            sparkleX + Math.cos(angle) * rayLength,
+            sparkleY + Math.sin(angle) * rayLength
+          );
+          this.#ctx.stroke();
+        }
+      }
+    }
+
+    this.#ctx.globalAlpha = 1;
   }
-  #drawRainbow({ x, y, color, size }) {
-    this.#drawBasicBrush({ x, y, color, size });
+
+  /**
+   * Rainbow brush - Multicolor rainbow effect
+   * @private
+   */
+  #drawRainbow({ x, y, lastPoint, size }) {
+    this.#ctx.globalCompositeOperation = "source-over";
+    
+    const rainbowColors = [
+      "#FF0000", "#FF7F00", "#FFFF00", "#00FF00", 
+      "#0000FF", "#4B0082", "#9400D3"
+    ];
+
+    if (lastPoint) {
+      // Multiple colored strokes
+      rainbowColors.forEach((color, index) => {
+        const offset = (index - rainbowColors.length / 2) * 3;
+        this.#ctx.strokeStyle = color;
+        this.#ctx.lineWidth = Math.max(1, size * 0.8 - index);
+        this.#ctx.globalAlpha = 0.8;
+        this.#ctx.lineCap = "round";
+
+        this.#ctx.beginPath();
+        this.#ctx.moveTo(lastPoint.x + offset, lastPoint.y);
+        this.#ctx.lineTo(x + offset, y);
+        this.#ctx.stroke();
+      });
+    } else {
+      // Rainbow circle
+      rainbowColors.forEach((color, index) => {
+        const radius = size * (0.8 - index * 0.1);
+        this.#ctx.fillStyle = color;
+        this.#ctx.globalAlpha = 0.6;
+        this.#ctx.beginPath();
+        this.#ctx.arc(x, y, radius, 0, Math.PI * 2);
+        this.#ctx.fill();
+      });
+    }
+
+    this.#ctx.globalAlpha = 1;
   }
+
+  /**
+   * Gradient brush - Color gradient effect
+   * @private
+   */
   #drawGradient({ x, y, color, size }) {
-    this.#drawBasicBrush({ x, y, color, size });
+    this.#ctx.globalCompositeOperation = "source-over";
+
+    // Create gradient from color to lighter version
+    const gradient = this.#ctx.createRadialGradient(
+      x, y, 0,
+      x, y, size
+    );
+    gradient.addColorStop(0, color);
+    gradient.addColorStop(0.5, ColorUtils.shadeColor(color, 30));
+    gradient.addColorStop(1, ColorUtils.hexToRgba(ColorUtils.shadeColor(color, 60), 0));
+
+    this.#ctx.fillStyle = gradient;
+    this.#ctx.beginPath();
+    this.#ctx.arc(x, y, size, 0, Math.PI * 2);
+    this.#ctx.fill();
   }
+
+  /**
+   * Mosaic brush - Tile mosaic pattern
+   * @private
+   */
   #drawMosaic({ x, y, color, size }) {
-    this.#drawPixel({ x, y, color, size });
+    this.#ctx.globalCompositeOperation = "source-over";
+
+    const tileSize = Math.max(2, size / 4);
+    const tilesX = Math.ceil(size * 2 / tileSize);
+    const tilesY = Math.ceil(size * 2 / tileSize);
+    const startX = x - (tilesX * tileSize) / 2;
+    const startY = y - (tilesY * tileSize) / 2;
+
+    for (let i = 0; i < tilesX; i++) {
+      for (let j = 0; j < tilesY; j++) {
+        const tileX = startX + i * tileSize;
+        const tileY = startY + j * tileSize;
+        const distance = Math.sqrt((tileX - x) ** 2 + (tileY - y) ** 2);
+        
+        // Only draw tiles within brush radius
+        if (distance <= size) {
+          const tileColor = ColorUtils.shadeColor(color, (Math.random() - 0.5) * 40);
+          const tileAlpha = Math.max(0.3, 1 - distance / size);
+          
+          this.#ctx.fillStyle = tileColor;
+          this.#ctx.globalAlpha = tileAlpha;
+          this.#ctx.fillRect(tileX, tileY, tileSize * 0.9, tileSize * 0.9);
+
+          // Tile grout lines
+          this.#ctx.strokeStyle = ColorUtils.shadeColor(color, -30);
+          this.#ctx.lineWidth = Math.max(0.5, tileSize * 0.1);
+          this.#ctx.globalAlpha = tileAlpha * 0.8;
+          this.#ctx.strokeRect(tileX, tileY, tileSize * 0.9, tileSize * 0.9);
+        }
+      }
+    }
+
+    this.#ctx.globalAlpha = 1;
   }
+
+  /**
+   * Kaleidoscope brush - Symmetric kaleidoscope pattern
+   * @private
+   */
   #drawKaleidoscope({ x, y, color, size }) {
-    this.#drawBasicBrush({ x, y, color, size });
+    this.#ctx.globalCompositeOperation = "source-over";
+    
+    const segments = 8;
+    const segmentAngle = (Math.PI * 2) / segments;
+
+    this.#ctx.save();
+    this.#ctx.translate(x, y);
+
+    for (let i = 0; i < segments; i++) {
+      this.#ctx.save();
+      this.#ctx.rotate(i * segmentAngle);
+
+      // Create pattern elements
+      const elementCount = Math.floor(size / 8) + 2;
+      for (let j = 0; j < elementCount; j++) {
+        const elementX = Math.random() * size * 0.8;
+        const elementY = (Math.random() - 0.5) * size * 0.3;
+        const elementSize = size * (0.1 + Math.random() * 0.2);
+        const elementColor = ColorUtils.shadeColor(color, (Math.random() - 0.5) * 60);
+
+        this.#ctx.fillStyle = elementColor;
+        this.#ctx.globalAlpha = 0.6 + Math.random() * 0.4;
+        
+        // Random shapes for kaleidoscope
+        if (Math.random() < 0.5) {
+          // Circle
+          this.#ctx.beginPath();
+          this.#ctx.arc(elementX, elementY, elementSize, 0, Math.PI * 2);
+          this.#ctx.fill();
+        } else {
+          // Triangle
+          this.#ctx.beginPath();
+          this.#ctx.moveTo(elementX, elementY - elementSize);
+          this.#ctx.lineTo(elementX - elementSize, elementY + elementSize);
+          this.#ctx.lineTo(elementX + elementSize, elementY + elementSize);
+          this.#ctx.closePath();
+          this.#ctx.fill();
+        }
+      }
+
+      this.#ctx.restore();
+    }
+
+    this.#ctx.restore();
+    this.#ctx.globalAlpha = 1;
   }
+
+  /**
+   * Mandala brush - Sacred geometric mandala pattern
+   * @private
+   */
   #drawMandala({ x, y, color, size }) {
-    this.#drawBasicBrush({ x, y, color, size });
+    this.#ctx.globalCompositeOperation = "source-over";
+    
+    this.#ctx.save();
+    this.#ctx.translate(x, y);
+
+    // Concentric circles with patterns
+    const rings = Math.floor(size / 10) + 2;
+    for (let ring = 0; ring < rings; ring++) {
+      const ringRadius = (ring + 1) * (size / rings);
+      const elements = 6 + ring * 2; // More elements in outer rings
+      
+      for (let element = 0; element < elements; element++) {
+        const angle = (element / elements) * Math.PI * 2;
+        const elementX = Math.cos(angle) * ringRadius;
+        const elementY = Math.sin(angle) * ringRadius;
+        const elementSize = size * (0.05 + (rings - ring) * 0.02);
+        const elementColor = ColorUtils.shadeColor(color, (ring * 10) - 20);
+
+        this.#ctx.save();
+        this.#ctx.translate(elementX, elementY);
+        this.#ctx.rotate(angle);
+
+        this.#ctx.fillStyle = elementColor;
+        this.#ctx.globalAlpha = 0.7 - ring * 0.1;
+
+        // Petal shape
+        this.#ctx.beginPath();
+        this.#ctx.ellipse(0, 0, elementSize, elementSize * 2, 0, 0, Math.PI * 2);
+        this.#ctx.fill();
+
+        this.#ctx.restore();
+      }
+
+      // Ring outline
+      this.#ctx.strokeStyle = ColorUtils.hexToRgba(color, 0.3);
+      this.#ctx.lineWidth = Math.max(0.5, size * 0.02);
+      this.#ctx.beginPath();
+      this.#ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
+      this.#ctx.stroke();
+    }
+
+    // Central dot
+    this.#ctx.fillStyle = color;
+    this.#ctx.globalAlpha = 1;
+    this.#ctx.beginPath();
+    this.#ctx.arc(0, 0, size * 0.05, 0, Math.PI * 2);
+    this.#ctx.fill();
+
+    this.#ctx.restore();
   }
-  #drawCeltic({ x, y, color, size }) {
-    this.#drawLines({ x, y, color, size });
-  }
-  #drawTribal({ x, y, color, size }) {
-    this.#drawLines({ x, y, color, size });
-  }
-  #drawGeometric({ x, y, color, size }) {
-    this.#drawPixel({ x, y, color, size });
-  }
-  #drawOrganic({ x, y, color, size }) {
-    this.#drawBasicBrush({ x, y, color, size });
-  }
-  #drawFractal({ x, y, color, size }) {
-    this.#drawBasicBrush({ x, y, color, size });
-  }
+
+  // ===========================
+  // ARTISTIC STYLE BRUSHES
+  // ===========================
+
+  /**
+   * Impressionist brush - Impressionist painting style
+   * @private
+   */
   #drawImpressionist({ x, y, color, size }) {
-    this.#drawDots({ x, y, color, size });
+    this.#ctx.globalCompositeOperation = "source-over";
+
+    // Broken color technique
+    const strokeCount = Math.floor(size / 3) + 3;
+    for (let i = 0; i < strokeCount; i++) {
+      const strokeX = x + (Math.random() - 0.5) * size;
+      const strokeY = y + (Math.random() - 0.5) * size;
+      const strokeLength = size * (0.3 + Math.random() * 0.5);
+      const strokeAngle = Math.random() * Math.PI * 2;
+      const strokeColor = ColorUtils.shadeColor(color, (Math.random() - 0.5) * 40);
+
+      this.#ctx.strokeStyle = strokeColor;
+      this.#ctx.lineWidth = Math.max(1, size * (0.1 + Math.random() * 0.2));
+      this.#ctx.globalAlpha = 0.6 + Math.random() * 0.4;
+      this.#ctx.lineCap = "round";
+
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(strokeX, strokeY);
+      this.#ctx.lineTo(
+        strokeX + Math.cos(strokeAngle) * strokeLength,
+        strokeY + Math.sin(strokeAngle) * strokeLength
+      );
+      this.#ctx.stroke();
+    }
   }
+
+  /**
+   * Pointillist brush - Pointillism dots technique
+   * @private
+   */
   #drawPointillist({ x, y, color, size }) {
-    this.#drawDots({ x, y, color, size });
+    this.#ctx.globalCompositeOperation = "source-over";
+
+    // Pure color dots
+    const dotCount = Math.floor(size * 2);
+    for (let i = 0; i < dotCount; i++) {
+      const dotX = x + (Math.random() - 0.5) * size * 1.5;
+      const dotY = y + (Math.random() - 0.5) * size * 1.5;
+      const dotSize = size * (0.05 + Math.random() * 0.15);
+      
+      // Color variations for optical mixing
+      const colorVariations = [
+        color,
+        ColorUtils.shadeColor(color, 20),
+        ColorUtils.shadeColor(color, -20),
+        ColorUtils.shadeColor(color, 10)
+      ];
+      const dotColor = colorVariations[Math.floor(Math.random() * colorVariations.length)];
+
+      this.#ctx.fillStyle = dotColor;
+      this.#ctx.globalAlpha = 0.8 + Math.random() * 0.2;
+      this.#ctx.beginPath();
+      this.#ctx.arc(dotX, dotY, dotSize, 0, Math.PI * 2);
+      this.#ctx.fill();
+    }
   }
+
+  // Placeholder implementations for remaining brushes
+  // These would be expanded with unique algorithms in a full implementation
+  #drawCeltic({ x, y, lastPoint, color, size }) {
+    // Celtic knot patterns
+    this.#drawLines({ x, y, lastPoint, color, size });
+    
+    // Add celtic spiral elements
+    if (Math.random() < 0.3) {
+      this.#ctx.strokeStyle = color;
+      this.#ctx.lineWidth = Math.max(1, size * 0.2);
+      this.#ctx.globalAlpha = 0.6;
+      
+      const spiralRadius = size * 0.5;
+      this.#ctx.beginPath();
+      this.#ctx.arc(x, y, spiralRadius, 0, Math.PI * 1.5);
+      this.#ctx.stroke();
+    }
+  }
+
+  #drawTribal({ x, y, lastPoint, color, size }) {
+    // Bold tribal patterns
+    this.#ctx.globalCompositeOperation = "source-over";
+    this.#ctx.fillStyle = color;
+    this.#ctx.globalAlpha = 0.9;
+
+    // Angular tribal shapes
+    const shapeCount = Math.floor(size / 8) + 1;
+    for (let i = 0; i < shapeCount; i++) {
+      const shapeX = x + (Math.random() - 0.5) * size;
+      const shapeY = y + (Math.random() - 0.5) * size;
+      const shapeSize = size * (0.2 + Math.random() * 0.3);
+
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(shapeX, shapeY - shapeSize);
+      this.#ctx.lineTo(shapeX + shapeSize, shapeY);
+      this.#ctx.lineTo(shapeX, shapeY + shapeSize);
+      this.#ctx.lineTo(shapeX - shapeSize, shapeY);
+      this.#ctx.closePath();
+      this.#ctx.fill();
+    }
+  }
+
+  #drawGeometric({ x, y, color, size }) {
+    // Sharp geometric shapes
+    this.#drawMosaic({ x, y, color, size });
+  }
+
+  #drawOrganic({ x, y, color, size }) {
+    // Natural, flowing forms
+    this.#drawWatercolor({ x, y, color, size });
+  }
+
+  #drawFractal({ x, y, color, size }) {
+    // Self-similar patterns
+    this.#ctx.globalCompositeOperation = "source-over";
+    
+    const drawFractalBranch = (branchX, branchY, branchSize, depth) => {
+      if (depth <= 0 || branchSize < 1) return;
+      
+      this.#ctx.fillStyle = ColorUtils.hexToRgba(color, 0.7 - depth * 0.1);
+      this.#ctx.beginPath();
+      this.#ctx.arc(branchX, branchY, branchSize, 0, Math.PI * 2);
+      this.#ctx.fill();
+      
+      // Recursive branches
+      const branches = 4;
+      for (let i = 0; i < branches; i++) {
+        const angle = (i / branches) * Math.PI * 2;
+        const newX = branchX + Math.cos(angle) * branchSize * 2;
+        const newY = branchY + Math.sin(angle) * branchSize * 2;
+        drawFractalBranch(newX, newY, branchSize * 0.6, depth - 1);
+      }
+    };
+
+    drawFractalBranch(x, y, size * 0.3, 3);
+  }
+
   #drawAbstract({ x, y, color, size }) {
     this.#drawBasicBrush({ x, y, color, size });
   }
+
   #drawSurreal({ x, y, color, size }) {
     this.#drawBasicBrush({ x, y, color, size });
   }
-  #drawMinimalist({ x, y, color, size }) {
-    this.#drawBasicBrush({ x, y, color, size });
+
+  #drawMinimalist({ x, y, lastPoint, color, size }) {
+    // Clean, simple lines
+    this.#ctx.globalCompositeOperation = "source-over";
+    this.#ctx.strokeStyle = color;
+    this.#ctx.lineWidth = Math.max(1, size * 0.5);
+    this.#ctx.globalAlpha = 1;
+    this.#ctx.lineCap = "round";
+
+    if (lastPoint) {
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(lastPoint.x, lastPoint.y);
+      this.#ctx.lineTo(x, y);
+      this.#ctx.stroke();
+    }
   }
-  #drawVintage({ x, y, color, size }) {
-    this.#drawCharcoal({ x, y, color, size });
+
+  #drawVintage({ x, y, lastPoint, color, size }) {
+    // Aged, worn appearance
+    this.#drawCharcoal({ x, y, lastPoint, color, size });
+    
+    // Add vintage spots
+    if (Math.random() < 0.2) {
+      const spotCount = Math.floor(size / 6);
+      for (let i = 0; i < spotCount; i++) {
+        const spotX = x + (Math.random() - 0.5) * size;
+        const spotY = y + (Math.random() - 0.5) * size;
+        const spotSize = Math.random() * 3 + 1;
+
+        this.#ctx.fillStyle = ColorUtils.shadeColor(color, -30);
+        this.#ctx.globalAlpha = 0.3 + Math.random() * 0.4;
+        this.#ctx.beginPath();
+        this.#ctx.arc(spotX, spotY, spotSize, 0, Math.PI * 2);
+        this.#ctx.fill();
+      }
+    }
   }
-  #drawGrunge({ x, y, color, size }) {
-    this.#drawCharcoal({ x, y, color, size });
+
+  #drawGrunge({ x, y, lastPoint, color, size }) {
+    // Rough, distressed texture
+    this.#drawCharcoal({ x, y, lastPoint, color, size });
+    
+    // Add grunge scratches
+    const scratchCount = Math.floor(size / 4);
+    for (let i = 0; i < scratchCount; i++) {
+      const scratchAngle = Math.random() * Math.PI * 2;
+      const scratchLength = size * (0.2 + Math.random() * 0.6);
+      const scratchX = x + (Math.random() - 0.5) * size;
+      const scratchY = y + (Math.random() - 0.5) * size;
+
+      this.#ctx.strokeStyle = ColorUtils.shadeColor(color, -20);
+      this.#ctx.lineWidth = Math.max(0.5, Math.random() * 2);
+      this.#ctx.globalAlpha = 0.4 + Math.random() * 0.4;
+      
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(scratchX, scratchY);
+      this.#ctx.lineTo(
+        scratchX + Math.cos(scratchAngle) * scratchLength,
+        scratchY + Math.sin(scratchAngle) * scratchLength
+      );
+      this.#ctx.stroke();
+    }
   }
+
   #drawDigital({ x, y, color, size }) {
+    // Pixelated digital effect
     this.#drawPixel({ x, y, color, size });
   }
 
@@ -1855,6 +3205,104 @@ export class BrushEngine {
   #drawSpraySpeed({ x, y, color, size }) {
     this.#drawSpray({ x, y, color, size });
   }
+
+  /**
+   * Airbrush soft - Smooth radial gradient effect inspired by user's code
+   * @private
+   */
+  #drawAirbrushSoft({ x, y, color, size }) {
+    this.#ctx.globalCompositeOperation = "source-over";
+    
+    // Dynamic sizing based on brush size
+    const innerRadius = size * 0.2; // Core radius
+    const outerRadius = size * 0.8; // Fade radius
+    const rectSize = size * 1.6; // Rectangle size for fillRect
+    
+    // Create radial gradient - inspired by user's technique
+    const radialGradient = this.#ctx.createRadialGradient(
+      x, y, innerRadius,  // Inner circle
+      x, y, outerRadius   // Outer circle
+    );
+    
+    // Parse color for gradient stops
+    const rgba = ColorUtils.hexToRgba(color, 1);
+    const colorCore = rgba; // Full opacity at center
+    const colorMid = ColorUtils.hexToRgba(color, 0.5); // Half opacity at mid
+    const colorEdge = ColorUtils.hexToRgba(color, 0); // Transparent at edge
+    
+    radialGradient.addColorStop(0, colorCore);
+    radialGradient.addColorStop(0.5, colorMid);
+    radialGradient.addColorStop(1, colorEdge);
+    
+    // Apply gradient and draw smooth circle
+    this.#ctx.fillStyle = radialGradient;
+    this.#ctx.globalAlpha = 0.8; // Subtle transparency for buildable opacity
+    
+    // Use fillRect for consistent shape like in user's code
+    const halfSize = rectSize / 2;
+    this.#ctx.fillRect(x - halfSize, y - halfSize, rectSize, rectSize);
+  }
+
+  /**
+   * Smooth curves brush - Advanced bezier curves inspired by user's technique
+   * Uses incremental quadratic curves without clearing the canvas
+   * @private
+   */
+  #drawSmoothCurves({ x, y, lastPoint, color, size }) {
+    this.#ctx.globalCompositeOperation = "source-over";
+    this.#ctx.strokeStyle = color;
+    this.#ctx.lineCap = "round";
+    this.#ctx.lineJoin = "round";
+    this.#ctx.lineWidth = size;
+    this.#ctx.globalAlpha = 1.0;
+
+    // Initialize points buffer if it doesn't exist (first point)
+    if (!this.pointsBuffer) {
+      this.pointsBuffer = [];
+    }
+
+    // Add current point to buffer
+    this.pointsBuffer.push({ x, y });
+
+    // Limit buffer size to prevent memory issues (keep last 4 points max)
+    if (this.pointsBuffer.length > 4) {
+      this.pointsBuffer.shift(); // Remove oldest point
+    }
+
+    // Need at least 3 points to draw smooth curves
+    if (this.pointsBuffer.length >= 3) {
+      const len = this.pointsBuffer.length;
+      const p0 = this.pointsBuffer[len - 3]; // Previous point
+      const p1 = this.pointsBuffer[len - 2]; // Control point
+      const p2 = this.pointsBuffer[len - 1]; // Current point
+
+      // Calculate midpoint between p1 and p2 (your technique!)
+      const midPoint = {
+        x: p1.x + (p2.x - p1.x) / 2,
+        y: p1.y + (p2.y - p1.y) / 2
+      };
+
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(p0.x, p0.y);
+      
+      // Use your quadratic curve algorithm!
+      this.#ctx.quadraticCurveTo(p1.x, p1.y, midPoint.x, midPoint.y);
+      this.#ctx.stroke();
+    } else if (lastPoint) {
+      // For first few points, draw straight lines
+      this.#ctx.beginPath();
+      this.#ctx.moveTo(lastPoint.x, lastPoint.y);
+      this.#ctx.lineTo(x, y);
+      this.#ctx.stroke();
+    }
+  }
+
+  // Reset points buffer when stroke ends
+  resetSmoothCurvesBuffer() {
+    this.pointsBuffer = null;
+  }
+
+  // Sketch/Harmony brushes
 
   // Sketch/Harmony brushes
   #drawSketchy({ x, y, lastPoint, color, size }) {
@@ -2321,6 +3769,8 @@ export const BRUSH_TYPES = {
   // Extended brushes (33 additional from CrearObraModal.jsx)
   SPLATTER: "splatter",
   SPRAY: "spray",
+  AIRBRUSH_SOFT: "airbrush_soft",
+  SMOOTH_CURVES: "smooth_curves",
   TEXTURED: "textured",
   SKETCH: "sketch",
   FABRIC: "fabric",
@@ -2365,6 +3815,32 @@ export const BRUSH_TYPES = {
   VINTAGE: "vintage",
   GRUNGE: "grunge",
   DIGITAL: "digital",
+
+  // Special brushes
+  HOLOGRAPHIC: "holographic",
+  NEON_GLOW: "neon_glow", 
+  LASER: "laser",
+  MATRIX: "matrix",
+  CYBER: "cyber",
+  GLITCH_ADVANCED: "glitch_advanced",
+  PORTAL: "portal",
+  ENERGY_WAVE: "energy_wave",
+  COSMIC_DUST: "cosmic_dust",
+  QUANTUM: "quantum",
+  TIME_WARP: "time_warp",
+  DIMENSION: "dimension",
+  HOLOGRAM: "hologram",
+  ELECTRIC_STORM: "electric_storm",
+  AURORA: "aurora",
+  SOLAR_FLARE: "solar_flare",
+  BLACK_HOLE: "black_hole",
+  WORMHOLE: "wormhole",
+  PARTICLE_EXPLOSION: "particle_explosion",
+  ENERGY_FIELD: "energy_field",
+  MAGNETIC: "magnetic",
+  RADIOACTIVE: "radioactive",
+  X_RAY: "x_ray",
+  ULTRASONIC: "ultrasonic",
 };
 
 export const BRUSH_CONFIGS = [
@@ -2378,332 +3854,220 @@ export const BRUSH_CONFIGS = [
   { type: "pen", name: "Pluma", icon: "Brush", category: "artistic" },
   { type: "pen2", name: "Pluma Doble", icon: "Brush", category: "artistic" },
   { type: "thick", name: "Pincel Grueso", icon: "Brush", category: "artistic" },
-  {
-    type: "sliced",
-    name: "Pincel Cortado",
-    icon: "Brush",
-    category: "artistic",
-  },
+  { type: "sliced", name: "Pincel Cortado", icon: "Brush", category: "artistic" },
   { type: "multi", name: "Multi-línea", icon: "Brush", category: "artistic" },
-  {
-    type: "multi_opacity",
-    name: "Multi-opacidad",
-    icon: "Brush",
-    category: "artistic",
-  },
-  {
-    type: "carboncillo",
-    name: "Carboncillo",
-    icon: "Brush",
-    category: "artistic",
-  },
-  {
-    type: "acuarela",
-    name: "Acuarela",
-    icon: "Droplets",
-    category: "artistic",
-  },
+  { type: "multi_opacity", name: "Multi-opacidad", icon: "Brush", category: "artistic" },
+  { type: "carboncillo", name: "Carboncillo", icon: "Brush", category: "artistic" },
+  { type: "acuarela", name: "Acuarela", icon: "Droplets", category: "artistic" },
   { type: "tiza", name: "Tiza", icon: "Minus", category: "artistic" },
   { type: "marcador", name: "Marcador", icon: "Brush", category: "artistic" },
   { type: "oleo", name: "Óleo", icon: "Brush", category: "artistic" },
   { type: "pixel", name: "Pixel", icon: "Grid3X3", category: "artistic" },
   { type: "neon", name: "Neón", icon: "Zap", category: "artistic" },
-  {
-    type: "puntos",
-    name: "Puntillismo",
-    icon: "MoreHorizontal",
-    category: "artistic",
-  },
+  { type: "puntos", name: "Puntillismo", icon: "MoreHorizontal", category: "artistic" },
   { type: "lineas", name: "Líneas", icon: "Minus", category: "artistic" },
   { type: "fuego", name: "Fuego", icon: "Flame", category: "artistic" },
   { type: "beads", name: "Cuentas", icon: "Circle", category: "artistic" },
   { type: "wiggle", name: "Ondulado", icon: "Brush", category: "artistic" },
 
   // Pinceles de estampado
-  {
-    type: "stamp_circle",
-    name: "Estampado Círculo",
-    icon: "Circle",
-    category: "stamp",
-  },
-  {
-    type: "stamp_star",
-    name: "Estampado Estrella",
-    icon: "Sparkles",
-    category: "stamp",
-  },
+  { type: "stamp_circle", name: "Círculo", icon: "Circle", category: "stamp" },
+  { type: "stamp_star", name: "Estrella", icon: "Sparkles", category: "stamp" },
+  { type: "splatter", name: "Salpicadura", icon: "Droplets", category: "stamp" },
+  { type: "textured", name: "Texturado", icon: "Square", category: "stamp" },
 
   // Pinceles de patrón
-  {
-    type: "pattern_dots",
-    name: "Patrón Puntos",
-    icon: "MoreHorizontal",
-    category: "pattern",
-  },
-  {
-    type: "pattern_lines",
-    name: "Patrón Líneas",
-    icon: "Minus",
-    category: "pattern",
-  },
-  {
-    type: "pattern_rainbow",
-    name: "Patrón Arcoíris",
-    icon: "Circle",
-    category: "pattern",
-  },
-  {
-    type: "pattern_image",
-    name: "Patrón Imagen",
-    icon: "Square",
-    category: "pattern",
-  },
+  { type: "pattern_dots", name: "Patrón Puntos", icon: "MoreHorizontal", category: "pattern" },
+  { type: "pattern_lines", name: "Patrón Líneas", icon: "Minus", category: "pattern" },
+  { type: "pattern_rainbow", name: "Patrón Arcoíris", icon: "Circle", category: "pattern" },
+  { type: "pattern_image", name: "Patrón Imagen", icon: "Square", category: "pattern" },
+  { type: "mosaic", name: "Mosaico", icon: "Grid3X3", category: "pattern" },
+  { type: "kaleidoscope", name: "Caleidoscopio", icon: "Sparkles", category: "pattern" },
+  { type: "mandala", name: "Mandala", icon: "Target", category: "pattern" },
+  { type: "gradient", name: "Degradado", icon: "Circle", category: "pattern" },
 
   // Pinceles de spray
   { type: "aerosol", name: "Aerosol", icon: "Circle", category: "spray" },
   { type: "spray", name: "Spray", icon: "Circle", category: "spray" },
-  {
-    type: "spray_time",
-    name: "Spray Tiempo",
-    icon: "Circle",
-    category: "spray",
-  },
-  {
-    type: "spray_speed",
-    name: "Spray Velocidad",
-    icon: "Circle",
-    category: "spray",
-  },
+  { type: "airbrush_soft", name: "Aerógrafo Suave", icon: "Circle", category: "spray" },
+  { type: "smooth_curves", name: "Curvas Suaves", icon: "Waves", category: "spray" },
+  { type: "spray_time", name: "Spray Tiempo", icon: "Circle", category: "spray" },
+  { type: "spray_speed", name: "Spray Velocidad", icon: "Circle", category: "spray" },
 
   // Pinceles de sketch/harmony
   { type: "sketchy", name: "Boceto", icon: "Brush", category: "sketch" },
   { type: "neighbor", name: "Vecino", icon: "Brush", category: "sketch" },
-  {
-    type: "fur_neighbor",
-    name: "Vecino Peludo",
-    icon: "Brush",
-    category: "sketch",
-  },
+  { type: "fur_neighbor", name: "Vecino Peludo", icon: "Brush", category: "sketch" },
+  { type: "sketch", name: "Boceto Rápido", icon: "Brush", category: "sketch" },
 
-  // Pinceles especiales
-  {
-    type: "rainbow_dynamic",
-    name: "Arcoíris Dinámico",
-    icon: "Circle",
-    category: "special",
-  },
-  { type: "confetti", name: "Confeti", icon: "Circle", category: "special" },
-  {
-    type: "shooting_star",
-    name: "Estrella Fugaz",
-    icon: "Sparkles",
-    category: "special",
-  },
-  { type: "glitch", name: "Glitch", icon: "Grid3X3", category: "special" },
-  {
-    type: "heart_spray",
-    name: "Spray Corazones",
-    icon: "Circle",
-    category: "special",
-  },
-  { type: "lightning", name: "Rayo", icon: "Zap", category: "special" },
-  { type: "bubble", name: "Burbuja", icon: "Circle", category: "special" },
-  { type: "ribbon", name: "Cinta", icon: "Brush", category: "special" },
-  {
-    type: "fire_realistic",
-    name: "Fuego Realista",
-    icon: "Flame",
-    category: "special",
-  },
-  {
-    type: "particles",
-    name: "Partículas",
-    icon: "Circle",
-    category: "special",
-  },
+  // Pinceles de naturaleza
+  { type: "leaves", name: "Hojas", icon: "Leaf", category: "nature" },
+  { type: "rain", name: "Lluvia", icon: "Droplets", category: "nature" },
+  { type: "snow", name: "Nieve", icon: "Snowflake", category: "nature" },
+  { type: "stars", name: "Estrellas", icon: "Sparkles", category: "nature" },
+  { type: "flowers", name: "Flores", icon: "Flower", category: "nature" },
+  { type: "grass", name: "Pasto", icon: "TreePine", category: "nature" },
+  { type: "cloud", name: "Nube", icon: "Cloud", category: "nature" },
+  { type: "water", name: "Agua", icon: "Waves", category: "nature" },
 
-  // Pinceles adicionales del sistema anterior (mantener compatibilidad)
+  // Pinceles de materiales
+  { type: "wood", name: "Madera", icon: "Square", category: "materials" },
+  { type: "metal", name: "Metal", icon: "Zap", category: "materials" },
+  { type: "glass", name: "Cristal", icon: "Circle", category: "materials" },
+  { type: "sand", name: "Arena", icon: "Circle", category: "materials" },
+  { type: "stone", name: "Piedra", icon: "Square", category: "materials" },
+  { type: "fabric", name: "Tela", icon: "Square", category: "materials" },
+  { type: "fur", name: "Pelaje", icon: "Brush", category: "materials" },
+
+  // Pinceles de efectos especiales
+  { type: "rainbow_dynamic", name: "Arcoíris Dinámico", icon: "Circle", category: "effects" },
+  { type: "confetti", name: "Confeti", icon: "Circle", category: "effects" },
+  { type: "shooting_star", name: "Estrella Fugaz", icon: "Sparkles", category: "effects" },
+  { type: "glitch", name: "Glitch", icon: "Grid3X3", category: "effects" },
+  { type: "heart_spray", name: "Spray Corazones", icon: "Heart", category: "effects" },
+  { type: "lightning", name: "Rayo", icon: "Zap", category: "effects" },
+  { type: "bubble", name: "Burbuja", icon: "Circle", category: "effects" },
+  { type: "ribbon", name: "Cinta", icon: "Brush", category: "effects" },
+  { type: "fire_realistic", name: "Fuego Realista", icon: "Flame", category: "effects" },
+  { type: "particles", name: "Partículas", icon: "Circle", category: "effects" },
   { type: "glow", name: "Resplandor", icon: "Sparkles", category: "effects" },
-  {
-    type: "splatter",
-    name: "Salpicadura",
-    icon: "Droplets",
-    category: "stamp",
-  },
-  { type: "textured", name: "Texturado", icon: "Square", category: "stamp" },
-  { type: "sketch", name: "Boceto", icon: "Brush", category: "stamp" },
-  { type: "fabric", name: "Tela", icon: "Square", category: "stamp" },
-  { type: "fur", name: "Pelaje", icon: "Brush", category: "stamp" },
-  { type: "leaves", name: "Hojas", icon: "Brush", category: "stamp" },
-  { type: "rain", name: "Lluvia", icon: "Droplets", category: "stamp" },
-  { type: "snow", name: "Nieve", icon: "Circle", category: "stamp" },
-  { type: "stars", name: "Estrellas", icon: "Sparkles", category: "stamp" },
-  { type: "hearts", name: "Corazones", icon: "Circle", category: "stamp" },
-  { type: "flowers", name: "Flores", icon: "Circle", category: "stamp" },
-  { type: "bubbles", name: "Burbujas", icon: "Circle", category: "stamp" },
-  { type: "smoke", name: "Humo", icon: "Circle", category: "stamp" },
-  { type: "grass", name: "Pasto", icon: "Brush", category: "stamp" },
-  { type: "wood", name: "Madera", icon: "Square", category: "stamp" },
-  { type: "metal", name: "Metal", icon: "Square", category: "stamp" },
-  { type: "glass", name: "Cristal", icon: "Circle", category: "stamp" },
-  { type: "water", name: "Agua", icon: "Waves", category: "stamp" },
-  { type: "sand", name: "Arena", icon: "Circle", category: "stamp" },
-  { type: "stone", name: "Piedra", icon: "Square", category: "stamp" },
-  { type: "cloud", name: "Nube", icon: "Circle", category: "stamp" },
-  { type: "galaxy", name: "Galaxia", icon: "Sparkles", category: "stamp" },
-  { type: "plasma", name: "Plasma", icon: "Zap", category: "stamp" },
-  { type: "electric", name: "Eléctrico", icon: "Zap", category: "stamp" },
-  { type: "crystal", name: "Cristal", icon: "Grid3X3", category: "stamp" },
-  { type: "magic", name: "Mágico", icon: "Sparkles", category: "stamp" },
-  { type: "rainbow", name: "Arcoíris", icon: "Circle", category: "stamp" },
-  { type: "gradient", name: "Degradado", icon: "Circle", category: "stamp" },
-  { type: "mosaic", name: "Mosaico", icon: "Grid3X3", category: "stamp" },
-  {
-    type: "kaleidoscope",
-    name: "Caleidoscopio",
-    icon: "Sparkles",
-    category: "stamp",
-  },
-  { type: "mandala", name: "Mandala", icon: "Target", category: "stamp" },
-  { type: "celtic", name: "Celta", icon: "Circle", category: "stamp" },
-  { type: "tribal", name: "Tribal", icon: "Brush", category: "stamp" },
-  { type: "geometric", name: "Geométrico", icon: "Grid3X3", category: "stamp" },
-  { type: "organic", name: "Orgánico", icon: "Circle", category: "stamp" },
-  { type: "fractal", name: "Fractal", icon: "Sparkles", category: "stamp" },
-  {
-    type: "impressionist",
-    name: "Impresionista",
-    icon: "Brush",
-    category: "stamp",
-  },
-  {
-    type: "pointillist",
-    name: "Puntillista",
-    icon: "MoreHorizontal",
-    category: "stamp",
-  },
-  { type: "abstract", name: "Abstracto", icon: "Brush", category: "stamp" },
-  { type: "surreal", name: "Surrealista", icon: "Sparkles", category: "stamp" },
-  { type: "minimalist", name: "Minimalista", icon: "Minus", category: "stamp" },
-  { type: "vintage", name: "Vintage", icon: "Brush", category: "stamp" },
-  { type: "grunge", name: "Grunge", icon: "Brush", category: "stamp" },
-  { type: "digital", name: "Digital", icon: "Grid3X3", category: "stamp" },
+  { type: "magic", name: "Mágico", icon: "Sparkles", category: "effects" },
+  { type: "galaxy", name: "Galaxia", icon: "Sparkles", category: "effects" },
+  { type: "plasma", name: "Plasma", icon: "Zap", category: "effects" },
+  { type: "electric", name: "Eléctrico", icon: "Zap", category: "effects" },
+  { type: "crystal", name: "Cristal", icon: "Grid3X3", category: "effects" },
+  { type: "rainbow", name: "Arcoíris", icon: "Circle", category: "effects" },
+
+  // Pinceles de emociones/formas
+  { type: "hearts", name: "Corazones", icon: "Heart", category: "emotions" },
+  { type: "bubbles", name: "Burbujas", icon: "Circle", category: "emotions" },
+  { type: "smoke", name: "Humo", icon: "Circle", category: "emotions" },
+
+  // Pinceles de estilo artístico
+  { type: "celtic", name: "Celta", icon: "Circle", category: "styles" },
+  { type: "tribal", name: "Tribal", icon: "Brush", category: "styles" },
+  { type: "geometric", name: "Geométrico", icon: "Grid3X3", category: "styles" },
+  { type: "organic", name: "Orgánico", icon: "Circle", category: "styles" },
+  { type: "fractal", name: "Fractal", icon: "Sparkles", category: "styles" },
+  { type: "impressionist", name: "Impresionista", icon: "Brush", category: "styles" },
+  { type: "pointillist", name: "Puntillista", icon: "MoreHorizontal", category: "styles" },
+  { type: "abstract", name: "Abstracto", icon: "Brush", category: "styles" },
+  { type: "surreal", name: "Surrealista", icon: "Sparkles", category: "styles" },
+  { type: "minimalist", name: "Minimalista", icon: "Minus", category: "styles" },
+  { type: "vintage", name: "Vintage", icon: "Brush", category: "styles" },
+  { type: "grunge", name: "Grunge", icon: "Brush", category: "styles" },
+  { type: "digital", name: "Digital", icon: "Grid3X3", category: "styles" },
+
+  // Pinceles especiales - efectos únicos y avanzados
+  { type: "holographic", name: "Holográfico", icon: "Sparkles", category: "special" },
+  { type: "neon_glow", name: "Neón Brillante", icon: "Zap", category: "special" },
+  { type: "laser", name: "Láser", icon: "Zap", category: "special" },
+  { type: "matrix", name: "Matrix", icon: "Grid3X3", category: "special" },
+  { type: "cyber", name: "Cibernético", icon: "Zap", category: "special" },
+  { type: "glitch_advanced", name: "Glitch Avanzado", icon: "Grid3X3", category: "special" },
+  { type: "portal", name: "Portal", icon: "Circle", category: "special" },
+  { type: "energy_wave", name: "Onda Energía", icon: "Waves", category: "special" },
+  { type: "cosmic_dust", name: "Polvo Cósmico", icon: "Sparkles", category: "special" },
+  { type: "quantum", name: "Cuántico", icon: "Zap", category: "special" },
+  { type: "time_warp", name: "Distorsión Temporal", icon: "Sparkles", category: "special" },
+  { type: "dimension", name: "Dimensional", icon: "Square", category: "special" },
+  { type: "hologram", name: "Holograma", icon: "Sparkles", category: "special" },
+  { type: "electric_storm", name: "Tormenta Eléctrica", icon: "Zap", category: "special" },
+  { type: "aurora", name: "Aurora", icon: "Waves", category: "special" },
+  { type: "solar_flare", name: "Llamarada Solar", icon: "Flame", category: "special" },
+  { type: "black_hole", name: "Agujero Negro", icon: "Circle", category: "special" },
+  { type: "wormhole", name: "Agujero de Gusano", icon: "Circle", category: "special" },
+  { type: "particle_explosion", name: "Explosión Partículas", icon: "Sparkles", category: "special" },
+  { type: "energy_field", name: "Campo de Energía", icon: "Waves", category: "special" },
+  { type: "magnetic", name: "Magnético", icon: "Circle", category: "special" },
+  { type: "radioactive", name: "Radioactivo", icon: "Zap", category: "special" },
+  { type: "x_ray", name: "Rayos X", icon: "Zap", category: "special" },
+  { type: "ultrasonic", name: "Ultrasónico", icon: "Waves", category: "special" },
 ];
 
 export const BRUSH_CATEGORIES = {
   BASIC: {
     name: "Básicos",
+    icon: "Brush",
     brushes: ["pencil", "shadow", "brush", "eraser"],
   },
   ARTISTIC: {
     name: "Artísticos",
+    icon: "Palette", 
     brushes: [
-      "pen",
-      "pen2",
-      "thick",
-      "sliced",
-      "multi",
-      "multi_opacity",
-      "carboncillo",
-      "acuarela",
-      "tiza",
-      "marcador",
-      "oleo",
-      "pixel",
-      "neon",
-      "puntos",
-      "lineas",
-      "fuego",
-      "beads",
-      "wiggle",
+      "pen", "pen2", "thick", "sliced", "multi", "multi_opacity",
+      "carboncillo", "acuarela", "tiza", "marcador", "oleo", "pixel",
+      "neon", "puntos", "lineas", "fuego", "beads", "wiggle",
     ],
   },
   STAMP: {
     name: "Estampado",
-    brushes: ["stamp_circle", "stamp_star"],
+    icon: "Stamp",
+    brushes: ["stamp_circle", "stamp_star", "splatter", "textured"],
   },
   PATTERN: {
-    name: "Patrón",
+    name: "Patrones",
+    icon: "Grid3X3",
     brushes: [
-      "pattern_dots",
-      "pattern_lines",
-      "pattern_rainbow",
-      "pattern_image",
+      "pattern_dots", "pattern_lines", "pattern_rainbow", "pattern_image",
+      "mosaic", "kaleidoscope", "mandala", "gradient",
     ],
   },
   SPRAY: {
     name: "Spray",
-    brushes: ["aerosol", "spray", "spray_time", "spray_speed"],
+    icon: "Circle",
+    brushes: ["aerosol", "spray", "airbrush_soft", "smooth_curves", "spray_time", "spray_speed"],
   },
   SKETCH: {
-    name: "Sketch/Harmony",
-    brushes: ["sketchy", "neighbor", "fur_neighbor"],
+    name: "Bocetos",
+    icon: "PenTool",
+    brushes: ["sketchy", "neighbor", "fur_neighbor", "sketch"],
   },
-  SPECIAL: {
-    name: "Especiales",
+  NATURE: {
+    name: "Naturaleza",
+    icon: "Leaf",
     brushes: [
-      "rainbow_dynamic",
-      "confetti",
-      "shooting_star",
-      "glitch",
-      "heart_spray",
-      "lightning",
-      "bubble",
-      "ribbon",
-      "fire_realistic",
-      "particles",
+      "leaves", "rain", "snow", "stars", "flowers", 
+      "grass", "cloud", "water",
+    ],
+  },
+  MATERIALS: {
+    name: "Materiales", 
+    icon: "Layers",
+    brushes: [
+      "wood", "metal", "glass", "sand", "stone", "fabric", "fur",
     ],
   },
   EFFECTS: {
     name: "Efectos",
-    brushes: ["glow", "neon", "fuego", "lightning", "magic"],
-  },
-  STAMP_EXTENDED: {
-    name: "Estampado Extendido",
+    icon: "Sparkles",
     brushes: [
-      "splatter",
-      "textured",
-      "sketch",
-      "fabric",
-      "fur",
-      "leaves",
-      "rain",
-      "snow",
-      "stars",
-      "hearts",
-      "flowers",
-      "bubbles",
-      "smoke",
-      "grass",
-      "wood",
-      "metal",
-      "glass",
-      "water",
-      "sand",
-      "stone",
-      "cloud",
-      "galaxy",
-      "plasma",
-      "electric",
-      "crystal",
-      "rainbow",
-      "gradient",
-      "mosaic",
-      "kaleidoscope",
-      "mandala",
-      "celtic",
-      "tribal",
-      "geometric",
-      "organic",
-      "fractal",
-      "impressionist",
-      "pointillist",
-      "abstract",
-      "surreal",
-      "minimalist",
-      "vintage",
-      "grunge",
-      "digital",
+      "rainbow_dynamic", "confetti", "shooting_star", "glitch", "heart_spray",
+      "lightning", "bubble", "ribbon", "fire_realistic", "particles", "glow", 
+      "magic", "galaxy", "plasma", "electric", "crystal", "rainbow",
+    ],
+  },
+  EMOTIONS: {
+    name: "Emociones",
+    icon: "Heart", 
+    brushes: ["hearts", "bubbles", "smoke"],
+  },
+  STYLES: {
+    name: "Estilos",
+    icon: "Image",
+    brushes: [
+      "celtic", "tribal", "geometric", "organic", "fractal", "impressionist",
+      "pointillist", "abstract", "surreal", "minimalist", "vintage", "grunge", "digital",
+    ],
+  },
+  SPECIAL: {
+    name: "Especiales",
+    icon: "Zap",
+    brushes: [
+      "holographic", "neon_glow", "laser", "matrix", "cyber", "glitch_advanced",
+      "portal", "energy_wave", "cosmic_dust", "quantum", "time_warp", "dimension",
+      "hologram", "electric_storm", "aurora", "solar_flare", "black_hole", "wormhole",
+      "particle_explosion", "energy_field", "magnetic", "radioactive", "x_ray", "ultrasonic",
     ],
   },
 };
