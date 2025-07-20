@@ -140,6 +140,29 @@ export default function GaleriaPage() {
   const paginatedMurales = filteredMurales.slice(0, page * itemsPerPage);
   const hasMore = paginatedMurales.length < filteredMurales.length;
 
+  // Ref para el último mural visible
+  const lastItemRef = useRef(null);
+  const [lastItemOffset, setLastItemOffset] = useState(null);
+
+  // Guardar offset antes de cargar más
+  const handleNextPage = useCallback(() => {
+    if (hasMore && lastItemRef.current) {
+      const rect = lastItemRef.current.getBoundingClientRect();
+      setLastItemOffset(rect.top);
+    }
+    setPage((prev) => prev + 1);
+  }, [hasMore]);
+
+  // Ajustar scroll después de renderizar
+  useEffect(() => {
+    if (lastItemOffset !== null && lastItemRef.current) {
+      const newRect = lastItemRef.current.getBoundingClientRect();
+      const diff = newRect.top - lastItemOffset;
+      window.scrollBy({ top: diff, behavior: "auto" });
+      setLastItemOffset(null);
+    }
+  }, [paginatedMurales.length]);
+
   // Resetear paginado al cambiar filtros, sala o vista
   useEffect(() => {
     setPage(1);
@@ -168,9 +191,9 @@ export default function GaleriaPage() {
           </p>
         </div>
 
-        {/* Carrusel destacado */}
+        {/* Carrusel destacado (arriba de la barra de filtros) */}
         {allMurales && allMurales.length > 0 && (
-          <div className="mb-8">
+          <div className="mb-8 mt-4">
             <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
               Obras Destacadas
             </h2>
@@ -180,6 +203,21 @@ export default function GaleriaPage() {
             />
           </div>
         )}
+
+        {/* Barra de filtros sticky (ahora debajo del carrusel) */}
+        <div className="mb-4 sticky top-0 z-20 bg-white border-b border-border">
+          <FilterControls
+            filters={filters}
+            setFilters={setFilters}
+            resetFilters={resetFilters}
+            getFilterOptions={getFilterOptions}
+            showFilters={showFilters}
+            setShowFilters={setShowFilters}
+            view={view}
+            setView={setView}
+            resultsCount={filteredMurales.length}
+          />
+        </div>
 
         {/* Sección de selección de salas */}
         {salas && salas.length > 0 && (
@@ -203,22 +241,6 @@ export default function GaleriaPage() {
           </div>
         )}
 
-        {/* Barra de filtros sticky */}
-        <div className="mb-4 sticky top-0 z-20 bg-white border-b border-border">
-          <FilterControls
-            filters={filters}
-            setFilters={setFilters}
-            resetFilters={resetFilters}
-            getFilterOptions={getFilterOptions}
-            showFilters={showFilters}
-            setShowFilters={setShowFilters}
-            view={view}
-            setView={setView}
-            resultsCount={filteredMurales.length}
-          />
-        </div>
-
-        {/* Vista principal: selector de vista */}
         {filteredMurales.length === 0 ? (
           <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border mt-8">
             <div className="text-6xl mb-4">📄</div>
@@ -230,27 +252,33 @@ export default function GaleriaPage() {
             </p>
           </div>
         ) : (
-          <InfiniteScroll
-            dataLength={paginatedMurales.length}
-            next={() => setPage((prev) => prev + 1)}
-            hasMore={hasMore}
-            loader={<SectionLoader />}
-            endMessage={
-              <p style={{ textAlign: 'center' }}>
-                <b>¡Has llegado al final!</b>
-              </p>
-            }
-            scrollThreshold="100%"
-          >
-            <MuralesList
-              murales={paginatedMurales}
-              onMuralClick={handleOpenZoom}
-              onLike={handleLike}
-              likedMurales={likedMurales}
-              view={view}
-              onARClick={handleARClick}
-            />
-          </InfiniteScroll>
+          <div id="galeria-scroll" style={{ height: "80vh", overflow: "auto" }}>
+            <InfiniteScroll
+              dataLength={paginatedMurales.length}
+              next={handleNextPage}
+              hasMore={hasMore}
+              loader={<SectionLoader />}
+              endMessage={
+                <p style={{ textAlign: 'center' }}>
+                  <b>¡Has llegado al final!</b>
+                </p>
+              }
+              scrollableTarget="galeria-scroll"
+              scrollThreshold="90%"
+            >
+              <div style={{ marginBottom: 120 }}>
+                <MuralesList
+                  murales={paginatedMurales}
+                  onMuralClick={handleOpenZoom}
+                  onLike={handleLike}
+                  likedMurales={likedMurales}
+                  view={view}
+                  onARClick={handleARClick}
+                  lastItemRef={lastItemRef}
+                />
+              </div>
+            </InfiniteScroll>
+          </div>
         )}
 
         {/* Modal de zoom */}
