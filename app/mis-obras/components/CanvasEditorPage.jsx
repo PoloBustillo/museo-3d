@@ -321,14 +321,29 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
   };
 
   const handleSave = async () => {
+    console.log("💾 Iniciando proceso de guardado...");
     const canvas = canvasRef.current;
     if (!canvas) {
+      console.error("❌ No se pudo acceder al canvas");
       toast.error("No se pudo acceder al canvas");
       return;
     }
 
-    const imageDataUrl = canvas.toDataURL("image/png");
-    onSave(imageDataUrl);
+    try {
+      console.log("🎨 Convirtiendo canvas a imagen...");
+      const imageDataUrl = canvas.toDataURL("image/png");
+      console.log("✅ Imagen generada exitosamente:", imageDataUrl.substring(0, 50) + "...");
+      
+      if (onSave) {
+        onSave(imageDataUrl);
+        console.log("📤 Función onSave llamada exitosamente");
+      } else {
+        console.warn("⚠️ No hay función onSave definida");
+      }
+    } catch (error) {
+      console.error("❌ Error al generar la imagen:", error);
+      toast.error("Error al guardar la imagen");
+    }
   };
 
   const applyBgColor = (color) => {

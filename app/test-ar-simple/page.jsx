@@ -115,6 +115,45 @@ export default function TestARSimplePage() {
         >
           🗑️ Limpiar Logs
         </button>
+
+        {/* Botón de prueba para verificar si el botón AR se crea */}
+        <button
+          onClick={() => {
+            // Crear un botón de prueba manualmente
+            const testButton = document.createElement('button');
+            testButton.textContent = "🧪 Botón de Prueba";
+            testButton.style.position = "fixed";
+            testButton.style.bottom = "200px";
+            testButton.style.right = "20px";
+            testButton.style.left = "20px";
+            testButton.style.padding = "20px 30px";
+            testButton.style.background = "linear-gradient(135deg, #ff0000, #ff6600)";
+            testButton.style.color = "white";
+            testButton.style.border = "3px solid #fff";
+            testButton.style.borderRadius = "15px";
+            testButton.style.fontSize = "20px";
+            testButton.style.fontWeight = "bold";
+            testButton.style.zIndex = "999999";
+            testButton.style.cursor = "pointer";
+            testButton.onclick = () => {
+              alert("¡Botón de prueba funciona!");
+              document.body.removeChild(testButton);
+            };
+            document.body.appendChild(testButton);
+            console.log("🧪 Botón de prueba creado manualmente");
+          }}
+          style={{
+            background: "#dc3545",
+            color: "white",
+            border: "none",
+            padding: "12px 24px",
+            borderRadius: "8px",
+            fontSize: "16px",
+            cursor: "pointer",
+          }}
+        >
+          🧪 Crear Botón de Prueba
+        </button>
       </div>
 
       <div

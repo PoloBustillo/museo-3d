@@ -166,13 +166,32 @@ export default function MuralImageStep({ value, onChange, muralData = {} }) {
             </p>
             <button
               onClick={() => {
-                // Guardar datos actuales en localStorage antes de navegar
+                // Guardar TODOS los datos actuales en localStorage antes de navegar
                 const currentData = {
+                  ...muralData, // Preservar todos los datos existentes
+                  // Solo sobrescribir campos específicos si están vacíos
                   titulo: muralData.titulo || "",
                   tecnica: muralData.tecnica || "",
                   year: muralData.anio || muralData.year || undefined,
                   descripcion: muralData.descripcion || "",
+                  // Preservar otros campos importantes
+                  dimensiones: muralData.dimensiones || "",
+                  ubicacion: muralData.ubicacion || "",
+                  latitud: muralData.latitud || "",
+                  longitud: muralData.longitud || "",
+                  salaId: muralData.salaId || "",
+                  estado: muralData.estado || "",
+                  autor: muralData.autor || "",
+                  artistId: muralData.artistId || "",
+                  colaboradores: muralData.colaboradores || [],
+                  tags: muralData.tags || [],
+                  publica: muralData.publica,
+                  destacada: muralData.destacada,
+                  orden: muralData.orden,
+                  userId: muralData.userId,
                 };
+                
+                console.log("💾 Guardando datos completos antes de ir al canvas:", currentData);
                 localStorage.setItem(
                   "muralDraftData",
                   JSON.stringify(currentData)

@@ -200,7 +200,8 @@ export default function CrearMuralStepper() {
             parsed.artistId ||
             (parsed.colaboradores && parsed.colaboradores.length > 0);
 
-          if (shouldLoadData && hasParsedData) {
+          // Siempre cargar si tenemos datos válidos guardados, dando prioridad a los datos más completos
+          if (hasParsedData) {
             const newMural = {
               ...prev,
               ...parsed,
@@ -208,12 +209,17 @@ export default function CrearMuralStepper() {
               url_imagen: prev.url_imagen || parsed.url_imagen,
               // Asegurar que userId se mantenga si ya está establecido
               userId: session?.user?.id || prev.userId || parsed.userId,
+              // Si hay campos vacíos en parsed pero con datos en prev, mantener prev
+              titulo: parsed.titulo || prev.titulo,
+              tecnica: parsed.tecnica || prev.tecnica,
+              descripcion: parsed.descripcion || prev.descripcion,
+              anio: parsed.anio !== 2025 ? parsed.anio : (prev.anio || parsed.anio),
             };
             console.log("🔄 Estado del mural actualizado:", newMural);
             return newMural;
           } else {
             console.log(
-              "⏭️ Saltando carga de datos - datos insuficientes o ya tenemos datos válidos",
+              "⏭️ Saltando carga de datos - datos insuficientes",
               { shouldLoadData, hasParsedData }
             );
             return prev;
@@ -284,11 +290,30 @@ export default function CrearMuralStepper() {
         .then((compressedImage) => {
           console.log("✅ Imagen comprimida, actualizando estado");
           setMural((m) => {
-            // Preservar todos los datos existentes del mural, incluyendo los del localStorage
+            // Preservar todos los datos existentes del mural, dando prioridad a los datos del estado actual
             const updatedMural = {
-              ...m,
-              ...existingData, // Restaurar datos del localStorage
-              url_imagen: compressedImage,
+              ...existingData, // Datos del localStorage
+              ...m, // Datos del estado actual (tienen prioridad)
+              url_imagen: compressedImage, // Nueva imagen
+              // Asegurarse de que campos importantes no se pierdan
+              titulo: m.titulo || existingData.titulo || "",
+              tecnica: m.tecnica || existingData.tecnica || "",
+              descripcion: m.descripcion || existingData.descripcion || "",
+              anio: m.anio || existingData.anio,
+              dimensiones: m.dimensiones || existingData.dimensiones || "",
+              ubicacion: m.ubicacion || existingData.ubicacion || "",
+              latitud: m.latitud || existingData.latitud || "",
+              longitud: m.longitud || existingData.longitud || "",
+              salaId: m.salaId || existingData.salaId || "",
+              estado: m.estado || existingData.estado || "",
+              autor: m.autor || existingData.autor || "",
+              artistId: m.artistId || existingData.artistId || "",
+              colaboradores: m.colaboradores || existingData.colaboradores || [],
+              tags: m.tags || existingData.tags || [],
+              publica: m.publica !== undefined ? m.publica : (existingData.publica !== undefined ? existingData.publica : true),
+              destacada: m.destacada !== undefined ? m.destacada : (existingData.destacada !== undefined ? existingData.destacada : false),
+              orden: m.orden !== undefined ? m.orden : (existingData.orden !== undefined ? existingData.orden : 0),
+              userId: m.userId || existingData.userId,
             };
 
             // Verificar que los datos se preservaron correctamente
@@ -375,13 +400,20 @@ export default function CrearMuralStepper() {
       // Evitar sobrescribir datos existentes con datos vacíos
       const isOverwritingWithEmptyData =
         !hasSignificantData &&
-        existingMural.titulo &&
+        (existingMural.titulo || existingMural.tecnica || existingMural.descripcion) &&
         !mural.titulo &&
+        !mural.tecnica &&
         step === 0;
 
       if (isOverwritingWithEmptyData) {
         console.log(
-          "🚫 Evitando sobrescribir datos existentes con datos vacíos"
+          "🚫 Evitando sobrescribir datos existentes con datos vacíos:",
+          {
+            existingTitle: existingMural.titulo,
+            existingTecnica: existingMural.tecnica,
+            currentTitle: mural.titulo,
+            currentTecnica: mural.tecnica,
+          }
         );
         return;
       }

@@ -23,12 +23,30 @@ export default function ARExperience({
   const [arMode, setArMode] = useState('positioning'); // 'positioning' o 'fixed'
   const [fixedPosition, setFixedPosition] = useState(null);
   const [modelRotation, setModelRotation] = useState({ x: 0, y: 0, z: 0 });
+  const [webXRSupported, setWebXRSupported] = useState(false);
   const textureRef = useRef();
   
   // Referencias para controles AR - Botón HTML tradicional
   const arControlsRef = useRef({
     buttonElement: null
   });
+
+  // Verificar soporte WebXR al inicio
+  useEffect(() => {
+    console.log("🔧 Verificando soporte WebXR...");
+    console.log("🔧 navigator.xr disponible:", !!navigator.xr);
+    if (navigator.xr) {
+      navigator.xr.isSessionSupported('immersive-ar').then((supported) => {
+        console.log("🔧 WebXR AR soportado:", supported);
+        setWebXRSupported(supported);
+      }).catch((error) => {
+        console.error("🔧 Error verificando soporte WebXR AR:", error);
+        setWebXRSupported(false);
+      });
+    } else {
+      setWebXRSupported(false);
+    }
+  }, []);
 
   // Inicializar Three.js
   useEffect(() => {
@@ -113,6 +131,8 @@ export default function ARExperience({
   useEffect(() => {
     if (!sceneRef.current || !modelUrl) return;
 
+    console.log("🔧 Iniciando carga del modelo:", modelUrl); // Debug
+
     // Limpiar modelo anterior
     if (modelRef.current) {
       sceneRef.current.remove(modelRef.current);
@@ -120,6 +140,7 @@ export default function ARExperience({
 
     const loader = new GLTFLoader();
     loader.load(modelUrl, (gltf) => {
+      console.log("🔧 Modelo cargado exitosamente"); // Debug
       const model = gltf.scene;
 
       // Centrar y escalar
@@ -158,37 +179,133 @@ export default function ARExperience({
       sceneRef.current.add(model);
       modelRef.current = model;
       setModelLoaded(true);
+      console.log("🔧 Modelo agregado a la escena, modelLoaded = true"); // Debug
+    }, 
+    // Progress callback
+    (progress) => {
+      console.log("🔧 Progreso de carga:", (progress.loaded / progress.total * 100).toFixed(2) + "%"); // Debug
+    },
+    // Error callback
+    (error) => {
+      console.error("🔧 Error cargando modelo:", error); // Debug
     });
   }, [modelUrl, restoreMaterials]);
 
   // Botón AR mejorado para móvil
   useEffect(() => {
-    if (!modelLoaded || !rendererRef.current) return;
+    if (!modelLoaded || !rendererRef.current || !webXRSupported) {
+      console.log("🔧 No creando botón AR - modelLoaded:", modelLoaded, "rendererRef.current:", !!rendererRef.current, "webXRSupported:", webXRSupported);
+      return;
+    }
 
-    const arButton = ARButton.createButton(rendererRef.current);
-    arButton.style.position = "fixed";
-    arButton.style.bottom = "120px"; // Más arriba para que no se corte
-    arButton.style.right = "20px";
-    arButton.style.left = "20px"; // Ancho completo en móvil
-    arButton.style.padding = "16px 24px";
-    arButton.style.background = "linear-gradient(135deg, #ff6600, #ff8800)";
-    arButton.style.color = "white";
-    arButton.style.border = "none";
-    arButton.style.borderRadius = "12px";
-    arButton.style.fontSize = "18px";
-    arButton.style.fontWeight = "bold";
-    arButton.style.zIndex = "9999";
-    arButton.style.boxShadow = "0 4px 20px rgba(255,102,0,0.4)";
-    arButton.textContent = "🥽 Iniciar Experiencia AR";
+    console.log("🔧 Creando botón AR inicial..."); // Debug
 
-    document.body.appendChild(arButton);
+    // Verificar que el renderer tenga WebXR habilitado
+    if (!rendererRef.current.xr) {
+      console.error("🔧 WebXR no está habilitado en el renderer");
+      return;
+    }
 
-    return () => {
-      if (arButton.parentNode) {
-        arButton.parentNode.removeChild(arButton);
+    try {
+      const arButton = ARButton.createButton(rendererRef.current);
+      
+      if (!arButton) {
+        console.error("🔧 ARButton.createButton retornó null/undefined");
+        return;
       }
-    };
-  }, [modelLoaded]);
+
+      arButton.style.position = "fixed";
+      arButton.style.bottom = "120px"; // Más arriba para que no se corte
+      arButton.style.right = "20px";
+      arButton.style.left = "20px"; // Ancho completo en móvil
+      arButton.style.padding = "20px 30px"; // Más padding para hacerlo más grande
+      arButton.style.background = "linear-gradient(135deg, #ff6600, #ff8800)";
+      arButton.style.color = "white";
+      arButton.style.border = "3px solid #fff"; // Borde blanco para hacerlo más visible
+      arButton.style.borderRadius = "15px";
+      arButton.style.fontSize = "20px"; // Texto más grande
+      arButton.style.fontWeight = "bold";
+      arButton.style.zIndex = "999999"; // Aumentar z-index para asegurar visibilidad
+      arButton.style.boxShadow = "0 8px 30px rgba(255,102,0,0.6), 0 0 0 2px rgba(255,255,255,0.3)"; // Sombra más prominente
+      arButton.style.pointerEvents = "auto"; // Asegurar que los eventos funcionen
+      arButton.style.cursor = "pointer"; // Agregar cursor pointer
+      arButton.style.fontFamily = "system-ui, -apple-system, sans-serif"; // Fuente específica
+      arButton.style.textAlign = "center"; // Centrar texto
+      arButton.style.display = "flex"; // Usar flexbox
+      arButton.style.alignItems = "center"; // Centrar verticalmente
+      arButton.style.justifyContent = "center"; // Centrar horizontalmente
+      arButton.style.gap = "8px"; // Espacio entre icono y texto
+
+      // Agregar el texto al botón
+      arButton.textContent = "🥽 Iniciar Experiencia AR";
+
+      console.log("🔧 Botón AR creado:", arButton); // Debug
+
+      document.body.appendChild(arButton);
+
+      console.log("🔧 Botón AR agregado al DOM"); // Debug
+
+      // Agregar un indicador visual de que el botón AR está creado
+      const indicator = document.createElement('div');
+      indicator.textContent = "✅ Botón AR creado";
+      indicator.style.position = "fixed";
+      indicator.style.top = "20px";
+      indicator.style.right = "20px";
+      indicator.style.background = "rgba(0,255,0,0.9)";
+      indicator.style.color = "white";
+      indicator.style.padding = "10px 15px";
+      indicator.style.borderRadius = "8px";
+      indicator.style.fontSize = "14px";
+      indicator.style.fontWeight = "bold";
+      indicator.style.zIndex = "999999";
+      document.body.appendChild(indicator);
+
+      // Remover el indicador después de 3 segundos
+      setTimeout(() => {
+        if (indicator.parentNode) {
+          indicator.parentNode.removeChild(indicator);
+        }
+      }, 3000);
+
+      return () => {
+        console.log("🔧 Limpiando botón AR..."); // Debug
+        if (arButton.parentNode) {
+          arButton.parentNode.removeChild(arButton);
+        }
+        if (indicator.parentNode) {
+          indicator.parentNode.removeChild(indicator);
+        }
+      };
+    } catch (error) {
+      console.error("🔧 Error creando botón AR:", error);
+      
+      // Crear un botón de fallback si ARButton.createButton falla
+      const fallbackButton = document.createElement('button');
+      fallbackButton.textContent = webXRSupported ? "🥽 AR No Disponible" : "🥽 WebXR No Soportado";
+      fallbackButton.style.position = "fixed";
+      fallbackButton.style.bottom = "120px";
+      fallbackButton.style.right = "20px";
+      fallbackButton.style.left = "20px";
+      fallbackButton.style.padding = "16px 24px";
+      fallbackButton.style.background = "linear-gradient(135deg, #666, #999)";
+      fallbackButton.style.color = "white";
+      fallbackButton.style.border = "none";
+      fallbackButton.style.borderRadius = "12px";
+      fallbackButton.style.fontSize = "18px";
+      fallbackButton.style.fontWeight = "bold";
+      fallbackButton.style.zIndex = "999999";
+      fallbackButton.style.cursor = "not-allowed";
+      fallbackButton.disabled = true;
+      
+      document.body.appendChild(fallbackButton);
+      
+      return () => {
+        if (fallbackButton.parentNode) {
+          fallbackButton.parentNode.removeChild(fallbackButton);
+        }
+      };
+    }
+  }, [modelLoaded, webXRSupported]);
 
   // AR Management con controles Three.js Sprites
   useEffect(() => {
@@ -570,6 +687,78 @@ export default function ARExperience({
             ← Cerrar
           </button>
         )}
+
+        {/* Botón de prueba AR siempre visible */}
+        {modelLoaded && !isAR && (
+          <button
+            onClick={() => {
+              console.log("🔧 Botón de prueba AR clickeado");
+              // Intentar iniciar AR manualmente
+              if (rendererRef.current?.xr?.isPresenting === false) {
+                rendererRef.current.xr.getSession().then(session => {
+                  if (session) {
+                    console.log("🔧 Sesión AR iniciada manualmente");
+                  }
+                }).catch(error => {
+                  console.error("🔧 Error iniciando AR manualmente:", error);
+                });
+              }
+            }}
+            style={{
+              position: "absolute",
+              top: 20,
+              right: 20,
+              padding: "15px 25px",
+              backgroundColor: "rgba(255,102,0,0.9)",
+              color: "white",
+              border: "2px solid #fff",
+              borderRadius: "12px",
+              cursor: "pointer",
+              fontSize: "16px",
+              fontWeight: "bold",
+              zIndex: 9999,
+              pointerEvents: "auto",
+            }}
+          >
+            🧪 Probar AR
+          </button>
+        )}
+
+        {/* Indicador de estado del modelo */}
+        <div
+          style={{
+            position: "absolute",
+            top: 80,
+            right: 20,
+            padding: "10px 15px",
+            backgroundColor: modelLoaded ? "rgba(0,255,0,0.8)" : "rgba(255,0,0,0.8)",
+            color: "white",
+            borderRadius: "8px",
+            fontSize: "12px",
+            fontWeight: "bold",
+            zIndex: 9999,
+          }}
+        >
+          Modelo: {modelLoaded ? "✅ Cargado" : "⏳ Cargando..."}
+        </div>
+
+        {/* Indicador de soporte WebXR */}
+        <div
+          style={{
+            position: "absolute",
+            top: 120,
+            right: 20,
+            padding: "10px 15px",
+            backgroundColor: webXRSupported ? "rgba(0,255,0,0.8)" : "rgba(255,0,0,0.8)",
+            color: "white",
+            borderRadius: "8px",
+            fontSize: "12px",
+            fontWeight: "bold",
+            zIndex: 9999,
+          }}
+        >
+          WebXR: {webXRSupported ? "✅ Soportado" : "❌ No soportado"}
+        </div>
       </div>
 
       {/* Los controles AR ahora se crean como elementos DOM nativos en handleSessionStart */}
