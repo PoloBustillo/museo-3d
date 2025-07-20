@@ -1,17 +1,14 @@
-import { useRef, useEffect } from "react";
+import { useEffect } from "react";
 
 /**
  * Hook para restaurar la posición de scroll al abrir/cerrar un modal.
  * @param {boolean} isOpen - Si el modal está abierto.
  * @param {React.RefObject} modalRef - Ref del elemento modal al que hacer scroll.
+ * @param {number} restoreScrollY - Posición de scroll a restaurar al cerrar.
  */
-export function useModalScrollRestore(isOpen, modalRef) {
-  const scrollPosition = useRef(0);
-
+export function useModalScrollRestore(isOpen, modalRef, restoreScrollY) {
   useEffect(() => {
     if (isOpen) {
-      // Guardar la posición actual
-      scrollPosition.current = window.scrollY;
       // Hacer scroll al modal
       if (modalRef.current) {
         modalRef.current.scrollIntoView({
@@ -19,11 +16,10 @@ export function useModalScrollRestore(isOpen, modalRef) {
           block: "center",
         });
       }
-    } else {
+    } else if (typeof restoreScrollY === "number") {
       // Restaurar la posición previa
-      window.scrollTo({ top: scrollPosition.current, behavior: "smooth" });
+      window.scrollTo({ top: restoreScrollY, behavior: "smooth" });
     }
-    // Solo depende de isOpen
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 }

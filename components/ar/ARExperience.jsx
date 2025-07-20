@@ -30,9 +30,7 @@ export default function ARExperience({
   const textureRef = useRef();
   
   // Referencias para controles AR - Botón HTML tradicional
-  const arControlsRef = useRef({
-    buttonElement: null
-  });
+  // Eliminar arControlsRef y createARButton y cualquier referencia a window.createARButton
 
   // --- BOTÓN 3D EN AR ---
   const arButtonSpriteRef = useRef();
@@ -141,67 +139,8 @@ export default function ARExperience({
     sceneRef.current.add(sprite);
   }
 
-  // Función para crear botón HTML que funciona en AR
-  function createARButton() {
-    // Remover botón existente
-    if (arControlsRef.current.buttonElement) {
-      document.body.removeChild(arControlsRef.current.buttonElement);
-      arControlsRef.current.buttonElement = null;
-    }
-    
-    // Crear botón HTML
-    const button = document.createElement('button');
-    const buttonText = arMode === 'positioning' ? 'COLOCAR AQUÍ' : 'REPOSICIONAR';
-    button.textContent = buttonText;
-    
-    // Estilo del botón para AR
-    button.style.position = 'fixed';
-    button.style.bottom = '50px';
-    button.style.left = '50%';
-    button.style.transform = 'translateX(-50%)';
-    button.style.padding = '15px 30px';
-    button.style.fontSize = '18px';
-    button.style.fontWeight = 'bold';
-    button.style.color = 'white';
-    button.style.backgroundColor = arMode === 'positioning' ? '#00c851' : '#ff8800';
-    button.style.border = 'none';
-    button.style.borderRadius = '25px';
-    button.style.boxShadow = '0 4px 20px rgba(0,0,0,0.5)';
-    button.style.zIndex = '99999'; // Z-index muy alto
-    button.style.pointerEvents = 'auto';
-    button.style.cursor = 'pointer';
-    button.style.touchAction = 'manipulation';
-    
-    // Event listener del botón
-    button.addEventListener('click', () => {
-      console.log('Botón HTML clickeado!'); // Debug
-      
-      if (arMode === 'positioning') {
-        // Colocar el modelo
-        if (modelRef.current) {
-          setFixedPosition({
-            position: modelRef.current.position.clone(),
-            rotation: modelRef.current.rotation.clone()
-          });
-          setArMode('fixed');
-          console.log('Modelo colocado');
-        }
-      } else {
-        // Reposicionar el modelo
-        setArMode('positioning');
-        setFixedPosition(null);
-        setModelRotation({ x: 0, y: 0, z: 0 });
-        console.log('Modo reposicionamiento');
-      }
-    });
-    
-    // Agregar al DOM
-    document.body.appendChild(button);
-    arControlsRef.current.buttonElement = button;
-  }
-
   // Exponer función globalmente para actualizaciones
-  window.createARButton = createARButton;
+  // Eliminar arControlsRef y createARButton y cualquier referencia a window.createARButton
 
   // Función para agregar logs visuales
   const addDebugLog = (message, type = 'info') => {
@@ -395,30 +334,6 @@ export default function ARExperience({
     }
 
     try {
-      // PRIMERO: Crear un botón de prueba simple para verificar que funciona
-      const testButton = document.createElement('button');
-      testButton.textContent = "🧪 BOTÓN DE PRUEBA";
-      testButton.style.position = "fixed";
-      testButton.style.bottom = "200px";
-      testButton.style.right = "20px";
-      testButton.style.left = "20px";
-      testButton.style.padding = "20px 30px";
-      testButton.style.background = "linear-gradient(135deg, #ff0000, #ff6600)";
-      testButton.style.color = "white";
-      testButton.style.border = "5px solid #fff";
-      testButton.style.borderRadius = "15px";
-      testButton.style.fontSize = "24px";
-      testButton.style.fontWeight = "bold";
-      testButton.style.zIndex = "999999";
-      testButton.style.cursor = "pointer";
-      testButton.onclick = () => {
-        alert("¡Botón de prueba funciona!");
-        console.log("🧪 Botón de prueba clickeado");
-      };
-      
-      document.body.appendChild(testButton);
-      console.log("🧪 Botón de prueba creado y agregado al DOM");
-
       const arButton = ARButton.createButton(rendererRef.current);
       
       if (!arButton) {
@@ -457,38 +372,10 @@ export default function ARExperience({
 
       console.log("🔧 Botón AR agregado al DOM"); // Debug
 
-      // Agregar un indicador visual de que el botón AR está creado
-      const indicator = document.createElement('div');
-      indicator.textContent = "✅ Botón AR creado";
-      indicator.style.position = "fixed";
-      indicator.style.top = "20px";
-      indicator.style.right = "20px";
-      indicator.style.background = "rgba(0,255,0,0.9)";
-      indicator.style.color = "white";
-      indicator.style.padding = "10px 15px";
-      indicator.style.borderRadius = "8px";
-      indicator.style.fontSize = "14px";
-      indicator.style.fontWeight = "bold";
-      indicator.style.zIndex = "999999";
-      document.body.appendChild(indicator);
-
-      // Remover el indicador después de 3 segundos
-      setTimeout(() => {
-        if (indicator.parentNode) {
-          indicator.parentNode.removeChild(indicator);
-        }
-      }, 3000);
-
       return () => {
         console.log("🔧 Limpiando botón AR..."); // Debug
         if (arButton.parentNode) {
           arButton.parentNode.removeChild(arButton);
-        }
-        if (testButton.parentNode) {
-          testButton.parentNode.removeChild(testButton);
-        }
-        if (indicator.parentNode) {
-          indicator.parentNode.removeChild(indicator);
         }
       };
     } catch (error) {
@@ -535,34 +422,55 @@ export default function ARExperience({
       setArMode('positioning'); // Empezar en modo posicionamiento
       setFixedPosition(null);
       setModelRotation({ x: 0, y: 0, z: 0 });
-      
-      // Crear botón HTML para AR
-      createARButton();
-      
-      // Posicionar para AR (modo búsqueda inicial)
-      model.position.set(0, 0, -0.8);
-      model.scale.setScalar(0.15);
-      
-      // Configurar fondo transparente para AR
+
+      // Limpiar fondo y ambiente
       if (sceneRef.current) {
         sceneRef.current.background = null;
         sceneRef.current.environment = null;
       }
-      
-      // REFORZAR configuraciones anti-oclusión
-      model.traverse((child) => {
-        if (child.isMesh) {
-          child.frustumCulled = false;
-          child.visible = true;
-          if (child.material) {
-            child.material.side = THREE.DoubleSide;
-            child.material.depthTest = false;
-            child.material.depthWrite = false;
-            child.material.transparent = false;
-            child.material.opacity = 1.0;
+
+      // Remover todos los hijos de la escena excepto el modelo AR y el sprite del botón
+      if (sceneRef.current) {
+        sceneRef.current.children = sceneRef.current.children.filter(child =>
+          child === modelRef.current || child === arButtonSpriteRef.current
+        );
+      }
+
+      // Ajustar posición y escala del modelo para AR
+      if (modelRef.current) {
+        modelRef.current.position.set(0, 0, -0.8); // Frente a la cámara
+        modelRef.current.scale.setScalar(0.15);   // Escala pequeña para AR
+        // Reforzar materiales y visibilidad
+        modelRef.current.traverse((child) => {
+          if (child.isMesh) {
+            child.frustumCulled = false;
+            child.visible = true;
+            if (child.material) {
+              child.material.side = THREE.DoubleSide;
+              child.material.depthTest = false;
+              child.material.depthWrite = false;
+              child.material.transparent = false;
+              child.material.opacity = 1.0;
+            }
           }
-        }
-      });
+        });
+      }
+
+      // Agregar luz ambiental y direccional para AR
+      if (sceneRef.current) {
+        // Elimina luces previas
+        sceneRef.current.children = sceneRef.current.children.filter(child =>
+          !(child.isLight)
+        ).concat(sceneRef.current.children.filter(child =>
+          child === modelRef.current || child === arButtonSpriteRef.current
+        ));
+        // Luz ambiental
+        sceneRef.current.add(new THREE.AmbientLight(0xffffff, 1.2));
+        // Luz direccional
+        const directional = new THREE.DirectionalLight(0xffffff, 0.8);
+        directional.position.set(0, 2, 2);
+        sceneRef.current.add(directional);
+      }
     }
 
     function handleSessionEnd() {
@@ -573,10 +481,7 @@ export default function ARExperience({
       setModelRotation({ x: 0, y: 0, z: 0 });
       
       // Remover botón HTML
-      if (arControlsRef.current.buttonElement) {
-        document.body.removeChild(arControlsRef.current.buttonElement);
-        arControlsRef.current.buttonElement = null;
-      }
+      // Eliminar arControlsRef y createARButton y cualquier referencia a window.createARButton
       
       // Restaurar escena de fondo
       if (textureRef.current && sceneRef.current) {
@@ -635,18 +540,15 @@ export default function ARExperience({
       renderer.setAnimationLoop(null);
       
       // Limpiar botón HTML al desmontar
-      if (arControlsRef.current.buttonElement) {
-        document.body.removeChild(arControlsRef.current.buttonElement);
-        arControlsRef.current.buttonElement = null;
-      }
+      // Eliminar arControlsRef y createARButton y cualquier referencia a window.createARButton
     };
   }, [modelLoaded]); // Simplificar dependencias
 
   // Efecto para actualizar el botón AR cuando cambia el modo
   useEffect(() => {
-    if (isAR && rendererRef.current?.xr?.isPresenting && window.createARButton) {
+    if (isAR && rendererRef.current?.xr?.isPresenting && ARButton.createButton) {
       setTimeout(() => {
-        window.createARButton();
+        ARButton.createButton(rendererRef.current);
       }, 100);
     }
   }, [arMode]);
@@ -680,7 +582,8 @@ export default function ARExperience({
       if (
         sprite &&
         scene &&
-        scene.children.includes(sprite)
+        scene.children.includes(sprite) &&
+        sprite.matrixWorld // chequeo extra
       ) {
         try {
           const intersects = raycaster.intersectObject(sprite, true);
@@ -694,7 +597,12 @@ export default function ARExperience({
           }
         } catch (err) {
           Sentry.captureException(err, {
-            tags: { action: "ar_button_3d_raycast_error" }
+            tags: { action: "ar_button_3d_raycast_error" },
+            extra: {
+              spriteNull: !sprite,
+              matrixWorldNull: !sprite?.matrixWorld,
+              sceneHasSprite: scene?.children?.includes(sprite)
+            }
           });
         }
       }
@@ -713,44 +621,6 @@ export default function ARExperience({
     } else if (!isAR && sceneRef.current && arButtonSpriteRef.current) {
       sceneRef.current.remove(arButtonSpriteRef.current);
       arButtonSpriteRef.current = null;
-    }
-  }, [isAR]);
-
-  // Efecto para crear un botón de fallback cuando estés en AR
-  useEffect(() => {
-    if (isAR) {
-      console.log("🔧 Creando botón de fallback para AR...");
-      
-      // Crear un botón de fallback directamente en el DOM
-      const fallbackButton = document.createElement('button');
-      fallbackButton.textContent = "🥽 INICIAR AR (DOM)";
-      fallbackButton.style.position = "fixed";
-      fallbackButton.style.bottom = "100px";
-      fallbackButton.style.left = "50%";
-      fallbackButton.style.transform = "translateX(-50%)";
-      fallbackButton.style.padding = "20px 40px";
-      fallbackButton.style.background = "linear-gradient(135deg, #00ff00, #00cc00)";
-      fallbackButton.style.color = "white";
-      fallbackButton.style.border = "3px solid #000";
-      fallbackButton.style.borderRadius = "15px";
-      fallbackButton.style.fontSize = "20px";
-      fallbackButton.style.fontWeight = "bold";
-      fallbackButton.style.zIndex = "999999";
-      fallbackButton.style.cursor = "pointer";
-      fallbackButton.style.pointerEvents = "auto";
-      fallbackButton.onclick = () => {
-        console.log("🔧 Botón de fallback DOM clickeado");
-        alert("¡Botón de fallback DOM funciona!");
-      };
-      
-      document.body.appendChild(fallbackButton);
-      console.log("🔧 Botón de fallback DOM creado");
-
-      return () => {
-        if (fallbackButton.parentNode) {
-          fallbackButton.parentNode.removeChild(fallbackButton);
-        }
-      };
     }
   }, [isAR]);
 

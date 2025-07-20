@@ -3,9 +3,9 @@ import { useRouter, useSearchParams, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ArrowLeft, Save, Download } from "lucide-react";
-import CanvasEditorPage from "../../../../components/CanvasEditorPage";
-import { AnimatedBackground } from "../../../../../../components/shared";
-import ProtectedRoute from "../../../../../../components/ProtectedRoute";
+import CanvasEditorPage from "../../../components/CanvasEditorPage";
+import { AnimatedBackground } from "../../../../../components/shared";
+import ProtectedRoute from "../../../../../components/ProtectedRoute";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
 
@@ -229,43 +229,6 @@ export default function EditarCanvasPage() {
             transition={{ duration: 0.5 }}
             className="max-w-7xl mx-auto"
           >
-            {/* Instrucciones para el usuario */}
-            {!canvasImage && (
-              <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                    ℹ
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-blue-800 dark:text-blue-200">
-                      ¿Cómo usar el editor?
-                    </h3>
-                    <div className="text-blue-700 dark:text-blue-300 text-sm">
-                      {muralData?.url_imagen ? (
-                        <div>
-                          <p className="mb-2">
-                            <strong>Editando imagen existente:</strong> La imagen original se ha cargado automáticamente.
-                          </p>
-                          <p>
-                            1. Dibuja encima con las herramientas • 
-                            2. Usa el botón naranja para restaurar la imagen original • 
-                            3. Usa el botón rojo para limpiar y empezar de cero • 
-                            4. Guarda cuando termines
-                          </p>
-                        </div>
-                      ) : (
-                        <p>
-                          1. Dibuja tu obra usando las herramientas disponibles • 
-                          2. Haz clic en el botón verde "Guardar" • 
-                          3. Una vez guardada, podrás continuar editando
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-            
             <div className="bg-white/90 dark:bg-neutral-900/90 rounded-2xl shadow-xl border border-border overflow-hidden p-6">
               <CanvasEditorPage
                 onSave={handleCanvasSave}

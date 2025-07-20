@@ -208,27 +208,6 @@ export default function CanvasPage() {
             transition={{ duration: 0.5 }}
             className="max-w-7xl mx-auto"
           >
-            {/* Instrucciones para el usuario */}
-            {!canvasImage && (
-              <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                    ℹ
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-blue-800 dark:text-blue-200">
-                      ¿Cómo usar el editor?
-                    </h3>
-                    <p className="text-blue-700 dark:text-blue-300 text-sm">
-                      1. Dibuja tu obra usando las herramientas disponibles • 
-                      2. Haz clic en el botón verde "Guardar" • 
-                      3. Una vez guardada, podrás continuar
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-            
             <div className="bg-white/90 dark:bg-neutral-900/90 rounded-2xl shadow-xl border border-border overflow-hidden p-6">
               <CanvasEditorPage
                 onSave={handleCanvasSave}

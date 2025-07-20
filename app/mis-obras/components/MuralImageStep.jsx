@@ -114,35 +114,103 @@ export default function MuralImageStep({ value, onChange, muralData = {}, editMo
           </button>
         ))}
       </div>
-      {tab === 0 && !previewUrl && (
-        <div
-          className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-8 mb-2 w-full transition-all cursor-pointer
-            border-gray-300 bg-gray-50 dark:bg-neutral-900/70
-            hover:border-indigo-400 hover:bg-indigo-50 dark:hover:border-indigo-400 dark:hover:bg-neutral-800/80
-          `}
-        >
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="hidden"
-            id="file-upload"
-          />
-          <label
-            htmlFor="file-upload"
-            className="flex flex-col items-center cursor-pointer"
-          >
-            <Upload
-              size={56}
-              className="mb-3 text-indigo-400 dark:text-indigo-300"
-            />
-            <span className="text-lg font-semibold mb-1 text-gray-700 dark:text-gray-100">
-              Arrastra una imagen o haz click para subir
-            </span>
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              Formatos soportados: JPG, PNG, GIF, WebP
-            </span>
-          </label>
+      
+      {tab === 0 && (
+        <div>
+          {!previewUrl ? (
+            <div
+              className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-8 mb-2 w-full transition-all cursor-pointer
+                border-gray-300 bg-gray-50 dark:bg-neutral-900/70
+                hover:border-indigo-400 hover:bg-indigo-50 dark:hover:border-indigo-400 dark:hover:bg-neutral-800/80
+              `}
+            >
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+                id="file-upload"
+              />
+              <label
+                htmlFor="file-upload"
+                className="cursor-pointer flex flex-col items-center"
+              >
+                <Upload size={48} className="text-gray-400 mb-4" />
+                <span className="text-lg font-medium text-gray-600 dark:text-gray-300 mb-1">
+                  Arrastra una imagen o haz click para subir
+                </span>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Formatos soportados: JPG, PNG, GIF, WebP
+                </span>
+              </label>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center mt-4">
+              <div className="relative inline-block group">
+                {/* Imagen */}
+                {previewUrl.startsWith("data:") ? (
+                  <img
+                    src={previewUrl}
+                    alt="Preview"
+                    style={{
+                      maxWidth: 320,
+                      maxHeight: 240,
+                      borderRadius: 8,
+                      boxShadow: "0 2px 8px #0002",
+                    }}
+                  />
+                ) : (
+                  <Image
+                    src={previewUrl}
+                    alt="Preview"
+                    width={320}
+                    height={240}
+                    style={{ borderRadius: 8, boxShadow: "0 2px 8px #0002" }}
+                  />
+                )}
+                
+                {/* Botón eliminar */}
+                <button
+                  type="button"
+                  className="absolute top-0.5 right-1 w-8 h-8 p-0 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg focus:outline-none z-20"
+                  style={{ transform: "translate(50%,-50%)" }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLocalImage(null);
+                    setCanvasImage(null);
+                    onChange?.(null);
+                  }}
+                  aria-label="Eliminar imagen"
+                >
+                  <span className="text-xl leading-tight flex items-center justify-center">×</span>
+                </button>
+              </div>
+              
+              {/* Botón eliminar */}
+              <div className="mt-4 flex gap-3">
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
+                  onClick={() => {
+                    setLocalImage(null);
+                    setCanvasImage(null);
+                    onChange?.(null);
+                  }}
+                >
+                  🗑️ Eliminar
+                </button>
+              </div>
+              
+              {/* Info del archivo */}
+              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                {fileName && <span className="font-semibold">{fileName}</span>}
+                {fileName && fileSize !== null && fileSize !== undefined && " · "}
+                {fileSize !== null && fileSize !== undefined && (
+                  <span>{(fileSize / 1024).toFixed(1)} KB</span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
       {tab === 1 && (
@@ -163,7 +231,7 @@ export default function MuralImageStep({ value, onChange, muralData = {}, editMo
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
                   {previewUrl 
-                    ? "Edita la imagen existente o crea una nueva en el editor completo con herramientas profesionales."
+                    ? "Usa el editor para modificar la imagen actual, dibujar encima o crear una completamente nueva."
                     : "Accede a un editor de dibujo completo con herramientas profesionales, más espacio de trabajo y mejor experiencia de usuario."
                   }
                 </p>
@@ -214,123 +282,6 @@ export default function MuralImageStep({ value, onChange, muralData = {}, editMo
             </div>
           </div>
 
-          {/* Mostrar preview si existe */}
-          {previewUrl && (
-            <div className="flex flex-col items-center mt-4">
-              <div className="relative inline-block">
-                <img
-                  src={previewUrl}
-                  alt="preview"
-                  className="max-w-full h-auto max-h-64 rounded-lg shadow-md"
-                />
-                <div className="absolute top-2 right-2 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                  {canvasImage ? "Creada en canvas" : "Imagen existente"}
-                </div>
-              </div>
-          {/* Mostrar preview si existe en la pestaña de dibujo */}
-          {previewUrl && (
-            <div className="flex flex-col items-center mt-4">
-              <div className="relative inline-block">
-                <img
-                  src={previewUrl}
-                  alt="preview"
-                  className="max-w-full h-auto max-h-64 rounded-lg shadow-md"
-                />
-                <div className="absolute top-2 right-2 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
-                  {canvasImage ? "Creada en canvas" : "Imagen existente"}
-                </div>
-              </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-                Haz clic en "Editar en canvas" para modificar esta imagen
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-      
-      {/* Preview principal con hover para editar */}
-      {previewUrl && (
-        <div className="flex flex-col items-center mt-2">
-          <div className="relative inline-block group">
-            {/* Overlay de hover para editar */}
-            <div 
-              className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg cursor-pointer flex items-center justify-center z-10"
-              onClick={() => {
-                // Guardar datos y navegar al canvas
-                const currentData = { ...muralData };
-                localStorage.setItem("muralDraftData", JSON.stringify(currentData));
-                if (editMode && obraId) {
-                  router.push(`/mis-obras/editar/${obraId}/canvas`);
-                } else {
-                  router.push("/mis-obras/crear/canvas");
-                }
-              }}
-            >
-              <div className="flex flex-col items-center text-white">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-2">
-                  <span className="text-2xl">✏️</span>
-                </div>
-                <span className="text-sm font-semibold">Editar en canvas</span>
-              </div>
-            </div>
-            
-            {/* Botón eliminar */}
-            <button
-              type="button"
-              className="absolute top-0.5 right-1 w-8 h-8 p-0 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg focus:outline-none z-20"
-              style={{ transform: "translate(50%,-50%)" }}
-              onClick={(e) => {
-                e.stopPropagation();
-                setLocalImage(null);
-                setCanvasImage(null);
-                onChange?.(null);
-              }}
-              aria-label="Eliminar imagen"
-            >
-              <span className="text-xl leading-tight flex items-center justify-center">×</span>
-            </button>
-            
-            {/* Imagen */}
-            {previewUrl.startsWith("data:") ? (
-              <img
-                src={previewUrl}
-                alt="Preview"
-                style={{
-                  maxWidth: 320,
-                  maxHeight: 240,
-                  borderRadius: 8,
-                  boxShadow: "0 2px 8px #0002",
-                }}
-              />
-            ) : (
-              <Image
-                src={previewUrl}
-                alt="Preview"
-                width={320}
-                height={240}
-                style={{ borderRadius: 8, boxShadow: "0 2px 8px #0002" }}
-              />
-            )}
-            
-            {/* Badge indicador */}
-            <div className="absolute bottom-2 left-2 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-medium">
-              {canvasImage ? "Creada en canvas" : "Imagen existente"}
-            </div>
-          </div>
-          
-          {/* Instrucción para el usuario */}
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-3 text-center max-w-sm">
-            💡 Haz clic en la imagen para editarla en el canvas
-          </p>
-          
-          {/* Info del archivo */}
-          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
-            {fileName && <span className="font-semibold">{fileName}</span>}
-            {fileName && fileSize !== null && fileSize !== undefined && " · "}
-            {fileSize !== null && fileSize !== undefined && (
-              <span>{(fileSize / 1024).toFixed(1)} KB</span>
-            )}
-          </div>
         </div>
       )}
     </Box>

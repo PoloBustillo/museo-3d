@@ -113,6 +113,19 @@ export default function GaleriaPage() {
   };
   // Estado para el modal de zoom
   const [zoomMural, setZoomMural] = useState(null);
+  const scrollYRef = useRef(0);
+
+  const handleOpenZoom = (mural) => {
+    scrollYRef.current = window.scrollY;
+    setZoomMural(mural);
+    document.body.style.overflow = 'hidden';
+  };
+
+  const handleCloseZoom = () => {
+    setZoomMural(null);
+    document.body.style.overflow = '';
+    window.scrollTo({ top: scrollYRef.current, behavior: 'auto' });
+  };
 
   //Cargar de pagina en pagina los murales segun se hace scroll
   const [page, setPage] = useState(1);
@@ -234,7 +247,7 @@ export default function GaleriaPage() {
           >
           <MuralesList
               murales={muralesForScroll}
-              onMuralClick={setZoomMural}
+              onMuralClick={handleOpenZoom}
               onLike={handleLike}
               likedMurales={likedMurales}
               view={view}
@@ -246,7 +259,7 @@ export default function GaleriaPage() {
         {zoomMural && (
           <ModalZoomImage
             mural={zoomMural}
-            onClose={() => setZoomMural(null)}
+            onClose={handleCloseZoom}
           />
         )}
         {/* Modal AR */}

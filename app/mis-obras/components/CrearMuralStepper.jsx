@@ -622,37 +622,47 @@ export default function CrearMuralStepper({ initialData = null, editMode = false
     setIsCreating(true);
 
     try {
-      // Convertir dataURL a blob si es necesario
-      let imgFile;
       let url_imagen = null;
 
-      if (mural.url_imagen.startsWith("data:")) {
-        const res = await fetch(mural.url_imagen);
-        const blob = await res.blob();
-        imgFile = new File([blob], `${mural.titulo || "obra"}.png`, {
-          type: "image/png",
+      // Solo subir imagen si es nueva (base64 o File), no si ya es una URL
+      if (mural.url_imagen && typeof mural.url_imagen === 'string' && mural.url_imagen.startsWith('http')) {
+        // Ya es una URL de imagen existente, no subir de nuevo
+        url_imagen = mural.url_imagen;
+        console.log("✅ Usando imagen existente:", url_imagen);
+      } else if (mural.url_imagen) {
+        // Es imagen nueva que necesita ser subida
+        let imgFile;
+        if (mural.url_imagen.startsWith("data:")) {
+          const res = await fetch(mural.url_imagen);
+          const blob = await res.blob();
+          imgFile = new File([blob], `${mural.titulo || "obra"}.png`, {
+            type: "image/png",
+          });
+        } else {
+          // Si es un archivo File
+          imgFile = mural.url_imagen;
+        }
+
+        // Subir imagen nueva
+        const formDataImage = new FormData();
+        formDataImage.append("imagen", imgFile);
+
+        console.log("📤 Subiendo imagen nueva...");
+        const resImg = await fetch("/api/upload", {
+          method: "POST",
+          body: formDataImage,
         });
+
+        if (!resImg.ok) {
+          throw new Error("Error al subir la imagen");
+        }
+
+        const dataImg = await resImg.json();
+        url_imagen = dataImg.url;
+        console.log("✅ Imagen nueva subida:", url_imagen);
       } else {
-        // Si es un archivo File
-        imgFile = mural.url_imagen;
+        throw new Error("No hay imagen para procesar");
       }
-
-      // Subir imagen primero para obtener la URL
-      const formDataImage = new FormData();
-      formDataImage.append("imagen", imgFile);
-
-      console.log("📤 Subiendo imagen...");
-      const resImg = await fetch("/api/upload", {
-        method: "POST",
-        body: formDataImage,
-      });
-
-      if (!resImg.ok) {
-        throw new Error("Error al subir la imagen");
-      }
-
-      const dataImg = await resImg.json();
-      url_imagen = dataImg.url;
       console.log("✅ Imagen subida:", url_imagen);
 
       // Generar y subir modelo 3D

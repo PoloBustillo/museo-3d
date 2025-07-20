@@ -14,6 +14,9 @@ export default function ModalZoomImage({ mural, rect, onClose }) {
 
   // Scroll al área de la imagen al abrir el modal
   const imageContainerRef = useRef();
+  // (Ya no se usa useModalScrollRestore ni restoreScrollY)
+
+  // Hacer scroll al modal al abrir
   useEffect(() => {
     if (imageContainerRef.current) {
       imageContainerRef.current.scrollIntoView({ behavior: "smooth", block: "center" });

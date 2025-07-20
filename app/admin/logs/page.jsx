@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Unauthorized from "../../../components/Unauthorized.jsx";
 import { useModalScrollRestore } from "../../hooks/useModalScrollRestore";
+import { Loader2 } from "lucide-react";
 
 export default function AdminLogsPage() {
   const { data: session, status } = useSession();
@@ -54,20 +55,9 @@ export default function AdminLogsPage() {
     };
   }, [openTooltipIdx]);
 
-  // Cargar todos los logs al inicio (puedes paginar desde el backend si lo prefieres)
-  useEffect(() => {
-    const now = Date.now();
-    if (
-      logsCache.current.data &&
-      now - logsCache.current.timestamp < 2 * 60 * 1000
-    ) {
-      // Usa cache si no ha expirado (2 minutos)
-      setAllLogs(logsCache.current.data);
-      setLogs(logsCache.current.data.slice(0, logsPerPage));
-      setHasMore(logsCache.current.data.length > logsPerPage);
-      setLoading(false);
-      return;
-    }
+  // Cargar todos los logs al inicio y refrescar cada 45 segundos
+  const fetchLogs = useCallback(() => {
+    setLoading(true);
     fetch("/api/admin/sentry-logs")
       .then((res) => res.json())
       .then((data) => {
@@ -83,6 +73,14 @@ export default function AdminLogsPage() {
         setLoading(false);
       });
   }, []);
+
+  useEffect(() => {
+    fetchLogs();
+    const interval = setInterval(() => {
+      fetchLogs();
+    }, 45000); // 45 segundos
+    return () => clearInterval(interval);
+  }, [fetchLogs]);
 
   // Infinite scroll: cargar más logs cuando el usuario llega al final
   useEffect(() => {
@@ -190,8 +188,11 @@ export default function AdminLogsPage() {
     <div className="max-w-7xl mx-auto p-4 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-bold">
+          <CardTitle className="text-2xl font-bold flex items-center gap-2">
             Panel de eventos y errores
+            {loading && (
+              <Loader2 className="animate-spin w-5 h-5 text-muted-foreground" />
+            )}
           </CardTitle>
           <p className="text-muted-foreground">
             Este panel permite monitorear en tiempo real los errores y eventos
