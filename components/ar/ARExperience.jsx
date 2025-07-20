@@ -702,12 +702,7 @@ export default function ARExperience({
       if (!hitTestActive) return;
       if (modelRef.current) {
         setHitTestActive(false);
-        console.log("[HIT TEST] Modelo colocado en el mundo real");
-        Sentry.captureMessage("[HIT TEST] Modelo colocado en el mundo real", {
-          level: "info",
-          tags: { action: "ar_hit_test_place" },
-          extra: { timestamp: new Date().toISOString() }
-        });
+        logSentryStep("[HIT TEST] Modelo colocado en el mundo real");
       }
     }
     renderer.xr.getSession()?.addEventListener('select', onSelect);
@@ -840,6 +835,72 @@ export default function ARExperience({
     pointerEvents: "auto",
     touchAction: "manipulation", // Mejorar respuesta táctil
   };
+
+  // Contador global para logs de Sentry
+  let sentryLogCounter = 0;
+  function logSentryStep(msg) {
+    sentryLogCounter += 1;
+    const fullMsg = `[AR-STEP-${sentryLogCounter}] ${msg}`;
+    console.log(fullMsg);
+    Sentry.captureMessage(fullMsg);
+  }
+
+  // Log en cada paso crítico usando logSentryStep
+  useEffect(() => {
+    logSentryStep(`useEffect isAR: ${isAR}`);
+    if (isAR && sceneRef.current) {
+      try {
+        createARButtonPlane();
+        if (modelRef.current && !sceneRef.current.children.includes(modelRef.current)) {
+          sceneRef.current.add(modelRef.current);
+          logSentryStep("Modelo añadido a la escena");
+        }
+        logSentryStep(`Children finales: ${sceneRef.current.children.map(o => o.name || o.type).join(", ")}`);
+      } catch (err) {
+        console.error("[AR] Error añadiendo objetos:", err);
+        Sentry.captureException(err, { tags: { action: "ar_add_objects_error" } });
+      }
+    } else if (!isAR && sceneRef.current && arButtonPlaneRef.current) {
+      try {
+        sceneRef.current.remove(arButtonPlaneRef.current);
+        arButtonPlaneRef.current = null;
+        const debugCube = sceneRef.current.getObjectByName("DebugCube");
+        if (debugCube) sceneRef.current.remove(debugCube);
+        logSentryStep("Limpiando plano y cubo de debug");
+      } catch (err) {
+        console.error("[AR] Error limpiando objetos:", err);
+        Sentry.captureException(err, { tags: { action: "ar_cleanup_error" } });
+      }
+    }
+  }, [isAR]);
+
+  // Render loop de AR optimizado
+  useEffect(() => {
+    if (!isAR || !rendererRef.current || !sceneRef.current || !cameraRef.current) return;
+    const renderer = rendererRef.current;
+    let frameCount = 0;
+    renderer.setAnimationLoop(() => {
+      frameCount++;
+      // Solo el modelo sigue la cámara hasta el hit
+      if (modelRef.current && cameraRef.current && hitTestActive) {
+        modelRef.current.position.set(0, 0, -0.8);
+        modelRef.current.position.applyMatrix4(cameraRef.current.matrixWorld);
+        modelRef.current.quaternion.copy(cameraRef.current.quaternion);
+      }
+      if (frameCount % 300 === 0) {
+        logSentryStep(`Render loop activo. Frame: ${frameCount}`);
+      }
+      try {
+        renderer.render(sceneRef.current, cameraRef.current);
+      } catch (err) {
+        console.error("[AR] Error en render loop:", err);
+        Sentry.captureException(err, { tags: { action: "ar_render_loop_error" } });
+      }
+    });
+    return () => {
+      renderer.setAnimationLoop(null);
+    };
+  }, [isAR, hitTestActive]);
 
   return (
     <>

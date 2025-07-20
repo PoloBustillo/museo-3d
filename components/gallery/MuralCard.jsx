@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, forwardRef } from "react";
 import AutoresTooltip from "./AutoresTooltip";
 import { parseAutores, parseColaboradores } from "./utils";
 import { MdViewInAr } from "react-icons/md";
@@ -10,14 +10,14 @@ import ReactDOM from "react-dom";
 import { generateMuralGLB } from "../../utils/generateMuralGLB";
 import { uploadModelToCloudinary } from "../../utils/uploadToCloudinary";
 
-export default function MuralCard({
+const MuralCard = forwardRef(function MuralCard({
   mural,
   onClick,
   onLike,
   isLiked,
   view = "grid",
   onARClick,
-}) {
+}, ref) {
   const router = useRouter();
 
   // Manejo seguro de useSession
@@ -249,6 +249,7 @@ export default function MuralCard({
   if (view === "list") {
     return (
       <div
+        ref={ref}
         className="bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border flex items-center gap-6 p-4"
         onClick={onClick}
       >
@@ -325,6 +326,7 @@ export default function MuralCard({
 
   return (
     <div
+      ref={ref}
       className="rounded-lg shadow-md bg-white dark:bg-neutral-900 p-3 cursor-pointer hover:shadow-lg transition"
       onClick={onClick}
     >
@@ -481,4 +483,6 @@ export default function MuralCard({
       )}
     </div>
   );
-}
+});
+
+export default MuralCard;

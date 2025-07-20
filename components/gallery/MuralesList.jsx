@@ -7,6 +7,7 @@ export default function MuralesList({
   likedMurales,
   view = "grid",
   onARClick,
+  lastItemRef,
 }) {
   return (
     <div
@@ -16,17 +17,21 @@ export default function MuralesList({
           : "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"
       }
     >
-      {murales.map((mural) => (
-        <MuralCard
-          key={mural.id}
-          mural={mural}
-          onClick={() => onMuralClick(mural)}
-          onLike={() => onLike(mural)}
-          isLiked={likedMurales?.includes(mural.id)}
-          view={view}
-          onARClick={onARClick}
-        />
-      ))}
+      {murales.map((mural, idx) => {
+        const isLast = idx === murales.length - 1;
+        return (
+          <MuralCard
+            key={mural.id}
+            mural={mural}
+            onClick={() => onMuralClick(mural)}
+            onLike={() => onLike(mural)}
+            isLiked={likedMurales?.includes(mural.id)}
+            view={view}
+            onARClick={onARClick}
+            ref={isLast && lastItemRef ? lastItemRef : undefined}
+          />
+        );
+      })}
     </div>
   );
 }
