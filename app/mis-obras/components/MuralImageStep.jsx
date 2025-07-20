@@ -227,6 +227,19 @@ export default function MuralImageStep({ value, onChange, muralData = {}, editMo
                   {canvasImage ? "Creada en canvas" : "Imagen existente"}
                 </div>
               </div>
+          {/* Mostrar preview si existe en la pestaña de dibujo */}
+          {previewUrl && (
+            <div className="flex flex-col items-center mt-4">
+              <div className="relative inline-block">
+                <img
+                  src={previewUrl}
+                  alt="preview"
+                  className="max-w-full h-auto max-h-64 rounded-lg shadow-md"
+                />
+                <div className="absolute top-2 right-2 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-medium">
+                  {canvasImage ? "Creada en canvas" : "Imagen existente"}
+                </div>
+              </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                 Haz clic en "Editar en canvas" para modificar esta imagen
               </p>
@@ -234,24 +247,50 @@ export default function MuralImageStep({ value, onChange, muralData = {}, editMo
           )}
         </div>
       )}
+      
+      {/* Preview principal con hover para editar */}
       {previewUrl && (
         <div className="flex flex-col items-center mt-2">
-          <div className="relative inline-block">
+          <div className="relative inline-block group">
+            {/* Overlay de hover para editar */}
+            <div 
+              className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 rounded-lg cursor-pointer flex items-center justify-center z-10"
+              onClick={() => {
+                // Guardar datos y navegar al canvas
+                const currentData = { ...muralData };
+                localStorage.setItem("muralDraftData", JSON.stringify(currentData));
+                if (editMode && obraId) {
+                  router.push(`/mis-obras/editar/${obraId}/canvas`);
+                } else {
+                  router.push("/mis-obras/crear/canvas");
+                }
+              }}
+            >
+              <div className="flex flex-col items-center text-white">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-2">
+                  <span className="text-2xl">✏️</span>
+                </div>
+                <span className="text-sm font-semibold">Editar en canvas</span>
+              </div>
+            </div>
+            
+            {/* Botón eliminar */}
             <button
               type="button"
-              className="absolute top-0.5 right-1 w-8 h-8 p-0 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg focus:outline-none z-10"
+              className="absolute top-0.5 right-1 w-8 h-8 p-0 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg focus:outline-none z-20"
               style={{ transform: "translate(50%,-50%)" }}
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 setLocalImage(null);
                 setCanvasImage(null);
                 onChange?.(null);
               }}
               aria-label="Eliminar imagen"
             >
-              <span className="text-xl leading-tight flex items-center justify-center">
-                ×
-              </span>
+              <span className="text-xl leading-tight flex items-center justify-center">×</span>
             </button>
+            
+            {/* Imagen */}
             {previewUrl.startsWith("data:") ? (
               <img
                 src={previewUrl}
@@ -272,15 +311,26 @@ export default function MuralImageStep({ value, onChange, muralData = {}, editMo
                 style={{ borderRadius: 8, boxShadow: "0 2px 8px #0002" }}
               />
             )}
-            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
-              {fileName && <span className="font-semibold">{fileName}</span>}
-              {fileName && fileSize !== null && fileSize !== undefined && " · "}
-              {fileSize !== null && fileSize !== undefined && (
-                <span>{(fileSize / 1024).toFixed(1)} KB</span>
-              )}
+            
+            {/* Badge indicador */}
+            <div className="absolute bottom-2 left-2 bg-black/70 text-white px-3 py-1 rounded-full text-xs font-medium">
+              {canvasImage ? "Creada en canvas" : "Imagen existente"}
             </div>
           </div>
-          {/* Sin texto de 'Vista previa:' */}
+          
+          {/* Instrucción para el usuario */}
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-3 text-center max-w-sm">
+            💡 Haz clic en la imagen para editarla en el canvas
+          </p>
+          
+          {/* Info del archivo */}
+          <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+            {fileName && <span className="font-semibold">{fileName}</span>}
+            {fileName && fileSize !== null && fileSize !== undefined && " · "}
+            {fileSize !== null && fileSize !== undefined && (
+              <span>{(fileSize / 1024).toFixed(1)} KB</span>
+            )}
+          </div>
         </div>
       )}
     </Box>

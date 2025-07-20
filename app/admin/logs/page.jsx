@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Unauthorized from "../../../components/Unauthorized.jsx";
+import { useModalScrollRestore } from "../../hooks/useModalScrollRestore";
 
 export default function AdminLogsPage() {
   const { data: session, status } = useSession();
@@ -179,6 +180,11 @@ export default function AdminLogsPage() {
       )
     );
   }
+
+  // Ref para el modal
+  const logModalRef = useRef(null);
+  // Restaurar scroll al abrir/cerrar modal
+  useModalScrollRestore(!!selectedLog, logModalRef);
 
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-6">
@@ -396,7 +402,7 @@ export default function AdminLogsPage() {
             if (e.target === e.currentTarget) setSelectedLog(null);
           }}
         >
-          <Card className="w-full max-w-2xl mt-0 sm:mt-8 mx-0 sm:mx-auto max-h-[90vh] overflow-auto animate-fade-in">
+          <Card ref={logModalRef} className="w-full max-w-2xl mt-0 sm:mt-8 mx-0 sm:mx-auto max-h-[90vh] overflow-auto animate-fade-in">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Detalle del evento</CardTitle>
