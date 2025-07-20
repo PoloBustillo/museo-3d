@@ -63,10 +63,29 @@ function useCanvasSimple({
   const [isDrawing, setIsDrawing] = useState(false);
   const [brushColor, setBrushColor] = useState(initialColor);
   const [brushSize, setBrushSize] = useState(initialSize);
-  const [currentTool, setCurrentTool] = useState(initialTool);
+  // Asegurar que currentTool nunca sea falsy
+  const [currentTool, setCurrentTool] = useState(initialTool || "brush");
   const [cursorPos, setCursorPos] = useState(null);
   const [lastPoint, setLastPoint] = useState(null);
   const brushEngineRef = useRef(null);
+
+  // Wrapper seguro para setCurrentTool
+  const safeSetCurrentTool = useCallback((newTool) => {
+    if (newTool && typeof newTool === 'string') {
+      setCurrentTool(newTool);
+    } else {
+      console.warn(`⚠️ Intento de establecer tool inválido: "${newTool}", manteniendo actual`);
+    }
+  }, []);
+
+  // Debug: Verificar que currentTool nunca sea undefined (dentro del hook)
+  useEffect(() => {
+    console.log("🔍 CurrentTool cambió:", currentTool);
+    if (!currentTool) {
+      console.warn("⚠️ CurrentTool es falsy, forzando 'brush'");
+      setCurrentTool("brush");
+    }
+  }, [currentTool]);
 
   const getScaledCoords = (e, canvas) => {
     const rect = canvas.getBoundingClientRect();
@@ -90,8 +109,10 @@ function useCanvasSimple({
     }
 
     // Configurar el motor de pinceles
+    const safeCurrentTool = currentTool || "brush"; // Fallback seguro
+    console.log("🎯 Configurando brush engine:", { currentTool, safeCurrentTool, brushColor, brushSize });
     brushEngineRef.current.configure({
-      type: currentTool,
+      type: safeCurrentTool,
       color: brushColor,
       size: brushSize,
     });
@@ -113,6 +134,14 @@ function useCanvasSimple({
     if (!isDrawing || !brushEngineRef.current) return;
 
     const coords = getScaledCoords(e, canvas);
+
+    // Asegurar que el engine tenga la configuración correcta
+    const safeCurrentTool = currentTool || "brush";
+    brushEngineRef.current.configure({
+      type: safeCurrentTool,
+      color: brushColor,
+      size: brushSize,
+    });
 
     // Dibujar con el motor de pinceles
     brushEngineRef.current.draw(coords, lastPoint);
@@ -155,7 +184,7 @@ function useCanvasSimple({
     currentTool,
     setBrushColor,
     setBrushSize,
-    setCurrentTool,
+    setCurrentTool: safeSetCurrentTool, // Usar el wrapper seguro
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
@@ -309,7 +338,13 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
           id: categoryId,
           name: category.name,
           description: getCategoryDescription(categoryId),
-          brushes: brushesInCategory
+          // Transformar brushes para que tengan la misma estructura que tools
+          brushes: brushesInCategory.map((config) => ({
+            id: config.type,
+            name: config.name,
+            icon: config.icon === "Palette" ? PaletteIcon : ICON_MAP[config.icon] || Brush,
+            category: config.category,
+          }))
         };
       }
     });
@@ -408,8 +443,13 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
                 <button
                   key={tool.id}
                   onClick={() => {
-                    setCurrentTool(tool.id);
-                    setShowBrushModal(false);
+                    console.log("🎨 Seleccionando pincel:", { toolId: tool.id, toolName: tool.name });
+                    if (tool.id && typeof tool.id === 'string') {
+                      setCurrentTool(tool.id);
+                      setShowBrushModal(false);
+                    } else {
+                      console.warn("⚠️ Tool ID inválido:", tool);
+                    }
                   }}
                   className={`group relative p-4 rounded-xl transition-all duration-300 brush-button ${
                     currentTool === tool.id
@@ -596,13 +636,15 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
   };
 
   // Organizar pinceles - incluir todos los pinceles disponibles
-  const tools = BRUSH_CONFIGS.map((config) => ({
-    id: config.type,
-    name: config.name,
-    icon:
-      config.icon === "Palette" ? PaletteIcon : ICON_MAP[config.icon] || Brush,
-    category: config.category,
-  }));
+  const tools = BRUSH_CONFIGS
+    .filter(config => config.type && typeof config.type === 'string') // Filtrar configuraciones inválidas
+    .map((config) => ({
+      id: config.type,
+      name: config.name,
+      icon:
+        config.icon === "Palette" ? PaletteIcon : ICON_MAP[config.icon] || Brush,
+      category: config.category,
+    }));
 
   const colors = DEFAULT_COLORS;
 
@@ -852,7 +894,10 @@ export default function CanvasEditorPage({ onSave, editingMural = null }) {
                   
                   {/* Overlay para información del canvas */}
                   <div className="absolute top-2 left-2 bg-black/50 text-white text-xs px-2 py-1 rounded-lg backdrop-blur-sm">
-                    {currentTool} • {brushSize}px
+                    {(() => {
+                      const selectedTool = tools.find(t => t.id === currentTool);
+                      return selectedTool?.name || "Pincel Básico";
+                    })()} • {brushSize}px
                   </div>
                   
                   {/* Indicador de posición del cursor (opcional) */}

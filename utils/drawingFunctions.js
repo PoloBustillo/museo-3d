@@ -509,6 +509,10 @@ export class BrushEngine {
     opacity: 1,
   };
 
+  // Variables para el pincel de grosor variable (tu algoritmo)
+  #variableWidthPoints = [];
+  #tempCanvas = null;
+
   /**
    * Creates new brush engine instance
    * @param {HTMLCanvasElement} canvas - Canvas element
@@ -540,6 +544,17 @@ export class BrushEngine {
     ) {
       console.warn(`Invalid color: ${settings.color}, using default`);
       settings.color = "#000000";
+    }
+
+    // Validate brush type
+    if (settings.type !== undefined) {
+      if (!settings.type || typeof settings.type !== 'string') {
+        console.warn(`Invalid brush type: "${settings.type}", using default "brush"`);
+        settings.type = "brush";
+      } else if (!this.#getBrushImplementation(settings.type)) {
+        console.warn(`Unknown brush type: "${settings.type}", using default "brush"`);
+        settings.type = "brush";
+      }
     }
 
     this.#settings = { ...this.#settings, ...settings };
@@ -586,9 +601,14 @@ export class BrushEngine {
       // Execute brush-specific drawing
       brushImpl.call(this, { x, y, lastPoint, color, size });
 
-      // Handle smooth curves buffer cleanup when stroke ends
-      if (type === "smooth_curves" && lastPoint === null && this.pointsBuffer) {
-        this.resetSmoothCurvesBuffer();
+      // Handle buffer cleanup when stroke ends
+      if (lastPoint === null) {
+        if (type === "smooth_curves" && this.pointsBuffer) {
+          this.resetSmoothCurvesBuffer();
+        }
+        if (type === "variable_width") {
+          this.#clearVariableWidthPoints();
+        }
       }
 
       // Restore context state
@@ -686,6 +706,14 @@ export class BrushEngine {
       ribbon: this.#drawRibbon,
       fire_realistic: this.#drawFireRealistic,
       particles: this.#drawParticles,
+
+      // Image-based brushes
+      image_brush: this.#drawImageBrush,
+      texture_stamp: this.#drawTextureStamp,
+      pattern_brush: this.#drawPatternBrush,
+      
+      // Variable width brush
+      variable_width: this.#drawVariableWidth,
 
       // Effect brushes
       glow: this.#drawGlow,
@@ -3595,6 +3623,315 @@ export class BrushEngine {
     }
     this.#ctx.globalAlpha = 1;
   }
+
+  // ===========================
+  // IMAGE-BASED BRUSH METHODS
+  // ===========================
+
+  /**
+   * Pincel que usa una imagen/textura y la repite a lo largo del trazo
+   * Basado en el algoritmo que compartiste
+   */
+  #drawImageBrush({ x, y, lastPoint, color, size }) {
+    // Si no hay punto anterior, solo dibujamos un punto
+    if (!lastPoint) {
+      this.#drawImageStamp(x, y, size, color);
+      return;
+    }
+
+    // Calcular distancia y ángulo entre puntos (tu algoritmo!)
+    const dist = this.#distanceBetween(lastPoint, { x, y });
+    const angle = this.#angleBetween(lastPoint, { x, y });
+    
+    // Dibujar stamps a lo largo del trazo con espaciado uniforme
+    const spacing = Math.max(2, size * 0.3); // Espaciado entre stamps
+    const steps = Math.floor(dist / spacing);
+    
+    for (let i = 0; i <= steps; i++) {
+      const progress = steps > 0 ? i / steps : 0;
+      const currentX = lastPoint.x + (x - lastPoint.x) * progress;
+      const currentY = lastPoint.y + (y - lastPoint.y) * progress;
+      
+      // Pequeña variación aleatoria para efecto más orgánico
+      const offsetX = (Math.random() - 0.5) * size * 0.2;
+      const offsetY = (Math.random() - 0.5) * size * 0.2;
+      
+      this.#drawImageStamp(
+        currentX + offsetX, 
+        currentY + offsetY, 
+        size * (0.8 + Math.random() * 0.4), 
+        color
+      );
+    }
+  }
+
+  /**
+   * Sello con textura procedural que simula una imagen
+   */
+  #drawTextureStamp({ x, y, color, size }) {
+    const ctx = this.#ctx;
+    ctx.save();
+
+    // Crear patrón de textura procedural
+    const patternCanvas = document.createElement('canvas');
+    const patternSize = Math.ceil(size * 2);
+    patternCanvas.width = patternSize;
+    patternCanvas.height = patternSize;
+    const patternCtx = patternCanvas.getContext('2d');
+
+    // Generar textura procedural (simulando imagen)
+    const imageData = patternCtx.createImageData(patternSize, patternSize);
+    const data = imageData.data;
+    
+    for (let i = 0; i < data.length; i += 4) {
+      const pixelIndex = i / 4;
+      const pixelX = pixelIndex % patternSize;
+      const pixelY = Math.floor(pixelIndex / patternSize);
+      
+      // Crear patrón tipo brush/textura
+      const centerX = patternSize / 2;
+      const centerY = patternSize / 2;
+      const distFromCenter = Math.sqrt(
+        Math.pow(pixelX - centerX, 2) + Math.pow(pixelY - centerY, 2)
+      );
+      
+      // Gradiente radial con ruido
+      const intensity = Math.max(0, 1 - distFromCenter / (patternSize / 2));
+      const noise = Math.random() * 0.3;
+      const alpha = Math.min(255, intensity * 255 * (1 + noise));
+      
+      // Aplicar color del brush
+      const rgb = ColorUtils.hexToRgb(color);
+      data[i] = rgb.r;     // Red
+      data[i + 1] = rgb.g; // Green
+      data[i + 2] = rgb.b; // Blue
+      data[i + 3] = alpha; // Alpha
+    }
+    
+    patternCtx.putImageData(imageData, 0, 0);
+    
+    // Dibujar el stamp con la textura
+    ctx.globalAlpha = 0.7;
+    ctx.drawImage(
+      patternCanvas,
+      x - size,
+      y - size,
+      size * 2,
+      size * 2
+    );
+
+    ctx.restore();
+  }
+
+  /**
+   * Pincel con patrón repetitivo que sigue el trazo
+   */
+  #drawPatternBrush({ x, y, lastPoint, color, size }) {
+    if (!lastPoint) {
+      this.#drawPatternStamp(x, y, size, color);
+      return;
+    }
+
+    const dist = this.#distanceBetween(lastPoint, { x, y });
+    const angle = this.#angleBetween(lastPoint, { x, y });
+    
+    // Dibujar patrón a lo largo del trazo
+    const spacing = size * 0.8;
+    const steps = Math.ceil(dist / spacing);
+    
+    for (let i = 0; i <= steps; i++) {
+      const progress = steps > 0 ? i / steps : 0;
+      const currentX = lastPoint.x + (x - lastPoint.x) * progress;
+      const currentY = lastPoint.y + (y - lastPoint.y) * progress;
+      
+      this.#drawPatternStamp(currentX, currentY, size, color, angle);
+    }
+  }
+
+  // ===========================
+  // HELPER METHODS FOR IMAGE BRUSHES
+  // ===========================
+
+  /**
+   * Función auxiliar para calcular distancia entre puntos (tu algoritmo!)
+   */
+  #distanceBetween(point1, point2) {
+    return Math.sqrt(
+      Math.pow(point2.x - point1.x, 2) + Math.pow(point2.y - point1.y, 2)
+    );
+  }
+
+  /**
+   * Función auxiliar para calcular ángulo entre puntos (tu algoritmo!)
+   */
+  #angleBetween(point1, point2) {
+    return Math.atan2(point2.x - point1.x, point2.y - point1.y);
+  }
+
+  /**
+   * Dibuja un stamp individual con forma de brush
+   */
+  #drawImageStamp(x, y, size, color) {
+    const ctx = this.#ctx;
+    ctx.save();
+    
+    // Crear brush stamp circular con gradiente
+    const gradient = ctx.createRadialGradient(x, y, 0, x, y, size);
+    const rgb = ColorUtils.hexToRgb(color);
+    
+    gradient.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.8)`);
+    gradient.addColorStop(0.7, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.4)`);
+    gradient.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0)`);
+    
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(x, y, size, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Añadir textura con puntos
+    ctx.globalAlpha = 0.6;
+    for (let i = 0; i < size / 2; i++) {
+      const offsetX = (Math.random() - 0.5) * size * 1.5;
+      const offsetY = (Math.random() - 0.5) * size * 1.5;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(
+        x + offsetX, 
+        y + offsetY, 
+        Math.random() * 2 + 0.5, 
+        0, 
+        Math.PI * 2
+      );
+      ctx.fill();
+    }
+    
+    ctx.restore();
+  }
+
+  /**
+   * Dibuja un stamp con patrón geométrico
+   */
+  #drawPatternStamp(x, y, size, color, angle = 0) {
+    const ctx = this.#ctx;
+    ctx.save();
+    
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    
+    // Patrón en forma de cruz con círculos
+    ctx.strokeStyle = color;
+    ctx.lineWidth = Math.max(1, size * 0.1);
+    ctx.globalAlpha = 0.7;
+    
+    // Cruz principal
+    ctx.beginPath();
+    ctx.moveTo(-size, 0);
+    ctx.lineTo(size, 0);
+    ctx.moveTo(0, -size);
+    ctx.lineTo(0, size);
+    ctx.stroke();
+    
+    // Círculos en las esquinas
+    const positions = [
+      [-size * 0.5, -size * 0.5],
+      [size * 0.5, -size * 0.5],
+      [-size * 0.5, size * 0.5],
+      [size * 0.5, size * 0.5]
+    ];
+    
+    ctx.fillStyle = color;
+    positions.forEach(([px, py]) => {
+      ctx.beginPath();
+      ctx.arc(px, py, size * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    
+    ctx.restore();
+  }
+
+  /**
+   * Pincel de grosor variable que redibuja el canvas en cada movimiento
+   * Implementa tu algoritmo de puntos con grosor aleatorio
+   * @param {Object} params - Parámetros del pincel
+   * @param {number} params.x - Coordenada X
+   * @param {number} params.y - Coordenada Y
+   * @param {string} params.color - Color en formato hex
+   * @param {number} params.size - Tamaño base del pincel
+   */
+  #drawVariableWidth({ x, y, color, size }) {
+    const ctx = this.#ctx;
+    
+    // Función de utilidad para números aleatorios (tu algoritmo)
+    const getRandomInt = (min, max) => {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    };
+
+    // Crear canvas temporal si no existe
+    if (!this.#tempCanvas) {
+      this.#tempCanvas = document.createElement('canvas');
+      this.#tempCanvas.width = this.#canvas.width;
+      this.#tempCanvas.height = this.#canvas.height;
+    }
+
+    // Almacenar el punto actual con grosor aleatorio
+    const randomWidth = getRandomInt(size * 0.5, size * 1.5);
+    this.#variableWidthPoints.push({
+      x: x,
+      y: y,
+      width: randomWidth
+    });
+
+    // Guardar el estado del canvas principal
+    const tempCtx = this.#tempCanvas.getContext('2d');
+    tempCtx.drawImage(this.#canvas, 0, 0);
+
+    // Limpiar el canvas principal
+    ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
+
+    // Restaurar el contenido anterior
+    ctx.drawImage(this.#tempCanvas, 0, 0);
+
+    // Dibujar toda la línea con grosores variables
+    if (this.#variableWidthPoints.length > 1) {
+      ctx.save();
+      ctx.strokeStyle = color;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      // Dibujar conexiones suaves entre puntos
+      for (let i = 1; i < this.#variableWidthPoints.length; i++) {
+        const prevPoint = this.#variableWidthPoints[i - 1];
+        const currPoint = this.#variableWidthPoints[i];
+
+        // Grosor promedio entre puntos
+        const avgWidth = (prevPoint.width + currPoint.width) / 2;
+        
+        ctx.beginPath();
+        ctx.lineWidth = avgWidth;
+        ctx.moveTo(prevPoint.x, prevPoint.y);
+        ctx.lineTo(currPoint.x, currPoint.y);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    } else {
+      // Primer punto - solo dibujar un círculo
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x, y, randomWidth / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
+  /**
+   * Método para limpiar los puntos cuando se termine el trazo
+   * Debe llamarse cuando termine un stroke
+   */
+  #clearVariableWidthPoints() {
+    this.#variableWidthPoints = [];
+  }
 }
 
 // ===========================
@@ -3841,6 +4178,14 @@ export const BRUSH_TYPES = {
   RADIOACTIVE: "radioactive",
   X_RAY: "x_ray",
   ULTRASONIC: "ultrasonic",
+  
+  // Image-based brushes
+  IMAGE_BRUSH: "image_brush",
+  TEXTURE_STAMP: "texture_stamp", 
+  PATTERN_BRUSH: "pattern_brush",
+  
+  // Variable width brush
+  VARIABLE_WIDTH: "variable_width",
 };
 
 export const BRUSH_CONFIGS = [
@@ -3983,6 +4328,14 @@ export const BRUSH_CONFIGS = [
   { type: "radioactive", name: "Radioactivo", icon: "Zap", category: "special" },
   { type: "x_ray", name: "Rayos X", icon: "Zap", category: "special" },
   { type: "ultrasonic", name: "Ultrasónico", icon: "Waves", category: "special" },
+
+  // Nuevos pinceles con textura/imagen
+  { type: "image_brush", name: "Pincel Imagen", icon: "Grid3X3", category: "artistic" },
+  { type: "texture_stamp", name: "Sello Textura", icon: "Target", category: "stamp" },
+  { type: "pattern_brush", name: "Pincel Patrón", icon: "Grid3X3", category: "pattern" },
+  
+  // Pincel con grosor variable y redibujado
+  { type: "variable_width", name: "Grosor Variable", icon: "Brush", category: "artistic" },
 ];
 
 export const BRUSH_CATEGORIES = {
@@ -3997,20 +4350,20 @@ export const BRUSH_CATEGORIES = {
     brushes: [
       "pen", "pen2", "thick", "sliced", "multi", "multi_opacity",
       "carboncillo", "acuarela", "tiza", "marcador", "oleo", "pixel",
-      "neon", "puntos", "lineas", "fuego", "beads", "wiggle",
+      "neon", "puntos", "lineas", "fuego", "beads", "wiggle", "image_brush", "variable_width",
     ],
   },
   STAMP: {
     name: "Estampado",
     icon: "Stamp",
-    brushes: ["stamp_circle", "stamp_star", "splatter", "textured"],
+    brushes: ["stamp_circle", "stamp_star", "splatter", "textured", "texture_stamp"],
   },
   PATTERN: {
     name: "Patrones",
     icon: "Grid3X3",
     brushes: [
       "pattern_dots", "pattern_lines", "pattern_rainbow", "pattern_image",
-      "mosaic", "kaleidoscope", "mandala", "gradient",
+      "mosaic", "kaleidoscope", "mandala", "gradient", "pattern_brush",
     ],
   },
   SPRAY: {
