@@ -1285,31 +1285,7 @@ export default function ARExperience({
           }}
         />
 
-        {/* Botón cerrar - Solo si no estamos en AR */}
-        {showCloseButton && onClose && !isAR && (
-          <button
-            onClick={onClose}
-            style={{
-              position: "absolute",
-              top: 20,
-              left: 20,
-              padding: "12px 22px",
-              background: "rgba(30,30,30,0.85)",
-              color: "#fff",
-              border: "2px solid #fff",
-              borderRadius: "10px",
-              cursor: "pointer",
-              fontSize: "16px",
-              fontWeight: "bold",
-              zIndex: 10001,
-              pointerEvents: "auto",
-              boxShadow: "0 2px 12px rgba(0,0,0,0.18)",
-              transition: "background 0.2s, color 0.2s",
-            }}
-          >
-            ← Cerrar
-          </button>
-        )}
+      
         {renderARControls()}
         {renderARStatusIndicator()}
         {renderAmbienteSelector()}
