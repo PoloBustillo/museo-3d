@@ -1048,11 +1048,12 @@ export default function ARExperience({
     // Crear canvas para el texto
     const canvas = document.createElement('canvas');
     canvas.width = 512;
-    canvas.height = 128;
+    canvas.height = 96;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'rgba(30,30,30,0.7)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.font = 'bold 48px Arial';
+    ctx.font = '400 32px Arial';
     ctx.fillStyle = '#fff';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -1060,7 +1061,7 @@ export default function ARExperience({
     // Crear textura y plano
     const texture = new THREE.CanvasTexture(canvas);
     const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
-    const geometry = new THREE.PlaneGeometry(0.7, 0.175);
+    const geometry = new THREE.PlaneGeometry(0.45, 0.08);
     const plane = new THREE.Mesh(geometry, material);
     plane.name = 'ARStatusPlane';
     arStatusPlaneRef.current = plane;
@@ -1070,20 +1071,22 @@ export default function ARExperience({
   // Actualizar el texto del plano indicador cuando cambia el estado
   useEffect(() => {
     if (!isAR || !sceneRef.current) return;
-    const text = modelFixed ? '📍 Fijo en el mundo real' : '👀 Siguiendo cámara';
+    const text = modelFixed
+      ? 'Modelo fijo. Puedes girar y escalar.'
+      : 'Coloca el modelo. Toca para fijar.';
     createARStatusPlane(text);
   }, [isAR, modelFixed]);
 
-  // En el render loop, el plano indicador siempre sigue la cámara
+  // En el render loop, el plano indicador siempre sigue la cámara, más arriba y más pequeño
   useEffect(() => {
     if (!isAR || !rendererRef.current || !sceneRef.current || !cameraRef.current) return;
     const renderer = rendererRef.current;
     let frameCount = 0;
     renderer.setAnimationLoop(() => {
       frameCount++;
-      // Indicador de estado siempre frente a la cámara
+      // Indicador de estado siempre frente a la cámara, más arriba y más pequeño
       if (arStatusPlaneRef.current && cameraRef.current) {
-        arStatusPlaneRef.current.position.set(0, 0.3, -1.2);
+        arStatusPlaneRef.current.position.set(0, 0.5, -1.3);
         arStatusPlaneRef.current.position.applyMatrix4(cameraRef.current.matrixWorld);
         arStatusPlaneRef.current.quaternion.copy(cameraRef.current.quaternion);
       }
