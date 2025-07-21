@@ -10,7 +10,7 @@ import { useSessionData } from "../providers/SessionProvider";
 import { ButtonLoader } from "./LoadingSpinner";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 import {
   NavigationMenu,
@@ -108,6 +108,8 @@ export default function MainMenu({ onSubirArchivo }) {
   const [mobileArchivoOpen, setMobileArchivoOpen] = useState(false); // Estado para dropdown de Archivo
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || pathname;
   const [isVisible, setIsVisible] = useState(true);
   const lastScrollY = useRef(0);
   const lastHideY = useRef(0);
@@ -175,7 +177,9 @@ export default function MainMenu({ onSubirArchivo }) {
   }, [pathname]);
 
   const handleAuthClick = (mode) => {
-    openModal(mode === "register" ? "auth-register" : "auth-login");
+    openModal(mode === "register" ? "auth-register" : "auth-login", {
+      redirectTo: callbackUrl,
+    });
   };
 
   const menuLinks = [

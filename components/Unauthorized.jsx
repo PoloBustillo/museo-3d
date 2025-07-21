@@ -4,26 +4,26 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { 
-  ShieldX, 
-  Lock, 
-  Home, 
-  ArrowLeft, 
+import {
+  ShieldX,
+  Lock,
+  Home,
+  ArrowLeft,
   User,
   LogIn,
   Eye,
   EyeOff,
-  AlertTriangle
+  AlertTriangle,
 } from "lucide-react";
 import { useModal } from "../providers/ModalProvider";
 
-export default function Unauthorized({ 
+export default function Unauthorized({
   title = "Acceso no autorizado",
   message = "No tienes permisos para acceder a esta sección del museo",
   showLogin = true,
   redirectPath = "/",
   error = "401",
-  callbackUrl = null
+  callbackUrl = null,
 }) {
   const [mounted, setMounted] = useState(false);
   const [showEasterEgg, setShowEasterEgg] = useState(false);
@@ -43,7 +43,11 @@ export default function Unauthorized({
   }, [session, callbackUrl, router]);
 
   const handleLogin = () => {
-    openModal("auth-login");
+    if (callbackUrl) {
+      openModal("auth-login", { redirectTo: callbackUrl });
+    } else {
+      openModal("auth-login");
+    }
   };
 
   const handleEasterEgg = () => {
@@ -76,9 +80,9 @@ export default function Unauthorized({
         >
           {/* Icono de escudo con candado */}
           <motion.div
-            animate={{ 
+            animate={{
               rotate: [0, -5, 5, 0],
-              scale: [1, 1.05, 1]
+              scale: [1, 1.05, 1],
             }}
             transition={{ duration: 3, repeat: Infinity }}
             className="flex justify-center mb-6"
@@ -99,7 +103,7 @@ export default function Unauthorized({
           <h1 className="text-6xl font-bold text-red-600 dark:text-red-400 mb-4">
             {error}
           </h1>
-          
+
           {/* Iconos decorativos */}
           <motion.div
             animate={{ rotate: 360 }}
@@ -108,7 +112,7 @@ export default function Unauthorized({
           >
             <AlertTriangle className="w-6 h-6 text-orange-500 dark:text-orange-400" />
           </motion.div>
-          
+
           <motion.div
             animate={{ rotate: -360 }}
             transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
@@ -201,7 +205,7 @@ export default function Unauthorized({
               </div>
             )}
           </button>
-          
+
           {showEasterEgg && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -212,7 +216,9 @@ export default function Unauthorized({
               <p className="text-sm text-red-700 dark:text-red-300 italic">
                 "El acceso a las mejores obras requiere los permisos correctos"
               </p>
-              <p className="text-xs text-red-600 dark:text-red-400 mt-1">- Curador del Museo</p>
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                - Curador del Museo
+              </p>
             </motion.div>
           )}
         </motion.div>

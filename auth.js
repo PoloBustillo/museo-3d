@@ -1,7 +1,18 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
+// Prisma singleton para evitar problemas de conexión en desarrollo
 import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import * as Sentry from "@sentry/nextjs";
+
+let prisma;
+if (process.env.NODE_ENV === "production") {
+  prisma = new PrismaClient();
+} else {
+  if (!global.prisma) {
+    global.prisma = new PrismaClient();
+  }
+  prisma = global.prisma;
+}
 
 // Exporta las opciones por separado
 export const authOptions = {
@@ -40,13 +51,21 @@ export const authOptions = {
     },
   },
   events: {
-    async signIn(message) {},
-    async signOut(message) {},
+    async signIn(message) {
+      Sentry.captureMessage("Nuevo login", { level: "info", extra: message });
+    },
+    async signOut(message) {
+      Sentry.captureMessage("Logout", { level: "info", extra: message });
+    },
+    async error(message) {
+      Sentry.captureException(new Error("NextAuth error"), { extra: message });
+    },
   },
   debug: process.env.NODE_ENV === "development",
   logger: {
     error(code, metadata) {
       console.error("❌ NextAuth Error:", code, metadata);
+      Sentry.captureException(new Error(code), { extra: metadata });
     },
     warn(code) {
       console.warn("⚠️ NextAuth Warning:", code);

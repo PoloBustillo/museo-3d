@@ -1,22 +1,53 @@
 import { withAuth } from "next-auth/middleware";
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
+
+// Rutas protegidas (requieren sesión)
+const protectedPatterns = [
+  /^\/crear-sala/,
+  /^\/perfil/,
+  /^\/mis-obras(\/.*)?$/,
+  /^\/admin(\/.*)?$/,
+];
+// Rutas solo para invitados (guest-only)
+const guestOnlyPaths = ["/login", "/register"];
 
 export default withAuth(
   function middleware(req) {
-    // Este middleware se ejecutará en las rutas protegidas
-    console.log("🔒 Middleware ejecutado para:", req.nextUrl.pathname);
-
-    // Si no hay token y la ruta está protegida, redirigir a nuestra página personalizada
     const token = req.nextauth.token;
-    const protectedPaths = ["/crear-sala", "/perfil", "/mis-obras"];
-    const isProtectedPath = protectedPaths.some((path) =>
-      req.nextUrl.pathname.startsWith(path)
-    );
+    const { pathname } = req.nextUrl;
+    const userRole = (token?.role || "").toLowerCase();
 
-    if (isProtectedPath && !token) {
+    // Guest-only: redirigir si ya está autenticado
+    if (guestOnlyPaths.some((path) => pathname.startsWith(path)) && token) {
+      Sentry.captureMessage(
+        "Intento de acceso a guest-only por usuario autenticado",
+        {
+          level: "info",
+          extra: { pathname, userId: token?.sub },
+        }
+      );
+      return NextResponse.redirect(new URL("/perfil", req.url));
+    }
+
+    // Redirección personalizada para rutas protegidas
+    if (protectedPatterns.some((re) => re.test(pathname)) && !token) {
+      Sentry.captureMessage("Acceso denegado a ruta protegida sin token", {
+        level: "warning",
+        extra: { pathname },
+      });
       const url = new URL("/no-autorizado", req.url);
-      url.searchParams.set("callbackUrl", req.nextUrl.pathname);
+      url.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(url);
+    }
+
+    // Protección por rol (case-insensitive)
+    if (pathname.startsWith("/admin") && userRole !== "admin") {
+      Sentry.captureMessage("Acceso denegado a admin por usuario sin rol", {
+        level: "warning",
+        extra: { pathname, userId: token?.sub, userRole: token?.role },
+      });
+      return NextResponse.redirect(new URL("/no-autorizado", req.url));
     }
 
     return NextResponse.next();
@@ -24,19 +55,21 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Definir qué rutas necesitan autenticación
-        const protectedPaths = ["/crear-sala", "/perfil", "/mis-obras"];
-        const isProtectedPath = protectedPaths.some((path) =>
-          req.nextUrl.pathname.startsWith(path)
-        );
-
-        // Si la ruta no está protegida, permitir acceso
-        if (!isProtectedPath) {
-          return true;
+        const { pathname } = req.nextUrl;
+        const userRole = (token?.role || "").toLowerCase();
+        // Guest-only
+        if (guestOnlyPaths.some((path) => pathname.startsWith(path))) {
+          return !token;
         }
-
-        // Si la ruta está protegida, verificar token
-        // Si no hay token, permitir que el middleware maneje la redirección
+        // Protegidas
+        if (protectedPatterns.some((re) => re.test(pathname))) {
+          return !!token;
+        }
+        // Admin (case-insensitive)
+        if (pathname.startsWith("/admin")) {
+          return userRole === "admin";
+        }
+        // Público
         return true;
       },
     },
