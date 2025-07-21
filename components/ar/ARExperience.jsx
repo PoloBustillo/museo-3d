@@ -992,7 +992,7 @@ export default function ARExperience({
       try {
         // LIMPIEZA: Elimina todos los modelos previos excepto el modelo principal y las luces
         sceneRef.current.children = sceneRef.current.children.filter(child =>
-          child === modelRef.current || child.isLight
+          child === modelRef.current || child.isLight || child === arStatusPlaneRef.current
         );
         // Añade el modelo si no está
         if (modelRef.current && !sceneRef.current.children.includes(modelRef.current)) {
@@ -1042,7 +1042,9 @@ export default function ARExperience({
 
   function createARStatusPlane(text) {
     if (arStatusPlaneRef.current && sceneRef.current) {
-      sceneRef.current.remove(arStatusPlaneRef.current);
+      if (sceneRef.current.children.includes(arStatusPlaneRef.current)) {
+        sceneRef.current.remove(arStatusPlaneRef.current);
+      }
       arStatusPlaneRef.current = null;
     }
     // Crear canvas para el texto
@@ -1138,6 +1140,21 @@ export default function ARExperience({
       </div>
     );
   }
+
+  // Al salir de AR, elimina el modelo y el plano indicador si existen
+  useEffect(() => {
+    return () => {
+      if (sceneRef.current) {
+        if (modelRef.current && sceneRef.current.children.includes(modelRef.current)) {
+          sceneRef.current.remove(modelRef.current);
+        }
+        if (arStatusPlaneRef.current && sceneRef.current.children.includes(arStatusPlaneRef.current)) {
+          sceneRef.current.remove(arStatusPlaneRef.current);
+          arStatusPlaneRef.current = null;
+        }
+      }
+    };
+  }, []);
 
   return (
     <>
