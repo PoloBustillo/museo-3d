@@ -323,45 +323,14 @@ export default function ARExperience({
 
     try {
       const arButton = ARButton.createButton(rendererRef.current);
-      
       if (!arButton) {
         console.error("🔧 ARButton.createButton retornó null/undefined");
         return;
       }
-
-      arButton.style.position = "fixed";
-      arButton.style.bottom = "120px"; // Más arriba para que no se corte
-      arButton.style.right = "20px";
-      arButton.style.left = "20px"; // Ancho completo en móvil
-      arButton.style.padding = "20px 30px"; // Más padding para hacerlo más grande
-      arButton.style.background = "linear-gradient(135deg, #ff6600, #ff8800)";
-      arButton.style.color = "white";
-      arButton.style.border = "3px solid #fff"; // Borde blanco para hacerlo más visible
-      arButton.style.borderRadius = "15px";
-      arButton.style.fontSize = "20px"; // Texto más grande
-      arButton.style.fontWeight = "bold";
-      arButton.style.zIndex = "999999"; // Aumentar z-index para asegurar visibilidad
-      arButton.style.boxShadow = "0 8px 30px rgba(255,102,0,0.6), 0 0 0 2px rgba(255,255,255,0.3)"; // Sombra más prominente
-      arButton.style.pointerEvents = "auto"; // Asegurar que los eventos funcionen
-      arButton.style.cursor = "pointer"; // Agregar cursor pointer
-      arButton.style.fontFamily = "system-ui, -apple-system, sans-serif"; // Fuente específica
-      arButton.style.textAlign = "center"; // Centrar texto
-      arButton.style.display = "flex"; // Usar flexbox
-      arButton.style.alignItems = "center"; // Centrar verticalmente
-      arButton.style.justifyContent = "center"; // Centrar horizontalmente
-      arButton.style.gap = "8px"; // Espacio entre icono y texto
-
-      // Agregar el texto al botón
-      arButton.textContent = "🥽 Iniciar Experiencia AR";
-
-      console.log("🔧 Botón AR creado:", arButton); // Debug
-
+      // Elimina todos los estilos inline y el texto con emoji
+      // El texto y el estilo serán controlados por el CSS global y el MutationObserver
       document.body.appendChild(arButton);
-
-      console.log("🔧 Botón AR agregado al DOM"); // Debug
-
       return () => {
-        console.log("🔧 Limpiando botón AR..."); // Debug
         if (arButton.parentNode) {
           arButton.parentNode.removeChild(arButton);
         }
@@ -1185,41 +1154,217 @@ export default function ARExperience({
     );
   }
 
-  // Al salir de AR, elimina el modelo y el plano indicador si existen
+  // 1. Mejorar el estilo del botón AR estándar y cambiar texto a español
   useEffect(() => {
-    return () => {
-      if (sceneRef.current) {
-        if (modelRef.current && sceneRef.current.children.includes(modelRef.current)) {
-          sceneRef.current.remove(modelRef.current);
-        }
-        if (arStatusPlaneRef.current && sceneRef.current.children.includes(arStatusPlaneRef.current)) {
-          sceneRef.current.remove(arStatusPlaneRef.current);
-          arStatusPlaneRef.current = null;
-        }
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .ar-button, .webxr-ar-button {
+        position: fixed !important;
+        bottom: 32px !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        padding: 18px 54px !important;
+        font-size: 22px !important;
+        font-weight: 700 !important;
+        border-radius: 18px !important;
+        border: 4px solid red !important; /* DEBUG: borde rojo */
+        background: linear-gradient(90deg, #18181b 0%, #23272f 100%) !important;
+        color: #fff !important;
+        box-shadow: 0 4px 24px rgba(30,30,40,0.10) !important;
+        letter-spacing: 1px !important;
+        cursor: pointer !important;
+        z-index: 999999 !important;
+        outline: none !important;
+        transition: background 0.2s, box-shadow 0.2s !important;
+        font-family: inherit !important;
+        display: block !important;
+        min-width: 200px !important;
+        text-shadow: none !important;
       }
+      .ar-button:hover, .webxr-ar-button:hover {
+        background: linear-gradient(90deg, #23272f 0%, #18181b 100%) !important;
+        box-shadow: 0 8px 32px rgba(30,30,40,0.13) !important;
+      }
+      .ar-button span, .webxr-ar-button span {
+        font-size: 22px !important;
+        font-weight: 700 !important;
+        text-shadow: none !important;
+      }
+    `;
+    document.head.appendChild(style);
+    // Cambiar el texto del botón estándar si existe
+    const observer = new MutationObserver(() => {
+      const arBtn = document.querySelector('.ar-button, .webxr-ar-button');
+      if (arBtn && arBtn.textContent !== 'Iniciar AR') {
+        arBtn.textContent = 'Iniciar AR';
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      document.head.removeChild(style);
+      observer.disconnect();
     };
   }, []);
+
+  // 2. Reactivar el selector de ambientes con miniaturas, solo visible antes de entrar en AR
+  const ambientes = [
+    { name: "Galería", url: "/images/image360.jpg", thumb: "/images/image360.jpg" },
+    { name: "Ambiente 2", url: "/images/image3603.png", thumb: "/images/image3603.png" },
+    { name: "Ambiente 3", url: "/images/image3604.png", thumb: "/images/image3604.png" },
+    { name: "Sin fondo", url: null, thumb: "/images/placeholder-image.jpg" }
+  ];
+  const [ambiente, setAmbiente] = useState(ambientes[0]);
+  function renderAmbienteSelector() {
+    if (isAR) return null;
+    return (
+      <div style={{ position: 'fixed', bottom: 120, left: 0, right: 0, display: 'flex', justifyContent: 'center', gap: 36, zIndex: 10001, padding: '0 32px' }}>
+        {ambientes.map(a => (
+          a.url ? (
+            <img
+              key={a.name}
+              src={a.thumb}
+              alt={a.name}
+              style={{
+                width: 72,
+                height: 44,
+                borderRadius: 10,
+                border: ambiente.name === a.name ? '3px solid #6366f1' : '2px solid #fff',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.13)',
+                background: '#fff',
+                objectFit: 'cover',
+                transition: 'border 0.2s, filter 0.2s, opacity 0.2s',
+                filter: ambiente.name === a.name ? 'grayscale(0) opacity(1)' : 'grayscale(1) opacity(0.7)'
+              }}
+              onClick={() => setAmbiente(a)}
+            />
+          ) : (
+            <div
+              key={a.name}
+              style={{
+                width: 72,
+                height: 44,
+                borderRadius: 10,
+                border: ambiente.name === a.name ? '3px solid #6366f1' : '2px solid #fff',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.13)',
+                background: '#111',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#fff',
+                fontWeight: 600,
+                fontSize: 13,
+                transition: 'border 0.2s, filter 0.2s, opacity 0.2s',
+                filter: ambiente.name === a.name ? 'grayscale(0) opacity(1)' : 'grayscale(1) opacity(0.7)'
+              }}
+              onClick={() => setAmbiente(a)}
+              title="Sin fondo"
+            >
+              Sin fondo
+            </div>
+          )
+        ))}
+      </div>
+    );
+  }
+  // Cambiar el fondo cuando cambia el ambiente (solo en preview)
+  useEffect(() => {
+    if (!isAR && sceneRef.current) {
+      if (ambiente.url) {
+        const loader = new THREE.TextureLoader();
+        loader.load(ambiente.url, (texture) => {
+          texture.mapping = THREE.EquirectangularReflectionMapping;
+          texture.colorSpace = THREE.SRGBColorSpace;
+          sceneRef.current.background = texture;
+          sceneRef.current.environment = texture;
+        });
+      } else {
+        sceneRef.current.background = null;
+        sceneRef.current.environment = null;
+      }
+    }
+  }, [ambiente, isAR]);
+
+  // Al entrar/salir de AR, poner overflow: hidden y margin/padding 0 en body/html
+  useEffect(() => {
+    if (isAR) {
+      document.body.classList.add('ar-viewport');
+      document.documentElement.classList.add('ar-viewport');
+      document.body.style.overflow = 'hidden';
+      document.body.style.margin = '0';
+      document.body.style.padding = '0';
+      document.documentElement.style.overflow = 'hidden';
+      document.documentElement.style.margin = '0';
+      document.documentElement.style.padding = '0';
+    } else {
+      document.body.classList.remove('ar-viewport');
+      document.documentElement.classList.remove('ar-viewport');
+      document.body.style.overflow = '';
+      document.body.style.margin = '';
+      document.body.style.padding = '';
+      document.documentElement.style.overflow = '';
+      document.documentElement.style.margin = '';
+      document.documentElement.style.padding = '';
+    }
+  }, [isAR]);
+
+  // Prevenir scroll en mobile siempre que el componente esté montado
+  useEffect(() => {
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    const prevBodyHeight = document.body.style.height;
+    const prevHtmlHeight = document.documentElement.style.height;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.height = '100vh';
+    document.documentElement.style.height = '100vh';
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.height = prevBodyHeight;
+      document.documentElement.style.height = prevHtmlHeight;
+    };
+  }, []);
+
+  // Utilidad para media queries en JS
+  function getARViewportStyle() {
+    // Por defecto mobile
+    let top = 88;
+    let height = `calc(100vh - 88px)`;
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+      top = 96;
+      height = `calc(100vh - 96px)`;
+    }
+    return {
+      position: "fixed",
+      width: "100vw",
+      height,
+      background: "#000",
+      top,
+      left: 0,
+      zIndex: 3000,
+      pointerEvents: "auto",
+      overflow: "hidden",
+    };
+  }
 
   return (
     <>
       {/* Container principal de THREE.js */}
       <div
-        style={{
-          position: "fixed",
-          width: "100vw",
-          height: "100vh",
-          background: "#000",
-          top: 0,
-          left: 0,
-          zIndex: 3000,
-          pointerEvents: "auto", // Siempre permitir eventos para que el botón funcione
-        }}
+        style={getARViewportStyle()}
       >
         <div
           ref={mountRef}
           style={{
             width: "100vw",
             height: "100vh",
+            margin: 0,
+            padding: 0,
+            position: "absolute",
+            top: 0,
+            left: 0,
           }}
         />
 
@@ -1231,14 +1376,18 @@ export default function ARExperience({
               position: "absolute",
               top: 20,
               left: 20,
-              padding: "10px 15px",
-              backgroundColor: "rgba(255,255,255,0.9)",
-              border: "none",
-              borderRadius: "8px",
+              padding: "12px 22px",
+              background: "rgba(30,30,30,0.85)",
+              color: "#fff",
+              border: "2px solid #fff",
+              borderRadius: "10px",
               cursor: "pointer",
-              fontSize: "14px",
-              zIndex: 9999,
+              fontSize: "16px",
+              fontWeight: "bold",
+              zIndex: 10001,
               pointerEvents: "auto",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.18)",
+              transition: "background 0.2s, color 0.2s",
             }}
           >
             ← Cerrar
@@ -1246,6 +1395,7 @@ export default function ARExperience({
         )}
         {renderARControls()}
         {renderARStatusIndicator()}
+        {renderAmbienteSelector()}
       </div>
 
       {/* Eliminar todos los demás overlays y botones HTML */}

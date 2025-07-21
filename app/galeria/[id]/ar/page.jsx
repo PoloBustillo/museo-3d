@@ -35,9 +35,7 @@ export default async function ARPage({ params }) {
     });
 
     return (
-      <div style={{ marginTop: 24 }}>
-        <ARClient modelUrl={modelo3dUrl} muralData={mural} />
-      </div>
+      <ARClient modelUrl={modelo3dUrl} muralData={mural} />
     );
   } catch (error) {
     console.error("Error fetching mural data:", error);
