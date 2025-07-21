@@ -1068,39 +1068,40 @@ export default function ARExperience({
     sceneRef.current.add(plane);
   }
 
-  // Actualizar el texto del plano indicador cuando cambia el estado
+  // Guardar el último texto del indicador para evitar recrear el canvas/textura si no cambia
+  const lastStatusText = useRef('');
   useEffect(() => {
     if (!isAR || !sceneRef.current) return;
     const text = modelFixed
       ? 'Modelo fijo. Puedes girar y escalar.'
       : 'Coloca el modelo. Toca para fijar.';
-    createARStatusPlane(text);
+    if (lastStatusText.current !== text) {
+      createARStatusPlane(text);
+      lastStatusText.current = text;
+    }
   }, [isAR, modelFixed]);
 
-  // En el render loop, el plano indicador siempre sigue la cámara, más arriba y más pequeño
+  // Render loop optimizado
   useEffect(() => {
     if (!isAR || !rendererRef.current || !sceneRef.current || !cameraRef.current) return;
     const renderer = rendererRef.current;
-    let frameCount = 0;
     renderer.setAnimationLoop(() => {
-      frameCount++;
-      // Indicador de estado siempre frente a la cámara, más arriba y más pequeño
+      // Indicador de estado siempre frente a la cámara
       if (arStatusPlaneRef.current && cameraRef.current) {
         arStatusPlaneRef.current.position.set(0, 0.5, -1.3);
         arStatusPlaneRef.current.position.applyMatrix4(cameraRef.current.matrixWorld);
         arStatusPlaneRef.current.quaternion.copy(cameraRef.current.quaternion);
       }
+      // Solo actualizar el modelo si no está fijo
       if (modelRef.current && cameraRef.current && !modelFixed) {
         modelRef.current.position.set(0, 0, -0.8);
         modelRef.current.position.applyMatrix4(cameraRef.current.matrixWorld);
         modelRef.current.quaternion.copy(cameraRef.current.quaternion);
       }
+      // Aplicar escala y rotación Y siempre
       if (modelRef.current) {
         modelRef.current.scale.setScalar(modelScale);
         modelRef.current.rotation.y = modelRotationY;
-      }
-      if (frameCount % 300 === 0) {
-        logSentryStep(`Render loop activo. Frame: ${frameCount}`);
       }
       try {
         renderer.render(sceneRef.current, cameraRef.current);
