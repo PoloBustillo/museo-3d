@@ -1037,6 +1037,80 @@ export default function ARExperience({
     };
   }, [isAR, hitTestActive]);
 
+  // Indicador de estado como plano 3D
+  const arStatusPlaneRef = useRef();
+
+  function createARStatusPlane(text) {
+    if (arStatusPlaneRef.current && sceneRef.current) {
+      sceneRef.current.remove(arStatusPlaneRef.current);
+      arStatusPlaneRef.current = null;
+    }
+    // Crear canvas para el texto
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = 'bold 48px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    // Crear textura y plano
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
+    const geometry = new THREE.PlaneGeometry(0.7, 0.175);
+    const plane = new THREE.Mesh(geometry, material);
+    plane.name = 'ARStatusPlane';
+    arStatusPlaneRef.current = plane;
+    sceneRef.current.add(plane);
+  }
+
+  // Actualizar el texto del plano indicador cuando cambia el estado
+  useEffect(() => {
+    if (!isAR || !sceneRef.current) return;
+    const text = modelFixed ? '📍 Fijo en el mundo real' : '👀 Siguiendo cámara';
+    createARStatusPlane(text);
+  }, [isAR, modelFixed]);
+
+  // En el render loop, el plano indicador siempre sigue la cámara
+  useEffect(() => {
+    if (!isAR || !rendererRef.current || !sceneRef.current || !cameraRef.current) return;
+    const renderer = rendererRef.current;
+    let frameCount = 0;
+    renderer.setAnimationLoop(() => {
+      frameCount++;
+      // Indicador de estado siempre frente a la cámara
+      if (arStatusPlaneRef.current && cameraRef.current) {
+        arStatusPlaneRef.current.position.set(0, 0.3, -1.2);
+        arStatusPlaneRef.current.position.applyMatrix4(cameraRef.current.matrixWorld);
+        arStatusPlaneRef.current.quaternion.copy(cameraRef.current.quaternion);
+      }
+      if (modelRef.current && cameraRef.current && !modelFixed) {
+        modelRef.current.position.set(0, 0, -0.8);
+        modelRef.current.position.applyMatrix4(cameraRef.current.matrixWorld);
+        modelRef.current.quaternion.copy(cameraRef.current.quaternion);
+      }
+      if (modelRef.current) {
+        modelRef.current.scale.setScalar(modelScale);
+        modelRef.current.rotation.y = modelRotationY;
+      }
+      if (frameCount % 300 === 0) {
+        logSentryStep(`Render loop activo. Frame: ${frameCount}`);
+      }
+      try {
+        renderer.render(sceneRef.current, cameraRef.current);
+      } catch (err) {
+        console.error("[AR] Error en render loop:", err);
+        Sentry.captureException(err, { tags: { action: "ar_render_loop_error" } });
+      }
+    });
+    return () => {
+      renderer.setAnimationLoop(null);
+    };
+  }, [isAR, modelFixed, modelScale, modelRotationY]);
+
   function renderARStatusIndicator() {
     if (!isAR) return null;
     return (
