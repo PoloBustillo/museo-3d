@@ -1158,36 +1158,47 @@ export default function ARExperience({
   useEffect(() => {
     const style = document.createElement('style');
     style.innerHTML = `
-      .ar-button, .webxr-ar-button {
+      .ar-button, .webxr-ar-button, #ARButton {
         position: fixed !important;
-        bottom: 32px !important;
         left: 50% !important;
         transform: translateX(-50%) !important;
-        padding: 18px 54px !important;
-        font-size: 22px !important;
-        font-weight: 700 !important;
-        border-radius: 18px !important;
-        border: 4px solid red !important; /* DEBUG: borde rojo */
+        bottom: 40px !important;
+        min-width: 120px !important;
+        padding: 10px 22px !important;
+        font-size: 15px !important;
+        font-weight: 500 !important;
+        border-radius: 10px !important;
+        border: none !important;
         background: linear-gradient(90deg, #18181b 0%, #23272f 100%) !important;
         color: #fff !important;
-        box-shadow: 0 4px 24px rgba(30,30,40,0.10) !important;
-        letter-spacing: 1px !important;
+        box-shadow: 0 2px 8px rgba(30,30,40,0.10) !important;
+        letter-spacing: 0.2px !important;
         cursor: pointer !important;
-        z-index: 999999 !important;
+        z-index: 2147483647 !important;
         outline: none !important;
         transition: background 0.2s, box-shadow 0.2s !important;
         font-family: inherit !important;
         display: block !important;
-        min-width: 200px !important;
+        pointer-events: auto !important;
         text-shadow: none !important;
+        opacity: 1 !important;
+        text-transform: none !important;
       }
-      .ar-button:hover, .webxr-ar-button:hover {
+      @media (max-width: 700px) {
+        .ar-button, .webxr-ar-button, #ARButton {
+          bottom: max(env(safe-area-inset-bottom,0), 60px) !important;
+          min-width: 70vw !important;
+          font-size: 14px !important;
+          padding: 9px 0 !important;
+        }
+      }
+      .ar-button:hover, .webxr-ar-button:hover, #ARButton:hover {
         background: linear-gradient(90deg, #23272f 0%, #18181b 100%) !important;
-        box-shadow: 0 8px 32px rgba(30,30,40,0.13) !important;
+        box-shadow: 0 4px 16px rgba(30,30,40,0.13) !important;
       }
-      .ar-button span, .webxr-ar-button span {
-        font-size: 22px !important;
-        font-weight: 700 !important;
+      .ar-button span, .webxr-ar-button span, #ARButton span {
+        font-size: 15px !important;
+        font-weight: 500 !important;
         text-shadow: none !important;
       }
     `;
@@ -1348,6 +1359,58 @@ export default function ARExperience({
       overflow: "hidden",
     };
   }
+
+  // Mostrar el botón ARButton SIEMPRE, incluso si WebXR no está soportado
+  useEffect(() => {
+    if (!rendererRef.current) return;
+    let arButton = document.querySelector('.ar-button, .webxr-ar-button, #ARButton');
+    if (!arButton) {
+      if (window.navigator.xr && ARButton.createButton) {
+        try {
+          arButton = ARButton.createButton(rendererRef.current);
+          if (!arButton) return;
+          arButton.id = 'ARButton';
+          arButton.removeAttribute('style');
+          arButton.textContent = 'Iniciar AR';
+          arButton.disabled = false;
+          arButton.style.opacity = '1';
+          arButton.style.pointerEvents = 'auto';
+          arButton.style.display = 'block';
+          document.body.appendChild(arButton);
+        } catch {}
+      } else {
+        arButton = document.createElement('button');
+        arButton.id = 'ARButton';
+        arButton.textContent = 'AR no soportado en este dispositivo';
+        arButton.disabled = true;
+        document.body.appendChild(arButton);
+      }
+    } else {
+      // Fuerza SIEMPRE el texto correcto
+      if (window.navigator.xr) {
+        arButton.textContent = 'Iniciar AR';
+        arButton.disabled = false;
+      } else {
+        arButton.textContent = 'AR no soportado en este dispositivo';
+        arButton.disabled = true;
+      }
+      arButton.style.opacity = '1';
+      arButton.style.pointerEvents = 'auto';
+      arButton.style.display = 'block';
+    }
+    // MutationObserver para forzar el texto correcto siempre
+    const observer = new MutationObserver(() => {
+      const btn = document.querySelector('#ARButton');
+      if (!btn) return;
+      if (window.navigator.xr && btn.textContent !== 'Iniciar AR') {
+        btn.textContent = 'Iniciar AR';
+      } else if (!window.navigator.xr && btn.textContent !== 'AR no soportado en este dispositivo') {
+        btn.textContent = 'AR no soportado en este dispositivo';
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    return () => observer.disconnect();
+  }, [rendererRef.current]);
 
   return (
     <>

@@ -59,7 +59,7 @@ const LayoutContainer = ({ children }) => {
       <header className="sticky top-0 z-[60]">
         <MainMenu />
       </header>
-      <main className="flex-1 pt-22 md:pt-24">
+      <main className={`flex-1 ${pathname.includes('/ar') ? '' : 'pt-22 md:pt-24'}`}>
         {children}
         {useFixedFooter && (
           <div
