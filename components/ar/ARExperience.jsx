@@ -870,12 +870,24 @@ export default function ARExperience({
     cursor: 'pointer',
   };
 
-  // Gestos multitouch para escalar y rotar
+  // Throttle para gestos multitouch
+  function throttle(fn, wait) {
+    let last = 0;
+    return function(...args) {
+      const now = Date.now();
+      if (now - last > wait) {
+        last = now;
+        fn.apply(this, args);
+      }
+    };
+  }
+
+  // Gestos multitouch para escalar y rotar (con throttle)
   useEffect(() => {
     if (!isAR || !modelFixed) return;
     let lastDist = null;
     let lastAngle = null;
-    function onTouchMove(e) {
+    const throttledTouchMove = throttle(function onTouchMove(e) {
       if (e.touches.length === 2) {
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
@@ -896,15 +908,15 @@ export default function ARExperience({
         lastDist = dist;
         lastAngle = angle;
       }
-    }
+    }, 50); // throttle a 50ms
     function onTouchEnd(e) {
       lastDist = null;
       lastAngle = null;
     }
-    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchmove', throttledTouchMove, { passive: false });
     window.addEventListener('touchend', onTouchEnd);
     return () => {
-      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchmove', throttledTouchMove);
       window.removeEventListener('touchend', onTouchEnd);
     };
   }, [isAR, modelFixed]);
@@ -978,11 +990,18 @@ export default function ARExperience({
 
   // Contador global para logs de Sentry
   let sentryLogCounter = 0;
+  // Helper para logs solo en desarrollo
   function logSentryStep(msg) {
+    if (process.env.NODE_ENV === 'production') return;
     sentryLogCounter += 1;
     const fullMsg = `[AR-STEP-${sentryLogCounter}] ${msg}`;
-    console.log(fullMsg);
-    Sentry.captureMessage(fullMsg);
+    // Solo loguear en desarrollo
+    if (typeof window !== 'undefined') {
+      console.log(fullMsg);
+    }
+    if (typeof Sentry !== 'undefined') {
+      Sentry.captureMessage(fullMsg);
+    }
   }
 
   // Log en cada paso crítico usando logSentryStep
@@ -1040,14 +1059,39 @@ export default function ARExperience({
   // Indicador de estado como plano 3D
   const arStatusPlaneRef = useRef();
 
+  // Reutilización de textura/material del plano indicador
   function createARStatusPlane(text) {
-    if (arStatusPlaneRef.current && sceneRef.current) {
-      if (sceneRef.current.children.includes(arStatusPlaneRef.current)) {
-        sceneRef.current.remove(arStatusPlaneRef.current);
-      }
-      arStatusPlaneRef.current = null;
+    if (!sceneRef.current) return;
+    // Si ya existe el plano y el texto no cambió, solo actualiza la textura
+    if (arStatusPlaneRef.current && arStatusPlaneRef.current.userData.text === text) {
+      return;
     }
-    // Crear canvas para el texto
+    // Si existe el plano pero el texto cambió, actualiza la textura
+    if (arStatusPlaneRef.current && sceneRef.current.children.includes(arStatusPlaneRef.current)) {
+      // Actualizar solo la textura
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 96;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'rgba(30,30,30,0.7)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.font = '400 32px Arial';
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+      const texture = new THREE.CanvasTexture(canvas);
+      arStatusPlaneRef.current.material.map.dispose();
+      arStatusPlaneRef.current.material.map = texture;
+      arStatusPlaneRef.current.material.needsUpdate = true;
+      arStatusPlaneRef.current.userData.text = text;
+      return;
+    }
+    // Si no existe el plano, créalo
+    if (arStatusPlaneRef.current && sceneRef.current.children.includes(arStatusPlaneRef.current)) {
+      sceneRef.current.remove(arStatusPlaneRef.current);
+    }
     const canvas = document.createElement('canvas');
     canvas.width = 512;
     canvas.height = 96;
@@ -1060,12 +1104,12 @@ export default function ARExperience({
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-    // Crear textura y plano
     const texture = new THREE.CanvasTexture(canvas);
     const material = new THREE.MeshBasicMaterial({ map: texture, transparent: true });
     const geometry = new THREE.PlaneGeometry(0.45, 0.08);
     const plane = new THREE.Mesh(geometry, material);
     plane.name = 'ARStatusPlane';
+    plane.userData.text = text;
     arStatusPlaneRef.current = plane;
     sceneRef.current.add(plane);
   }
