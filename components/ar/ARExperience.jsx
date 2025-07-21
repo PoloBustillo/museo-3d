@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { ARButton } from "three/examples/jsm/webxr/ARButton.js";
 import * as Sentry from "@sentry/nextjs";
+import { ARButton } from "three/examples/jsm/webxr/ARButton.js";
 
 export default function ARExperience({
   modelUrl,
@@ -20,6 +20,7 @@ export default function ARExperience({
   const modelRef = useRef();
   const [modelLoaded, setModelLoaded] = useState(false);
   const [isAR, setIsAR] = useState(false);
+  const [canvasReady, setCanvasReady] = useState(false);
   const [showRealWorld, setShowRealWorld] = useState(true);
   const [arMode, setArMode] = useState('positioning'); // 'positioning' o 'fixed'
   const [fixedPosition, setFixedPosition] = useState(null);
@@ -161,6 +162,20 @@ export default function ARExperience({
 
     // Eliminar todos los overlays y botones HTML relacionados con AR, debug y fallback
     // Mantener solo el botón 3D (sprite) en la escena AR
+  }, []);
+
+  // Detecta cuando el canvas de Three.js está montado
+  useEffect(() => {
+    const checkCanvas = () => {
+      if (mountRef.current && mountRef.current.firstChild) {
+        setCanvasReady(true);
+      } else {
+        setCanvasReady(false);
+      }
+    };
+    const interval = setInterval(checkCanvas, 100);
+    checkCanvas();
+    return () => clearInterval(interval);
   }, []);
 
   // Inicializar Three.js
@@ -306,66 +321,6 @@ export default function ARExperience({
     });
   }, [modelUrl, restoreMaterials]);
 
-  // Botón AR mejorado para móvil
-  useEffect(() => {
-    if (!modelLoaded || !rendererRef.current || !webXRSupported) {
-      // Eliminar debugLogs, showDebugUI, addDebugLog, y cualquier render o estado relacionado
-      return;
-    }
-
-    // Eliminar debugLogs, showDebugUI, addDebugLog, y cualquier render o estado relacionado
-
-    // Verificar que el renderer tenga WebXR habilitado
-    if (!rendererRef.current.xr) {
-      console.error("🔧 WebXR no está habilitado en el renderer");
-      return;
-    }
-
-    try {
-      const arButton = ARButton.createButton(rendererRef.current);
-      if (!arButton) {
-        console.error("🔧 ARButton.createButton retornó null/undefined");
-        return;
-      }
-      // Elimina todos los estilos inline y el texto con emoji
-      // El texto y el estilo serán controlados por el CSS global y el MutationObserver
-      document.body.appendChild(arButton);
-      return () => {
-        if (arButton.parentNode) {
-          arButton.parentNode.removeChild(arButton);
-        }
-      };
-    } catch (error) {
-      console.error("🔧 Error creando botón AR:", error);
-      
-      // Crear un botón de fallback si ARButton.createButton falla
-      const fallbackButton = document.createElement('button');
-      fallbackButton.textContent = webXRSupported ? "🥽 AR No Disponible" : "🥽 WebXR No Soportado";
-      fallbackButton.style.position = "fixed";
-      fallbackButton.style.bottom = "120px";
-      fallbackButton.style.right = "20px";
-      fallbackButton.style.left = "20px";
-      fallbackButton.style.padding = "16px 24px";
-      fallbackButton.style.background = "linear-gradient(135deg, #666, #999)";
-      fallbackButton.style.color = "white";
-      fallbackButton.style.border = "none";
-      fallbackButton.style.borderRadius = "12px";
-      fallbackButton.style.fontSize = "18px";
-      fallbackButton.style.fontWeight = "bold";
-      fallbackButton.style.zIndex = "999999";
-      fallbackButton.style.cursor = "not-allowed";
-      fallbackButton.disabled = true;
-      
-      document.body.appendChild(fallbackButton);
-      
-      return () => {
-        if (fallbackButton.parentNode) {
-          fallbackButton.parentNode.removeChild(fallbackButton);
-        }
-      };
-    }
-  }, [modelLoaded, webXRSupported]);
-
   // AR Management con controles Three.js Sprites
   useEffect(() => {
     if (!rendererRef.current || !modelRef.current) return;
@@ -500,15 +455,6 @@ export default function ARExperience({
       // Eliminar arControlsRef y createARButton y cualquier referencia a window.createARButton
     };
   }, [modelLoaded]); // Simplificar dependencias
-
-  // Efecto para actualizar el botón AR cuando cambia el modo
-  useEffect(() => {
-    if (isAR && rendererRef.current?.xr?.isPresenting && ARButton.createButton) {
-      setTimeout(() => {
-        ARButton.createButton(rendererRef.current);
-      }, 100);
-    }
-  }, [arMode]);
 
   // Detectar toque/click en el botón 3D en AR
   useEffect(() => {
@@ -1155,67 +1101,7 @@ export default function ARExperience({
   }
 
   // 1. Mejorar el estilo del botón AR estándar y cambiar texto a español
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.innerHTML = `
-      .ar-button, .webxr-ar-button, #ARButton {
-        position: fixed !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        bottom: 40px !important;
-        min-width: 120px !important;
-        padding: 10px 22px !important;
-        font-size: 15px !important;
-        font-weight: 500 !important;
-        border-radius: 10px !important;
-        border: none !important;
-        background: linear-gradient(90deg, #18181b 0%, #23272f 100%) !important;
-        color: #fff !important;
-        box-shadow: 0 2px 8px rgba(30,30,40,0.10) !important;
-        letter-spacing: 0.2px !important;
-        cursor: pointer !important;
-        z-index: 2147483647 !important;
-        outline: none !important;
-        transition: background 0.2s, box-shadow 0.2s !important;
-        font-family: inherit !important;
-        display: block !important;
-        pointer-events: auto !important;
-        text-shadow: none !important;
-        opacity: 1 !important;
-        text-transform: none !important;
-      }
-      @media (max-width: 700px) {
-        .ar-button, .webxr-ar-button, #ARButton {
-          bottom: max(env(safe-area-inset-bottom,0), 60px) !important;
-          min-width: 70vw !important;
-          font-size: 14px !important;
-          padding: 9px 0 !important;
-        }
-      }
-      .ar-button:hover, .webxr-ar-button:hover, #ARButton:hover {
-        background: linear-gradient(90deg, #23272f 0%, #18181b 100%) !important;
-        box-shadow: 0 4px 16px rgba(30,30,40,0.13) !important;
-      }
-      .ar-button span, .webxr-ar-button span, #ARButton span {
-        font-size: 15px !important;
-        font-weight: 500 !important;
-        text-shadow: none !important;
-      }
-    `;
-    document.head.appendChild(style);
-    // Cambiar el texto del botón estándar si existe
-    const observer = new MutationObserver(() => {
-      const arBtn = document.querySelector('.ar-button, .webxr-ar-button');
-      if (arBtn && arBtn.textContent !== 'Iniciar AR') {
-        arBtn.textContent = 'Iniciar AR';
-      }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => {
-      document.head.removeChild(style);
-      observer.disconnect();
-    };
-  }, []);
+  
 
   // 2. Reactivar el selector de ambientes con miniaturas, solo visible antes de entrar en AR
   const ambientes = [
@@ -1360,56 +1246,23 @@ export default function ARExperience({
     };
   }
 
-  // Mostrar el botón ARButton SIEMPRE, incluso si WebXR no está soportado
+  // useEffect para agregar el botón ARButton por default de Three.js
   useEffect(() => {
-    if (!rendererRef.current) return;
-    let arButton = document.querySelector('.ar-button, .webxr-ar-button, #ARButton');
-    if (!arButton) {
-      if (window.navigator.xr && ARButton.createButton) {
-        try {
-          arButton = ARButton.createButton(rendererRef.current);
-          if (!arButton) return;
-          arButton.id = 'ARButton';
-          arButton.removeAttribute('style');
-          arButton.textContent = 'Iniciar AR';
-          arButton.disabled = false;
-          arButton.style.opacity = '1';
-          arButton.style.pointerEvents = 'auto';
-          arButton.style.display = 'block';
-          document.body.appendChild(arButton);
-        } catch {}
-      } else {
-        arButton = document.createElement('button');
-        arButton.id = 'ARButton';
-        arButton.textContent = 'AR no soportado en este dispositivo';
-        arButton.disabled = true;
-        document.body.appendChild(arButton);
+    if (typeof window === 'undefined' || !window.navigator.xr || !rendererRef.current) return;
+    if (document.querySelector('.ar-button, .webxr-ar-button, #ARButton')) return;
+    const arBtn = ARButton.createButton(rendererRef.current);
+    if (arBtn) {
+      // Sube el botón en mobile para evitar que quede cortado
+      if (window.innerWidth < 700) {
+        arBtn.style.bottom = '80px';
       }
-    } else {
-      // Fuerza SIEMPRE el texto correcto
-      if (window.navigator.xr) {
-        arButton.textContent = 'Iniciar AR';
-        arButton.disabled = false;
-      } else {
-        arButton.textContent = 'AR no soportado en este dispositivo';
-        arButton.disabled = true;
-      }
-      arButton.style.opacity = '1';
-      arButton.style.pointerEvents = 'auto';
-      arButton.style.display = 'block';
+      document.body.appendChild(arBtn);
     }
-    // MutationObserver para forzar el texto correcto siempre
-    const observer = new MutationObserver(() => {
-      const btn = document.querySelector('#ARButton');
-      if (!btn) return;
-      if (window.navigator.xr && btn.textContent !== 'Iniciar AR') {
-        btn.textContent = 'Iniciar AR';
-      } else if (!window.navigator.xr && btn.textContent !== 'AR no soportado en este dispositivo') {
-        btn.textContent = 'AR no soportado en este dispositivo';
+    return () => {
+      if (arBtn && arBtn.parentNode) {
+        arBtn.parentNode.removeChild(arBtn);
       }
-    });
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
-    return () => observer.disconnect();
+    };
   }, [rendererRef.current]);
 
   return (
@@ -1428,6 +1281,7 @@ export default function ARExperience({
             position: "absolute",
             top: 0,
             left: 0,
+            boxSizing: "border-box"
           }}
         />
 
