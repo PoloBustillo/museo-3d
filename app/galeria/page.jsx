@@ -178,7 +178,7 @@ export default function GaleriaPage() {
   if (loading || loadingAllMurales  && page ===1 ) return <PageLoader text="Cargando galería..." />;
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-purple-50 to-blue-100 p-4">
+    <div className="relative h-screen overflow-y-auto bg-gradient-to-br from-purple-50 to-blue-100 p-4">
       <AnimatedBackground />
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="text-center mb-12">
@@ -242,14 +242,16 @@ export default function GaleriaPage() {
         )}
 
         {filteredMurales.length === 0 ? (
-          <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border mt-8">
-            <div className="text-6xl mb-4">📄</div>
-            <h3 className="text-2xl font-bold text-foreground mb-2">
-              No hay obras disponibles
-            </h3>
-            <p className="text-muted-foreground">
-              Prueba quitando filtros o busca otro término.
-            </p>
+          <div className="flex items-center justify-center min-h-[60vh]">
+            <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border mt-8">
+              <div className="text-6xl mb-4">📄</div>
+              <h3 className="text-2xl font-bold text-foreground mb-2">
+                No hay obras disponibles
+              </h3>
+              <p className="text-muted-foreground">
+                Prueba quitando filtros o busca otro término.
+              </p>
+            </div>
           </div>
         ) : (
           <div id="galeria-scroll" style={{ height: "80vh", overflow: "auto" }}>

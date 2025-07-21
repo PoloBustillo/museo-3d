@@ -114,7 +114,11 @@ export default function MuseoPage() {
   }
 
   if (loading) {
-    return <PageLoader text="Cargando salas del museo..." />;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <PageLoader text="Cargando salas del museo..." />
+      </div>
+    );
   }
 
   if (error) {
