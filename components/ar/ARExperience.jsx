@@ -990,7 +990,11 @@ export default function ARExperience({
     logSentryStep(`useEffect isAR: ${isAR}`);
     if (isAR && sceneRef.current) {
       try {
-        createARButtonPlane();
+        // LIMPIEZA: Elimina todos los modelos previos excepto el modelo principal y las luces
+        sceneRef.current.children = sceneRef.current.children.filter(child =>
+          child === modelRef.current || child.isLight
+        );
+        // Añade el modelo si no está
         if (modelRef.current && !sceneRef.current.children.includes(modelRef.current)) {
           sceneRef.current.add(modelRef.current);
           logSentryStep("Modelo añadido a la escena");
@@ -1000,17 +1004,8 @@ export default function ARExperience({
         console.error("[AR] Error añadiendo objetos:", err);
         Sentry.captureException(err, { tags: { action: "ar_add_objects_error" } });
       }
-    } else if (!isAR && sceneRef.current && arButtonPlaneRef.current) {
-      try {
-        sceneRef.current.remove(arButtonPlaneRef.current);
-        arButtonPlaneRef.current = null;
-        const debugCube = sceneRef.current.getObjectByName("DebugCube");
-        if (debugCube) sceneRef.current.remove(debugCube);
-        logSentryStep("Limpiando plano y cubo de debug");
-      } catch (err) {
-        console.error("[AR] Error limpiando objetos:", err);
-        Sentry.captureException(err, { tags: { action: "ar_cleanup_error" } });
-      }
+    } else if (!isAR && sceneRef.current) {
+      // No cleanup especial fuera de AR
     }
   }, [isAR]);
 
