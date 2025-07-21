@@ -1037,6 +1037,30 @@ export default function ARExperience({
     };
   }, [isAR, hitTestActive]);
 
+  function renderARStatusIndicator() {
+    if (!isAR) return null;
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 20,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        background: modelFixed ? 'rgba(0,200,0,0.95)' : 'rgba(255,180,0,0.95)',
+        color: '#fff',
+        padding: '10px 24px',
+        borderRadius: 16,
+        fontWeight: 'bold',
+        fontSize: 18,
+        zIndex: 10001,
+        boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
+        letterSpacing: 1,
+        pointerEvents: 'none',
+      }}>
+        {modelFixed ? '📍 Modelo fijo en el mundo real' : '👀 Siguiendo cámara (toca para fijar)'}
+      </div>
+    );
+  }
+
   return (
     <>
       {/* Container principal de THREE.js */}
@@ -1082,6 +1106,7 @@ export default function ARExperience({
           </button>
         )}
         {renderARControls()}
+        {renderARStatusIndicator()}
       </div>
 
       {/* Eliminar todos los demás overlays y botones HTML */}
