@@ -1,21 +1,58 @@
 "use client";
 import { useTheme } from "../providers/ThemeProvider";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 export default function ThemeSwitch() {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === "dark";
   const rippleRef = useRef(null);
+  const audioRef = useRef(null);
+  const [particles, setParticles] = useState([]);
 
-  // Animación de ripple al cambiar
+  // Paleta wow
+  const palette = isDark
+    ? ['#818cf8', '#a5b4fc', '#f472b6', '#facc15', '#fef9c3', '#fff', '#6366f1', '#38bdf8', '#f472b6', '#e0e7ff']
+    : ['#fde68a', '#fbbf24', '#f472b6', '#facc15', '#fff', '#fcd34d', '#f59e42', '#38bdf8', '#f472b6', '#fef9c3'];
+
+  // Partículas wow
+  const triggerParticles = () => {
+    const newParticles = Array.from({ length: 18 }).map((_, i) => {
+      const angle = (i * (360 / 18)) + Math.random() * 10;
+      const color = palette[Math.floor(Math.random() * palette.length)];
+      const size = 6 + Math.random() * 8;
+      const duration = 0.5 + Math.random() * 0.5;
+      return {
+        id: Math.random() + i,
+        angle,
+        color,
+        size,
+        duration,
+      };
+    });
+    setParticles(newParticles);
+    setTimeout(() => setParticles([]), 900);
+  };
+
+  // Sonido wow
+  const playSound = () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.volume = 0.5;
+      audioRef.current.play();
+    }
+  };
+
+  // Animación de ripple, partículas y sonido al cambiar
   const handleClick = (e) => {
     const ripple = rippleRef.current;
     if (ripple) {
       ripple.classList.remove("animate-ping");
-      void ripple.offsetWidth; // Trigger reflow
+      void ripple.offsetWidth;
       ripple.classList.add("animate-ping");
     }
+    triggerParticles();
+    playSound();
     toggleTheme();
   };
 
@@ -27,6 +64,33 @@ export default function ThemeSwitch() {
       `}
       aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
     >
+      {/* Sonido wow */}
+      <audio ref={audioRef} src="/theme-switch-pop.mp3" preload="auto" />
+      {/* Partículas wow */}
+      {particles.map((p) => (
+        <motion.span
+          key={p.id}
+          className="pointer-events-none absolute rounded-full"
+          style={{
+            left: '50%',
+            top: '50%',
+            width: p.size,
+            height: p.size,
+            background: p.color,
+            zIndex: 30,
+            opacity: 0.7,
+            filter: 'blur(1.5px)',
+          }}
+          initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
+          animate={{
+            opacity: 0,
+            x: 32 * Math.cos((p.angle * Math.PI) / 180),
+            y: 32 * Math.sin((p.angle * Math.PI) / 180),
+            scale: 1.5,
+          }}
+          transition={{ duration: p.duration, ease: "easeOut" }}
+        />
+      ))}
       {/* Ripple animado */}
       <span
         ref={rippleRef}

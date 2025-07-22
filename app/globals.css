@@ -1,3 +1,19 @@
+/* Borde especial para ThemeSwitch en light mode para que no se pierda con el fondo */
+.theme-switch-border {
+  box-shadow: 0 0 0 3px rgba(255, 230, 100, 0.25), 0 2px 16px 0 rgba(255,255,200,0.10);
+  border: 2px solid rgba(255, 230, 100, 0.45) !important;
+  backdrop-filter: blur(2px);
+  transition: box-shadow 0.3s, border-color 0.3s;
+}
+body.dark .theme-switch-border {
+  box-shadow: 0 0 0 2px rgba(255, 230, 100, 0.10), 0 2px 16px 0 rgba(255,255,200,0.08);
+  border: 1.5px solid rgba(255, 230, 100, 0.18) !important;
+}
+/* Animaciones para ThemeSwitch PRO */
+.animate-shake { animation: shake-pro .4s cubic-bezier(.36,.07,.19,.97) both; }
+@keyframes shake-pro { 10%, 90% { transform: translateX(-1px); } 20%, 80% { transform: translateX(2px); } 30%, 50%, 70% { transform: translateX(-4px); } 40%, 60% { transform: translateX(4px); } }
+body.theme-flash { animation: flash-bg-pro 0.25s; }
+@keyframes flash-bg-pro { 0% { background: #fef08a; } 100% { background: inherit; } }
 @import "tailwindcss";
 @import "tw-animate-css";
 
