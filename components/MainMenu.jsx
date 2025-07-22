@@ -72,16 +72,33 @@ function TypewriterText({
       style={{
         fontFamily: "var(--font-monoton), cursive",
         letterSpacing: "0.04em",
+        display: "inline-block",
+        position: "relative",
         ...style,
       }}
     >
-      {displayedText}
-      <motion.span
-        animate={{ opacity: !isComplete ? [0, 1, 0] : 0 }}
-        transition={{ duration: 0.8, repeat: Infinity }}
-        className="inline-block w-0.5 h-7 bg-primary ml-1 align-middle"
-        style={{ visibility: !isComplete ? "visible" : "hidden" }}
-      />
+      {/* Invisible span to reserve width and prevent layout shift */}
+      <span style={{ visibility: "hidden", whiteSpace: "nowrap" }}>{text}</span>
+      {/* Absolutely positioned animated text */}
+      <span
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          whiteSpace: "nowrap",
+          width: "100%",
+          height: "100%",
+          pointerEvents: "none",
+        }}
+      >
+        {displayedText}
+        <motion.span
+          animate={{ opacity: !isComplete ? [0, 1, 0] : 0 }}
+          transition={{ duration: 0.8, repeat: Infinity }}
+          className="inline-block w-0.5 h-7 bg-primary ml-1 align-middle"
+          style={{ visibility: !isComplete ? "visible" : "hidden" }}
+        />
+      </span>
     </span>
   );
 }
