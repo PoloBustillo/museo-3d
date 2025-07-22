@@ -144,10 +144,36 @@ export default function MainMenu({ onSubirArchivo }) {
     };
   }, [mobileMenuOpen]);
 
-  // Control de visibilidad del navbar
+  // Control de visibilidad del navbar (detecta el contenedor que realmente tiene scroll)
   useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Encuentra el primer contenedor scrollable (además de window/body/html)
+    function getScrollableContainer() {
+      let el = document.querySelector("[data-scrollable-container]");
+      if (el) return el;
+      let nodes = document.querySelectorAll("main, [class*='scroll'], [class*='overflow'], [class*='container'], [class*='content']");
+      for (let node of nodes) {
+        const style = window.getComputedStyle(node);
+        if ((style.overflowY === "auto" || style.overflowY === "scroll") && node.scrollHeight > node.clientHeight) {
+          return node;
+        }
+      }
+      return null;
+    }
+
+    const scrollable = getScrollableContainer();
+
+    function getAllScrollY() {
+      let values = [window.scrollY];
+      if (document.body) values.push(document.body.scrollTop);
+      if (document.documentElement) values.push(document.documentElement.scrollTop);
+      if (scrollable) values.push(scrollable.scrollTop);
+      return Math.max(...values);
+    }
+
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
+      const currentScrollY = getAllScrollY();
       setIsScrolled(currentScrollY > 10);
       if (currentScrollY < 10) {
         setIsVisible(true);
@@ -163,9 +189,19 @@ export default function MainMenu({ onSubirArchivo }) {
       }
       lastScrollY.current = currentScrollY;
     };
+
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    if (document.body) document.body.addEventListener("scroll", handleScroll, { passive: true });
+    if (document.documentElement) document.documentElement.addEventListener("scroll", handleScroll, { passive: true });
+    if (scrollable) scrollable.addEventListener("scroll", handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (document.body) document.body.removeEventListener("scroll", handleScroll);
+      if (document.documentElement) document.documentElement.removeEventListener("scroll", handleScroll);
+      if (scrollable) scrollable.removeEventListener("scroll", handleScroll);
+    };
+  }, [pathname]);
 
   // Cerrar menú móvil automáticamente al cambiar de página
   useEffect(() => {
@@ -314,26 +350,102 @@ export default function MainMenu({ onSubirArchivo }) {
                               layoutId="menu-dot-global"
                               className={
                                 isActive
-                                  ? "inline-block w-2 h-2 rounded-full bg-primary"
+                                  ? "inline-block w-2 h-2 rounded-full bg-primary shadow-lg"
                                   : "inline-block w-2 h-2 rounded-full bg-gray-400/70"
                               }
-                              initial={false}
+                              initial={isActive ? { scale: 0.5, opacity: 0, x: 0, y: 0 } : false}
                               animate={
                                 isActive
-                                  ? { scale: 1, opacity: 1 }
-                                  : { scale: 0.7, opacity: 0.5 }
+                                  ? {
+                                      scale: [1, 1.3, 1],
+                                      opacity: [1, 0.7, 1],
+                                      boxShadow: [
+                                        "0 0 0px 0px #6366f1",
+                                        "0 0 8px 2px #6366f1aa",
+                                        "0 0 0px 0px #6366f1"
+                                      ],
+                                      x: [0, 4, 7, 4, 0, -4, -7, -4, 0],
+                                      y: [0, 4, 0, -4, -7, -4, 0, 4, 0],
+                                      background: [
+                                        "#6366f1",
+                                        "#818cf8",
+                                        "#fbbf24",
+                                        "#f472b6",
+                                        "#38bdf8",
+                                        "#6366f1"
+                                      ],
+                                    }
+                                  : {
+                                      scale: 0.7,
+                                      opacity: 0.5,
+                                      x: 0,
+                                      y: 0,
+                                      background: "#a1a1aa"
+                                    }
                               }
-                              transition={{
-                                type: "spring",
-                                stiffness: 120,
-                                damping: 18,
-                                mass: 0.7,
-                                duration: 0.45,
-                              }}
+                              transition={
+                                isActive
+                                  ? {
+                                      duration: 1.2,
+                                      repeat: Infinity,
+                                      repeatType: "loop",
+                                      ease: "easeInOut"
+                                    }
+                                  : {
+                                      type: "spring",
+                                      stiffness: 120,
+                                      damping: 18,
+                                      mass: 0.7,
+                                      duration: 0.45
+                                    }
+                              }
+                              whileFocus={{ scale: 1.4, boxShadow: "0 0 16px 4px #818cf8" }}
+                              whileTap={{ scale: 1.2 }}
                               style={{ display: "inline-block" }}
                             />
                           </span>
-                          {link.label}
+                          <span className="relative z-10">
+                            <motion.span
+                              initial={false}
+                              animate={
+                                isActive
+                                  ? {
+                                      backgroundPosition: ["40% 50%", "60% 50%", "50% 50%"],
+                                      opacity: [0.7, 1, 0.7],
+                                    }
+                                  : { opacity: 0 }
+                              }
+                              transition={
+                                isActive
+                                  ? {
+                                      duration: 1.2,
+                                      repeat: Infinity,
+                                      repeatType: "loop",
+                                      ease: "easeInOut"
+                                    }
+                                  : { duration: 0.3 }
+                              }
+                              style={{
+                                position: "absolute",
+                                left: 0,
+                                top: 0,
+                                width: "100%",
+                                height: "100%",
+                                background: "linear-gradient(90deg, transparent 0%, #818cf8 45%, #fbbf24 50%, #818cf8 55%, transparent 100%)",
+                                backgroundClip: "text",
+                                WebkitBackgroundClip: "text",
+                                color: "transparent",
+                                WebkitTextFillColor: "transparent",
+                                pointerEvents: "none",
+                                zIndex: 2,
+                                filter: "blur(0.5px)",
+                              }}
+                              aria-hidden="true"
+                            >
+                              {link.label}
+                            </motion.span>
+                            <span style={{ opacity: 1, position: "relative", zIndex: 1 }}>{link.label}</span>
+                          </span>
                         </Link>
                       </NavigationMenuLink>
                     </NavigationMenuItem>

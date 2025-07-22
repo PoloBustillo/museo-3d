@@ -178,7 +178,7 @@ export default function GaleriaPage() {
   if (loading || loadingAllMurales  && page ===1 ) return <PageLoader text="Cargando galería..." />;
 
   return (
-    <div className="relative h-screen overflow-y-auto bg-gradient-to-br from-purple-50 to-blue-100 p-4">
+    <div className="relative w-full min-h-screen bg-gradient-to-br from-purple-50 to-blue-100 p-4">
       <AnimatedBackground />
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="text-center mb-12">
@@ -254,7 +254,7 @@ export default function GaleriaPage() {
             </div>
           </div>
         ) : (
-          <div id="galeria-scroll" style={{ height: "80vh", overflow: "auto" }}>
+          <div id="galeria-scroll">
             <InfiniteScroll
               dataLength={paginatedMurales.length}
               next={handleNextPage}
