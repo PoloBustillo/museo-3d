@@ -11,7 +11,7 @@ import AppProviders from "../components/AppProviders";
 import SentryTracker from "../components/SentryTracker";
 import { Toaster } from "react-hot-toast";
 import toast from "react-hot-toast";
-import { PushNotificationsProvider } from "./components/PushNotificationsProvider";
+import { PushNotificationsProvider } from "@/components/notifications/PushNotificationsProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -93,15 +93,6 @@ export default function RootLayout({ children }) {
             },
           }}
         />
-        {/* VConsole solo en desarrollo */}
-        {process.env.NODE_ENV !== "production" && (
-          <>
-            <script src="https://unpkg.com/vconsole/dist/vconsole.min.js"></script>
-            <script
-              dangerouslySetInnerHTML={{ __html: "new window.VConsole();" }}
-            />
-          </>
-        )}
       </body>
     </html>
   );

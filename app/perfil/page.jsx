@@ -24,7 +24,7 @@ import useSWR from "swr";
 import { useUser } from "../../providers/UserProvider";
 import toast from "react-hot-toast";
 import { GalleryHorizontal as GalleryIcon } from "lucide-react";
-import { usePushNotifications } from "../components/PushNotificationsProvider";
+import { usePushNotifications } from "@/components/notifications/PushNotificationsProvider";
 
 const fetcher = (url) => fetch(url).then((res) => res.json());
 
