@@ -104,6 +104,9 @@ function TypewriterText({
 }
 
 export default function MainMenu({ onSubirArchivo }) {
+  // Estado para controlar la animación del dot
+  const [dotAnimating, setDotAnimating] = useState(false);
+  const dotTimeoutRef = useRef();
   const { openModal } = useModal();
   const {
     user,
@@ -165,7 +168,6 @@ export default function MainMenu({ onSubirArchivo }) {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Encuentra el primer contenedor scrollable (además de window/body/html)
     function getScrollableContainer() {
       let el = document.querySelector("[data-scrollable-container]");
       if (el) return el;
@@ -219,6 +221,23 @@ export default function MainMenu({ onSubirArchivo }) {
       if (scrollable) scrollable.removeEventListener("scroll", handleScroll);
     };
   }, [pathname]);
+
+  // Lanzar animación del dot cada vez que la navbar aparece
+  useEffect(() => {
+    if (isVisible) {
+      setDotAnimating(true);
+      if (dotTimeoutRef.current) clearTimeout(dotTimeoutRef.current);
+      dotTimeoutRef.current = setTimeout(() => {
+        setDotAnimating(false);
+      }, 4400); // 4.4 segundos de animación
+    } else {
+      setDotAnimating(false);
+      if (dotTimeoutRef.current) clearTimeout(dotTimeoutRef.current);
+    }
+    return () => {
+      if (dotTimeoutRef.current) clearTimeout(dotTimeoutRef.current);
+    };
+  }, [isVisible]);
 
   // Cerrar menú móvil automáticamente al cambiar de página
   useEffect(() => {
@@ -350,6 +369,7 @@ export default function MainMenu({ onSubirArchivo }) {
                   } else {
                     isActive = pathname.startsWith(link.href);
                   }
+                  // Dot logic: always render, but animate only if active and navbar visible
                   return (
                     <NavigationMenuItem key={link.href} className="relative">
                       <NavigationMenuLink asChild>
@@ -367,65 +387,79 @@ export default function MainMenu({ onSubirArchivo }) {
                               layoutId="menu-dot-global"
                               className={
                                 isActive
-                                  ? "inline-block w-2 h-2 rounded-full bg-primary shadow-lg"
-                                  : "inline-block w-2 h-2 rounded-full bg-gray-400/70"
+                                  ? `inline-block ${dotAnimating ? 'w-1.5 h-1.5' : 'w-2 h-2'} rounded-full shadow`
+                                  : "inline-block w-1.5 h-1.5 rounded-full bg-gray-400/60"
                               }
                               initial={isActive ? { scale: 0.5, opacity: 0, x: 0, y: 0 } : false}
                               animate={
-                                isActive
-                                  ? {
-                                      scale: [1, 1.3, 1],
-                                      opacity: [1, 0.7, 1],
-                                      boxShadow: [
-                                        "0 0 0px 0px #6366f1",
-                                        "0 0 8px 2px #6366f1aa",
-                                        "0 0 0px 0px #6366f1"
-                                      ],
-                                      x: [0, 4, 7, 4, 0, -4, -7, -4, 0],
-                                      y: [0, 4, 0, -4, -7, -4, 0, 4, 0],
-                                      background: [
-                                        "#6366f1",
-                                        "#818cf8",
-                                        "#fbbf24",
-                                        "#f472b6",
-                                        "#38bdf8",
-                                        "#6366f1"
-                                      ],
-                                    }
-                                  : {
-                                      scale: 0.7,
-                                      opacity: 0.5,
-                                      x: 0,
-                                      y: 0,
-                                      background: "#a1a1aa"
-                                    }
+                                !isVisible
+                                  ? { opacity: 0, scale: 0.7, x: 0, y: 0, background: isActive ? "#6366f1" : "#a1a1aa" }
+                                  : isActive && dotAnimating
+                                    ? {
+                                        scale: [1, 1.18, 1],
+                                        opacity: [0.85, 0.6, 0.85],
+                                        boxShadow: [
+                                          "0 0 0px 0px #6366f1",
+                                          "0 0 3px 0.5px #6366f1aa",
+                                          "0 0 0px 0px #6366f1"
+                                        ],
+                                        x: [0, 2, 3, 2, 0, -2, -3, -2, 0],
+                                        y: [0, 2, 0, -2, -3, -2, 0, 2, 0],
+                                        background: [
+                                          "#6366f1",
+                                          "#a5b4fc",
+                                          "#fef08a",
+                                          "#f472b6",
+                                          "#38bdf8",
+                                          "#6366f1"
+                                        ],
+                                      }
+                                    : {
+                                        scale: 1,
+                                        opacity: 0.85,
+                                        x: 0,
+                                        y: 0,
+                                        background: isActive
+                                          ? "linear-gradient(135deg, #6366f1 0%, #a5b4fc 40%, #fef08a 70%, #f472b6 90%, #38bdf8 100%)"
+                                          : "#a1a1aa"
+                                      }
                               }
                               transition={
-                                isActive
-                                  ? {
-                                      duration: 1.2,
-                                      repeat: Infinity,
-                                      repeatType: "loop",
-                                      ease: "easeInOut"
-                                    }
-                                  : {
-                                      type: "spring",
-                                      stiffness: 120,
-                                      damping: 18,
-                                      mass: 0.7,
-                                      duration: 0.45
-                                    }
+                                !isVisible
+                                  ? { duration: 0.3 }
+                                  : isActive && dotAnimating
+                                    ? {
+                                        duration: 1.1,
+                                        repeat: Infinity,
+                                        repeatType: "loop",
+                                        ease: "easeInOut"
+                                      }
+                                    : {
+                                        type: "spring",
+                                        stiffness: 120,
+                                        damping: 18,
+                                        mass: 0.7,
+                                        duration: 0.45
+                                      }
                               }
-                              whileFocus={{ scale: 1.4, boxShadow: "0 0 16px 4px #818cf8" }}
-                              whileTap={{ scale: 1.2 }}
-                              style={{ display: "inline-block" }}
+                              whileFocus={{ scale: 1.2, boxShadow: "0 0 8px 2px #818cf8" }}
+                              whileTap={{ scale: 1.1 }}
+                              style={{
+                                display: "inline-block",
+                                background: !dotAnimating && isActive
+                                  ? "linear-gradient(135deg, #6366f1 0%, #a5b4fc 40%, #fef08a 70%, #f472b6 90%, #38bdf8 100%)"
+                                  : undefined,
+                                backgroundSize: !dotAnimating && isActive ? "200% 200%" : undefined,
+                                backgroundPosition: !dotAnimating && isActive ? "50% 50%" : undefined,
+                                boxShadow: isActive ? "0 0 2px 0.5px #818cf822" : undefined
+                              }}
                             />
                           </span>
                           <span className="relative z-10">
                             <motion.span
                               initial={false}
                               animate={
-                                isActive
+                                isActive && isVisible
                                   ? {
                                       backgroundPosition: ["40% 50%", "60% 50%", "50% 50%"],
                                       opacity: [0.7, 1, 0.7],
@@ -433,7 +467,7 @@ export default function MainMenu({ onSubirArchivo }) {
                                   : { opacity: 0 }
                               }
                               transition={
-                                isActive
+                                isActive && isVisible
                                   ? {
                                       duration: 1.2,
                                       repeat: Infinity,
