@@ -2,6 +2,8 @@
 import { useTheme } from "../providers/ThemeProvider";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { cubicBezier } from "framer-motion";
 
 export default function ThemeSwitch() {
   const { theme, toggleTheme } = useTheme();
@@ -9,41 +11,73 @@ export default function ThemeSwitch() {
   const rippleRef = useRef(null);
   const audioRef = useRef(null);
   const [particles, setParticles] = useState([]);
+  const [flash, setFlash] = useState(false);
+  const [thumbShake, setThumbShake] = useState(false);
 
-  // Paleta wow
+  // Paleta pro
+  // Paleta invertida: colores claros en light, oscuros en dark
   const palette = isDark
-    ? ['#818cf8', '#a5b4fc', '#f472b6', '#facc15', '#fef9c3', '#fff', '#6366f1', '#38bdf8', '#f472b6', '#e0e7ff']
-    : ['#fde68a', '#fbbf24', '#f472b6', '#facc15', '#fff', '#fcd34d', '#f59e42', '#38bdf8', '#f472b6', '#fef9c3'];
+    ? [
+        '#18181b', '#312e81', '#1e293b', '#6366f1', '#7c3aed', '#0ea5e9', '#334155', '#000', '#0f172a', '#1e1b4b'
+      ]
+    : [
+        '#fbbf24', '#fde68a', '#fff', '#f472b6', '#facc15', '#a5b4fc', '#818cf8', '#fef9c3', '#38bdf8', '#e0e7ff',
+        'rgba(250,204,21,0.7)', 'rgba(253,230,138,0.7)', 'rgba(245,114,182,0.7)', 'rgba(129,140,248,0.7)'
+      ];
 
-  // Partículas wow
+  // Partículas pro: trayectorias curvas, persistentes, algunas glowing, más naturales y visibles en light
   const triggerParticles = () => {
-    const newParticles = Array.from({ length: 18 }).map((_, i) => {
-      const angle = (i * (360 / 18)) + Math.random() * 10;
-      const color = palette[Math.floor(Math.random() * palette.length)];
-      const size = 6 + Math.random() * 8;
-      const duration = 0.5 + Math.random() * 0.5;
+    const count = 22;
+    const newParticles = Array.from({ length: count }).map((_, i) => {
+      const angle = (i * (360 / count)) + Math.random() * 16;
+      // En light, más opacidad y más amarillo
+      const baseColor = palette[Math.floor(Math.random() * palette.length)];
+      const alpha = isDark ? (0.5 + Math.random() * 0.4) : (0.7 + Math.random() * 0.25);
+      // Usa la paleta según el modo
+      const color = baseColor.includes('rgba')
+        ? baseColor.replace(/\d?\.\d+\)$/g, (alpha + 0.18 > 1 ? 1 : (alpha + 0.18)) + ")")
+        : baseColor;
+      const size = 8 + Math.random() * 12;
+      const duration = 0.8 + Math.random() * 0.8;
+      const curve = Math.random() > 0.5 ? 1 : -1;
+      const glow = Math.random() > 0.6;
+      const persistent = Math.random() > 0.7;
+      const floater = Math.random() > 0.85; // algunos flotan lento
       return {
         id: Math.random() + i,
         angle,
         color,
         size,
-        duration,
+        duration: floater ? 2.2 + Math.random() * 1.2 : duration,
+        curve,
+        glow,
+        persistent: floater ? true : persistent,
+        floater,
       };
     });
-    setParticles(newParticles);
-    setTimeout(() => setParticles([]), 900);
+    setParticles((prev) => [...prev, ...newParticles]);
+    setTimeout(() => setParticles((prev) => prev.filter(p => p.persistent)), 1100);
+    setTimeout(() => setParticles([]), 3200);
   };
 
-  // Sonido wow
+  // Sonido pro: eco sutil (simulado)
   const playSound = () => {
     if (audioRef.current) {
       audioRef.current.currentTime = 0;
-      audioRef.current.volume = 0.5;
+      audioRef.current.volume = 0.6;
       audioRef.current.play();
+      // Eco simulado: repite bajito tras 120ms
+      setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.currentTime = 0;
+          audioRef.current.volume = 0.18;
+          audioRef.current.play();
+        }
+      }, 120);
     }
   };
 
-  // Animación de ripple, partículas y sonido al cambiar
+  // Animación de ripple, partículas, sonido, flash, shake, morph
   const handleClick = (e) => {
     const ripple = rippleRef.current;
     if (ripple) {
@@ -53,93 +87,128 @@ export default function ThemeSwitch() {
     }
     triggerParticles();
     playSound();
+    setFlash(true);
+    setThumbShake(true);
+    setTimeout(() => setFlash(false), 220);
+    setTimeout(() => setThumbShake(false), 400);
     toggleTheme();
   };
 
   return (
     <button
       onClick={handleClick}
-      className={`relative w-16 h-8 rounded-full border-2 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800
+      className={`relative w-16 h-8 rounded-full border-2 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 overflow-visible
         ${isDark ? "bg-gradient-to-r from-indigo-800 via-purple-800 to-gray-900 border-indigo-500" : "bg-gradient-to-r from-yellow-200 via-yellow-400 to-orange-300 border-yellow-400"}
       `}
       aria-label={`Switch to ${isDark ? "light" : "dark"} theme`}
     >
-      {/* Sonido wow */}
+      {/* Sonido pro */}
       <audio ref={audioRef} src="/theme-switch-pop.mp3" preload="auto" />
-      {/* Partículas wow */}
+      {/* Flash global pro */}
+      {flash && (
+        <motion.div
+          className="fixed inset-0 pointer-events-none z-50"
+          style={{ background: isDark ? 'rgba(129,140,248,0.18)' : 'rgba(253,230,138,0.18)' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.18 }}
+        />
+      )}
+      {/* Partículas pro */}
       {particles.map((p) => (
         <motion.span
           key={p.id}
-          className="pointer-events-none absolute rounded-full"
-          style={{
+          className={isDark ? "pointer-events-none absolute rounded-full" : "pointer-events-none absolute"}
+          style={isDark ? {
             left: '50%',
             top: '50%',
             width: p.size,
             height: p.size,
             background: p.color,
-            zIndex: 30,
-            opacity: 0.7,
-            filter: 'blur(1.5px)',
+            zIndex: 99999,
+            opacity: p.glow ? 0.99 : 0.8,
+            borderRadius: '9999px',
+            filter: p.glow ? 'blur(2.5px) brightness(2)' : 'blur(0.8px)',
+            boxShadow: p.glow ? `0 0 20px 8px ${p.color}` : undefined,
+            mixBlendMode: p.glow ? 'screen' : 'plus-lighter',
+            border: undefined,
+            transition: 'none',
+          } : {
+            left: '50%',
+            top: '50%',
+            width: p.size,
+            height: p.size,
+            background: p.color,
+            zIndex: 99999,
+            opacity: 0.85,
+            borderRadius: '9999px',
+            filter: p.glow ? 'blur(2.5px) brightness(2)' : 'blur(0.8px)',
+            boxShadow: p.glow ? `0 0 20px 8px ${p.color}` : undefined,
+            mixBlendMode: p.glow ? 'screen' : 'plus-lighter',
+            border: undefined,
+            transition: 'none',
           }}
           initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
           animate={{
             opacity: 0,
-            x: 32 * Math.cos((p.angle * Math.PI) / 180),
-            y: 32 * Math.sin((p.angle * Math.PI) / 180),
-            scale: 1.5,
+            x: (p.floater ? 16 : 32) * Math.cos((p.angle * Math.PI) / 180) + p.curve * (p.floater ? 24 : 8),
+            y: (p.floater ? 16 : 32) * Math.sin((p.angle * Math.PI) / 180) + p.curve * (p.floater ? 24 : 12),
+            scale: p.glow ? 2.2 : (p.floater ? 1.2 : 1.5),
           }}
-          transition={{ duration: p.duration, ease: "easeOut" }}
+          transition={{ duration: p.duration, ease: cubicBezier(0.22, 1, 0.36, 1) }}
         />
       ))}
-      {/* Ripple animado */}
+      {/* Ripple pro */}
       <span
         ref={rippleRef}
-        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 rounded-full pointer-events-none z-0 opacity-0 ${isDark ? "bg-indigo-400/0" : "bg-yellow-300/0"}`}
-        style={{ zIndex: 1 }}
+        className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full pointer-events-none z-0 opacity-0 ${isDark ? "bg-indigo-400/30" : "bg-yellow-300/30"}`}
+        style={{ zIndex: 1, filter: 'blur(2.5px)' }}
       />
-      {/* Thumb animado */}
+      {/* Thumb pro: shake visual, morph, shadow animada */}
       <motion.div
         className={`absolute top-1/2 left-1 w-6 h-6 rounded-full shadow-lg flex items-center justify-center z-10 transform -translate-y-1/2
           ${isDark ? "bg-gray-900 border-2 border-indigo-400" : "bg-white border-2 border-yellow-300"}
         `}
         animate={{
           x: isDark ? 32 : 0,
-          scale: 1,
+          scale: thumbShake ? 1.10 : 1,
+          rotate: thumbShake ? [0, 8] : 0,
           boxShadow: isDark
-            ? "0 0 12px 2px #6366f1, 0 2px 8px 0 #0004"
+            ? "0 0 10px 2px #6366f1, 0 2px 8px 0 #0003"
             : "0 0 8px 2px #fde68a, 0 2px 8px 0 #0002",
         }}
         whileHover={{
           scale: 1.08,
           boxShadow: isDark ? "0 0 16px 4px #818cf8" : "0 0 16px 4px #fde68a",
         }}
-        whileTap={{ scale: 0.95 }}
+        whileTap={{ scale: 0.97 }}
         transition={{ type: "spring", stiffness: 500, damping: 30 }}
       >
         <AnimatePresence mode="wait" initial={false}>
           {isDark ? (
             <motion.svg
               key="moon"
-              className="w-4 h-4 text-indigo-300"
+              className="w-5 h-5 text-indigo-300 drop-shadow-lg"
               fill="currentColor"
               viewBox="0 0 20 20"
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1, rotate: 360 }}
-              exit={{ opacity: 0, scale: 0.7, rotate: -180 }}
-              transition={{ duration: 0.4 }}
+              initial={{ opacity: 0, scale: 0.7, rotate: 0 }}
+              animate={{ opacity: 1, scale: 1, rotate: 360, filter: flash ? 'drop-shadow(0 0 8px #818cf8)' : 'none' }}
+              exit={{ opacity: 0, scale: 0.7, rotate: 0 }}
+              transition={{ duration: 0.45, type: 'tween', ease: 'easeInOut' }}
             >
               <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
             </motion.svg>
           ) : (
             <motion.svg
               key="sun"
-              className="w-4 h-4 text-yellow-500"
+              className="w-5 h-5 text-yellow-500 drop-shadow-lg"
               fill="currentColor"
               viewBox="0 0 20 20"
-              initial={{ opacity: 0, scale: 0.7 }}
-              animate={{ opacity: 1, scale: 1, rotate: 360 }}
-              exit={{ opacity: 0, scale: 0.7, rotate: -180 }}
-              transition={{ duration: 0.4 }}
+              initial={{ opacity: 0, scale: 0.7, rotate: 0 }}
+              animate={{ opacity: 1, scale: 1, rotate: 360, filter: flash ? 'drop-shadow(0 0 8px #fde68a)' : 'none' }}
+              exit={{ opacity: 0, scale: 0.7, rotate: 0 }}
+              transition={{ duration: 0.45, type: 'tween', ease: 'easeInOut' }}
             >
               <path
                 fillRule="evenodd"
@@ -150,14 +219,15 @@ export default function ThemeSwitch() {
           )}
         </AnimatePresence>
       </motion.div>
-      {/* Borde animado */}
+      {/* Borde animado pro: glow sutil */}
       <motion.div
         className="absolute inset-0 rounded-full pointer-events-none z-0"
         animate={{
           boxShadow: isDark
-            ? "0 0 0 3px #6366f1, 0 0 16px 2px #6366f1aa"
-            : "0 0 0 3px #fde68a, 0 0 16px 2px #fde68aaa",
+            ? "0 0 0 2px #6366f1, 0 0 8px 2px #6366f1aa"
+            : "0 0 0 2.5px #fbbf24, 0 0 16px 4px #fbbf24cc, 0 0 32px 8px #fde68a99",
         }}
+        style={{ border: isDark ? undefined : '2.5px solid #fbbf24' }}
         transition={{ duration: 0.5 }}
       />
     </button>
