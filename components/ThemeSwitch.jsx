@@ -18,27 +18,52 @@ export default function ThemeSwitch() {
   // Paleta invertida: colores claros en light, oscuros en dark
   const palette = isDark
     ? [
-        '#18181b', '#312e81', '#1e293b', '#6366f1', '#7c3aed', '#0ea5e9', '#334155', '#000', '#0f172a', '#1e1b4b'
+        "#18181b",
+        "#312e81",
+        "#1e293b",
+        "#6366f1",
+        "#7c3aed",
+        "#0ea5e9",
+        "#334155",
+        "#000",
+        "#0f172a",
+        "#1e1b4b",
       ]
     : [
-        '#fbbf24', '#fde68a', '#fff', '#f472b6', '#facc15', '#a5b4fc', '#818cf8', '#fef9c3', '#38bdf8', '#e0e7ff',
-        'rgba(250,204,21,0.7)', 'rgba(253,230,138,0.7)', 'rgba(245,114,182,0.7)', 'rgba(129,140,248,0.7)'
+        "#fbbf24",
+        "#fde68a",
+        "#fff",
+        "#f472b6",
+        "#facc15",
+        "#a5b4fc",
+        "#818cf8",
+        "#fef9c3",
+        "#38bdf8",
+        "#e0e7ff",
+        "rgba(250,204,21,0.7)",
+        "rgba(253,230,138,0.7)",
+        "rgba(245,114,182,0.7)",
+        "rgba(129,140,248,0.7)",
       ];
 
   // Partículas pro: trayectorias curvas, persistentes, algunas glowing, más naturales y visibles en light
   const triggerParticles = () => {
     const count = 22;
     const newParticles = Array.from({ length: count }).map((_, i) => {
-      const angle = (i * (360 / count)) + Math.random() * 16;
-      // En light, más opacidad y más amarillo
+      const angle = i * (360 / count) + Math.random() * 16;
       const baseColor = palette[Math.floor(Math.random() * palette.length)];
-      const alpha = isDark ? (0.5 + Math.random() * 0.4) : (0.7 + Math.random() * 0.25);
-      // Usa la paleta según el modo
-      const color = baseColor.includes('rgba')
-        ? baseColor.replace(/\d?\.\d+\)$/g, (alpha + 0.18 > 1 ? 1 : (alpha + 0.18)) + ")")
+      const alpha = isDark
+        ? 0.5 + Math.random() * 0.4
+        : 0.7 + Math.random() * 0.25;
+      const color = baseColor.includes("rgba")
+        ? baseColor.replace(
+            /\d?\.\d+\)$/g,
+            (alpha + 0.18 > 1 ? 1 : alpha + 0.18) + ")"
+          )
         : baseColor;
       const size = 8 + Math.random() * 12;
-      const duration = 0.8 + Math.random() * 0.8;
+      // Duración extendida para mayor apreciación
+      const duration = 1.8 + Math.random() * 1.6;
       const curve = Math.random() > 0.5 ? 1 : -1;
       const glow = Math.random() > 0.6;
       const persistent = Math.random() > 0.7;
@@ -48,7 +73,7 @@ export default function ThemeSwitch() {
         angle,
         color,
         size,
-        duration: floater ? 2.2 + Math.random() * 1.2 : duration,
+        duration: floater ? 3.5 + Math.random() * 2.2 : duration,
         curve,
         glow,
         persistent: floater ? true : persistent,
@@ -56,8 +81,11 @@ export default function ThemeSwitch() {
       };
     });
     setParticles((prev) => [...prev, ...newParticles]);
-    setTimeout(() => setParticles((prev) => prev.filter(p => p.persistent)), 1100);
-    setTimeout(() => setParticles([]), 3200);
+    setTimeout(
+      () => setParticles((prev) => prev.filter((p) => p.persistent)),
+      2100
+    );
+    setTimeout(() => setParticles([]), 5200);
   };
 
   // Sonido pro: eco sutil (simulado)
@@ -108,7 +136,11 @@ export default function ThemeSwitch() {
       {flash && (
         <motion.div
           className="fixed inset-0 pointer-events-none z-50"
-          style={{ background: isDark ? 'rgba(129,140,248,0.18)' : 'rgba(253,230,138,0.18)' }}
+          style={{
+            background: isDark
+              ? "rgba(129,140,248,0.18)"
+              : "rgba(253,230,138,0.18)",
+          }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -119,51 +151,66 @@ export default function ThemeSwitch() {
       {particles.map((p) => (
         <motion.span
           key={p.id}
-          className={isDark ? "pointer-events-none absolute rounded-full" : "pointer-events-none absolute"}
-          style={isDark ? {
-            left: '50%',
-            top: '50%',
-            width: p.size,
-            height: p.size,
-            background: p.color,
-            zIndex: 99999,
-            opacity: p.glow ? 0.99 : 0.8,
-            borderRadius: '9999px',
-            filter: p.glow ? 'blur(2.5px) brightness(2)' : 'blur(0.8px)',
-            boxShadow: p.glow ? `0 0 20px 8px ${p.color}` : undefined,
-            mixBlendMode: p.glow ? 'screen' : 'plus-lighter',
-            border: undefined,
-            transition: 'none',
-          } : {
-            left: '50%',
-            top: '50%',
-            width: p.size,
-            height: p.size,
-            background: p.color,
-            zIndex: 99999,
-            opacity: 0.85,
-            borderRadius: '9999px',
-            filter: p.glow ? 'blur(2.5px) brightness(2)' : 'blur(0.8px)',
-            boxShadow: p.glow ? `0 0 20px 8px ${p.color}` : undefined,
-            mixBlendMode: p.glow ? 'screen' : 'plus-lighter',
-            border: undefined,
-            transition: 'none',
-          }}
+          className={
+            isDark
+              ? "pointer-events-none absolute rounded-full"
+              : "pointer-events-none absolute"
+          }
+          style={
+            isDark
+              ? {
+                  left: "50%",
+                  top: "50%",
+                  width: p.size,
+                  height: p.size,
+                  background: p.color,
+                  zIndex: 99999,
+                  opacity: p.glow ? 0.99 : 0.8,
+                  borderRadius: "9999px",
+                  filter: p.glow ? "blur(2.5px) brightness(2)" : "blur(0.8px)",
+                  boxShadow: p.glow ? `0 0 20px 8px ${p.color}` : undefined,
+                  mixBlendMode: p.glow ? "screen" : "plus-lighter",
+                  border: undefined,
+                  transition: "none",
+                }
+              : {
+                  left: "50%",
+                  top: "50%",
+                  width: p.size,
+                  height: p.size,
+                  background: p.color,
+                  zIndex: 99999,
+                  opacity: 0.85,
+                  borderRadius: "9999px",
+                  filter: p.glow ? "blur(2.5px) brightness(2)" : "blur(0.8px)",
+                  boxShadow: p.glow ? `0 0 20px 8px ${p.color}` : undefined,
+                  mixBlendMode: p.glow ? "screen" : "plus-lighter",
+                  border: undefined,
+                  transition: "none",
+                }
+          }
           initial={{ opacity: 1, x: 0, y: 0, scale: 1 }}
           animate={{
             opacity: 0,
-            x: (p.floater ? 16 : 32) * Math.cos((p.angle * Math.PI) / 180) + p.curve * (p.floater ? 24 : 8),
-            y: (p.floater ? 16 : 32) * Math.sin((p.angle * Math.PI) / 180) + p.curve * (p.floater ? 24 : 12),
-            scale: p.glow ? 2.2 : (p.floater ? 1.2 : 1.5),
+            x:
+              (p.floater ? 16 : 32) * Math.cos((p.angle * Math.PI) / 180) +
+              p.curve * (p.floater ? 24 : 8),
+            y:
+              (p.floater ? 16 : 32) * Math.sin((p.angle * Math.PI) / 180) +
+              p.curve * (p.floater ? 24 : 12),
+            scale: p.glow ? 2.2 : p.floater ? 1.2 : 1.5,
           }}
-          transition={{ duration: p.duration, ease: cubicBezier(0.22, 1, 0.36, 1) }}
+          transition={{
+            duration: p.duration,
+            ease: cubicBezier(0.22, 1, 0.36, 1),
+          }}
         />
       ))}
       {/* Ripple pro */}
       <span
         ref={rippleRef}
         className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full pointer-events-none z-0 opacity-0 ${isDark ? "bg-indigo-400/30" : "bg-yellow-300/30"}`}
-        style={{ zIndex: 1, filter: 'blur(2.5px)' }}
+        style={{ zIndex: 1, filter: "blur(2.5px)" }}
       />
       {/* Thumb pro: shake visual, morph, shadow animada */}
       <motion.div
@@ -172,7 +219,7 @@ export default function ThemeSwitch() {
         `}
         animate={{
           x: isDark ? 32 : 0,
-          scale: thumbShake ? 1.10 : 1,
+          scale: thumbShake ? 1.1 : 1,
           rotate: thumbShake ? [0, 8] : 0,
           boxShadow: isDark
             ? "0 0 10px 2px #6366f1, 0 2px 8px 0 #0003"
@@ -193,9 +240,14 @@ export default function ThemeSwitch() {
               fill="currentColor"
               viewBox="0 0 20 20"
               initial={{ opacity: 0, scale: 0.7, rotate: 0 }}
-              animate={{ opacity: 1, scale: 1, rotate: 360, filter: flash ? 'drop-shadow(0 0 8px #818cf8)' : 'none' }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                rotate: 360,
+                filter: flash ? "drop-shadow(0 0 8px #818cf8)" : "none",
+              }}
               exit={{ opacity: 0, scale: 0.7, rotate: 0 }}
-              transition={{ duration: 0.45, type: 'tween', ease: 'easeInOut' }}
+              transition={{ duration: 0.45, type: "tween", ease: "easeInOut" }}
             >
               <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
             </motion.svg>
@@ -206,9 +258,14 @@ export default function ThemeSwitch() {
               fill="currentColor"
               viewBox="0 0 20 20"
               initial={{ opacity: 0, scale: 0.7, rotate: 0 }}
-              animate={{ opacity: 1, scale: 1, rotate: 360, filter: flash ? 'drop-shadow(0 0 8px #fde68a)' : 'none' }}
+              animate={{
+                opacity: 1,
+                scale: 1,
+                rotate: 360,
+                filter: flash ? "drop-shadow(0 0 8px #fde68a)" : "none",
+              }}
               exit={{ opacity: 0, scale: 0.7, rotate: 0 }}
-              transition={{ duration: 0.45, type: 'tween', ease: 'easeInOut' }}
+              transition={{ duration: 0.45, type: "tween", ease: "easeInOut" }}
             >
               <path
                 fillRule="evenodd"
@@ -227,7 +284,7 @@ export default function ThemeSwitch() {
             ? "0 0 0 2px #6366f1, 0 0 8px 2px #6366f1aa"
             : "0 0 0 2.5px #fbbf24, 0 0 16px 4px #fbbf24cc, 0 0 32px 8px #fde68a99",
         }}
-        style={{ border: isDark ? undefined : '2.5px solid #fbbf24' }}
+        style={{ border: isDark ? undefined : "2.5px solid #fbbf24" }}
         transition={{ duration: 0.5 }}
       />
     </button>
