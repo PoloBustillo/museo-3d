@@ -290,7 +290,7 @@ export default function MainMenu({ onSubirArchivo }) {
             : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md"
         } text-gray-900 dark:text-white transition-all duration-300`}
       >
-        <div className="flex items-center justify-between px-4 py-2 md:py-4">
+        <div className="max-w-screen-xl mx-auto flex items-center justify-between px-4 py-2 md:py-4">
           {/* Logo a la izquierda siempre */}
           <div className="flex items-center flex-shrink-0">
             <Link
