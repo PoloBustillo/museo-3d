@@ -172,10 +172,15 @@ export default function MainMenu({ onSubirArchivo }) {
     function getScrollableContainer() {
       let el = document.querySelector("[data-scrollable-container]");
       if (el) return el;
-      let nodes = document.querySelectorAll("main, [class*='scroll'], [class*='overflow'], [class*='container'], [class*='content']");
+      let nodes = document.querySelectorAll(
+        "main, [class*='scroll'], [class*='overflow'], [class*='container'], [class*='content']"
+      );
       for (let node of nodes) {
         const style = window.getComputedStyle(node);
-        if ((style.overflowY === "auto" || style.overflowY === "scroll") && node.scrollHeight > node.clientHeight) {
+        if (
+          (style.overflowY === "auto" || style.overflowY === "scroll") &&
+          node.scrollHeight > node.clientHeight
+        ) {
           return node;
         }
       }
@@ -187,7 +192,8 @@ export default function MainMenu({ onSubirArchivo }) {
     function getAllScrollY() {
       let values = [window.scrollY];
       if (document.body) values.push(document.body.scrollTop);
-      if (document.documentElement) values.push(document.documentElement.scrollTop);
+      if (document.documentElement)
+        values.push(document.documentElement.scrollTop);
       if (scrollable) values.push(scrollable.scrollTop);
       return Math.max(...values);
     }
@@ -211,14 +217,21 @@ export default function MainMenu({ onSubirArchivo }) {
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    if (document.body) document.body.addEventListener("scroll", handleScroll, { passive: true });
-    if (document.documentElement) document.documentElement.addEventListener("scroll", handleScroll, { passive: true });
-    if (scrollable) scrollable.addEventListener("scroll", handleScroll, { passive: true });
+    if (document.body)
+      document.body.addEventListener("scroll", handleScroll, { passive: true });
+    if (document.documentElement)
+      document.documentElement.addEventListener("scroll", handleScroll, {
+        passive: true,
+      });
+    if (scrollable)
+      scrollable.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      if (document.body) document.body.removeEventListener("scroll", handleScroll);
-      if (document.documentElement) document.documentElement.removeEventListener("scroll", handleScroll);
+      if (document.body)
+        document.body.removeEventListener("scroll", handleScroll);
+      if (document.documentElement)
+        document.documentElement.removeEventListener("scroll", handleScroll);
       if (scrollable) scrollable.removeEventListener("scroll", handleScroll);
     };
   }, [pathname]);
@@ -277,22 +290,12 @@ export default function MainMenu({ onSubirArchivo }) {
             : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md"
         } text-gray-900 dark:text-white transition-all duration-300`}
       >
-        <div className="max-w-screen-xl mx-auto flex items-center justify-between px-4 py-2 md:py-4 h-[88px] md:h-[96px]">
+        <div className="flex items-center justify-between px-4 py-2 md:py-4">
           {/* Logo a la izquierda siempre */}
-          <div
-            className="flex items-center flex-shrink-0"
-            style={{ minWidth: 120, height: 88, width: "auto" }}
-          >
+          <div className="flex items-center flex-shrink-0">
             <Link
               href="/"
               className="flex flex-col items-center justify-center navbar-link"
-              style={{
-                width: "auto",
-                minWidth: 120,
-                maxWidth: "none",
-                height: 88,
-                overflow: "visible",
-              }}
             >
               <img
                 src="/assets/nav/logo.svg"
@@ -305,39 +308,8 @@ export default function MainMenu({ onSubirArchivo }) {
                 className="h-10 md:h-14 w-auto flex-shrink-0 hidden dark:block mx-auto"
               />
               {/* Título visible en móvil y desktop */}
-              <span
-                aria-hidden="true"
-                className="block text-center"
-                style={{
-                  opacity: 0,
-                  display: "block",
-                  fontFamily: "var(--font-monoton), cursive",
-                  fontSize: "1rem",
-                  fontWeight: 400,
-                  letterSpacing: "0.04em",
-                  whiteSpace: "nowrap",
-                  width: "100%",
-                  minWidth: 0,
-                  maxWidth: "100%",
-                  height: "22px",
-                }}
-              >
-                MURAL ARPA
-              </span>
-              <div
-                className="block w-full text-center"
-                style={{
-                  width: "100%",
-                  minWidth: 0,
-                  maxWidth: "100%",
-                  whiteSpace: "nowrap",
-                  textAlign: "center",
-                  marginTop: "-1rem",
-                  fontSize: "1rem",
-                  height: "22px",
-                  overflow: "hidden",
-                }}
-              >
+
+              <div className="block w-full text-center">
                 <TypewriterText
                   text="MURAL ARPA"
                   speed={120}
@@ -388,13 +360,25 @@ export default function MainMenu({ onSubirArchivo }) {
                               layoutId="menu-dot-global"
                               className={
                                 isActive
-                                  ? `inline-block ${dotAnimating ? 'w-1.5 h-1.5' : 'w-2 h-2'} rounded-full shadow`
+                                  ? `inline-block ${dotAnimating ? "w-1.5 h-1.5" : "w-2 h-2"} rounded-full shadow`
                                   : "inline-block w-1.5 h-1.5 rounded-full bg-gray-400/60"
                               }
-                              initial={isActive ? { scale: 0.5, opacity: 0, x: 0, y: 0 } : false}
+                              initial={
+                                isActive
+                                  ? { scale: 0.5, opacity: 0, x: 0, y: 0 }
+                                  : false
+                              }
                               animate={
                                 !isVisible
-                                  ? { opacity: 0, scale: 0.7, x: 0, y: 0, background: isActive ? "#6366f1" : "#a1a1aa" }
+                                  ? {
+                                      opacity: 0,
+                                      scale: 0.7,
+                                      x: 0,
+                                      y: 0,
+                                      background: isActive
+                                        ? "#6366f1"
+                                        : "#a1a1aa",
+                                    }
                                   : isActive && dotAnimating
                                     ? {
                                         scale: [1, 1.18, 1],
@@ -402,7 +386,7 @@ export default function MainMenu({ onSubirArchivo }) {
                                         boxShadow: [
                                           "0 0 0px 0px #6366f1",
                                           "0 0 3px 0.5px #6366f1aa",
-                                          "0 0 0px 0px #6366f1"
+                                          "0 0 0px 0px #6366f1",
                                         ],
                                         x: [0, 2, 3, 2, 0, -2, -3, -2, 0],
                                         y: [0, 2, 0, -2, -3, -2, 0, 2, 0],
@@ -412,7 +396,7 @@ export default function MainMenu({ onSubirArchivo }) {
                                           "#fef08a",
                                           "#f472b6",
                                           "#38bdf8",
-                                          "#6366f1"
+                                          "#6366f1",
                                         ],
                                       }
                                     : {
@@ -422,7 +406,7 @@ export default function MainMenu({ onSubirArchivo }) {
                                         y: 0,
                                         background: isActive
                                           ? "linear-gradient(135deg, #6366f1 0%, #a5b4fc 40%, #fef08a 70%, #f472b6 90%, #38bdf8 100%)"
-                                          : "#a1a1aa"
+                                          : "#a1a1aa",
                                       }
                               }
                               transition={
@@ -433,26 +417,38 @@ export default function MainMenu({ onSubirArchivo }) {
                                         duration: 1.1,
                                         repeat: Infinity,
                                         repeatType: "loop",
-                                        ease: "easeInOut"
+                                        ease: "easeInOut",
                                       }
                                     : {
                                         type: "spring",
                                         stiffness: 120,
                                         damping: 18,
                                         mass: 0.7,
-                                        duration: 0.45
+                                        duration: 0.45,
                                       }
                               }
-                              whileFocus={{ scale: 1.2, boxShadow: "0 0 8px 2px #818cf8" }}
+                              whileFocus={{
+                                scale: 1.2,
+                                boxShadow: "0 0 8px 2px #818cf8",
+                              }}
                               whileTap={{ scale: 1.1 }}
                               style={{
                                 display: "inline-block",
-                                background: !dotAnimating && isActive
-                                  ? "linear-gradient(135deg, #6366f1 0%, #a5b4fc 40%, #fef08a 70%, #f472b6 90%, #38bdf8 100%)"
+                                background:
+                                  !dotAnimating && isActive
+                                    ? "linear-gradient(135deg, #6366f1 0%, #a5b4fc 40%, #fef08a 70%, #f472b6 90%, #38bdf8 100%)"
+                                    : undefined,
+                                backgroundSize:
+                                  !dotAnimating && isActive
+                                    ? "200% 200%"
+                                    : undefined,
+                                backgroundPosition:
+                                  !dotAnimating && isActive
+                                    ? "50% 50%"
+                                    : undefined,
+                                boxShadow: isActive
+                                  ? "0 0 2px 0.5px #818cf822"
                                   : undefined,
-                                backgroundSize: !dotAnimating && isActive ? "200% 200%" : undefined,
-                                backgroundPosition: !dotAnimating && isActive ? "50% 50%" : undefined,
-                                boxShadow: isActive ? "0 0 2px 0.5px #818cf822" : undefined
                               }}
                             />
                           </span>
@@ -462,7 +458,11 @@ export default function MainMenu({ onSubirArchivo }) {
                               animate={
                                 isActive && isVisible
                                   ? {
-                                      backgroundPosition: ["40% 50%", "60% 50%", "50% 50%"],
+                                      backgroundPosition: [
+                                        "40% 50%",
+                                        "60% 50%",
+                                        "50% 50%",
+                                      ],
                                       opacity: [0.7, 1, 0.7],
                                     }
                                   : { opacity: 0 }
@@ -473,7 +473,7 @@ export default function MainMenu({ onSubirArchivo }) {
                                       duration: 1.2,
                                       repeat: Infinity,
                                       repeatType: "loop",
-                                      ease: "easeInOut"
+                                      ease: "easeInOut",
                                     }
                                   : { duration: 0.3 }
                               }
@@ -483,7 +483,8 @@ export default function MainMenu({ onSubirArchivo }) {
                                 top: 0,
                                 width: "100%",
                                 height: "100%",
-                                background: "linear-gradient(90deg, transparent 0%, #818cf8 45%, #fbbf24 50%, #818cf8 55%, transparent 100%)",
+                                background:
+                                  "linear-gradient(90deg, transparent 0%, #818cf8 45%, #fbbf24 50%, #818cf8 55%, transparent 100%)",
                                 backgroundClip: "text",
                                 WebkitBackgroundClip: "text",
                                 color: "transparent",
@@ -496,7 +497,15 @@ export default function MainMenu({ onSubirArchivo }) {
                             >
                               {link.label}
                             </motion.span>
-                            <span style={{ opacity: 1, position: "relative", zIndex: 1 }}>{link.label}</span>
+                            <span
+                              style={{
+                                opacity: 1,
+                                position: "relative",
+                                zIndex: 1,
+                              }}
+                            >
+                              {link.label}
+                            </span>
                           </span>
                         </Link>
                       </NavigationMenuLink>
@@ -586,7 +595,9 @@ export default function MainMenu({ onSubirArchivo }) {
                   </span>
                 </div>
               ) : isAuthenticated ? (
-                <div className="relative max-w-[200px]">{/* ...existing user menu code... */}</div>
+                <div className="relative max-w-[200px]">
+                  {/* ...existing user menu code... */}
+                </div>
               ) : (
                 <button
                   onClick={() => handleAuthClick("login")}
@@ -596,11 +607,13 @@ export default function MainMenu({ onSubirArchivo }) {
                   style={{
                     position: "relative",
                     overflow: "visible",
-                    background: "radial-gradient(circle at 60% 40%, rgba(236,72,153,0.18) 0%, rgba(99,102,241,0.13) 100%)",
+                    background:
+                      "radial-gradient(circle at 60% 40%, rgba(236,72,153,0.18) 0%, rgba(99,102,241,0.13) 100%)",
                     backdropFilter: "blur(16px) brightness(1.15)",
                     WebkitBackdropFilter: "blur(16px) brightness(1.15)",
-                    boxShadow: "0 4px 24px 0 rgba(99,102,241,0.10), 0 1.5px 8px 0 rgba(236,72,153,0.10)",
-                    borderRadius: "9999px"
+                    boxShadow:
+                      "0 4px 24px 0 rgba(99,102,241,0.10), 0 1.5px 8px 0 rgba(236,72,153,0.10)",
+                    borderRadius: "9999px",
                   }}
                 >
                   <span className="relative flex items-center justify-center w-7 h-7">
@@ -609,7 +622,10 @@ export default function MainMenu({ onSubirArchivo }) {
                       className="w-6 h-6 text-primary group-hover:text-pink-500 group-hover:drop-shadow-lg transition-all duration-200"
                       strokeWidth={2}
                     />
-                    <span className="absolute left-0 top-0 w-full h-full pointer-events-none animate-glass-shine" style={{ zIndex: 2 }} />
+                    <span
+                      className="absolute left-0 top-0 w-full h-full pointer-events-none animate-glass-shine"
+                      style={{ zIndex: 2 }}
+                    />
                   </span>
                 </button>
               ))}
