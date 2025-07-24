@@ -1470,6 +1470,11 @@ button[style*="position: fixed"] {
   height: 100%;
   overflow: hidden;
   pointer-events: none;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  perspective: 1000;
+  transform: translate3d(0,0,0);
 }
 
 [data-theme="light"] .cloud-parallax-container {
@@ -1485,9 +1490,11 @@ button[style*="position: fixed"] {
   border-radius: 50%;
   filter: blur(4px);
   transition: all 0.5s ease;
+  transform: translate3d(0,0,0); /* Esta regla sirve para la aceleración por hardware en dispositivos iOS*/
+  will-change: transform;
+  -webkit-transform: translate3d(0,0,0);
 }
 
-/* Los tamaños para cada capa de nubes que hacen posible el efecto parallax */
 .cloud-layer-1 {
   width: 120px;
   height: 60px;
@@ -1559,6 +1566,8 @@ button[style*="position: fixed"] {
 @media (max-width: 640px) {
   .cloud {
     filter: blur(3px);
+    -webkit-transform: translate3d(0,0,0);
+    transform: translate3d(0,0,0);
   }
   
   .cloud-layer-1 {
@@ -1590,7 +1599,29 @@ button[style*="position: fixed"] {
     width: 170px;
     height: 85px;
   }
+  
+  .cloud-layer-3:nth-child(5),
+  .cloud-layer-3:nth-child(6) {
+    display: none;
+  }
 }
+
+/* Gestión de Rendimiento para dispositivos iOS*/
+@supports (-webkit-touch-callout: none) {
+  .cloud-parallax-container {
+    position: absolute;
+    height: 150vh;
+  }
+  
+  .cloud {
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-transform-style: preserve-3d;
+    transform-style: preserve-3d;
+  }
+}
+
 
 .light-bg {
   position: fixed;

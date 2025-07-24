@@ -1,16 +1,19 @@
+// components/ui/ParallaxClouds.jsx
 "use client";
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const ParallaxClouds = () => {
   const cloudContainerRef = useRef(null);
+  const requestRef = useRef();
+  const prevScrollYRef = useRef(0);
   
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!cloudContainerRef.current) return;
-      
-      const scrollY = window.scrollY;
-      const clouds = cloudContainerRef.current.querySelectorAll('.cloud');
-      
+  const animateScroll = () => {
+    if (!cloudContainerRef.current) return;
+    
+    const scrollY = window.scrollY;
+    const clouds = cloudContainerRef.current.querySelectorAll('.cloud');
+
+    if (Math.abs(scrollY - prevScrollYRef.current) > 0.5) {
       const speedFactors = [0.1, 0.3, 0.5];
       
       clouds.forEach((cloud, index) => {
@@ -20,15 +23,20 @@ const ParallaxClouds = () => {
         else layer = 2;
         
         const translateY = -scrollY * speedFactors[layer];
-        cloud.style.transform = `translateY(${translateY}px)`;
+        cloud.style.transform = `translate3d(0, ${translateY}px, 0)`;
       });
-    };
+      
+      prevScrollYRef.current = scrollY;
+    }
     
-    handleScroll();
+    requestRef.current = requestAnimationFrame(animateScroll);
+  };
+  
+  useEffect(() => {
+    requestRef.current = requestAnimationFrame(animateScroll);
     
-    window.addEventListener('scroll', handleScroll);
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      cancelAnimationFrame(requestRef.current);
     };
   }, []);
 
@@ -37,7 +45,7 @@ const ParallaxClouds = () => {
       ref={cloudContainerRef}
       className="cloud-parallax-container"
     >
-      {/* Nubes mas pequeñas */}
+      {/* Nubes más pequeñas */}
       <div className="cloud cloud-layer-1" style={{ top: '10%', left: '5%' }}></div>
       <div className="cloud cloud-layer-1" style={{ top: '40%', right: '10%' }}></div>
       
