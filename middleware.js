@@ -18,6 +18,11 @@ export default withAuth(
     const { pathname } = req.nextUrl;
     const userRole = (token?.role || "").toLowerCase();
 
+    Sentry.captureMessage("[DEBUG] Middleware ejecutado", {
+      level: "debug",
+      extra: { pathname, userId: token?.sub, userRole: token?.role, token: !!token }
+    });
+
     // Guest-only: redirigir si ya está autenticado
     if (guestOnlyPaths.some((path) => pathname.startsWith(path)) && token) {
       Sentry.captureMessage(
@@ -27,6 +32,10 @@ export default withAuth(
           extra: { pathname, userId: token?.sub },
         }
       );
+      Sentry.captureMessage("[DEBUG] Redirigiendo guest-only a /perfil", {
+        level: "debug",
+        extra: { pathname, userId: token?.sub }
+      });
       return NextResponse.redirect(new URL("/perfil", req.url));
     }
 
@@ -35,6 +44,10 @@ export default withAuth(
       Sentry.captureMessage("Acceso denegado a ruta protegida sin token", {
         level: "warning",
         extra: { pathname },
+      });
+      Sentry.captureMessage("[DEBUG] Redirigiendo protegida a /no-autorizado", {
+        level: "debug",
+        extra: { pathname }
       });
       const url = new URL("/no-autorizado", req.url);
       url.searchParams.set("callbackUrl", pathname);
@@ -47,9 +60,17 @@ export default withAuth(
         level: "warning",
         extra: { pathname, userId: token?.sub, userRole: token?.role },
       });
+      Sentry.captureMessage("[DEBUG] Redirigiendo admin a /no-autorizado", {
+        level: "debug",
+        extra: { pathname, userId: token?.sub, userRole: token?.role }
+      });
       return NextResponse.redirect(new URL("/no-autorizado", req.url));
     }
 
+    Sentry.captureMessage("[DEBUG] Middleware permite acceso", {
+      level: "debug",
+      extra: { pathname, userId: token?.sub, userRole: token?.role }
+    });
     return NextResponse.next();
   },
   {

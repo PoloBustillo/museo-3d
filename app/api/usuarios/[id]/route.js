@@ -1,8 +1,7 @@
-import { PrismaClient } from "@prisma/client";
+
+import { prisma } from "../../../../lib/prisma.js";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../lib/auth.js";
-
-const prisma = new PrismaClient();
 
 // GET /api/usuarios/[id] - Obtener usuario por ID
 export async function GET(req, context) {
@@ -318,5 +317,92 @@ export async function DELETE(req, context) {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
+  }
+}
+
+// PATCH /api/usuarios/[id] - Actualización parcial de usuario
+export async function PATCH(req, context) {
+  try {
+    const session = await getServerSession(authOptions);
+    const params = await context.params;
+    const { id } = params;
+
+    if (!session || !session.user) {
+      return new Response(JSON.stringify({ error: "No autorizado" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // Solo admin o el propio usuario pueden modificar
+    if (session.user.role !== "ADMIN" && session.user.id !== id) {
+      return new Response(JSON.stringify({ error: "Acceso denegado" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const data = await req.json();
+    const updateData = {};
+
+    // Campos que cualquier usuario puede actualizar
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.image !== undefined) updateData.image = data.image;
+    if (data.settings !== undefined) updateData.settings = data.settings;
+
+    // Campos que solo admin puede actualizar
+    if (session.user.role === "ADMIN") {
+      if (data.email !== undefined) updateData.email = data.email;
+      if (data.role !== undefined) updateData.role = data.role;
+      if (data.emailVerified !== undefined) {
+        updateData.emailVerified = data.emailVerified
+          ? new Date(data.emailVerified)
+          : null;
+      }
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return new Response(
+        JSON.stringify({
+          error: "No hay campos válidos para actualizar",
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const usuario = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        image: true,
+        emailVerified: true,
+        settings: true,
+      },
+    });
+    return new Response(
+      JSON.stringify({ message: "Usuario actualizado exitosamente", usuario }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  } catch (error) {
+    return new Response(
+      JSON.stringify({
+        error: "Error interno del servidor al actualizar el usuario",
+        details: error.message,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }
