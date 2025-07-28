@@ -106,7 +106,13 @@ export async function GET(req, context) {
       );
     }
 
-    return new Response(JSON.stringify(usuario), {
+    // Añadir campo emailVerificadoEstado para facilitar al frontend
+    const usuarioConEstado = {
+      ...usuario,
+      emailVerificadoEstado: usuario.emailVerified ? "verificado" : "no verificado",
+    };
+
+    return new Response(JSON.stringify(usuarioConEstado), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
