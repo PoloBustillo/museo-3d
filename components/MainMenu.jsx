@@ -2,13 +2,11 @@
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
-import { User } from "lucide-react";
 import ThemeSwitch from "./ThemeSwitch";
 import { UserRoundCog } from "lucide-react";
 import { useModal } from "../providers/ModalProvider";
 import { useUser } from "../providers/UserProvider";
 import { useSessionData } from "../providers/SessionProvider";
-import { ButtonLoader } from "./LoadingSpinner";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
@@ -23,86 +21,7 @@ import {
 } from "./ui/navigation-menu";
 
 import useIsMobile from "../app/hooks/useIsMobile";
-
-// Componente de efecto máquina de escribir
-function TypewriterText({
-  text,
-  speed = 100,
-  delay = 0,
-  repeat = false,
-  repeatDelay = 3000,
-  className = "",
-  style = {},
-}) {
-  const [displayedText, setDisplayedText] = useState("");
-  const [isComplete, setIsComplete] = useState(false);
-  const [cycle, setCycle] = useState(0);
-
-  useEffect(() => {
-    setDisplayedText("");
-    setIsComplete(false);
-
-    const timer = setTimeout(() => {
-      let currentIndex = 0;
-      const interval = setInterval(() => {
-        if (currentIndex <= text.length) {
-          setDisplayedText(text.slice(0, currentIndex));
-          currentIndex++;
-        } else {
-          setIsComplete(true);
-          clearInterval(interval);
-
-          // Si repeat está habilitado, reiniciar después del delay
-          if (repeat) {
-            setTimeout(() => {
-              setCycle((prev) => prev + 1);
-            }, repeatDelay);
-          }
-        }
-      }, speed);
-
-      return () => clearInterval(interval);
-    }, delay);
-
-    return () => clearTimeout(timer);
-  }, [text, speed, delay, repeat, repeatDelay, cycle]);
-
-  return (
-    <span
-      className={`text-3xl font-normal tracking-tight text-primary drop-shadow-sm ${className}`}
-      style={{
-        fontFamily: "var(--font-monoton), cursive",
-        letterSpacing: "0.04em",
-        display: "inline-block",
-        position: "relative",
-        ...style,
-      }}
-    >
-      {/* Invisible span to reserve width and prevent layout shift */}
-      <span style={{ visibility: "hidden", whiteSpace: "nowrap" }}>{text}</span>
-      {/* Absolutely positioned animated text */}
-      <span
-        style={{
-          position: "absolute",
-          left: 0,
-          top: 0,
-          whiteSpace: "nowrap",
-          width: "100%",
-          height: "100%",
-          pointerEvents: "none",
-        }}
-      >
-        {displayedText}
-        <motion.span
-          animate={{ opacity: !isComplete ? [0, 1, 0] : 0 }}
-          transition={{ duration: 0.8, repeat: Infinity }}
-          className="inline-block w-0.5 h-7 bg-primary ml-1 align-middle"
-          style={{ visibility: !isComplete ? "visible" : "hidden" }}
-        />
-      </span>
-    </span>
-  );
-}
+import TypewriterText from "./shared/TypewriterText";
 
 export default function MainMenu({ onSubirArchivo }) {
   // Estado para controlar la animación del dot
@@ -332,7 +251,7 @@ export default function MainMenu({ onSubirArchivo }) {
             </Link>
           </div>
           {/* Links centrados en md+ */}
-          <div className="flex-1 flex justify-center items-center hidden md:flex">
+          <div className="flex-1 justify-center items-center md:flex hidden md:block">
             <NavigationMenu className="align-middle">
               <NavigationMenuList className="text-sm font-medium relative items-center flex h-full">
                 {menuLinks.map((link) => {
@@ -355,7 +274,7 @@ export default function MainMenu({ onSubirArchivo }) {
                             isActive ? (e) => e.preventDefault() : undefined
                           }
                         >
-                          <span className="block h-3 mb-1 w-full flex items-center justify-center">
+                          <span className="h-3 mb-1 w-full flex items-center justify-center">
                             <motion.span
                               layoutId="menu-dot-global"
                               className={
