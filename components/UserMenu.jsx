@@ -1,3 +1,4 @@
+import React from "react";
 import Link from "next/link";
 import { UserRoundCog } from "lucide-react";
 import { motion } from "framer-motion";
@@ -27,6 +28,13 @@ export default function UserMenu({
   handleAuthClick,
   signOut,
 }) {
+  const audioRef = React.useRef(null);
+  const playMenuSound = () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play();
+    }
+  };
   if (isMobile) return null;
 
   if (status === "loading") {
@@ -43,10 +51,20 @@ export default function UserMenu({
   if (isAuthenticated) {
     return (
       <div className="relative max-w-[200px]">
+        {/* Elemento de audio oculto */}
+        <audio
+          ref={audioRef}
+          src="/menu.mp3"
+          preload="auto"
+          style={{ display: "none" }}
+        />
         <NavigationMenu>
           <NavigationMenuList>
             <NavigationMenuItem className="relative">
-              <NavigationMenuTrigger className="flex items-center gap-2 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all">
+              <NavigationMenuTrigger
+                className="flex items-center gap-2 hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all"
+                onMouseEnter={playMenuSound}
+              >
                 <img
                   src={
                     userProfile?.image ||
@@ -60,7 +78,9 @@ export default function UserMenu({
                   }}
                 />
                 <span className="hidden md:inline text-sm font-medium">
-                  {userProfile?.name || user?.name || user?.email?.split("@")[0]}
+                  {userProfile?.name ||
+                    user?.name ||
+                    user?.email?.split("@")[0]}
                 </span>
               </NavigationMenuTrigger>
               <NavigationMenuContent className="bg-card p-4 rounded-lg shadow-lg border min-w-[180px]">
@@ -81,8 +101,8 @@ export default function UserMenu({
                               role === "admin"
                                 ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300"
                                 : role === "moderator"
-                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
-                                : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                                  ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                                  : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
                             }`}
                           >
                             {role}
@@ -90,7 +110,6 @@ export default function UserMenu({
                         ))}
                       </div>
                     )}
-                    {/* Información de la sesión */}
                     {session && (
                       <div className="mt-2 pt-2 border-t border-border">
                         <div className="flex items-center justify-between text-xs">
@@ -100,8 +119,8 @@ export default function UserMenu({
                               isSessionExpiringSoon
                                 ? "text-yellow-600 dark:text-yellow-400"
                                 : isSessionExpired
-                                ? "text-red-600 dark:text-red-400"
-                                : "text-green-600 dark:text-green-400"
+                                  ? "text-red-600 dark:text-red-400"
+                                  : "text-green-600 dark:text-green-400"
                             }`}
                           >
                             {sessionDuration}
@@ -115,22 +134,41 @@ export default function UserMenu({
                       </div>
                     )}
                   </div>
-                  {/* En el dropdown del usuario: */}
                   <div className="flex flex-col gap-2">
-                    {/* Links principales del usuario */}
+                    {/* ...enlaces y panel de gestión... */}
                     <Link
                       href="/perfil"
                       className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm relative pl-6"
-                      aria-current={pathname.startsWith("/perfil") ? "page" : undefined}
-                      onClick={pathname.startsWith("/perfil") ? (e) => e.preventDefault() : undefined}
+                      aria-current={
+                        pathname.startsWith("/perfil") ? "page" : undefined
+                      }
+                      onClick={
+                        pathname.startsWith("/perfil")
+                          ? (e) => e.preventDefault()
+                          : undefined
+                      }
                     >
                       <span className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">
                         <motion.span
                           layoutId="menu-dot-global"
-                          className={pathname.startsWith("/perfil") ? "inline-block w-2 h-2 rounded-full bg-primary" : "inline-block w-2 h-2 rounded-full bg-gray-400/70"}
+                          className={
+                            pathname.startsWith("/perfil")
+                              ? "inline-block w-2 h-2 rounded-full bg-primary"
+                              : "inline-block w-2 h-2 rounded-full bg-gray-400/70"
+                          }
                           initial={false}
-                          animate={pathname.startsWith("/perfil") ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0.5 }}
-                          transition={{ type: "spring", stiffness: 120, damping: 18, mass: 0.7, duration: 0.45 }}
+                          animate={
+                            pathname.startsWith("/perfil")
+                              ? { scale: 1, opacity: 1 }
+                              : { scale: 0.7, opacity: 0.5 }
+                          }
+                          transition={{
+                            type: "spring",
+                            stiffness: 120,
+                            damping: 18,
+                            mass: 0.7,
+                            duration: 0.45,
+                          }}
                           style={{ display: "inline-block" }}
                         />
                       </span>
@@ -139,16 +177,36 @@ export default function UserMenu({
                     <Link
                       href="/mis-obras"
                       className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm relative pl-6"
-                      aria-current={pathname.startsWith("/mis-obras") ? "page" : undefined}
-                      onClick={pathname.startsWith("/mis-obras") ? (e) => e.preventDefault() : undefined}
+                      aria-current={
+                        pathname.startsWith("/mis-obras") ? "page" : undefined
+                      }
+                      onClick={
+                        pathname.startsWith("/mis-obras")
+                          ? (e) => e.preventDefault()
+                          : undefined
+                      }
                     >
                       <span className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">
                         <motion.span
                           layoutId="menu-dot-global"
-                          className={pathname.startsWith("/mis-obras") ? "inline-block w-2 h-2 rounded-full bg-primary" : "inline-block w-2 h-2 rounded-full bg-gray-400/70"}
+                          className={
+                            pathname.startsWith("/mis-obras")
+                              ? "inline-block w-2 h-2 rounded-full bg-primary"
+                              : "inline-block w-2 h-2 rounded-full bg-gray-400/70"
+                          }
                           initial={false}
-                          animate={pathname.startsWith("/mis-obras") ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0.5 }}
-                          transition={{ type: "spring", stiffness: 120, damping: 18, mass: 0.7, duration: 0.45 }}
+                          animate={
+                            pathname.startsWith("/mis-obras")
+                              ? { scale: 1, opacity: 1 }
+                              : { scale: 0.7, opacity: 0.5 }
+                          }
+                          transition={{
+                            type: "spring",
+                            stiffness: 120,
+                            damping: 18,
+                            mass: 0.7,
+                            duration: 0.45,
+                          }}
                           style={{ display: "inline-block" }}
                         />
                       </span>
@@ -157,22 +215,41 @@ export default function UserMenu({
                     <Link
                       href="/mis-salas"
                       className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm relative pl-6"
-                      aria-current={pathname.startsWith("/mis-salas") ? "page" : undefined}
-                      onClick={pathname.startsWith("/mis-salas") ? (e) => e.preventDefault() : undefined}
+                      aria-current={
+                        pathname.startsWith("/mis-salas") ? "page" : undefined
+                      }
+                      onClick={
+                        pathname.startsWith("/mis-salas")
+                          ? (e) => e.preventDefault()
+                          : undefined
+                      }
                     >
                       <span className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">
                         <motion.span
                           layoutId="menu-dot-global"
-                          className={pathname.startsWith("/mis-salas") ? "inline-block w-2 h-2 rounded-full bg-primary" : "inline-block w-2 h-2 rounded-full bg-gray-400/70"}
+                          className={
+                            pathname.startsWith("/mis-salas")
+                              ? "inline-block w-2 h-2 rounded-full bg-primary"
+                              : "inline-block w-2 h-2 rounded-full bg-gray-400/70"
+                          }
                           initial={false}
-                          animate={pathname.startsWith("/mis-salas") ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0.5 }}
-                          transition={{ type: "spring", stiffness: 120, damping: 18, mass: 0.7, duration: 0.45 }}
+                          animate={
+                            pathname.startsWith("/mis-salas")
+                              ? { scale: 1, opacity: 1 }
+                              : { scale: 0.7, opacity: 0.5 }
+                          }
+                          transition={{
+                            type: "spring",
+                            stiffness: 120,
+                            damping: 18,
+                            mass: 0.7,
+                            duration: 0.45,
+                          }}
                           style={{ display: "inline-block" }}
                         />
                       </span>
                       Mis Salas
                     </Link>
-                    {/* Panel de Gestión solo si es moderador o admin */}
                     {(isModerator || isAdmin) && (
                       <div className="px-3 py-1 border-t border-border">
                         <p className="text-xs text-muted-foreground font-medium mb-1">
@@ -181,16 +258,38 @@ export default function UserMenu({
                         <Link
                           href="/admin/usuarios"
                           className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm relative pl-6"
-                          aria-current={pathname.startsWith("/admin/usuarios") ? "page" : undefined}
-                          onClick={pathname.startsWith("/admin/usuarios") ? (e) => e.preventDefault() : undefined}
+                          aria-current={
+                            pathname.startsWith("/admin/usuarios")
+                              ? "page"
+                              : undefined
+                          }
+                          onClick={
+                            pathname.startsWith("/admin/usuarios")
+                              ? (e) => e.preventDefault()
+                              : undefined
+                          }
                         >
                           <span className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">
                             <motion.span
                               layoutId="menu-dot-global"
-                              className={pathname.startsWith("/admin/usuarios") ? "inline-block w-2 h-2 rounded-full bg-primary" : "inline-block w-2 h-2 rounded-full bg-gray-400/70"}
+                              className={
+                                pathname.startsWith("/admin/usuarios")
+                                  ? "inline-block w-2 h-2 rounded-full bg-primary"
+                                  : "inline-block w-2 h-2 rounded-full bg-gray-400/70"
+                              }
                               initial={false}
-                              animate={pathname.startsWith("/admin/usuarios") ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0.5 }}
-                              transition={{ type: "spring", stiffness: 120, damping: 18, mass: 0.7, duration: 0.45 }}
+                              animate={
+                                pathname.startsWith("/admin/usuarios")
+                                  ? { scale: 1, opacity: 1 }
+                                  : { scale: 0.7, opacity: 0.5 }
+                              }
+                              transition={{
+                                type: "spring",
+                                stiffness: 120,
+                                damping: 18,
+                                mass: 0.7,
+                                duration: 0.45,
+                              }}
                               style={{ display: "inline-block" }}
                             />
                           </span>
@@ -201,16 +300,38 @@ export default function UserMenu({
                             <Link
                               href="/admin/logs"
                               className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm relative pl-6"
-                              aria-current={pathname.startsWith("/admin/logs") ? "page" : undefined}
-                              onClick={pathname.startsWith("/admin/logs") ? (e) => e.preventDefault() : undefined}
+                              aria-current={
+                                pathname.startsWith("/admin/logs")
+                                  ? "page"
+                                  : undefined
+                              }
+                              onClick={
+                                pathname.startsWith("/admin/logs")
+                                  ? (e) => e.preventDefault()
+                                  : undefined
+                              }
                             >
                               <span className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">
                                 <motion.span
                                   layoutId="menu-dot-global"
-                                  className={pathname.startsWith("/admin/logs") ? "inline-block w-2 h-2 rounded-full bg-primary" : "inline-block w-2 h-2 rounded-full bg-gray-400/70"}
+                                  className={
+                                    pathname.startsWith("/admin/logs")
+                                      ? "inline-block w-2 h-2 rounded-full bg-primary"
+                                      : "inline-block w-2 h-2 rounded-full bg-gray-400/70"
+                                  }
                                   initial={false}
-                                  animate={pathname.startsWith("/admin/logs") ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0.5 }}
-                                  transition={{ type: "spring", stiffness: 120, damping: 18, mass: 0.7, duration: 0.45 }}
+                                  animate={
+                                    pathname.startsWith("/admin/logs")
+                                      ? { scale: 1, opacity: 1 }
+                                      : { scale: 0.7, opacity: 0.5 }
+                                  }
+                                  transition={{
+                                    type: "spring",
+                                    stiffness: 120,
+                                    damping: 18,
+                                    mass: 0.7,
+                                    duration: 0.45,
+                                  }}
                                   style={{ display: "inline-block" }}
                                 />
                               </span>
@@ -219,16 +340,38 @@ export default function UserMenu({
                             <Link
                               href="/admin/healthcheck"
                               className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm relative pl-6"
-                              aria-current={pathname.startsWith("/admin/healthcheck") ? "page" : undefined}
-                              onClick={pathname.startsWith("/admin/healthcheck") ? (e) => e.preventDefault() : undefined}
+                              aria-current={
+                                pathname.startsWith("/admin/healthcheck")
+                                  ? "page"
+                                  : undefined
+                              }
+                              onClick={
+                                pathname.startsWith("/admin/healthcheck")
+                                  ? (e) => e.preventDefault()
+                                  : undefined
+                              }
                             >
                               <span className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">
                                 <motion.span
                                   layoutId="menu-dot-global"
-                                  className={pathname.startsWith("/admin/healthcheck") ? "inline-block w-2 h-2 rounded-full bg-primary" : "inline-block w-2 h-2 rounded-full bg-gray-400/70"}
+                                  className={
+                                    pathname.startsWith("/admin/healthcheck")
+                                      ? "inline-block w-2 h-2 rounded-full bg-primary"
+                                      : "inline-block w-2 h-2 rounded-full bg-gray-400/70"
+                                  }
                                   initial={false}
-                                  animate={pathname.startsWith("/admin/healthcheck") ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0.5 }}
-                                  transition={{ type: "spring", stiffness: 120, damping: 18, mass: 0.7, duration: 0.45 }}
+                                  animate={
+                                    pathname.startsWith("/admin/healthcheck")
+                                      ? { scale: 1, opacity: 1 }
+                                      : { scale: 0.7, opacity: 0.5 }
+                                  }
+                                  transition={{
+                                    type: "spring",
+                                    stiffness: 120,
+                                    damping: 18,
+                                    mass: 0.7,
+                                    duration: 0.45,
+                                  }}
                                   style={{ display: "inline-block" }}
                                 />
                               </span>
@@ -238,13 +381,13 @@ export default function UserMenu({
                         )}
                       </div>
                     )}
+                    <button
+                      onClick={signOut}
+                      className="block w-full text-left px-3 py-2 rounded-md transition-all text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/30 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                    >
+                      Cerrar sesión
+                    </button>
                   </div>
-                  <button
-                    onClick={signOut}
-                    className="block w-full text-left px-3 py-2 rounded-md transition-all text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/30 focus:outline-none focus:ring-2 focus:ring-red-500/20"
-                  >
-                    Cerrar sesión
-                  </button>
                 </div>
               </NavigationMenuContent>
             </NavigationMenuItem>
