@@ -88,7 +88,10 @@ export default function HealthcheckPage() {
             <span
               className="inline-block w-4 h-4 rounded-full"
               style={{
-                background: status?.api === "OK" ? "#22c55e" : "#ef4444",
+                background:
+                  statusData?.api === "OK" || statusData?.api === "Operacional"
+                    ? "#22c55e"
+                    : "#ef4444",
               }}
             />
             <CardTitle className="text-3xl font-bold">
