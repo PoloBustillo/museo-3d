@@ -186,7 +186,7 @@ export default function AdminLogsPage() {
 
   return (
     <div className="max-w-7xl mx-auto p-4 space-y-6">
-      <Card className={"mt-1"}>
+      <Card className={"md:mt-10"}>
         <CardHeader>
           <CardTitle className="text-2xl font-bold flex items-center gap-2">
             Panel de eventos y errores
