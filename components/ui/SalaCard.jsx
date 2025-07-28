@@ -8,9 +8,15 @@ import {
 } from "./card";
 import { Edit3, Trash2, ArrowRight } from "lucide-react";
 
-export default function SalaCard({ sala, isAdmin, onEnter, onEdit, onDelete }) {
+export default function SalaCard({ sala, isOwner, onEnter, onEdit, onDelete }) {
   return (
-    <Card className="overflow-hidden group cursor-pointer transition hover:shadow-xl bg-white dark:bg-neutral-900/90 border border-border dark:border-white/20 shadow-lg dark:shadow-blue-900/40 p-0">
+    <Card
+      className="overflow-hidden group cursor-pointer transition hover:shadow-xl bg-white dark:bg-neutral-900/90 border border-border dark:border-white/20 shadow-lg dark:shadow-blue-900/40 p-0"
+      onClick={() => onEnter?.()}
+      tabIndex={0}
+      role="button"
+      aria-label={`Entrar a la sala ${sala.nombre}`}
+    >
       <div className="relative aspect-[4/3] overflow-hidden rounded-t-2xl">
         <img
           src={sala.imagen}
@@ -46,7 +52,7 @@ export default function SalaCard({ sala, isAdmin, onEnter, onEdit, onDelete }) {
         >
           Entrar <ArrowRight className="h-4 w-4" />
         </button>
-        {isAdmin && (
+        {isOwner && (
           <div className="flex gap-2">
             <button
               onClick={(e) => {

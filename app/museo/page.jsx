@@ -170,14 +170,18 @@ export default function MuseoPage() {
         </div>
         {/* Grid de salas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {salasFiltradas.map((sala) => (
-            <SalaCard
-              key={sala.id}
-              sala={sala}
-              isAdmin={isAdmin}
-              onEnter={() => setSalaSeleccionada(sala.id)}
-            />
-          ))}
+          {salasFiltradas.map((sala) => {
+            // Determine if current user is owner
+            const isOwner = session?.user?.id && (sala.propietario === session.user.name || sala.propietario === session.user.id);
+            return (
+              <SalaCard
+                key={sala.id}
+                sala={sala}
+                isOwner={isOwner}
+                onEnter={() => setSalaSeleccionada(sala.id)}
+              />
+            );
+          })}
         </div>
         {/* Estado vacío */}
         {salasFiltradas.length === 0 && !loading && (
