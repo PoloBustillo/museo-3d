@@ -118,59 +118,124 @@ export default function UserMenu({
                   {/* En el dropdown del usuario: */}
                   <div className="flex flex-col gap-2">
                     {/* Links principales del usuario */}
-                    {[
-                      { href: "/perfil", label: "Mi perfil" },
-                      { href: "/mis-obras", label: "Mis Obras" },
-                      { href: "/mis-salas", label: "Mis Salas" },
-                      { href: "/admin/usuarios", label: "Gestionar Usuarios", admin: true },
-                      { href: "/admin/logs", label: "Ver Logs", admin: true },
-                      { href: "/admin/healthcheck", label: "Estado del sistema", admin: true },
-                    ]
-                      .filter((link) => !link.admin || isModerator || isAdmin)
-                      .map((link) => {
-                        const isActive = pathname.startsWith(link.href);
-                        return (
-                          <Link
-                            key={link.href}
-                            href={link.href}
-                            className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm relative pl-6"
-                            aria-current={isActive ? "page" : undefined}
-                            onClick={isActive ? (e) => e.preventDefault() : undefined}
-                          >
-                            <span className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">
-                              <motion.span
-                                layoutId="menu-dot-global"
-                                className={
-                                  isActive
-                                    ? "inline-block w-2 h-2 rounded-full bg-primary"
-                                    : "inline-block w-2 h-2 rounded-full bg-gray-400/70"
-                                }
-                                initial={false}
-                                animate={
-                                  isActive
-                                    ? { scale: 1, opacity: 1 }
-                                    : { scale: 0.7, opacity: 0.5 }
-                                }
-                                transition={{
-                                  type: "spring",
-                                  stiffness: 120,
-                                  damping: 18,
-                                  mass: 0.7,
-                                  duration: 0.45,
-                                }}
-                                style={{ display: "inline-block" }}
-                              />
-                            </span>
-                            {link.label}
-                          </Link>
-                        );
-                      })}
-                    {/* Panel de Gestión solo como título, sin punto ni indicador */}
+                    <Link
+                      href="/perfil"
+                      className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm relative pl-6"
+                      aria-current={pathname.startsWith("/perfil") ? "page" : undefined}
+                      onClick={pathname.startsWith("/perfil") ? (e) => e.preventDefault() : undefined}
+                    >
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">
+                        <motion.span
+                          layoutId="menu-dot-global"
+                          className={pathname.startsWith("/perfil") ? "inline-block w-2 h-2 rounded-full bg-primary" : "inline-block w-2 h-2 rounded-full bg-gray-400/70"}
+                          initial={false}
+                          animate={pathname.startsWith("/perfil") ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0.5 }}
+                          transition={{ type: "spring", stiffness: 120, damping: 18, mass: 0.7, duration: 0.45 }}
+                          style={{ display: "inline-block" }}
+                        />
+                      </span>
+                      Mi perfil
+                    </Link>
+                    <Link
+                      href="/mis-obras"
+                      className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm relative pl-6"
+                      aria-current={pathname.startsWith("/mis-obras") ? "page" : undefined}
+                      onClick={pathname.startsWith("/mis-obras") ? (e) => e.preventDefault() : undefined}
+                    >
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">
+                        <motion.span
+                          layoutId="menu-dot-global"
+                          className={pathname.startsWith("/mis-obras") ? "inline-block w-2 h-2 rounded-full bg-primary" : "inline-block w-2 h-2 rounded-full bg-gray-400/70"}
+                          initial={false}
+                          animate={pathname.startsWith("/mis-obras") ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0.5 }}
+                          transition={{ type: "spring", stiffness: 120, damping: 18, mass: 0.7, duration: 0.45 }}
+                          style={{ display: "inline-block" }}
+                        />
+                      </span>
+                      Mis Obras
+                    </Link>
+                    <Link
+                      href="/mis-salas"
+                      className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm relative pl-6"
+                      aria-current={pathname.startsWith("/mis-salas") ? "page" : undefined}
+                      onClick={pathname.startsWith("/mis-salas") ? (e) => e.preventDefault() : undefined}
+                    >
+                      <span className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">
+                        <motion.span
+                          layoutId="menu-dot-global"
+                          className={pathname.startsWith("/mis-salas") ? "inline-block w-2 h-2 rounded-full bg-primary" : "inline-block w-2 h-2 rounded-full bg-gray-400/70"}
+                          initial={false}
+                          animate={pathname.startsWith("/mis-salas") ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0.5 }}
+                          transition={{ type: "spring", stiffness: 120, damping: 18, mass: 0.7, duration: 0.45 }}
+                          style={{ display: "inline-block" }}
+                        />
+                      </span>
+                      Mis Salas
+                    </Link>
+                    {/* Panel de Gestión solo si es moderador o admin */}
                     {(isModerator || isAdmin) && (
                       <div className="px-3 py-1 border-t border-border">
-                        <p className="text-xs text-muted-foreground font-medium">
+                        <p className="text-xs text-muted-foreground font-medium mb-1">
                           Panel de Gestión
                         </p>
+                        <Link
+                          href="/admin/usuarios"
+                          className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm relative pl-6"
+                          aria-current={pathname.startsWith("/admin/usuarios") ? "page" : undefined}
+                          onClick={pathname.startsWith("/admin/usuarios") ? (e) => e.preventDefault() : undefined}
+                        >
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">
+                            <motion.span
+                              layoutId="menu-dot-global"
+                              className={pathname.startsWith("/admin/usuarios") ? "inline-block w-2 h-2 rounded-full bg-primary" : "inline-block w-2 h-2 rounded-full bg-gray-400/70"}
+                              initial={false}
+                              animate={pathname.startsWith("/admin/usuarios") ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0.5 }}
+                              transition={{ type: "spring", stiffness: 120, damping: 18, mass: 0.7, duration: 0.45 }}
+                              style={{ display: "inline-block" }}
+                            />
+                          </span>
+                          Gestionar Usuarios
+                        </Link>
+                        {isAdmin && (
+                          <>
+                            <Link
+                              href="/admin/logs"
+                              className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm relative pl-6"
+                              aria-current={pathname.startsWith("/admin/logs") ? "page" : undefined}
+                              onClick={pathname.startsWith("/admin/logs") ? (e) => e.preventDefault() : undefined}
+                            >
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">
+                                <motion.span
+                                  layoutId="menu-dot-global"
+                                  className={pathname.startsWith("/admin/logs") ? "inline-block w-2 h-2 rounded-full bg-primary" : "inline-block w-2 h-2 rounded-full bg-gray-400/70"}
+                                  initial={false}
+                                  animate={pathname.startsWith("/admin/logs") ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0.5 }}
+                                  transition={{ type: "spring", stiffness: 120, damping: 18, mass: 0.7, duration: 0.45 }}
+                                  style={{ display: "inline-block" }}
+                                />
+                              </span>
+                              Ver Logs
+                            </Link>
+                            <Link
+                              href="/admin/healthcheck"
+                              className="block px-3 py-2 rounded-md hover:bg-muted hover:text-primary transition-all text-sm relative pl-6"
+                              aria-current={pathname.startsWith("/admin/healthcheck") ? "page" : undefined}
+                              onClick={pathname.startsWith("/admin/healthcheck") ? (e) => e.preventDefault() : undefined}
+                            >
+                              <span className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center">
+                                <motion.span
+                                  layoutId="menu-dot-global"
+                                  className={pathname.startsWith("/admin/healthcheck") ? "inline-block w-2 h-2 rounded-full bg-primary" : "inline-block w-2 h-2 rounded-full bg-gray-400/70"}
+                                  initial={false}
+                                  animate={pathname.startsWith("/admin/healthcheck") ? { scale: 1, opacity: 1 } : { scale: 0.7, opacity: 0.5 }}
+                                  transition={{ type: "spring", stiffness: 120, damping: 18, mass: 0.7, duration: 0.45 }}
+                                  style={{ display: "inline-block" }}
+                                />
+                              </span>
+                              Estado del sistema
+                            </Link>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
