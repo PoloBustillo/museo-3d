@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
-import dynamic from "next/dynamic";
 import AnimatedTriangleOverlay from "../components/TriangleOverlay";
 import LandingMobile from "./landing-mobile";
 import { useModal } from "../providers/ModalProvider";
@@ -27,17 +26,6 @@ const steps = [
 ];
 
 function HomeContent() {
-  const { openModal } = useModal();
-  const {
-    user,
-    userProfile,
-    isAuthenticated,
-    isAdmin,
-    isModerator,
-    getUserRole,
-  } = useUser();
-  const { sessionData } = useSessionData();
-  const { openImageModal } = useGallery();
   const isMobile = useIsMobile();
   const [current, setCurrent] = useState(0);
   const [isClient, setIsClient] = useState(false);
@@ -63,7 +51,6 @@ function HomeContent() {
 
     // Detectar interacción del usuario para ocultar hints
     const handleUserInteraction = () => {
-      setUserInteracted(true);
       document.documentElement.classList.add("user-interacted");
       // Remover listeners después de la primera interacción
       window.removeEventListener("touchstart", handleUserInteraction);
