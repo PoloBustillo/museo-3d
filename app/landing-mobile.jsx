@@ -60,10 +60,10 @@ export default function LandingMobile() {
           sencilla y ligera.
         </p>
         <a
-          href="#login"
+          href="galeria"
           className="inline-block w-full max-w-xs py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-center transition-all duration-200 shadow-lg mb-8"
         >
-          Iniciar sesión
+          Visitar galeria
         </a>
       
         <section className="w-full max-w-xs mb-8 bg-white/90 dark:bg-gray-800/90 p-4 rounded-xl shadow-md">

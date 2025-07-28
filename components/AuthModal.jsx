@@ -45,8 +45,12 @@ export default function AuthModal() {
   useEffect(() => {
     if (!isOpen) return;
 
-    // Al abrir el modal, ir al top de la página instantáneamente
-    window.scrollTo(0, 0);
+    const middlePosition = (document.documentElement.scrollHeight - window.innerHeight) / 2;
+  
+    window.scrollTo({
+      top: middlePosition,
+      behavior: 'smooth'
+    });
 
     const handleKey = (e) => {
       if (e.key === "Escape" && !success) {
