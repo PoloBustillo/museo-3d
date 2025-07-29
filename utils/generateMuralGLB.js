@@ -98,8 +98,7 @@ export async function generateMuralGLB(imageUrl) {
                   // Aumentado el paso
                   const offset =
                     Math.sin(x * 0.008 + i * 0.3) * 20 + // Reducido
-                    Math.sin(x * 0.003 + i * 0.7) * 15 + // Reducido
-                    Math.random() * 10; // Reducido
+                    Math.cos(x * 0.005 + i * 0.2) * 15; // Reducido
                   ctx.lineTo(x, y + offset);
                 }
                 ctx.stroke();
@@ -108,45 +107,31 @@ export async function generateMuralGLB(imageUrl) {
               // Nudos de madera optimizados
               for (let i = 0; i < 8; i++) {
                 // Reducido de 15
-                const x = Math.random() * 1024;
-                const y = Math.random() * 1024;
-                const radius = 20 + Math.random() * 25; // Reducido
+                const x = 100 + Math.random() * 824;
+                const y = 100 + Math.random() * 824;
+                const radius = 15 + Math.random() * 25; // Reducido
 
-                // Nudo principal
-                ctx.fillStyle = `rgba(101, 67, 33, ${0.7 + Math.random() * 0.3})`;
-                ctx.beginPath();
-                ctx.arc(x, y, radius, 0, Math.PI * 2);
-                ctx.fill();
-
-                // Anillos múltiples del nudo (reducidos)
-                for (let ring = 1; ring <= 4; ring++) {
+                // Anillos concéntricos optimizados
+                for (let ring = 0; ring < 4; ring++) {
                   // Reducido de 8
-                  const ringRadius = radius + ring * 3;
-                  ctx.strokeStyle = `rgba(139, 69, 19, ${0.9 - ring * 0.1})`;
-                  ctx.lineWidth = 1.5;
+                  const ringRadius = radius - ring * 3;
+                  const alpha = 0.4 + Math.random() * 0.6;
+                  ctx.fillStyle = `rgba(101, 67, 33, ${alpha})`;
                   ctx.beginPath();
                   ctx.arc(x, y, ringRadius, 0, Math.PI * 2);
-                  ctx.stroke();
+                  ctx.fill();
                 }
-
-                // Centro del nudo más oscuro
-                ctx.fillStyle = `rgba(101, 67, 33, ${0.95 + Math.random() * 0.05})`;
-                ctx.beginPath();
-                ctx.arc(x, y, radius * 0.3, 0, Math.PI * 2);
-                ctx.fill();
               }
 
-              // Brillo premium optimizado
+              // Áreas de brillo optimizadas
               for (let i = 0; i < 20; i++) {
                 // Reducido de 40
-                const alpha = 0.03 + Math.random() * 0.12;
-                ctx.fillStyle = `rgba(255, 228, 196, ${alpha})`;
-                ctx.fillRect(
-                  Math.random() * 1024,
-                  Math.random() * 1024,
-                  40 + Math.random() * 100, // Reducido
-                  30 + Math.random() * 80 // Reducido
-                );
+                const x = Math.random() * 1024;
+                const y = Math.random() * 1024;
+                const size = 20 + Math.random() * 60; // Reducido
+                const alpha = 0.1 + Math.random() * 0.3;
+                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+                ctx.fillRect(x, y, size, size);
               }
 
               // Grano fino de madera optimizado
@@ -179,6 +164,8 @@ export async function generateMuralGLB(imageUrl) {
               shininess: 80, // Reducido
               specular: 0x666666, // Reducido
               side: THREE.DoubleSide,
+              transparent: false,
+              opacity: 1.0,
             });
 
             // Material para ornamentos dorados
@@ -187,7 +174,31 @@ export async function generateMuralGLB(imageUrl) {
               shininess: 100, // Reducido
               specular: 0x888888, // Reducido
               side: THREE.DoubleSide,
+              transparent: false,
+              opacity: 1.0,
             });
+
+            // PANEL TRASERO SÓLIDO - MEJORADO PARA CERRAR COMPLETAMENTE
+            const backPanelGeometry = new THREE.BoxGeometry(
+              outerWidth + 0.01, // Ligeramente más grande para asegurar cobertura
+              outerHeight + 0.01, // Ligeramente más grande para asegurar cobertura
+              0.1 // Más grueso para mayor robustez
+            );
+            const backPanelMaterial = new THREE.MeshPhongMaterial({
+              color: 0x654321,
+              shininess: 20, // Reducido
+              side: THREE.DoubleSide,
+              transparent: false, // Asegurado que no sea transparente
+              opacity: 1.0, // Opacidad completa
+            });
+            const backPanel = new THREE.Mesh(
+              backPanelGeometry,
+              backPanelMaterial
+            );
+            backPanel.name = "backPanel"; // Nombre para identificarlo en AR
+            backPanel.position.set(0, 0, -frameDepth / 2 - 0.05); // Más atrás para asegurar cobertura
+            backPanel.visible = true; // Asegurado que sea visible
+            frameGroup.add(backPanel);
 
             // Marco principal - superior
             const topFrame = new THREE.BoxGeometry(
@@ -229,29 +240,66 @@ export async function generateMuralGLB(imageUrl) {
             rightMesh.position.set(width / 2 + frameWidth / 2, 0, 0);
             frameGroup.add(rightMesh);
 
-            // PANEL TRASERO SÓLIDO - FIX PARA EL HUECO
-            const backPanelGeometry = new THREE.BoxGeometry(
+            // PANELES DE CIERRE PARA ELIMINAR GAPS
+            // Panel de cierre superior
+            const topClosurePanel = new THREE.BoxGeometry(
               outerWidth,
-              outerHeight,
-              0.06 // Reducido
+              frameWidth,
+              frameDepth
             );
-            const backPanelMaterial = new THREE.MeshPhongMaterial({
-              color: 0x654321,
-              shininess: 20, // Reducido
-              side: THREE.DoubleSide,
-            });
-            const backPanel = new THREE.Mesh(
-              backPanelGeometry,
-              backPanelMaterial
+            const topClosureMesh = new THREE.Mesh(
+              topClosurePanel,
+              frameMaterial
             );
-            backPanel.position.set(0, 0, -frameDepth / 2 - 0.03);
-            frameGroup.add(backPanel);
+            topClosureMesh.position.set(0, height / 2 + frameWidth / 2, 0);
+            frameGroup.add(topClosureMesh);
+
+            // Panel de cierre inferior
+            const bottomClosurePanel = new THREE.BoxGeometry(
+              outerWidth,
+              frameWidth,
+              frameDepth
+            );
+            const bottomClosureMesh = new THREE.Mesh(
+              bottomClosurePanel,
+              frameMaterial
+            );
+            bottomClosureMesh.position.set(0, -height / 2 - frameWidth / 2, 0);
+            frameGroup.add(bottomClosureMesh);
+
+            // Panel de cierre izquierdo
+            const leftClosurePanel = new THREE.BoxGeometry(
+              frameWidth,
+              height,
+              frameDepth
+            );
+            const leftClosureMesh = new THREE.Mesh(
+              leftClosurePanel,
+              frameMaterial
+            );
+            leftClosureMesh.position.set(-width / 2 - frameWidth / 2, 0, 0);
+            frameGroup.add(leftClosureMesh);
+
+            // Panel de cierre derecho
+            const rightClosurePanel = new THREE.BoxGeometry(
+              frameWidth,
+              height,
+              frameDepth
+            );
+            const rightClosureMesh = new THREE.Mesh(
+              rightClosurePanel,
+              frameMaterial
+            );
+            rightClosureMesh.position.set(width / 2 + frameWidth / 2, 0, 0);
+            frameGroup.add(rightClosureMesh);
 
             // BISELES INTERIORES optimizados
             const bevelMaterial = new THREE.MeshPhongMaterial({
               color: 0xa0522d,
               shininess: 40, // Reducido
               side: THREE.DoubleSide,
+              transparent: false,
+              opacity: 1.0,
             });
 
             // Bisel superior interior
@@ -437,11 +485,12 @@ export async function generateMuralGLB(imageUrl) {
 
             const exportOptions = {
               binary: true,
-              onlyVisible: true,
+              onlyVisible: false, // Cambiado para asegurar que se incluyan todos los elementos
               truncateDrawRange: true,
               embedImages: true,
               maxTextureSize: 1024, // Reducido de 4096 para optimizar
               includeCustomExtensions: false,
+              forceIndices: true, // Añadido para forzar la inclusión de índices
             };
 
             exporter.parse(
