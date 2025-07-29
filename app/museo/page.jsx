@@ -9,15 +9,9 @@ import SalaCard from "../../components/ui/SalaCard";
 import { useRouter } from "next/navigation";
 import useSalas from "@hooks/useSalas";
 
-/**
- * La prueba más simple posible. Si esto no se ve, el problema está
- * en un nivel superior (ClientLayout.jsx o globals.css).
- */
+
 export default function MuseoPage() {
-  // const [salaSeleccionada, setSalaSeleccionada] = useState(null); // Eliminar
-  // const [salas, setSalas] = useState([]);
-  // const [loading, setLoading] = useState(true);
-  // const [error, setError] = useState(null);
+
   const [search, setSearch] = useState("");
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "ADMIN";

@@ -31,6 +31,10 @@ const LayoutContainer = ({ children }) => {
   const needsTopPadding = true;
   const fixedFooterPages = ["/", "/museo"];
   const useFixedFooter = fixedFooterPages.includes(pathname);
+  
+  // No mostrar navbar en páginas de sala
+  const isSalaPage = pathname.includes('/museo/sala/');
+  const showNavbar = !isSalaPage;
 
   useEffect(() => {
     setFrase(
@@ -56,10 +60,12 @@ const LayoutContainer = ({ children }) => {
   return (
     <div className="bg-white dark:bg-black text-black dark:text-white flex flex-col min-h-screen transition-colors duration-300">
       <MouseTrail />
-      <header className="sticky top-0 z-[60]">
-        <MainMenu />
-      </header>
-      <main className={`flex-1 ${pathname.includes('/ar') ? '' : 'pt-22 md:pt-24'}`}>
+      {showNavbar && (
+        <header className="sticky top-0 z-[60]">
+          <MainMenu />
+        </header>
+      )}
+      <main className={`flex-1 ${pathname.includes('/ar') || isSalaPage ? '' : 'pt-22 md:pt-24'}`}>
         {children}
         {useFixedFooter && (
           <div
