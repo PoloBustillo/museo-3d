@@ -7,55 +7,23 @@ import { Plus } from "lucide-react";
 import { useSession } from "next-auth/react";
 import SalaCard from "../../components/ui/SalaCard";
 import { useRouter } from "next/navigation";
+import useSalas from "@hooks/useSalas";
 
 /**
  * La prueba más simple posible. Si esto no se ve, el problema está
  * en un nivel superior (ClientLayout.jsx o globals.css).
  */
 export default function MuseoPage() {
-  const [salaSeleccionada, setSalaSeleccionada] = useState(null);
-  const [salas, setSalas] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // const [salaSeleccionada, setSalaSeleccionada] = useState(null); // Eliminar
+  // const [salas, setSalas] = useState([]);
+  // const [loading, setLoading] = useState(true);
+  // const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === "ADMIN";
   const router = useRouter();
 
-  useEffect(() => {
-    const cargarSalas = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch("/api/salas");
-        if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
-        const data = await response.json();
-        const salasFormateadas = data.salas.map((sala) => ({
-          id: sala.id,
-          nombre: sala.nombre,
-          descripcion: `Sala con ${sala._count.murales} murales`,
-          imagen:
-            sala.imagenPortada ||
-            sala.murales[0]?.mural?.url_imagen ||
-            "/assets/artworks/cuadro1.webp",
-          color: getColorBySalaId(sala.id),
-          cantidadMurales: sala._count.murales,
-          propietario: sala.creador?.name || sala.creador?.id || "Museo",
-          murales:
-            sala.murales.map((salaMural) => salaMural.mural).filter(Boolean) ||
-            [],
-        }));
-        setSalas(salasFormateadas);
-        setError(null);
-      } catch (err) {
-        console.error("Error al cargar salas:", err);
-        setError(err.message);
-        setSalas(getSalasFallback());
-      } finally {
-        setLoading(false);
-      }
-    };
-    cargarSalas();
-  }, []);
+  const { salas, loading, error } = useSalas();
 
   const getColorBySalaId = (id) =>
     ({ 1: "#e3f2fd", 2: "#f3e5f5", 3: "#e8f5e8", 4: "#fff3e0" })[id] ||
@@ -63,55 +31,13 @@ export default function MuseoPage() {
   const getIconBySalaId = (id) =>
     ({ 1: "🎨", 2: "🖼️", 3: "💻", 4: "🎭" })[id] || "🏛️";
 
-  const getSalasFallback = () => [
-    {
-      id: 1,
-      nombre: "Sala Principal",
-      descripcion: "Exposición permanente",
-      imagen: "/assets/artworks/cuadro1.webp",
-      color: "#e3f2fd",
-      cantidadMurales: 0,
-      propietario: "Sistema",
-      murales: [],
-    },
-    {
-      id: 2,
-      nombre: "Sala ARPA",
-      descripcion: "Murales del programa ARPA",
-      imagen: "/assets/artworks/cuadro2.webp",
-      color: "#fff3e0",
-      cantidadMurales: 0,
-      propietario: "ARPA",
-      murales: [],
-    },
-  ];
+  // const getSalasFallback = ... // Eliminar, ya está en el hook
 
   const salasFiltradas = salas.filter((sala) =>
     sala.nombre.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (salaSeleccionada) {
-    return (
-      <div className="fixed top-0 left-0 right-0 bottom-0 z-[100]">
-        <button
-          onClick={() => setSalaSeleccionada(null)}
-          className="absolute top-5 left-5 z-[1000] bg-background/90 border-2 border-border rounded-lg px-4 py-2 cursor-pointer font-bold text-sm hover:bg-background transition-colors shadow-lg"
-        >
-          ← Volver a salas
-        </button>
-        <GalleryRoom
-          salaId={salaSeleccionada}
-          murales={salas.find((s) => s.id === salaSeleccionada)?.murales || []}
-          onRoomChange={setSalaSeleccionada}
-          availableRooms={salas.map((s) => ({
-            id: s.id,
-            name: s.nombre,
-            icon: getIconBySalaId(s.id),
-          }))}
-        />
-      </div>
-    );
-  }
+  // Eliminar lógica de salaSeleccionada y GalleryRoom
 
   if (loading) {
     return (
@@ -181,7 +107,7 @@ export default function MuseoPage() {
                 key={sala.id}
                 sala={sala}
                 isOwner={isOwner}
-                onEnter={() => setSalaSeleccionada(sala.id)}
+                onEnter={() => router.push(`/museo/sala/${sala.id}`)}
               />
             );
           })}
