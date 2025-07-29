@@ -10,7 +10,6 @@ import ClientLayout from "../components/ClientLayout";
 import AppProviders from "../components/AppProviders";
 import SentryTracker from "../components/SentryTracker";
 import { Toaster } from "react-hot-toast";
-import toast from "react-hot-toast";
 import { PushNotificationsProvider } from "@/components/notifications/PushNotificationsProvider";
 
 const geistSans = Geist({

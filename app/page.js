@@ -4,7 +4,6 @@ import { AnimatePresence } from "framer-motion";
 import AnimatedTriangleOverlay from "../components/TriangleOverlay";
 import LandingMobile from "./landing-mobile";
 import useIsMobile from "./hooks/useIsMobile";
-import AnimatedBackground from "../components/shared/AnimatedBackground";
 
 const steps = [
   {
@@ -177,7 +176,6 @@ function HomeContent() {
 
   return (
     <div className="relative w-full min-h-screen">
-      {isMobile && <AnimatedBackground />}
       <div
         ref={containerRef}
         className={`home-scroll-container w-full h-screen overflow-y-auto transition-all duration-300 ${isMobile ? "bg-transparent z-10" : ""}`}
