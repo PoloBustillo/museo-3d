@@ -3,10 +3,6 @@ import { useState, useEffect, useRef } from "react";
 import { AnimatePresence } from "framer-motion";
 import AnimatedTriangleOverlay from "../components/TriangleOverlay";
 import LandingMobile from "./landing-mobile";
-import { useModal } from "../providers/ModalProvider";
-import { useUser } from "../providers/UserProvider";
-import { useSessionData } from "../providers/SessionProvider";
-import { useGallery } from "../providers/GalleryProvider";
 import useIsMobile from "./hooks/useIsMobile";
 import AnimatedBackground from "../components/shared/AnimatedBackground";
 
@@ -31,16 +27,12 @@ function HomeContent() {
   const [isClient, setIsClient] = useState(false);
   const [scrollOpacity, setScrollOpacity] = useState(1);
   const [scrollY, setScrollY] = useState(0);
-  const [userInteracted, setUserInteracted] = useState(false);
   const containerRef = useRef(null);
+
   // Evitar problemas de hidratación
   useEffect(() => {
     setIsClient(true);
-
-    // Solo agregar listeners globales en desktop
     if (isMobile) return;
-
-    // Solo agregar clase para prevenir scroll del body en desktop
     if (!isMobile) {
       document.body.classList.add("home-active");
       document.documentElement.classList.add("home-page");
@@ -48,17 +40,13 @@ function HomeContent() {
       document.body.classList.remove("home-active");
       document.documentElement.classList.remove("home-page");
     }
-
     // Detectar interacción del usuario para ocultar hints
     const handleUserInteraction = () => {
       document.documentElement.classList.add("user-interacted");
-      // Remover listeners después de la primera interacción
       window.removeEventListener("touchstart", handleUserInteraction);
       window.removeEventListener("scroll", handleUserInteraction);
       window.removeEventListener("keydown", handleUserInteraction);
     };
-
-    // Agregar listeners para detectar interacción
     window.addEventListener("touchstart", handleUserInteraction, {
       passive: true,
     });
@@ -76,22 +64,16 @@ function HomeContent() {
 
   useEffect(() => {
     if (!isClient) return;
-
     let ticking = false;
-
     const handleScroll = () => {
       if (!ticking) {
         requestAnimationFrame(() => {
           if (!containerRef.current) return;
-
           const container = containerRef.current;
           const scrollTop = container.scrollTop;
           const sectionHeight = container.clientHeight;
-          const totalHeight = sectionHeight * steps.length;
-
           // Actualizar posición de scroll para parallax
           setScrollY(scrollTop);
-
           // Calcular sección actual basada en el scroll
           const newCurrent = Math.floor(
             (scrollTop + sectionHeight * 0.5) / sectionHeight
@@ -100,61 +82,47 @@ function HomeContent() {
             0,
             Math.min(newCurrent, steps.length - 1)
           );
-
           if (clampedCurrent !== current) {
             setCurrent(clampedCurrent);
           }
-
           // Opacidad del triángulo basada en la proximidad a la sección actual
           const currentSectionStart = current * sectionHeight;
-
-          // Calcular qué tan cerca estamos del centro de la sección actual
           const sectionCenter = currentSectionStart + sectionHeight / 2;
           const distanceFromCenter = Math.abs(
             scrollTop + sectionHeight / 2 - sectionCenter
           );
           const maxDistance = sectionHeight / 2;
-
-          // Opacidad basada en proximidad al centro de la sección
           let opacity;
           if (distanceFromCenter <= maxDistance * 0.3) {
-            // En el centro de la sección: totalmente visible
             opacity = 1;
           } else if (distanceFromCenter <= maxDistance) {
-            // Transición suave hacia los bordes
             const fadeProgress =
               (distanceFromCenter - maxDistance * 0.3) / (maxDistance * 0.7);
-            opacity = 1 - fadeProgress * fadeProgress; // Curva cuadrática para transición más suave
+            opacity = 1 - fadeProgress * fadeProgress;
           } else {
-            // Fuera de la sección: invisible
             opacity = 0;
           }
-
           setScrollOpacity(opacity);
-
           ticking = false;
         });
         ticking = true;
       }
     };
-
     const container = containerRef.current;
     if (container) {
       container.addEventListener("scroll", handleScroll, { passive: true });
-      handleScroll(); // Llamar una vez al inicio
+      handleScroll();
     }
-
     return () => {
       if (container) {
         container.removeEventListener("scroll", handleScroll);
       }
     };
-  }, [isClient, current]); // Agregamos current como dependencia
+  }, [isClient, current]);
 
   // Navegación con flechas del teclado
   useEffect(() => {
     if (!isClient) return;
-
     const handleKeyPress = (e) => {
       if (e.key === "ArrowDown" || e.key === " ") {
         e.preventDefault();
@@ -170,10 +138,10 @@ function HomeContent() {
         }
       }
     };
-
     window.addEventListener("keydown", handleKeyPress);
     return () => window.removeEventListener("keydown", handleKeyPress);
   }, [isClient, current]);
+
   const side = current % 2 === 0 ? "left" : "right";
 
   const scrollToSection = (index) => {
@@ -185,8 +153,6 @@ function HomeContent() {
       behavior: "smooth",
     });
   };
-
-  // Elimina todos los botones y funciones de ejemplo, test, demo o prueba del home.
 
   // Evitar renderizado hasta que el cliente esté listo
   if (!isClient) {
@@ -214,33 +180,22 @@ function HomeContent() {
       {isMobile && <AnimatedBackground />}
       <div
         ref={containerRef}
-        className={`home-scroll-container w-full h-screen overflow-y-auto transition-all duration-300 ${
-          isMobile ? "bg-transparent z-10" : ""
-        }`}
+        className={`home-scroll-container w-full h-screen overflow-y-auto transition-all duration-300 ${isMobile ? "bg-transparent z-10" : ""}`}
       >
         {/* Fondos con parallax absolutos */}
         {steps.map((step, index) => {
           const sectionHeight = containerRef.current?.clientHeight || 800;
           const sectionOffset = index * sectionHeight;
-
-          // Detectar si es dispositivo móvil para reducir efectos
-          // Calcular el parallax de manera que la imagen se mantenga centrada en su sección
           const scrollFromSectionStart = scrollY - sectionOffset;
-          const parallaxOffset = isMobile ? 0 : scrollFromSectionStart * 0.1; // Sin parallax en móvil
-
-          // Calcular opacidad basada en la proximidad a la sección
+          const parallaxOffset = isMobile ? 0 : scrollFromSectionStart * 0.1;
           const distanceFromSection = Math.abs(scrollY - sectionOffset);
           const normalizedDistance = distanceFromSection / sectionHeight;
-
-          // Opacidad más gradual y suave
           let opacity = 1;
           if (normalizedDistance > 1.2) {
             opacity = Math.max(0.1, 1 - (normalizedDistance - 1.2) * 0.5);
           } else if (normalizedDistance > 0.8) {
             opacity = 1 - (normalizedDistance - 0.8) * 0.5;
           }
-
-          // Efectos de zoom más suaves y graduales (reducidos en móvil)
           const scrollProgress = Math.max(
             0,
             Math.min(
@@ -248,34 +203,26 @@ function HomeContent() {
               (scrollY - sectionOffset + sectionHeight) / (sectionHeight * 2)
             )
           );
-
-          // Zoom más sutil y gradual (sin efectos complejos en móvil)
           let scale = 1;
           let blur = 0;
-
           if (!isMobile) {
             if (scrollProgress < 0.3) {
-              // Entrando: zoom muy sutil desde 1.05 a 1.0
-              scale = 1.05 - scrollProgress * 0.17; // Reducido de 0.4 a 0.17
-              blur = (0.3 - scrollProgress) * 3; // Reducido de 8 a 3
+              scale = 1.05 - scrollProgress * 0.17;
+              blur = (0.3 - scrollProgress) * 3;
             } else if (scrollProgress > 0.7) {
-              // Saliendo: zoom sutil desde 1.0 a 0.95
-              scale = 1.0 - (scrollProgress - 0.7) * 0.17; // Reducido de 0.4 a 0.17
-              blur = (scrollProgress - 0.7) * 4; // Reducido de 12 a 4
+              scale = 1.0 - (scrollProgress - 0.7) * 0.17;
+              blur = (scrollProgress - 0.7) * 4;
             }
           }
-
-          // Rotación más sutil (sin rotación en móvil)
-          const rotation = isMobile ? 0 : (scrollProgress - 0.5) * 0.5; // Reducido de 2 a 0.5 grados
-
+          const rotation = isMobile ? 0 : (scrollProgress - 0.5) * 0.5;
           return (
             <div
               key={`bg-${index}`}
               className="absolute w-full h-full pointer-events-none overflow-hidden"
               style={{
-                top: `${index * 100}vh`, // Posicionar cada imagen en su sección
+                top: `${index * 100}vh`,
                 opacity: opacity,
-                zIndex: Math.floor(opacity * 10), // Z-index basado en opacidad
+                zIndex: Math.floor(opacity * 10),
                 willChange: "transform, opacity, filter",
               }}
             >
@@ -292,13 +239,10 @@ function HomeContent() {
                     scale(${scale}) 
                     rotate(${rotation}deg)
                   `,
-                  filter: `blur(${blur}px) brightness(${
-                    1 + (scrollProgress - 0.5) * 0.1
-                  })`, // Brillo más sutil
+                  filter: `blur(${blur}px) brightness(${1 + (scrollProgress - 0.5) * 0.1})`,
                   transition: "filter 0.2s ease-out",
                 }}
               />
-
               {/* Overlay de gradiente más sutil */}
               <div
                 className="absolute inset-0 pointer-events-none"
@@ -310,15 +254,14 @@ function HomeContent() {
                     )
                   `,
                   opacity:
-                    scrollProgress > 0.8 ? (scrollProgress - 0.8) * 2.5 : 0, // Más gradual
+                    scrollProgress > 0.8 ? (scrollProgress - 0.8) * 2.5 : 0,
                 }}
               />
             </div>
           );
         })}
-
         {/* Secciones de contenido (transparentes para scroll) */}
-        {steps.map((step, index) => (
+        {steps.map((_, index) => (
           <div
             key={`section-${index}`}
             data-index={index}
@@ -343,37 +286,29 @@ function HomeContent() {
           isFinalStep={current === steps.length - 1}
           scrollOpacity={scrollOpacity}
         />
-      </AnimatePresence>{" "}
+      </AnimatePresence>
       {/* Indicador de posición */}
       <div
         className={`fixed z-[50] space-y-3 scroll-indicators-desktop
-          ${/* Mobile: bottom center */ ""}
           md:top-1/2 md:transform md:-translate-y-1/2 md:space-y-6 md:space-x-0
-          ${/* Mobile: bottom positioning */ ""}
           bottom-20 left-1/2 transform -translate-x-1/2 flex space-x-3 space-y-0
           md:flex-col md:space-x-0 md:space-y-6 md:bottom-auto
         `}
         style={{
           opacity: scrollOpacity > 0.3 ? 1 : 0.3,
-          // Desktop positioning - keeping left good, moving right much more outside
-          left: !isMobile ? (side === "left" ? "0rem" : "auto") : "50%", // Keep left as is (flush with edge)
-          right: !isMobile ? (side === "right" ? "-2.5rem" : "auto") : "auto", // Much more outside for right (-40px)
+          left: !isMobile ? (side === "left" ? "0rem" : "auto") : "50%",
+          right: !isMobile ? (side === "right" ? "-2.5rem" : "auto") : "auto",
           transform: !isMobile ? "translateY(-50%)" : "translateX(-50%)",
-          // Simple smooth transition for position changes only
           transition:
             "left 0.8s ease-in-out, right 0.8s ease-in-out, opacity 0.3s ease",
         }}
-        data-debug={`side: ${side}, current: ${current}, isMobile: ${isMobile}`}
       >
-        {" "}
         {steps.map((_, index) => (
           <button
             key={index}
             onClick={() => scrollToSection(index)}
             className={`rounded-full transition-all duration-300
-              ${/* Mobile sizes */ ""}
               w-3 h-3 
-              ${/* Desktop sizes - much larger (triple size) */ ""}
               md:w-12 md:h-12
               ${
                 index === current
@@ -383,12 +318,12 @@ function HomeContent() {
             aria-label={`Ir a sección ${index + 1}`}
           />
         ))}
-      </div>{" "}
+      </div>
       {/* Contador de progreso - Solo visible en desktop */}
       <div
         className="hidden md:block fixed bottom-8 left-1/2 transform -translate-x-1/2 z-[40] bg-black/20 backdrop-blur-sm rounded-full px-4 py-2 transition-all duration-500"
         style={{
-          opacity: scrollOpacity > 0.3 ? 1 : 0.3, // Se desvanece junto con el triángulo
+          opacity: scrollOpacity > 0.3 ? 1 : 0.3,
         }}
       >
         <span className="text-white font-medium">
