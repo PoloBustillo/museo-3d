@@ -226,5 +226,3 @@ function generateSlots(artworkCount, width, length, spacing, height) {
 
   return slots;
 }
-
-export { HYBRID_GALLERY_CONFIG };
