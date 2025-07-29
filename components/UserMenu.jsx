@@ -29,10 +29,41 @@ export default function UserMenu({
   signOut,
 }) {
   const audioRef = React.useRef(null);
+  const hasUserInteracted = React.useRef(false);
+
+  // Mark that user has interacted when they click anywhere
+  React.useEffect(() => {
+    const handleUserInteraction = () => {
+      hasUserInteracted.current = true;
+    };
+
+    // Listen for any user interaction
+    document.addEventListener("click", handleUserInteraction, { once: true });
+    document.addEventListener("keydown", handleUserInteraction, { once: true });
+    document.addEventListener("touchstart", handleUserInteraction, {
+      once: true,
+    });
+
+    return () => {
+      document.removeEventListener("click", handleUserInteraction);
+      document.removeEventListener("keydown", handleUserInteraction);
+      document.removeEventListener("touchstart", handleUserInteraction);
+    };
+  }, []);
+
   const playMenuSound = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play();
+    // Only play sound if user has interacted with the page
+    if (audioRef.current && hasUserInteracted.current) {
+      try {
+        audioRef.current.currentTime = 0;
+        audioRef.current.play().catch((error) => {
+          // Silently handle audio play errors
+          console.debug("Audio play failed:", error.message);
+        });
+      } catch (error) {
+        // Silently handle any other audio errors
+        console.debug("Audio error:", error.message);
+      }
     }
   };
   if (isMobile) return null;

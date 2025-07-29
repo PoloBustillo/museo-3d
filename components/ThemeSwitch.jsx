@@ -91,17 +91,36 @@ export default function ThemeSwitch() {
   // Sonido pro: eco sutil (simulado)
   const playSound = () => {
     if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.volume = 0.6;
-      audioRef.current.play();
-      // Eco simulado: repite bajito tras 120ms
-      setTimeout(() => {
-        if (audioRef.current) {
-          audioRef.current.currentTime = 0;
-          audioRef.current.volume = 0.18;
-          audioRef.current.play();
-        }
-      }, 120);
+      try {
+        audioRef.current.currentTime = 0;
+        audioRef.current.volume = 0.6;
+        audioRef.current.play().catch((error) => {
+          // Silently handle audio play errors
+          console.debug("Theme switch audio play failed:", error.message);
+        });
+        // Eco simulado: repite bajito tras 120ms
+        setTimeout(() => {
+          if (audioRef.current) {
+            try {
+              audioRef.current.currentTime = 0;
+              audioRef.current.volume = 0.18;
+              audioRef.current.play().catch((error) => {
+                // Silently handle audio play errors
+                console.debug(
+                  "Theme switch echo audio play failed:",
+                  error.message
+                );
+              });
+            } catch (error) {
+              // Silently handle any other audio errors
+              console.debug("Theme switch echo audio error:", error.message);
+            }
+          }
+        }, 120);
+      } catch (error) {
+        // Silently handle any other audio errors
+        console.debug("Theme switch audio error:", error.message);
+      }
     }
   };
 
