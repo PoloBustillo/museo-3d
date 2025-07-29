@@ -270,9 +270,6 @@ export default function MainMenu({ onSubirArchivo }) {
                           className={`navbar-link hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all px-3 py-2 rounded-lg flex flex-col items-center ${isActive ? "text-primary font-bold" : ""}`}
                           style={{ position: "relative", zIndex: 1 }}
                           aria-current={isActive ? "page" : undefined}
-                          onClick={
-                            isActive ? (e) => e.preventDefault() : undefined
-                          }
                         >
                           <span className="h-3 mb-1 w-full flex items-center justify-center">
                             <motion.span
