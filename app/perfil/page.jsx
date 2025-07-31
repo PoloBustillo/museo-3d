@@ -1260,9 +1260,9 @@ function PerfilContent() {
                   <div className="my-2 border-t border-muted-foreground/10 dark:border-neutral-800" />
                   {/* Mensaje de proveedor */}
                   <div className="mt-2 text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
-                    La información se obtiene de tu proveedor de autenticación.
+                    Algunos datos provienen de tu proveedor de autenticación.
                     <br />
-                    Para cambios, contacta al administrador.
+                    Puedes editar tu nombre y avatar desde aquí.
                   </div>
                 </CardContent>
               </Card>
@@ -1405,11 +1405,25 @@ function PerfilContent() {
                                       ? "blue"
                                       : "green"
                                 }
-                                images={murales.filter(
-                                  (m) =>
-                                    (m.sala?.nombre || "Sin sala") === sala &&
-                                    (m.url_imagen || m.imagenUrl)
-                                )}
+                                images={murales.filter((m) => {
+                                  // Check if mural has any sala relationships
+                                  if (m.SalaMural && m.SalaMural.length > 0) {
+                                    // Check if any of the mural's salas match the current sala
+                                    return (
+                                      m.SalaMural.some(
+                                        (salaMural) =>
+                                          salaMural.sala.nombre === sala
+                                      ) &&
+                                      (m.url_imagen || m.imagenUrl)
+                                    );
+                                  } else {
+                                    // If no sala relationships, check if sala is "Sin sala"
+                                    return (
+                                      sala === "Sin sala" &&
+                                      (m.url_imagen || m.imagenUrl)
+                                    );
+                                  }
+                                })}
                               />
                             ))}
                         </div>
