@@ -71,6 +71,21 @@ export async function DELETE(req, context) {
         );
       }
     }
+
+    // Delete related records first to avoid foreign key constraint violations
+    await prisma.muralColaborador.deleteMany({
+      where: { muralId: Number(id) },
+    });
+
+    await prisma.salaMural.deleteMany({
+      where: { muralId: Number(id) },
+    });
+
+    await prisma.userMuralFavorite.deleteMany({
+      where: { muralId: Number(id) },
+    });
+
+    // Now delete the mural
     await prisma.mural.delete({ where: { id: Number(id) } });
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (error) {

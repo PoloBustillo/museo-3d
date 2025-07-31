@@ -84,6 +84,8 @@ model Mural {
     videoUrl            String?
     audioUrl            String?
     modelo3dUrl         String? // URL al modelo 3D generado en Cloudinary
+    image360Url         String? // URL a imagen 360
+    image360Url2        String? // URL a segunda imagen 360
     latitud             Float?
     longitud            Float?
     ubicacion           String?
@@ -135,7 +137,7 @@ model SalaMural {
     id      Int   @id @default(autoincrement())
     sala    Sala  @relation(fields: [salaId], references: [id])
     salaId  Int
-    mural   Mural @relation(fields: [muralId], references: [id])
+    mural   Mural @relation(fields: [muralId], references: [id], onDelete: Cascade)
     muralId Int
 
     @@unique([salaId, muralId])
@@ -219,7 +221,7 @@ model Subscription {
 
 model MuralColaborador {
     id            Int      @id @default(autoincrement())
-    mural         Mural    @relation(fields: [muralId], references: [id])
+    mural         Mural    @relation(fields: [muralId], references: [id], onDelete: Cascade)
     muralId       Int
     user          User?    @relation(fields: [userId], references: [id])
     userId        String? // Opcional: null si es externo
