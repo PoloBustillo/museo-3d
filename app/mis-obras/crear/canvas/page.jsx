@@ -21,14 +21,13 @@ export default function CanvasPage() {
   // Cargar datos desde localStorage
   useEffect(() => {
     const savedData = localStorage.getItem("muralDraftData");
-    
+
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        
+
         // Usar los datos de localStorage completos
         setMuralData(parsed);
-        
       } catch (error) {
         console.error("Error parsing saved mural data:", error);
         // Si hay error, inicializar con datos vacíos
@@ -36,7 +35,7 @@ export default function CanvasPage() {
           titulo: "",
           tecnica: "",
           descripcion: "",
-          anio: new Date().getFullYear()
+          anio: new Date().getFullYear(),
         });
       }
     } else {
@@ -45,7 +44,7 @@ export default function CanvasPage() {
         titulo: "",
         tecnica: "",
         descripcion: "",
-        anio: new Date().getFullYear()
+        anio: new Date().getFullYear(),
       });
     }
   }, []); // Solo ejecutar una vez al montar
@@ -53,7 +52,10 @@ export default function CanvasPage() {
   // Guardar datos en localStorage solo si tiene contenido significativo
   useEffect(() => {
     // Solo guardar si muralData no es null y tiene datos reales para evitar sobrescribir con datos vacíos
-    if (muralData && (muralData.titulo || muralData.tecnica || muralData.descripcion)) {
+    if (
+      muralData &&
+      (muralData.titulo || muralData.tecnica || muralData.descripcion)
+    ) {
       localStorage.setItem("muralDraftData", JSON.stringify(muralData));
     }
   }, [muralData]);
@@ -66,7 +68,7 @@ export default function CanvasPage() {
   const handleContinue = (e) => {
     e?.preventDefault();
     e?.stopPropagation();
-    
+
     if (!canvasImage) {
       toast.error("Debes guardar tu dibujo antes de continuar");
       return;
@@ -87,7 +89,7 @@ export default function CanvasPage() {
   const handleBack = (e) => {
     e?.preventDefault();
     e?.stopPropagation();
-    
+
     try {
       router.push("/mis-obras/crear");
     } catch (error) {
@@ -105,7 +107,7 @@ export default function CanvasPage() {
     }
 
     const link = document.createElement("a");
-    link.download = `${(muralData?.titulo) || "obra"}.png`;
+    link.download = `${muralData?.titulo || "obra"}.png`;
     link.href = canvasImage;
     link.click();
     toast.success("Dibujo descargado");
@@ -132,23 +134,27 @@ export default function CanvasPage() {
         <AnimatedBackground />
 
         {/* Header */}
-        <div className="z-50 fixed top-0 left-0 right-0 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md border-b border-border px-4 py-3" style={{ pointerEvents: "auto" }}>
+        <div
+          className="z-50 fixed top-0 left-0 right-0 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md border-b border-border px-4 py-3"
+          style={{ pointerEvents: "auto" }}
+        >
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 type="button"
                 onClick={handleBack}
-                className="flex items-center gap-2 px-3 py-2 text-muted-foreground hover:text-foreground bg-transparent border border-border rounded-md hover:bg-accent transition-colors"
+                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-muted-foreground hover:text-foreground bg-transparent border border-border rounded-md hover:bg-accent transition-colors text-sm sm:text-base"
                 style={{ cursor: "pointer", pointerEvents: "auto" }}
               >
-                <ArrowLeft className="h-5 w-5" />
-                Volver
+                <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="hidden sm:inline">Volver</span>
+                <span className="sm:hidden">←</span>
               </button>
               <div>
-                <h1 className="text-lg font-semibold text-foreground">
+                <h1 className="text-base sm:text-lg font-semibold text-foreground">
                   Crear obra - Editor de dibujo
                 </h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs sm:text-sm text-muted-foreground">
                   {muralData?.titulo ? `"${muralData.titulo}"` : "Sin título"}
                   {muralData?.tecnica && ` • ${muralData.tecnica}`}
                   {muralData?.year && ` • ${muralData.year}`}
@@ -157,25 +163,26 @@ export default function CanvasPage() {
             </div>
 
             <div className="flex items-center gap-3">
-              
               {canvasImage && (
-                <div className="flex items-center gap-2 px-3 py-1 bg-green-100 dark:bg-green-900/30 rounded-full text-sm">
+                <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-green-100 dark:bg-green-900/30 rounded-full text-xs sm:text-sm">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                   <span className="text-green-700 dark:text-green-300 font-medium">
-                    Dibujo guardado
+                    <span className="hidden sm:inline">Dibujo guardado</span>
+                    <span className="sm:hidden">Guardado</span>
                   </span>
                 </div>
               )}
-              
+
               {canvasImage && (
                 <button
                   type="button"
                   onClick={handleDownload}
-                  className="flex items-center gap-2 px-3 py-2 text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors"
+                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-md transition-colors text-sm sm:text-base"
                   style={{ cursor: "pointer", pointerEvents: "auto" }}
                 >
                   <Download className="h-4 w-4" />
-                  Descargar
+                  <span className="hidden sm:inline">Descargar</span>
+                  <span className="sm:hidden">↓</span>
                 </button>
               )}
 
@@ -183,18 +190,30 @@ export default function CanvasPage() {
                 type="button"
                 onClick={handleContinue}
                 disabled={!canvasImage}
-                className={`flex items-center gap-2 px-4 py-2 rounded-md font-medium transition-colors ${
+                className={`flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 rounded-md font-medium transition-colors text-sm sm:text-base ${
                   canvasImage
                     ? "bg-indigo-600 hover:bg-indigo-700 text-white"
                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}
-                style={{ 
+                style={{
                   cursor: canvasImage ? "pointer" : "not-allowed",
-                  pointerEvents: "auto"
+                  pointerEvents: "auto",
                 }}
               >
                 <Save className="h-4 w-4" />
-                {canvasImage ? "Continuar" : "Guardar dibujo primero"}
+                {canvasImage ? (
+                  <>
+                    <span className="hidden sm:inline">Continuar</span>
+                    <span className="sm:hidden">→</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="hidden sm:inline">
+                      Guardar dibujo primero
+                    </span>
+                    <span className="sm:hidden">Guardar</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -220,23 +239,34 @@ export default function CanvasPage() {
         {/* Indicador de progreso mejorado */}
         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-20">
           <div className="bg-white/90 dark:bg-neutral-900/90 backdrop-blur-md rounded-full px-6 py-3 shadow-lg border border-border">
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm">
+              <div className="flex items-center gap-1 sm:gap-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <span className="text-muted-foreground">Datos básicos</span>
-              </div>
-              <div className="w-px h-4 bg-border"></div>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${canvasImage ? 'bg-green-500' : 'bg-blue-500'}`}></div>
-                <span className="font-medium text-foreground">
-                  Editor de dibujo
-                  {canvasImage && <span className="text-green-600 ml-2">✓</span>}
+                <span className="text-muted-foreground">
+                  <span className="hidden sm:inline">Datos básicos</span>
+                  <span className="sm:hidden">Datos</span>
                 </span>
               </div>
               <div className="w-px h-4 bg-border"></div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 sm:gap-2">
+                <div
+                  className={`w-2 h-2 rounded-full ${canvasImage ? "bg-green-500" : "bg-blue-500"}`}
+                ></div>
+                <span className="font-medium text-foreground">
+                  <span className="hidden sm:inline">Editor de dibujo</span>
+                  <span className="sm:hidden">Editor</span>
+                  {canvasImage && (
+                    <span className="text-green-600 ml-1 sm:ml-2">✓</span>
+                  )}
+                </span>
+              </div>
+              <div className="w-px h-4 bg-border"></div>
+              <div className="flex items-center gap-1 sm:gap-2">
                 <div className="w-2 h-2 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-                <span className="text-muted-foreground">Confirmar</span>
+                <span className="text-muted-foreground">
+                  <span className="hidden sm:inline">Confirmar</span>
+                  <span className="sm:hidden">Final</span>
+                </span>
               </div>
             </div>
           </div>

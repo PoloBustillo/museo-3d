@@ -487,7 +487,7 @@ export default function CanvasEditor({
         className="bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-y-auto"
       >
         <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
             {editingMural ? "Editar Obra" : "Crear Nueva Obra"}
           </h2>
           <button
@@ -505,7 +505,7 @@ export default function CanvasEditor({
             <div className="lg:col-span-1">
               {/* Card de herramientas unificado */}
               <div className="bg-white dark:bg-neutral-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-md p-4 flex flex-col gap-6 w-full mx-auto mb-6">
-                <h3 className="text-lg font-bold mb-2 text-indigo-700 dark:text-indigo-200 text-center">
+                <h3 className="text-sm sm:text-lg font-bold mb-2 text-indigo-700 dark:text-indigo-200 text-center">
                   Herramientas
                 </h3>
                 <BackgroundSelector
@@ -545,7 +545,7 @@ export default function CanvasEditor({
                 </div>
                 {/* Tamaño del pincel */}
                 <div className="flex flex-col items-center gap-2 mt-2">
-                  <h4 className="font-semibold text-sm mb-1">
+                  <h4 className="font-semibold text-xs sm:text-sm mb-1">
                     Tamaño del pincel
                   </h4>
                   <input
@@ -557,13 +557,15 @@ export default function CanvasEditor({
                     className="w-3/4 sm:w-2/3 h-3 accent-indigo-600"
                     style={{ minWidth: 120, maxWidth: 240 }}
                   />
-                  <div className="text-center mt-1 text-lg font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 px-3 py-1 rounded-full shadow-sm">
+                  <div className="text-center mt-1 text-sm sm:text-lg font-bold text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 px-2 sm:px-3 py-1 rounded-full shadow-sm">
                     {brushSize}px
                   </div>
                 </div>
                 {/* Paleta de colores y color picker */}
                 <div className="flex flex-col items-center gap-2 mt-2">
-                  <h4 className="font-semibold text-sm mb-1">Color</h4>
+                  <h4 className="font-semibold text-xs sm:text-sm mb-1">
+                    Color
+                  </h4>
                   <Palette
                     colors={paletteColors}
                     currentColor={brushColor}
@@ -597,19 +599,19 @@ export default function CanvasEditor({
               <div className="flex gap-2 mb-2 items-center">
                 <button
                   type="button"
-                  className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold"
+                  className="px-1 sm:px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold"
                   onClick={() => setCanvasZoom((z) => Math.max(0.5, z - 0.1))}
                   title="Zoom -"
                   style={{ cursor: "pointer" }}
                 >
                   -
                 </button>
-                <span className="px-2 text-xs font-mono bg-white/80 rounded border border-gray-300 text-black">
+                <span className="px-1 sm:px-2 text-xs font-mono bg-white/80 rounded border border-gray-300 text-black">
                   {(canvasZoom * 100).toFixed(0)}%
                 </span>
                 <button
                   type="button"
-                  className="px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold"
+                  className="px-1 sm:px-2 py-1 rounded bg-gray-200 hover:bg-gray-300 text-gray-800 text-xs font-bold"
                   onClick={() => setCanvasZoom((z) => Math.min(2, z + 0.1))}
                   title="Zoom +"
                   style={{ cursor: "pointer" }}
@@ -999,7 +1001,9 @@ export default function CanvasEditor({
               {/* Info del mural debajo del canvas solo en edición */}
               {editingMural && (
                 <div className="bg-gray-50 dark:bg-neutral-800 rounded-lg p-4 mb-4 w-full max-w-[900px] mx-auto">
-                  <h3 className="font-semibold mb-3">Información de la Obra</h3>
+                  <h3 className="font-semibold mb-3 text-sm sm:text-base">
+                    Información de la Obra
+                  </h3>
                   <div className="space-y-3">
                     <motion.input
                       type="text"
@@ -1011,7 +1015,7 @@ export default function CanvasEditor({
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-700 text-foreground focus:ring-2 focus:ring-indigo-500"
                     />
                     <motion.textarea
-                      placeholder="Descripción (opcional)"
+                      placeholder="Descripción"
                       value={muralData.descripcion}
                       onChange={(e) =>
                         setMuralData({
@@ -1041,11 +1045,11 @@ export default function CanvasEditor({
                           setMuralData({ ...muralData, year: null });
                         }
                       }}
-                      placeholder="Selecciona el año..."
+                      placeholder="Año"
                     />
                     <motion.input
                       type="text"
-                      placeholder="Autor (opcional)"
+                      placeholder="Autor"
                       value={muralData.autor || ""}
                       onChange={(e) =>
                         setMuralData({ ...muralData, autor: e.target.value })
@@ -1054,7 +1058,7 @@ export default function CanvasEditor({
                     />
                     <motion.input
                       type="text"
-                      placeholder="Ubicación (opcional)"
+                      placeholder="Ubicación"
                       value={muralData.ubicacion || ""}
                       onChange={(e) =>
                         setMuralData({
@@ -1062,13 +1066,13 @@ export default function CanvasEditor({
                           ubicacion: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-700 text-foreground focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-700 text-foreground focus:ring-indigo-500"
                     />
                     <div className="flex gap-2">
                       <motion.input
                         type="number"
                         step="any"
-                        placeholder="Latitud (opcional)"
+                        placeholder="Latitud"
                         value={muralData.latitud || ""}
                         onChange={(e) =>
                           setMuralData({
@@ -1081,7 +1085,7 @@ export default function CanvasEditor({
                       <motion.input
                         type="number"
                         step="any"
-                        placeholder="Longitud (opcional)"
+                        placeholder="Longitud"
                         value={muralData.longitud || ""}
                         onChange={(e) =>
                           setMuralData({
@@ -1100,7 +1104,7 @@ export default function CanvasEditor({
                       }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-700 text-foreground focus:ring-2 focus:ring-indigo-500"
                     >
-                      <option value="">Selecciona un artista (opcional)</option>
+                      <option value="">Selecciona un artista</option>
                       {artistList &&
                         artistList.map((artist) => (
                           <option key={artist.id} value={artist.id}>
@@ -1115,18 +1119,23 @@ export default function CanvasEditor({
           </div>
 
           {/* Botones de acción */}
-          <div className="flex items-center gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={handleSave}
-              className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center gap-2"
+              className="px-3 sm:px-6 py-2 sm:py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center gap-1 sm:gap-2 text-sm sm:text-base"
               style={{ cursor: "pointer" }}
             >
               <Save className="h-4 w-4" />
-              {editingMural ? "Actualizar Obra" : "Guardar Obra"}
+              <span className="hidden sm:inline">
+                {editingMural ? "Actualizar Obra" : "Guardar Obra"}
+              </span>
+              <span className="sm:hidden">
+                {editingMural ? "Actualizar" : "Guardar"}
+              </span>
             </button>
             <button
               onClick={onClose}
-              className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium"
+              className="px-3 sm:px-6 py-2 sm:py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm sm:text-base"
               style={{ cursor: "pointer" }}
             >
               Cancelar
