@@ -12,6 +12,7 @@ import {
   Eye,
   Users,
   Image as ImageIcon,
+  Trash2,
 } from "lucide-react";
 import MuralImageStep from "./MuralImageStep";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -29,6 +30,7 @@ import { useState as useLocalState } from "react";
 import { Icon } from "leaflet";
 import { Brush } from "lucide-react";
 import ReactSelect from "react-select";
+import { SimpleModal } from "@/components/ui/SimpleModal";
 import {
   generateMuralGLB,
   generateMuralGLBFallback,
@@ -36,15 +38,24 @@ import {
 import { uploadModelToCloudinary } from "../../../utils/uploadToCloudinary";
 import { validateGLB, diagnoseModel } from "../../../utils/validateGLB";
 
-export default function CrearMuralStepper({ initialData = null, editMode = false, onSuccess }) {
+export default function CrearMuralStepper({
+  initialData = null,
+  editMode = false,
+  onSuccess,
+}) {
   const router = useRouter();
   const { data: session } = useSession();
   const [step, setStep] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
+  const [showClearDraftModal, setShowClearDraftModal] = useState(false);
 
   // Steps dinámicos según el modo
   const STEPS_DYNAMIC = [
-    { label: "Datos básicos", subtitle: "Información principal", icon: <User /> },
+    {
+      label: "Datos básicos",
+      subtitle: "Información principal",
+      icon: <User />,
+    },
     {
       label: "Imágenes y medios",
       subtitle: "Sube o crea tu imagen",
@@ -57,10 +68,10 @@ export default function CrearMuralStepper({ initialData = null, editMode = false
     },
     { label: "Estado", subtitle: "Visibilidad y orden", icon: <Eye /> },
     { label: "Autores", subtitle: "Artistas y colaboradores", icon: <Users /> },
-    { 
-      label: "Confirmar", 
-      subtitle: editMode ? "Revisa y actualiza" : "Revisa y crea", 
-      icon: <CheckCircle /> 
+    {
+      label: "Confirmar",
+      subtitle: editMode ? "Revisa y actualiza" : "Revisa y crea",
+      icon: <CheckCircle />,
     },
   ];
   const canvasImageLoaded = useRef(false);
@@ -147,7 +158,7 @@ export default function CrearMuralStepper({ initialData = null, editMode = false
   React.useEffect(() => {
     if (editMode && initialData) {
       console.log("🎨 Cargando datos para edición en stepper:", initialData);
-      
+
       setMural({
         titulo: initialData.titulo || "",
         descripcion: initialData.descripcion || "",
@@ -168,7 +179,8 @@ export default function CrearMuralStepper({ initialData = null, editMode = false
         exposiciones: initialData.exposiciones || [],
         estado: initialData.estado || "",
         publica: initialData.publica !== undefined ? initialData.publica : true,
-        destacada: initialData.destacada !== undefined ? initialData.destacada : false,
+        destacada:
+          initialData.destacada !== undefined ? initialData.destacada : false,
         orden: initialData.orden || 0,
         autor: initialData.autor || "",
         artistId: initialData.artistId || "",
@@ -219,7 +231,7 @@ export default function CrearMuralStepper({ initialData = null, editMode = false
 
         setMural((prev) => {
           console.log("� Estado previo del mural:", prev);
-          
+
           // Siempre usar los datos de localStorage cuando están disponibles
           // para evitar que se pierdan al regresar del canvas
           const newMural = {
@@ -255,14 +267,14 @@ export default function CrearMuralStepper({ initialData = null, editMode = false
             // Asegurar que userId siempre esté actualizado
             userId: session?.user?.id || parsed.userId || prev.userId,
           };
-          
+
           console.log("✅ Nuevo estado del mural desde localStorage:", {
             titulo: newMural.titulo,
             tecnica: newMural.tecnica,
             anio: newMural.anio,
             userId: newMural.userId,
           });
-          
+
           return newMural;
         });
       } catch (error) {
@@ -286,9 +298,12 @@ export default function CrearMuralStepper({ initialData = null, editMode = false
   // Auto-guardar los datos del mural cada vez que cambien (excepto si estamos cargando)
   useEffect(() => {
     // Solo guardar si tenemos datos significativos y la sesión está lista
-    const hasSignificantData = mural.titulo || mural.descripcion || mural.tecnica || 
-                               (mural.anio && mural.anio !== new Date().getFullYear());
-    
+    const hasSignificantData =
+      mural.titulo ||
+      mural.descripcion ||
+      mural.tecnica ||
+      (mural.anio && mural.anio !== new Date().getFullYear());
+
     if (hasSignificantData && session?.user?.id) {
       localStorage.setItem("muralDraftData", JSON.stringify(mural));
       localStorage.setItem("muralStep", step.toString());
@@ -351,8 +366,14 @@ export default function CrearMuralStepper({ initialData = null, editMode = false
               colaboradores: existingData.colaboradores || [],
               tags: existingData.tags || [],
               // Valores por defecto para campos booleanos
-              publica: existingData.publica !== undefined ? existingData.publica : true,
-              destacada: existingData.destacada !== undefined ? existingData.destacada : false,
+              publica:
+                existingData.publica !== undefined
+                  ? existingData.publica
+                  : true,
+              destacada:
+                existingData.destacada !== undefined
+                  ? existingData.destacada
+                  : false,
               orden: existingData.orden !== undefined ? existingData.orden : 0,
             };
             console.log("🎨 Mural actualizado con imagen:", {
@@ -431,7 +452,9 @@ export default function CrearMuralStepper({ initialData = null, editMode = false
       // Evitar sobrescribir datos existentes con datos vacíos
       const isOverwritingWithEmptyData =
         !hasSignificantData &&
-        (existingMural.titulo || existingMural.tecnica || existingMural.descripcion) &&
+        (existingMural.titulo ||
+          existingMural.tecnica ||
+          existingMural.descripcion) &&
         !mural.titulo &&
         !mural.tecnica &&
         step === 0;
@@ -625,7 +648,11 @@ export default function CrearMuralStepper({ initialData = null, editMode = false
       let url_imagen = null;
 
       // Solo subir imagen si es nueva (base64 o File), no si ya es una URL
-      if (mural.url_imagen && typeof mural.url_imagen === 'string' && mural.url_imagen.startsWith('http')) {
+      if (
+        mural.url_imagen &&
+        typeof mural.url_imagen === "string" &&
+        mural.url_imagen.startsWith("http")
+      ) {
         // Ya es una URL de imagen existente, no subir de nuevo
         url_imagen = mural.url_imagen;
         console.log("✅ Usando imagen existente:", url_imagen);
@@ -797,9 +824,11 @@ export default function CrearMuralStepper({ initialData = null, editMode = false
       });
 
       // Enviar a la API
-      const apiUrl = editMode ? `/api/murales/${initialData.id}` : "/api/murales";
+      const apiUrl = editMode
+        ? `/api/murales/${initialData.id}`
+        : "/api/murales";
       const method = editMode ? "PUT" : "POST";
-      
+
       const response = await fetch(apiUrl, {
         method: method,
         body: formData,
@@ -807,10 +836,19 @@ export default function CrearMuralStepper({ initialData = null, editMode = false
 
       if (response.ok) {
         const result = await response.json();
-        console.log(editMode ? "✅ Obra actualizada exitosamente:" : "✅ Obra creada exitosamente:", result);
+        console.log(
+          editMode
+            ? "✅ Obra actualizada exitosamente:"
+            : "✅ Obra creada exitosamente:",
+          result
+        );
 
         // Mostrar mensaje de éxito
-        setSuccessMessage(editMode ? "¡Obra actualizada exitosamente!" : "¡Obra creada exitosamente!");
+        setSuccessMessage(
+          editMode
+            ? "¡Obra actualizada exitosamente!"
+            : "¡Obra creada exitosamente!"
+        );
 
         // Limpiar localStorage solo si es creación nueva
         if (!editMode) {
@@ -828,7 +866,9 @@ export default function CrearMuralStepper({ initialData = null, editMode = false
           }
         }, 1000);
       } else {
-        let errorMsg = editMode ? "Error al actualizar la obra" : "Error al crear la obra";
+        let errorMsg = editMode
+          ? "Error al actualizar la obra"
+          : "Error al crear la obra";
         let errorDetails = "";
         try {
           const error = await response.json();
@@ -858,6 +898,44 @@ export default function CrearMuralStepper({ initialData = null, editMode = false
   };
 
   const handleBack = () => setStep((s) => s - 1);
+
+  const handleClearDraft = () => {
+    localStorage.removeItem("muralDraftData");
+    localStorage.removeItem("muralStep");
+    localStorage.removeItem("canvasImage");
+    setSuccessMessage(null);
+    setApiError(null);
+    setMural({
+      titulo: "",
+      descripcion: "",
+      tecnica: "",
+      anio: undefined,
+      dimensiones: "",
+      tags: [],
+      url_imagen: null,
+      imagenesSecundarias: [],
+      imagenUrlWebp: "",
+      videoUrl: "",
+      audioUrl: "",
+      modelo3dUrl: "",
+      ubicacion: "",
+      latitud: "",
+      longitud: "",
+      salaId: "",
+      exposiciones: [],
+      estado: "",
+      publica: true,
+      destacada: false,
+      orden: 0,
+      autor: "",
+      artistId: "",
+      colaboradores: [],
+      tagsInput: "",
+    });
+    setStep(0);
+    setErrors({});
+    setShowClearDraftModal(false);
+  };
 
   // Estilos inline para underline moderno
   const underlineInputClass =
@@ -1349,11 +1427,15 @@ export default function CrearMuralStepper({ initialData = null, editMode = false
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                         {modelGenerationStep || "Generando modelo 3D..."}
                       </div>
+                    ) : editMode ? (
+                      "Actualizando obra..."
                     ) : (
-                      editMode ? "Actualizando obra..." : "Creando obra..."
+                      "Creando obra..."
                     )
+                  ) : editMode ? (
+                    "Actualizar obra"
                   ) : (
-                    editMode ? "Actualizar obra" : "Crear obra"
+                    "Crear obra"
                   )}
                 </Button>
               </div>
@@ -1364,48 +1446,10 @@ export default function CrearMuralStepper({ initialData = null, editMode = false
         <div className="flex gap-2 justify-end mt-8">
           <Button
             variant="ghost"
-            onClick={() => {
-              if (
-                confirm("¿Estás seguro de que quieres limpiar el borrador?")
-              ) {
-                localStorage.removeItem("muralDraftData");
-                localStorage.removeItem("muralStep");
-                localStorage.removeItem("canvasImage");
-                setSuccessMessage(null);
-                setApiError(null);
-                setMural({
-                  titulo: "",
-                  descripcion: "",
-                  tecnica: "",
-                  anio: undefined,
-                  dimensiones: "",
-                  tags: [],
-                  url_imagen: null,
-                  imagenesSecundarias: [],
-                  imagenUrlWebp: "",
-                  videoUrl: "",
-                  audioUrl: "",
-                  modelo3dUrl: "",
-                  ubicacion: "",
-                  latitud: "",
-                  longitud: "",
-                  salaId: "",
-                  exposiciones: [],
-                  estado: "",
-                  publica: true,
-                  destacada: false,
-                  orden: 0,
-                  autor: "",
-                  artistId: "",
-                  colaboradores: [],
-                  tagsInput: "",
-                });
-                setStep(0);
-                setErrors({});
-              }
-            }}
-            className="text-red-600 hover:text-red-700"
+            onClick={() => setShowClearDraftModal(true)}
+            className="text-red-600 hover:text-red-700 flex items-center gap-2"
           >
+            <Trash2 className="w-4 h-4" />
             Limpiar borrador
           </Button>
           {step > 0 && (
@@ -1418,6 +1462,48 @@ export default function CrearMuralStepper({ initialData = null, editMode = false
           )}
         </div>
       </div>
+
+      {/* Modal de confirmación para limpiar borrador */}
+      <SimpleModal
+        isOpen={showClearDraftModal}
+        onClose={() => setShowClearDraftModal(false)}
+        title="¿Limpiar borrador?"
+      >
+        <div className="flex flex-col gap-4 items-center text-gray-900 dark:text-gray-100">
+          <div className="flex items-center gap-3 text-red-600 dark:text-red-400">
+            <Trash2 className="w-6 h-6" />
+            <h3 className="text-lg font-semibold">Limpiar borrador</h3>
+          </div>
+          <p className="text-center text-gray-700 dark:text-gray-300">
+            Esta acción eliminará completamente todos los datos del borrador
+            actual, incluyendo:
+          </p>
+          <ul className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+            <li>• Toda la información ingresada</li>
+            <li>• Imágenes subidas o creadas</li>
+            <li>• Progreso del formulario</li>
+            <li>• Datos guardados localmente</li>
+          </ul>
+          <p className="text-center text-red-600 dark:text-red-400 font-medium">
+            Esta acción no se puede deshacer.
+          </p>
+          <div className="flex gap-4 justify-center mt-4">
+            <button
+              className="px-4 py-2 rounded-lg bg-gray-200 dark:bg-neutral-700 text-gray-800 dark:text-gray-200 font-medium hover:bg-gray-300 dark:hover:bg-neutral-600 transition"
+              onClick={() => setShowClearDraftModal(false)}
+            >
+              Cancelar
+            </button>
+            <button
+              className="px-4 py-2 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition flex items-center gap-2"
+              onClick={handleClearDraft}
+            >
+              <Trash2 className="w-4 h-4" />
+              Limpiar borrador
+            </button>
+          </div>
+        </div>
+      </SimpleModal>
     </div>
   );
 }

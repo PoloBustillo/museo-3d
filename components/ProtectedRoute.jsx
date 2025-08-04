@@ -5,7 +5,7 @@ import { ModalWrapper } from "./ui/Modal";
 import { PageLoader } from "./LoadingSpinner";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect } from "react";
 import { UnauthorizedScreen } from "./shared";
 
 export default function ProtectedRoute({
@@ -31,6 +31,21 @@ export default function ProtectedRoute({
     }
   }, [isAuthenticated, requiredRole, requiredRoles]);
 
+  // Hooks para manejar redirección y modal de login
+  useEffect(() => {
+    if (!isAuthenticated && typeof window !== "undefined") {
+      sessionStorage.setItem("redirectAfterLogin", pathname);
+    }
+  }, [pathname, isAuthenticated]);
+
+  useEffect(() => {
+    if (!isAuthenticated && showLoginModal) {
+      setTimeout(() => {
+        openModal("auth-login", { mode: "login", redirectTo: pathname });
+      }, 100);
+    }
+  }, [showLoginModal, openModal, pathname, isAuthenticated]);
+
   // Si está cargando, mostrar loading mejorado
   if (isLoading) {
     return <PageLoader text="Verificando acceso..." />;
@@ -38,20 +53,6 @@ export default function ProtectedRoute({
 
   // Si no está autenticado
   if (!isAuthenticated) {
-    useEffect(() => {
-      if (typeof window !== "undefined") {
-        sessionStorage.setItem("redirectAfterLogin", pathname);
-      }
-    }, [pathname]);
-
-    useEffect(() => {
-      if (showLoginModal) {
-        setTimeout(() => {
-          openModal("auth-login", { mode: "login", redirectTo: pathname });
-        }, 100);
-      }
-    }, [showLoginModal, openModal, pathname]);
-
     return (
       fallback || (
         <AnimatePresence>

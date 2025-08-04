@@ -50,54 +50,24 @@ export function SimpleModal({ isOpen, onClose, title, children, size = "md" }) {
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       onClick={handleOverlayClick}
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        zIndex: 50,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "visible",
-      }}
     >
       {/* Overlay */}
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: "rgba(0, 0, 0, 0.5)",
-        }}
-      />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
 
       {/* Modal */}
       <div
-        className={`relative bg-white rounded-2xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden`}
-        style={{
-          position: "relative",
-          backgroundColor: "white",
-          borderRadius: "16px",
-          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-          width: "100%",
-          maxHeight: "90vh",
-          overflow: "hidden",
-          zIndex: 1,
-        }}
+        className={`relative bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-hidden border border-gray-200 dark:border-neutral-700`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-neutral-700">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              {title}
+            </h2>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
             >
               <svg
                 className="w-5 h-5"
