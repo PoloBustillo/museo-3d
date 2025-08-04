@@ -75,6 +75,11 @@ export default function CanvasPage() {
     }
 
     try {
+      // Guardar los datos del mural antes de continuar
+      if (muralData) {
+        localStorage.setItem("muralDraftData", JSON.stringify(muralData));
+      }
+
       // Guardar la imagen del canvas en localStorage
       localStorage.setItem("canvasImage", canvasImage);
 
@@ -91,6 +96,16 @@ export default function CanvasPage() {
     e?.stopPropagation();
 
     try {
+      // Guardar los datos actuales antes de regresar
+      if (muralData) {
+        localStorage.setItem("muralDraftData", JSON.stringify(muralData));
+      }
+
+      // Si hay imagen del canvas, guardarla también
+      if (canvasImage) {
+        localStorage.setItem("canvasImage", canvasImage);
+      }
+
       router.push("/mis-obras/crear");
     } catch (error) {
       console.error("❌ Error en handleBack:", error);
@@ -148,7 +163,6 @@ export default function CanvasPage() {
               >
                 <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                 <span className="hidden sm:inline">Volver</span>
-                <span className="sm:hidden">←</span>
               </button>
               <div>
                 <h1 className="text-base sm:text-lg font-semibold text-foreground">
