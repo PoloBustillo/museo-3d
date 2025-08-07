@@ -75,6 +75,7 @@ export default function CrearMuralStepper({
     },
   ];
   const canvasImageLoaded = useRef(false);
+  const localStorageLoaded = useRef(false);
 
   // Función para comprimir imagen si es muy grande
   const compressImage = (dataUrl, maxSize = 800) => {
@@ -293,6 +294,12 @@ export default function CrearMuralStepper({
 
   // Cargar datos del mural desde localStorage al montar el componente
   useEffect(() => {
+    // Solo ejecutar si no estamos en modo edición y no hemos cargado ya
+    if ((editMode && initialData) || localStorageLoaded.current) {
+      console.log("📝 Saltando carga desde localStorage - modo edición o ya cargado");
+      return;
+    }
+
     const savedData = localStorage.getItem("muralDraftData");
     const savedStep = localStorage.getItem("muralStep");
 
@@ -300,16 +307,30 @@ export default function CrearMuralStepper({
       hasSavedData: !!savedData,
       hasSavedStep: !!savedStep,
       sessionUserId: session?.user?.id,
+      editMode,
+      alreadyLoaded: localStorageLoaded.current,
     });
 
-    if (savedData) {
+    if (savedData && session?.user?.id) {
       try {
         const parsed = JSON.parse(savedData);
         console.log("📋 Datos parseados desde localStorage:", parsed);
 
         setMural((prev) => {
-          console.log("📝 Estado previo del mural:", prev);
+          // Solo actualizar si los datos guardados son diferentes o más completos
+          const hasExistingData = prev.titulo || prev.tecnica || prev.descripcion;
+          
+          if (hasExistingData) {
+            console.log("📝 Ya hay datos en el estado, manteniendo estado actual");
+            return {
+              ...prev,
+              // Solo actualizar userId si no está establecido
+              userId: prev.userId || session.user.id,
+            };
+          }
 
+          console.log("📝 Cargando datos desde localStorage al estado vacío");
+          
           // Combinar datos de localStorage con estado actual, dando prioridad a localStorage
           const newMural = {
             // Base por defecto
@@ -356,16 +377,20 @@ export default function CrearMuralStepper({
 
           return newMural;
         });
+        
+        // Marcar como cargado
+        localStorageLoaded.current = true;
       } catch (error) {
         console.error("❌ Error parsing saved mural data:", error);
       }
     }
 
-    if (savedStep) {
+    if (savedStep && session?.user?.id) {
       const stepNumber = parseInt(savedStep);
+      console.log("📍 Cargando step guardado:", stepNumber);
       setStep(stepNumber);
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id, editMode, initialData]); // Añadir editMode e initialData como dependencias
 
   // Establecer userId cuando la sesión esté disponible (solo si no está ya establecido)
   useEffect(() => {
@@ -381,10 +406,11 @@ export default function CrearMuralStepper({
     
     if (fromStepper === "true" && stepperReturnStep) {
       // El usuario regresó del canvas
+      console.log("🎨 Usuario regresó del canvas, mostrando mensaje de bienvenida");
       setShowCanvasReturnMessage(true);
       setStep(parseInt(stepperReturnStep));
       
-      // Limpiar los indicadores
+      // Limpiar los indicadores inmediatamente para evitar interferencias
       localStorage.removeItem("fromStepper");
       localStorage.removeItem("stepperReturnStep");
       
@@ -393,7 +419,7 @@ export default function CrearMuralStepper({
         setShowCanvasReturnMessage(false);
       }, 5000);
     }
-  }, []);
+  }, []); // Solo ejecutar una vez al montar el componente
 
   // Auto-guardar los datos del mural cada vez que cambien (excepto si estamos cargando)
   useEffect(() => {
@@ -1005,7 +1031,7 @@ export default function CrearMuralStepper({
   };
 
   const handleBack = () => {
-    // Guardar datos antes de retroceder para asegurar que no se pierdan
+    // Guardar datos antes de retroceder solo si hay datos significativos
     const hasSignificantData =
       mural.titulo ||
       mural.descripcion ||
@@ -1028,6 +1054,10 @@ export default function CrearMuralStepper({
       });
 
       safeLSSet("muralDraftData", muralWithoutImage);
+      safeLSSet("muralStep", (step - 1).toString());
+    } else {
+      // Si no hay datos significativos, solo actualizar el step en localStorage
+      console.log("🔙 Retrocediendo sin datos significativos, solo actualizando step");
       safeLSSet("muralStep", (step - 1).toString());
     }
 
