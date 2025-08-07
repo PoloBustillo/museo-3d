@@ -99,7 +99,7 @@ export default function Stepper({
           return (
             <div
               key={i}
-              className="flex flex-col items-center min-w-[50px] sm:min-w-[80px] min-h-[60px] sm:min-h-[70px] justify-start px-1 sm:px-0"
+              className="flex flex-col items-center min-w-[50px] sm:min-w-[100px] min-h-[80px] sm:min-h-[100px] justify-start px-1 sm:px-0"
             >
               <button
                 type="button"
@@ -138,14 +138,12 @@ export default function Stepper({
                   i + 1
                 )}
               </button>
-              <span className="mt-2 sm:mt-1 text-[10px] sm:text-xs text-center min-w-[40px] sm:min-w-[70px] text-muted-foreground font-medium leading-tight max-w-[50px] sm:max-w-[80px] flex-shrink-0">
+              <span className="mt-2 sm:mt-1 text-[10px] sm:text-xs text-center min-w-[40px] sm:min-w-[90px] text-muted-foreground font-medium leading-tight max-w-[50px] sm:max-w-[100px] flex-shrink-0 h-[16px] sm:h-[18px] flex items-center justify-center">
                 {label}
               </span>
-              {subtitle && (
-                <span className="text-[11px] text-center text-gray-400 dark:text-gray-500 mt-1 sm:mt-0.5 hidden sm:block leading-tight max-w-[70px] sm:max-w-[80px]">
-                  {subtitle}
-                </span>
-              )}
+              <span className="text-[10px] sm:text-[11px] text-center text-gray-400 dark:text-gray-500 mt-0.5 sm:mt-1 hidden sm:flex leading-tight max-w-[90px] sm:max-w-[100px] h-[24px] sm:h-[28px] items-start justify-center overflow-hidden">
+                {subtitle || "\u00A0"}
+              </span>
               {status === "error" && (
                 <span className="text-xs text-red-500 mt-1 sm:mt-0.5 leading-tight max-w-[70px] sm:max-w-[80px] text-center">
                   ¡Corrige este paso!
