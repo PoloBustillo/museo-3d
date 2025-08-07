@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Box, Typography, Button } from "@mui/material";
-import Upload from "lucide-react/dist/esm/icons/upload";
+import { useDropzone } from "react-dropzone";
+import { Upload, X, Edit, ImageIcon } from "lucide-react";
 import Image from "next/image";
 import CanvasEditor from "./CanvasEditor";
 import { useFileUpload } from "../hooks/useFileUpload";
@@ -25,7 +26,30 @@ export default function MuralImageStep({ value, onChange, muralData = {}, editMo
     }
   }, [onChange]);
 
-  // Subida de imagen (solo local, no Cloudinary)
+  // Configuración de React Dropzone
+  const onDrop = (acceptedFiles) => {
+    if (acceptedFiles.length > 0) {
+      const file = acceptedFiles[0];
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setLocalImage(ev.target.result);
+        setCanvasImage(null);
+        onChange?.(ev.target.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp']
+    },
+    multiple: false,
+    maxSize: 10 * 1024 * 1024, // 10MB
+  });
+
+  // Subida de imagen (solo local, no Cloudinary) - Mantener para compatibilidad
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -44,6 +68,13 @@ export default function MuralImageStep({ value, onChange, muralData = {}, editMo
     setCanvasImage(imgDataUrl);
     setLocalImage(null);
     onChange?.(imgDataUrl);
+  };
+
+  // Función para eliminar imagen
+  const handleRemoveImage = () => {
+    setLocalImage(null);
+    setCanvasImage(null);
+    onChange?.(null);
   };
 
   // Preview: prioriza canvas sobre upload
@@ -119,95 +150,151 @@ export default function MuralImageStep({ value, onChange, muralData = {}, editMo
         <div>
           {!previewUrl ? (
             <div
-              className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-8 mb-2 w-full transition-all cursor-pointer
-                border-gray-300 bg-gray-50 dark:bg-neutral-900/70
-                hover:border-indigo-400 hover:bg-indigo-50 dark:hover:border-indigo-400 dark:hover:bg-neutral-800/80
+              {...getRootProps()}
+              className={`flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-8 mb-2 w-full transition-all cursor-pointer min-h-[300px]
+                ${isDragActive && !isDragReject
+                  ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30"
+                  : isDragReject
+                  ? "border-red-500 bg-red-50 dark:bg-red-900/30"
+                  : "border-gray-300 bg-gray-50 dark:bg-neutral-900/70 hover:border-indigo-400 hover:bg-indigo-50 dark:hover:border-indigo-400 dark:hover:bg-neutral-800/80"
+                }
               `}
             >
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
-                id="file-upload"
-              />
-              <label
-                htmlFor="file-upload"
-                className="cursor-pointer flex flex-col items-center"
-              >
-                <Upload size={48} className="text-gray-400 mb-4" />
-                <span className="text-lg font-medium text-gray-600 dark:text-gray-300 mb-1">
-                  Arrastra una imagen o haz click para subir
-                </span>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  Formatos soportados: JPG, PNG, GIF, WebP
-                </span>
-              </label>
+              <input {...getInputProps()} />
+              <div className="flex flex-col items-center text-center">
+                <div className={`p-4 rounded-full mb-4 transition-colors ${
+                  isDragActive && !isDragReject
+                    ? "bg-indigo-100 dark:bg-indigo-800"
+                    : isDragReject
+                    ? "bg-red-100 dark:bg-red-800"
+                    : "bg-gray-100 dark:bg-neutral-800"
+                }`}>
+                  <Upload size={48} className={`${
+                    isDragActive && !isDragReject
+                      ? "text-indigo-600"
+                      : isDragReject
+                      ? "text-red-600"
+                      : "text-gray-400"
+                  }`} />
+                </div>
+                <h3 className={`text-xl font-semibold mb-2 ${
+                  isDragActive && !isDragReject
+                    ? "text-indigo-700 dark:text-indigo-300"
+                    : isDragReject
+                    ? "text-red-700 dark:text-red-300"
+                    : "text-gray-700 dark:text-gray-100"
+                }`}>
+                  {isDragActive && !isDragReject
+                    ? "¡Suelta la imagen aquí!"
+                    : isDragReject
+                    ? "Archivo no válido"
+                    : "Arrastra y suelta tu imagen"
+                  }
+                </h3>
+                <p className={`mb-4 max-w-md ${
+                  isDragActive && !isDragReject
+                    ? "text-indigo-600 dark:text-indigo-400"
+                    : isDragReject
+                    ? "text-red-600 dark:text-red-400"
+                    : "text-gray-500 dark:text-gray-400"
+                }`}>
+                  {isDragReject
+                    ? "Solo se permiten archivos de imagen (JPG, PNG, GIF, WebP)"
+                    : "O haz clic para seleccionar desde tu dispositivo"
+                  }
+                </p>
+                {!isDragActive && (
+                  <div className="text-sm text-gray-400 dark:text-gray-500">
+                    <span className="font-medium">Formatos soportados:</span> JPG, PNG, GIF, WebP
+                    <br />
+                    <span className="font-medium">Tamaño máximo:</span> 10MB
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             <div className="flex flex-col items-center mt-4">
-              <div className="relative inline-block group">
+              {/* Contenedor de imagen con overlay de acciones */}
+              <div className="relative group">
                 {/* Imagen */}
-                {previewUrl.startsWith("data:") ? (
-                  <img
-                    src={previewUrl}
-                    alt="Preview"
-                    style={{
-                      maxWidth: 320,
-                      maxHeight: 240,
-                      borderRadius: 8,
-                      boxShadow: "0 2px 8px #0002",
-                    }}
-                  />
-                ) : (
-                  <Image
-                    src={previewUrl}
-                    alt="Preview"
-                    width={320}
-                    height={240}
-                    style={{ borderRadius: 8, boxShadow: "0 2px 8px #0002" }}
-                  />
-                )}
-                
-                {/* Botón eliminar */}
-                <button
-                  type="button"
-                  className="absolute top-0.5 right-1 w-8 h-8 p-0 flex items-center justify-center bg-red-500 hover:bg-red-600 text-white rounded-full shadow-lg focus:outline-none z-20"
-                  style={{ transform: "translate(50%,-50%)" }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setLocalImage(null);
-                    setCanvasImage(null);
-                    onChange?.(null);
-                  }}
-                  aria-label="Eliminar imagen"
-                >
-                  <span className="text-xl leading-tight flex items-center justify-center">×</span>
-                </button>
-              </div>
-              
-              {/* Botón eliminar */}
-              <div className="mt-4 flex gap-3">
-                <button
-                  type="button"
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium"
-                  onClick={() => {
-                    setLocalImage(null);
-                    setCanvasImage(null);
-                    onChange?.(null);
-                  }}
-                >
-                  🗑️ Eliminar
-                </button>
+                <div className="relative overflow-hidden rounded-xl shadow-lg bg-white dark:bg-neutral-800">
+                  {previewUrl.startsWith("data:") ? (
+                    <img
+                      src={previewUrl}
+                      alt="Preview"
+                      className="max-w-[400px] max-h-[300px] object-contain"
+                    />
+                  ) : (
+                    <Image
+                      src={previewUrl}
+                      alt="Preview"
+                      width={400}
+                      height={300}
+                      className="object-contain"
+                    />
+                  )}
+                  
+                  {/* Overlay con acciones al hacer hover */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-3">
+                    {/* Botón reemplazar */}
+                    <button
+                      {...getRootProps()}
+                      type="button"
+                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors text-sm font-medium shadow-lg"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input {...getInputProps()} />
+                      <Edit size={16} />
+                      Reemplazar
+                    </button>
+                    
+                    {/* Botón eliminar */}
+                    <button
+                      type="button"
+                      className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm font-medium shadow-lg"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveImage();
+                      }}
+                    >
+                      <X size={16} />
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
               </div>
               
               {/* Info del archivo */}
-              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
-                {fileName && <span className="font-semibold">{fileName}</span>}
-                {fileName && fileSize !== null && fileSize !== undefined && " · "}
-                {fileSize !== null && fileSize !== undefined && (
-                  <span>{(fileSize / 1024).toFixed(1)} KB</span>
-                )}
+              <div className="mt-4 text-center">
+                <div className="text-sm text-gray-600 dark:text-gray-300 font-medium">
+                  {fileName && <span>{fileName}</span>}
+                  {fileName && fileSize !== null && fileSize !== undefined && " · "}
+                  {fileSize !== null && fileSize !== undefined && (
+                    <span>{(fileSize / 1024).toFixed(1)} KB</span>
+                  )}
+                </div>
+                
+                {/* Botones de acción adicionales */}
+                <div className="mt-3 flex gap-3 justify-center">
+                  <button
+                    {...getRootProps()}
+                    type="button"
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-gray-700 dark:text-gray-200 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <input {...getInputProps()} />
+                    <Edit size={16} />
+                    Cambiar imagen
+                  </button>
+                  
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 px-4 py-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-800/50 text-red-700 dark:text-red-300 rounded-lg transition-colors text-sm font-medium"
+                    onClick={handleRemoveImage}
+                  >
+                    <X size={16} />
+                    Quitar imagen
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -217,22 +304,24 @@ export default function MuralImageStep({ value, onChange, muralData = {}, editMo
         <div>
           {/* Botón del editor de dibujo - siempre disponible */}
           <div
-            className="flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-8 mb-4 w-full transition-all
+            className="flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-8 mb-4 w-full transition-all min-h-[300px]
             border-gray-300 bg-gray-50 dark:bg-neutral-900/70
             hover:border-indigo-400 hover:bg-indigo-50 dark:hover:border-indigo-400 dark:hover:bg-neutral-800/80
           "
           >
             <div className="flex flex-col items-center text-center">
-                <span role="img" aria-label="Dibujar" className="text-6xl mb-4">
-                  🎨
-                </span>
+                <div className="p-4 rounded-full bg-indigo-100 dark:bg-indigo-900/50 mb-4">
+                  <span role="img" aria-label="Dibujar" className="text-4xl">
+                    🎨
+                  </span>
+                </div>
                 <h3 className="text-xl font-semibold mb-2 text-gray-700 dark:text-gray-100">
-                  Editor de dibujo dedicado
+                  Editor de dibujo profesional
                 </h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md">
+                <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md leading-relaxed">
                   {previewUrl 
-                    ? "Usa el editor para modificar la imagen actual, dibujar encima o crear una completamente nueva."
-                    : "Accede a un editor de dibujo completo con herramientas profesionales, más espacio de trabajo y mejor experiencia de usuario."
+                    ? "Modifica la imagen actual, dibuja encima o crea una completamente nueva con herramientas profesionales."
+                    : "Accede a un editor de dibujo completo con pinceles, capas, y herramientas avanzadas para crear tu obra maestra."
                   }
                 </p>
                 <button
@@ -274,9 +363,10 @@ export default function MuralImageStep({ value, onChange, muralData = {}, editMo
                       router.push("/mis-obras/crear/canvas");
                     }
                   }}
-                  className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                  className="flex items-center gap-3 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 shadow-lg"
                   style={{ cursor: "pointer" }}
                 >
+                  <ImageIcon size={20} />
                   {previewUrl ? "Editar en canvas" : "Abrir editor de dibujo"}
                 </button>
             </div>
