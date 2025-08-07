@@ -198,6 +198,7 @@ export default function CrearMuralStepper({
   const [successMessage, setSuccessMessage] = useState(null);
   const [generatingModel, setGeneratingModel] = useState(false);
   const [modelGenerationStep, setModelGenerationStep] = useState("");
+  const [showCanvasReturnMessage, setShowCanvasReturnMessage] = useState(false);
 
   React.useEffect(() => {
     if (mural.anio === undefined) {
@@ -260,6 +261,32 @@ export default function CrearMuralStepper({
   // Handlers
   const handleNext = () => {
     if (validateStep()) {
+      // Guardar datos antes de avanzar
+      const hasSignificantData =
+        mural.titulo ||
+        mural.descripcion ||
+        mural.tecnica ||
+        mural.anio !== new Date().getFullYear() ||
+        mural.dimensiones ||
+        mural.ubicacion ||
+        (mural.tags && mural.tags.length > 0);
+
+      if (hasSignificantData && session?.user?.id) {
+        const muralWithoutImage = {
+          ...mural,
+          url_imagen: null, // No guardar la imagen en localStorage
+        };
+        
+        console.log("➡️ Guardando datos antes de avanzar:", {
+          step: step + 1,
+          titulo: mural.titulo,
+          tecnica: mural.tecnica,
+        });
+
+        safeLSSet("muralDraftData", muralWithoutImage);
+        safeLSSet("muralStep", (step + 1).toString());
+      }
+
       setStep((s) => s + 1);
     }
   };
@@ -281,10 +308,9 @@ export default function CrearMuralStepper({
         console.log("📋 Datos parseados desde localStorage:", parsed);
 
         setMural((prev) => {
-          console.log("� Estado previo del mural:", prev);
+          console.log("📝 Estado previo del mural:", prev);
 
-          // Siempre usar los datos de localStorage cuando están disponibles
-          // para evitar que se pierdan al regresar del canvas
+          // Combinar datos de localStorage con estado actual, dando prioridad a localStorage
           const newMural = {
             // Base por defecto
             titulo: "",
@@ -313,9 +339,11 @@ export default function CrearMuralStepper({
             colaboradores: [],
             tagsInput: "",
             userId: session?.user?.id || "",
-            // Sobrescribir con datos guardados
+            // Combinar con estado previo (mantener datos existentes)
+            ...prev,
+            // Sobrescribir con datos guardados de localStorage (prioridad máxima)
             ...parsed,
-            // Asegurar que userId siempre esté actualizado
+            // Asegurar que userId siempre esté actualizado con la sesión actual
             userId: session?.user?.id || parsed.userId || prev.userId,
           };
 
@@ -345,6 +373,27 @@ export default function CrearMuralStepper({
       setMural((prev) => ({ ...prev, userId: session.user.id }));
     }
   }, [session, mural.userId]);
+
+  // Detectar si el usuario regresa del canvas y mostrar mensaje
+  useEffect(() => {
+    const fromStepper = localStorage.getItem("fromStepper");
+    const stepperReturnStep = localStorage.getItem("stepperReturnStep");
+    
+    if (fromStepper === "true" && stepperReturnStep) {
+      // El usuario regresó del canvas
+      setShowCanvasReturnMessage(true);
+      setStep(parseInt(stepperReturnStep));
+      
+      // Limpiar los indicadores
+      localStorage.removeItem("fromStepper");
+      localStorage.removeItem("stepperReturnStep");
+      
+      // Auto-ocultar el mensaje después de 5 segundos
+      setTimeout(() => {
+        setShowCanvasReturnMessage(false);
+      }, 5000);
+    }
+  }, []);
 
   // Auto-guardar los datos del mural cada vez que cambien (excepto si estamos cargando)
   useEffect(() => {
@@ -426,27 +475,46 @@ export default function CrearMuralStepper({
       compressImage(savedCanvasImage)
         .then((compressedImage) => {
           console.log("✅ Imagen comprimida, actualizando estado");
-          setMural((m) => {
-            // Siempre usar localStorage como base y solo completar campos faltantes
+          setMural((currentMural) => {
+            // Usar datos actuales del mural como base principal y completar con localStorage
             const updatedMural = {
-              ...existingData, // localStorage como base SIEMPRE
-              url_imagen: compressedImage, // Nueva imagen del canvas
-              // Completar campos que puedan faltar en localStorage con valores por defecto
-              userId: m.userId || existingData.userId || session?.user?.id,
-              // Asegurar que los arrays existen
-              colaboradores: existingData.colaboradores || [],
-              tags: existingData.tags || [],
+              // Estado actual del mural como base principal
+              ...currentMural,
+              // Completar con datos de localStorage si existen
+              ...existingData,
+              // Agregar la nueva imagen del canvas
+              url_imagen: compressedImage,
+              // Asegurar que campos críticos del estado actual se mantengan
+              userId: currentMural.userId || existingData.userId || session?.user?.id,
+              // Preservar datos del formulario actual si existen
+              titulo: currentMural.titulo || existingData.titulo || "",
+              tecnica: currentMural.tecnica || existingData.tecnica || "",
+              descripcion: currentMural.descripcion || existingData.descripcion || "",
+              anio: currentMural.anio || existingData.anio || new Date().getFullYear(),
+              // Asegurar que los arrays existen y se preservan
+              colaboradores: currentMural.colaboradores || existingData.colaboradores || [],
+              tags: currentMural.tags || existingData.tags || [],
               // Valores por defecto para campos booleanos
               publica:
-                existingData.publica !== undefined
+                currentMural.publica !== undefined
+                  ? currentMural.publica
+                  : existingData.publica !== undefined
                   ? existingData.publica
                   : true,
               destacada:
-                existingData.destacada !== undefined
+                currentMural.destacada !== undefined
+                  ? currentMural.destacada
+                  : existingData.destacada !== undefined
                   ? existingData.destacada
                   : false,
-              orden: existingData.orden !== undefined ? existingData.orden : 0,
+              orden: 
+                currentMural.orden !== undefined 
+                  ? currentMural.orden 
+                  : existingData.orden !== undefined 
+                  ? existingData.orden 
+                  : 0,
             };
+            
             console.log("🎨 Mural actualizado con imagen:", {
               titulo: updatedMural.titulo,
               tecnica: updatedMural.tecnica,
@@ -461,10 +529,9 @@ export default function CrearMuralStepper({
                 ...updatedMural,
                 url_imagen: null, // No guardar la imagen en localStorage
               };
-              localStorage.setItem(
-                "muralDraftData",
-                JSON.stringify(muralWithoutImage)
-              );
+              if (safeLSSet("muralDraftData", muralWithoutImage)) {
+                safeLSSet("muralStep", step.toString());
+              }
               console.log("💾 Guardado inmediato después de cargar imagen:", {
                 titulo: muralWithoutImage.titulo,
                 tecnica: muralWithoutImage.tecnica,
@@ -492,13 +559,13 @@ export default function CrearMuralStepper({
 
   // Guardar estado del mural (sin imagen) y paso actual en localStorage
   useEffect(() => {
-    if (!isCreating) {
-      // Solo guardar si hay datos significativos o si es un cambio real
+    if (!isCreating && session?.user?.id) {
+      // Solo guardar si hay datos significativos
       const hasSignificantData =
         mural.titulo ||
         mural.descripcion ||
         mural.tecnica ||
-        mural.anio !== 2025 || // Si no es el año por defecto
+        mural.anio !== new Date().getFullYear() || // Si no es el año por defecto
         mural.dimensiones ||
         mural.latitud ||
         mural.longitud ||
@@ -507,61 +574,29 @@ export default function CrearMuralStepper({
         mural.estado ||
         mural.autor ||
         mural.artistId ||
-        (mural.colaboradores && mural.colaboradores.length > 0);
+        (mural.colaboradores && mural.colaboradores.length > 0) ||
+        (mural.tags && mural.tags.length > 0);
 
-      // Verificar si ya hay datos guardados para evitar sobrescribir con datos vacíos
-      const existingData = localStorage.getItem("muralDraftData");
-      let existingMural = {};
-      if (existingData) {
-        try {
-          existingMural = JSON.parse(existingData);
-        } catch (error) {
-          console.error("❌ Error parsing existing mural data:", error);
-        }
-      }
+      // Siempre guardar si hay datos significativos, sin restricciones por step
+      if (hasSignificantData) {
+        // Crear una copia del mural sin la imagen para no exceder el límite de localStorage
+        const muralWithoutImage = {
+          ...mural,
+          url_imagen: null, // No guardar la imagen en localStorage para evitar exceder límites
+        };
 
-      // Evitar sobrescribir datos existentes con datos vacíos
-      const isOverwritingWithEmptyData =
-        !hasSignificantData &&
-        (existingMural.titulo ||
-          existingMural.tecnica ||
-          existingMural.descripcion) &&
-        !mural.titulo &&
-        !mural.tecnica &&
-        step === 0;
-
-      if (isOverwritingWithEmptyData) {
-        console.log(
-          "🚫 Evitando sobrescribir datos existentes con datos vacíos:",
-          {
-            existingTitle: existingMural.titulo,
-            existingTecnica: existingMural.tecnica,
-            currentTitle: mural.titulo,
-            currentTecnica: mural.tecnica,
-          }
-        );
-        return;
-      }
-
-      // Crear una copia del mural sin la imagen para no exceder el límite de localStorage
-      const muralWithoutImage = {
-        ...mural,
-        url_imagen: null, // No guardar la imagen en localStorage
-      };
-
-      // Solo guardar si hay datos significativos o si es un paso avanzado
-      if (hasSignificantData || step > 0) {
         console.log("💾 Guardando estado en localStorage:", {
           hasSignificantData,
           step,
           titulo: mural.titulo,
           tecnica: mural.tecnica,
+          anio: mural.anio,
         });
-        localStorage.setItem(
-          "muralDraftData",
-          JSON.stringify(muralWithoutImage)
-        );
-        localStorage.setItem("muralStep", step.toString());
+
+        // Usar la función segura para guardar
+        if (safeLSSet("muralDraftData", muralWithoutImage)) {
+          safeLSSet("muralStep", step.toString());
+        }
       }
     }
   }, [
@@ -584,6 +619,7 @@ export default function CrearMuralStepper({
     mural.colaboradores,
     step,
     isCreating,
+    session?.user?.id,
   ]);
 
   // Función para generar modelo 3D con fallbacks
@@ -968,7 +1004,35 @@ export default function CrearMuralStepper({
     }
   };
 
-  const handleBack = () => setStep((s) => s - 1);
+  const handleBack = () => {
+    // Guardar datos antes de retroceder para asegurar que no se pierdan
+    const hasSignificantData =
+      mural.titulo ||
+      mural.descripcion ||
+      mural.tecnica ||
+      mural.anio !== new Date().getFullYear() ||
+      mural.dimensiones ||
+      mural.ubicacion ||
+      (mural.tags && mural.tags.length > 0);
+
+    if (hasSignificantData && session?.user?.id) {
+      const muralWithoutImage = {
+        ...mural,
+        url_imagen: null, // No guardar la imagen en localStorage
+      };
+      
+      console.log("🔙 Guardando datos antes de retroceder:", {
+        step: step - 1,
+        titulo: mural.titulo,
+        tecnica: mural.tecnica,
+      });
+
+      safeLSSet("muralDraftData", muralWithoutImage);
+      safeLSSet("muralStep", (step - 1).toString());
+    }
+
+    setStep((s) => s - 1);
+  };
 
   const handleClearDraft = () => {
     // Limpiar todo el localStorage relacionado con murales
@@ -1123,6 +1187,30 @@ export default function CrearMuralStepper({
             </p>
           )}
         </div>
+
+        {/* Mensaje de regreso del canvas */}
+        {showCanvasReturnMessage && (
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-3">
+              <CheckCircle className="text-green-500 h-5 w-5 flex-shrink-0" />
+              <div className="flex-1">
+                <h3 className="text-green-800 dark:text-green-200 font-semibold text-sm">
+                  ¡Bienvenido de vuelta del editor! 🎨
+                </h3>
+                <p className="text-green-700 dark:text-green-300 text-sm mt-1">
+                  Tu imagen se ha guardado correctamente. Puedes continuar completando los demás pasos de tu obra.
+                </p>
+              </div>
+              <button
+                onClick={() => setShowCanvasReturnMessage(false)}
+                className="text-green-500 hover:text-green-700 p-1 rounded"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Geolocalización automática para el paso de ubicación */}
         {step === 2 && <GeolocateIfNeeded mural={mural} setMural={setMural} />}
         {step === 0 && (

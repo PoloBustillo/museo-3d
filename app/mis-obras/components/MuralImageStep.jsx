@@ -324,6 +324,15 @@ export default function MuralImageStep({ value, onChange, muralData = {}, editMo
                     : "Accede a un editor de dibujo completo con pinceles, capas, y herramientas avanzadas para crear tu obra maestra."
                   }
                 </p>
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4 max-w-md">
+                  <div className="flex items-start gap-2 text-amber-700 dark:text-amber-300 text-sm">
+                    <span className="text-amber-500 mt-0.5">ℹ️</span>
+                    <div>
+                      <strong>Se abrirá en una nueva pantalla.</strong><br />
+                      Tus datos del formulario se guardarán automáticamente y podrás continuar aquí cuando termines de dibujar.
+                    </div>
+                  </div>
+                </div>
                 <button
                   onClick={() => {
                     // Guardar TODOS los datos actuales en localStorage antes de navegar
@@ -355,6 +364,10 @@ export default function MuralImageStep({ value, onChange, muralData = {}, editMo
                       "muralDraftData",
                       JSON.stringify(currentData)
                     );
+                    
+                    // Guardar también que venimos del stepper
+                    localStorage.setItem("fromStepper", "true");
+                    localStorage.setItem("stepperReturnStep", "1"); // Regresar al paso de imágenes
 
                     // Navegar a la página del canvas según el modo
                     if (editMode && obraId) {
@@ -367,7 +380,8 @@ export default function MuralImageStep({ value, onChange, muralData = {}, editMo
                   style={{ cursor: "pointer" }}
                 >
                   <ImageIcon size={20} />
-                  {previewUrl ? "Editar en canvas" : "Abrir editor de dibujo"}
+                  {previewUrl ? "🎨 Editar en canvas" : "🎨 Abrir editor de dibujo"}
+                  <span className="text-xs opacity-75 ml-1">↗</span>
                 </button>
             </div>
           </div>

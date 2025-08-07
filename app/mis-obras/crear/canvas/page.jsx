@@ -83,6 +83,10 @@ export default function CanvasPage() {
       // Guardar la imagen del canvas en localStorage
       localStorage.setItem("canvasImage", canvasImage);
 
+      // Configurar indicadores para el stepper
+      localStorage.setItem("fromStepper", "true");
+      localStorage.setItem("stepperReturnStep", "1"); // Regresar al paso de imágenes
+
       // Regresar al stepper en el paso 1 (imágenes)
       router.push("/mis-obras/crear");
     } catch (error) {
@@ -105,6 +109,10 @@ export default function CanvasPage() {
       if (canvasImage) {
         localStorage.setItem("canvasImage", canvasImage);
       }
+
+      // Configurar indicadores para el stepper
+      localStorage.setItem("fromStepper", "true");
+      localStorage.setItem("stepperReturnStep", "1"); // Regresar al paso de imágenes
 
       router.push("/mis-obras/crear");
     } catch (error) {
@@ -217,8 +225,8 @@ export default function CanvasPage() {
                 <Save className="h-4 w-4" />
                 {canvasImage ? (
                   <>
-                    <span className="hidden sm:inline">Continuar</span>
-                    <span className="sm:hidden">→</span>
+                    <span className="hidden sm:inline">Continuar con el formulario</span>
+                    <span className="sm:hidden">→ Formulario</span>
                   </>
                 ) : (
                   <>

@@ -97,6 +97,10 @@ export default function EditarCanvasPage() {
       // Guardar la imagen del canvas en localStorage
       localStorage.setItem("canvasImage", canvasImage);
 
+      // Configurar indicadores para el stepper
+      localStorage.setItem("fromStepper", "true");
+      localStorage.setItem("stepperReturnStep", "1"); // Regresar al paso de imágenes
+
       // Regresar al stepper de edición
       router.push(`/mis-obras/editar/${id}`);
     } catch (error) {
@@ -110,6 +114,10 @@ export default function EditarCanvasPage() {
     e?.stopPropagation();
     
     try {
+      // Configurar indicadores para el stepper
+      localStorage.setItem("fromStepper", "true");
+      localStorage.setItem("stepperReturnStep", "1"); // Regresar al paso de imágenes
+
       router.push(`/mis-obras/editar/${id}`);
     } catch (error) {
       console.error("❌ Error en handleBack:", error);
@@ -215,7 +223,7 @@ export default function EditarCanvasPage() {
                 }}
               >
                 <Save className="h-4 w-4" />
-                {canvasImage ? "Continuar" : "Guardar dibujo primero"}
+                {canvasImage ? "Continuar con el formulario" : "Guardar dibujo primero"}
               </button>
             </div>
           </div>
