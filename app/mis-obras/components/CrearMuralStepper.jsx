@@ -112,6 +112,52 @@ export default function CrearMuralStepper({
     });
   };
 
+  // Función de utilidad para manejar localStorage de forma segura
+  const safeLSSet = (key, value) => {
+    try {
+      const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+      
+      // Verificar tamaño (límite de ~5MB para estar seguros)
+      if (stringValue.length > 5 * 1024 * 1024) {
+        console.warn(`⚠️ Valor muy grande para localStorage (${key}):`, stringValue.length, 'caracteres');
+        return false;
+      }
+      
+      localStorage.setItem(key, stringValue);
+      return true;
+    } catch (error) {
+      console.error(`❌ Error guardando en localStorage (${key}):`, error);
+      
+      // Si es error de cuota, limpiar localStorage
+      if (error.name === 'QuotaExceededError') {
+        console.warn('🧹 Limpiando localStorage por cuota excedida...');
+        try {
+          // Limpiar elementos relacionados con imágenes grandes
+          localStorage.removeItem('canvasImage');
+          const draftData = localStorage.getItem('muralDraftData');
+          if (draftData) {
+            try {
+              const parsed = JSON.parse(draftData);
+              const cleaned = {
+                ...parsed,
+                url_imagen: null,
+                imagenesSecundarias: [],
+                imagenUrlWebp: null
+              };
+              localStorage.setItem('muralDraftData', JSON.stringify(cleaned));
+            } catch (parseError) {
+              localStorage.removeItem('muralDraftData');
+            }
+          }
+        } catch (cleanError) {
+          console.error('❌ Error limpiando localStorage:', cleanError);
+        }
+      }
+      
+      return false;
+    }
+  };
+
   // Estado global del mural
   const [mural, setMural] = useState({
     titulo: "",
@@ -305,8 +351,19 @@ export default function CrearMuralStepper({
       (mural.anio && mural.anio !== new Date().getFullYear());
 
     if (hasSignificantData && session?.user?.id) {
-      localStorage.setItem("muralDraftData", JSON.stringify(mural));
-      localStorage.setItem("muralStep", step.toString());
+      // Crear una copia del mural sin las imágenes pesadas para localStorage
+      const muralToSave = {
+        ...mural,
+        // Excluir campos que pueden ser muy grandes
+        url_imagen: mural.url_imagen && mural.url_imagen.startsWith('data:') ? null : mural.url_imagen,
+        imagenesSecundarias: mural.imagenesSecundarias?.filter(img => !img.startsWith('data:')) || [],
+        imagenUrlWebp: mural.imagenUrlWebp && mural.imagenUrlWebp.startsWith('data:') ? null : mural.imagenUrlWebp,
+      };
+      
+      // Usar la función segura para guardar
+      if (safeLSSet("muralDraftData", muralToSave)) {
+        safeLSSet("muralStep", step.toString());
+      }
     }
   }, [mural, step, session?.user?.id]);
 
@@ -900,9 +957,28 @@ export default function CrearMuralStepper({
   const handleBack = () => setStep((s) => s - 1);
 
   const handleClearDraft = () => {
-    localStorage.removeItem("muralDraftData");
-    localStorage.removeItem("muralStep");
-    localStorage.removeItem("canvasImage");
+    // Limpiar todo el localStorage relacionado con murales
+    try {
+      localStorage.removeItem("muralDraftData");
+      localStorage.removeItem("muralStep");
+      localStorage.removeItem("canvasImage");
+      
+      // Limpiar cualquier otro elemento que pueda contener imágenes
+      Object.keys(localStorage).forEach(key => {
+        if (key.includes('mural') || key.includes('canvas') || key.includes('image')) {
+          try {
+            localStorage.removeItem(key);
+          } catch (err) {
+            console.warn(`No se pudo limpiar ${key}:`, err);
+          }
+        }
+      });
+      
+      console.log("🧹 Draft limpiado completamente");
+    } catch (error) {
+      console.error("❌ Error limpiando draft:", error);
+    }
+    
     setSuccessMessage(null);
     setApiError(null);
     setMural({

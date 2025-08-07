@@ -531,7 +531,7 @@ export default function MainMenu({ onSubirArchivo }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40 flex items-start justify-start min-h-screen md:hidden bg-black/50 backdrop-blur-sm pt-[88px] px-4"
+            className="fixed inset-0 z-40 flex items-start justify-center min-h-screen md:hidden bg-black/50 backdrop-blur-sm pt-[88px] px-4"
             aria-hidden="true"
             onClick={(e) => {
               if (e.target === e.currentTarget) setMobileMenuOpen(false);
@@ -542,7 +542,7 @@ export default function MainMenu({ onSubirArchivo }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.2 }}
-              className="w-full max-w-xs rounded-xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 shadow-2xl p-2 z-50 mt-2 ml-4"
+              className="w-full max-w-xs rounded-xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border border-gray-200 dark:border-gray-700 shadow-2xl p-2 z-50 mt-2"
               data-mobile-menu
               onClick={(e) => e.stopPropagation()}
             >
