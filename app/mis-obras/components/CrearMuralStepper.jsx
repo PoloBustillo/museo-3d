@@ -8,7 +8,7 @@ import {
   AlertCircle,
   Info,
   User,
-  MapPin,
+  Navigation,
   Eye,
   Users,
   Image as ImageIcon,
@@ -38,6 +38,64 @@ import {
 import { uploadModelToCloudinary } from "../../../utils/uploadToCloudinary";
 import { validateGLB, diagnoseModel } from "../../../utils/validateGLB";
 
+// Estilos CSS para el mapa
+const mapStyles = `
+  .leaflet-location-icon {
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+    transition: all 0.2s ease;
+  }
+  
+  .leaflet-location-icon:hover {
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
+    transform: scale(1.1);
+  }
+  
+  .leaflet-container {
+    font-family: inherit;
+  }
+  
+  .leaflet-control-zoom {
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+  
+  .leaflet-control-zoom a {
+    border: none !important;
+    background: white !important;
+    color: #374151 !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease !important;
+  }
+  
+  .leaflet-control-zoom a:hover {
+    background: #f3f4f6 !important;
+    color: #1f2937 !important;
+    transform: scale(1.05);
+  }
+  
+  .leaflet-popup-content-wrapper {
+    border-radius: 8px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+  }
+  
+  .dark .leaflet-control-zoom a {
+    background: #374151 !important;
+    color: #f9fafb !important;
+  }
+  
+  .dark .leaflet-control-zoom a:hover {
+    background: #4b5563 !important;
+    color: white !important;
+  }
+`;
+
+// Inyectar estilos
+if (typeof window !== 'undefined') {
+  const styleElement = document.createElement('style');
+  styleElement.textContent = mapStyles;
+  document.head.appendChild(styleElement);
+}
+
 export default function CrearMuralStepper({
   initialData = null,
   editMode = false,
@@ -64,7 +122,7 @@ export default function CrearMuralStepper({
     {
       label: "Ubicación y sala",
       subtitle: "Dónde está el mural",
-      icon: <MapPin />,
+      icon: <Navigation />,
     },
     { label: "Estado", subtitle: "Visibilidad y orden", icon: <Eye /> },
     { label: "Autores", subtitle: "Artistas y colaboradores", icon: <Users /> },
@@ -1658,13 +1716,27 @@ function useUsuarios() {
 // Componente para seleccionar ubicación con pin draggable y confirmación
 function LocationPicker({ mural, setMural }) {
   const salas = useSalas();
-  // Utilidad para generar SVG string de un icono Lucide
-  function getLucideSvgUrl(iconName = "brush", color = "#4F46E5") {
+  
+  // Utilidad para generar SVG string de iconos Lucide mejorados
+  function getLucideSvgUrl(iconName = "map-pin", color = "#DC2626", size = 32) {
     let svg = "";
-    if (iconName === "brush") {
-      svg = `<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' fill='none' stroke='${color}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='lucide lucide-brush' viewBox='0 0 24 24'><path d='M9 7 17 15'/><path d='M12 20h9'/><path d='M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5a2.121 2.121 0 1 1-3-3Z'/></svg>`;
-    } else if (iconName === "image") {
-      svg = `<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' fill='none' stroke='${color}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='lucide lucide-image' viewBox='0 0 24 24'><rect width='18' height='18' x='3' y='3' rx='2'/><circle cx='9' cy='9' r='2'/><path d='m21 15-4.586-4.586a2 2 0 0 0-2.828 0L3 21'/></svg>`;
+    if (iconName === "map-pin") {
+      svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' fill='${color}' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' class='lucide lucide-map-pin' viewBox='0 0 24 24'>
+        <circle cx='12' cy='12' r='10' fill='${color}' stroke='white' stroke-width='2'/>
+        <path d='M9 11a3 3 0 1 0 6 0a3 3 0 0 0-6 0' fill='white'/>
+        <path d='m21 21-6-6' stroke='white' stroke-width='2'/>
+      </svg>`;
+    } else if (iconName === "navigation") {
+      svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' fill='${color}' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='lucide lucide-navigation' viewBox='0 0 24 24'>
+        <circle cx='12' cy='12' r='10' fill='${color}' stroke='white' stroke-width='2'/>
+        <polygon points='3,11 22,2 13,21 11,13 3,11' fill='white'/>
+      </svg>`;
+    } else if (iconName === "map-marker") {
+      svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' fill='${color}' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'>
+        <circle cx='12' cy='12' r='8' fill='${color}' stroke='white' stroke-width='2'/>
+        <path d='m12 8-3 3 3 3 3-3-3-3' fill='white'/>
+        <circle cx='12' cy='12' r='2' fill='${color}'/>
+      </svg>`;
     }
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   }
@@ -1679,14 +1751,15 @@ function LocationPicker({ mural, setMural }) {
   ]);
   const [showConfirm, setShowConfirm] = useLocalState(false);
   const [loading, setLoading] = useLocalState(false);
+  const [mapKey, setMapKey] = useLocalState(0); // Para forzar re-render del mapa
 
-  // brushIcon debe estar definido aquí para que esté en scope
-  const brushIcon = new Icon({
-    iconUrl: getLucideSvgUrl("brush", "#4F46E5"),
+  // Icono personalizado para el marcador
+  const locationIcon = new Icon({
+    iconUrl: getLucideSvgUrl("navigation", "#DC2626", 36),
     iconSize: [36, 36],
     iconAnchor: [18, 36],
     popupAnchor: [0, -36],
-    className: "leaflet-brush-icon",
+    className: "leaflet-location-icon drop-shadow-lg",
   });
 
   function DraggableMarker() {
@@ -1703,11 +1776,23 @@ function LocationPicker({ mural, setMural }) {
     return (
       <Marker
         position={position}
-        icon={brushIcon}
+        icon={locationIcon}
         draggable={true}
         eventHandlers={eventHandlers}
       />
     );
+  }
+
+  // Componente para manejar clics en el mapa
+  function MapClickHandler() {
+    useMapEvents({
+      click(e) {
+        const { lat, lng } = e.latlng;
+        setTempLatLng([lat, lng]);
+        setShowConfirm(true);
+      },
+    });
+    return null;
   }
 
   // Centrar el mapa en la posición temporal
@@ -1723,33 +1808,119 @@ function LocationPicker({ mural, setMural }) {
     setLoading(false);
   };
 
+  // Función para centrar el mapa en una ubicación específica
+  const centerMapOn = (coords, zoomLevel = 16) => {
+    setTempLatLng(coords);
+    setMapKey(prev => prev + 1); // Forzar re-render
+  };
+
+  // Obtener ubicación actual del usuario
+  const getCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const coords = [position.coords.latitude, position.coords.longitude];
+          centerMapOn(coords, 17);
+        },
+        (error) => {
+          console.error("Error obteniendo ubicación:", error);
+          alert("No se pudo obtener tu ubicación actual");
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+    } else {
+      alert("Tu navegador no soporta geolocalización");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 mb-8">
-      <label className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200">
-        Selecciona la ubicación del mural en el mapa
-      </label>
-      <div className="w-full h-72 rounded-xl overflow-hidden border border-gray-300 dark:border-neutral-700 mb-2">
-        <MapContainer
-          center={mapCenter}
-          zoom={15}
-          style={{ width: "100%", height: "100%" }}
-          scrollWheelZoom={true}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-          <DraggableMarker />
-        </MapContainer>
+      <div className="flex items-center justify-between">
+        <label className="block text-base font-semibold text-gray-700 dark:text-gray-200">
+          Selecciona la ubicación del mural en el mapa
+        </label>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={getCurrentLocation}
+            className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200"
+            title="Usar mi ubicación actual"
+          >
+            <Navigation className="w-4 h-4" />
+            Mi ubicación
+          </button>
+          <button
+            type="button"
+            onClick={() => centerMapOn([19.0432, -98.1987], 15)}
+            className="flex items-center gap-2 px-3 py-2 text-sm bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors duration-200"
+            title="Centrar en BUAP"
+          >
+            <Navigation className="w-4 h-4" />
+            BUAP
+          </button>
+        </div>
+      </div>
+      
+      <div className="relative">
+        <div className="w-full h-80 rounded-xl overflow-hidden border-2 border-gray-300 dark:border-neutral-700 shadow-lg">
+          <MapContainer
+            key={mapKey}
+            center={mapCenter}
+            zoom={15}
+            style={{ width: "100%", height: "100%" }}
+            scrollWheelZoom={true}
+            doubleClickZoom={true}
+            touchZoom={true}
+            dragging={true}
+            zoomControl={true}
+            attributionControl={true}
+            minZoom={3}
+            maxZoom={19}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <DraggableMarker />
+            <MapClickHandler />
+          </MapContainer>
+        </div>
+        
+        {/* Indicadores de ayuda */}
+        <div className="absolute top-3 left-3 bg-white/90 dark:bg-neutral-800/90 backdrop-blur-sm rounded-lg p-3 shadow-md border border-gray-200 dark:border-neutral-700">
+          <p className="text-xs text-gray-600 dark:text-gray-300 flex items-center gap-2">
+            <Info className="w-3 h-3" />
+            Arrastra el marcador o haz clic en el mapa
+          </p>
+        </div>
+        
+        {/* Coordenadas actuales */}
+        <div className="absolute bottom-3 right-3 bg-white/90 dark:bg-neutral-800/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md border border-gray-200 dark:border-neutral-700">
+          <p className="text-xs text-gray-600 dark:text-gray-300 font-mono">
+            {tempLatLng[0].toFixed(6)}, {tempLatLng[1].toFixed(6)}
+          </p>
+        </div>
       </div>
       {showConfirm && (
-        <button
-          className="px-4 py-2 rounded bg-indigo-600 text-white font-semibold shadow hover:bg-indigo-700 transition w-fit mx-auto"
-          onClick={handleConfirm}
-          disabled={loading}
-        >
-          {loading ? "Confirmando..." : "Confirmar ubicación"}
-        </button>
+        <div className="flex items-center justify-center">
+          <button
+            className="flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
+            onClick={handleConfirm}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                Confirmando ubicación...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4" />
+                Confirmar ubicación
+              </>
+            )}
+          </button>
+        </div>
       )}
       {/* Inputs debajo del mapa */}
       <div>
