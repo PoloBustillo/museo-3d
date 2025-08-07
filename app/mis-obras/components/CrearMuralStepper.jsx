@@ -210,8 +210,6 @@ export default function CrearMuralStepper({
   // useEffect para cargar datos iniciales en modo edición
   React.useEffect(() => {
     if (editMode && initialData) {
-      console.log("🎨 Cargando datos para edición en stepper:", initialData);
-
       setMural({
         titulo: initialData.titulo || "",
         descripcion: initialData.descripcion || "",
@@ -277,12 +275,6 @@ export default function CrearMuralStepper({
           ...mural,
           url_imagen: null, // No guardar la imagen en localStorage
         };
-        
-        console.log("➡️ Guardando datos antes de avanzar:", {
-          step: step + 1,
-          titulo: mural.titulo,
-          tecnica: mural.tecnica,
-        });
 
         safeLSSet("muralDraftData", muralWithoutImage);
         safeLSSet("muralStep", (step + 1).toString());
@@ -296,40 +288,27 @@ export default function CrearMuralStepper({
   useEffect(() => {
     // Solo ejecutar si no estamos en modo edición y no hemos cargado ya
     if ((editMode && initialData) || localStorageLoaded.current) {
-      console.log("📝 Saltando carga desde localStorage - modo edición o ya cargado");
       return;
     }
 
     const savedData = localStorage.getItem("muralDraftData");
     const savedStep = localStorage.getItem("muralStep");
 
-    console.log("📂 Cargando datos guardados:", {
-      hasSavedData: !!savedData,
-      hasSavedStep: !!savedStep,
-      sessionUserId: session?.user?.id,
-      editMode,
-      alreadyLoaded: localStorageLoaded.current,
-    });
-
     if (savedData && session?.user?.id) {
       try {
         const parsed = JSON.parse(savedData);
-        console.log("📋 Datos parseados desde localStorage:", parsed);
 
         setMural((prev) => {
           // Solo actualizar si los datos guardados son diferentes o más completos
           const hasExistingData = prev.titulo || prev.tecnica || prev.descripcion;
           
           if (hasExistingData) {
-            console.log("📝 Ya hay datos en el estado, manteniendo estado actual");
             return {
               ...prev,
               // Solo actualizar userId si no está establecido
               userId: prev.userId || session.user.id,
             };
           }
-
-          console.log("📝 Cargando datos desde localStorage al estado vacío");
           
           // Combinar datos de localStorage con estado actual, dando prioridad a localStorage
           const newMural = {
@@ -368,13 +347,6 @@ export default function CrearMuralStepper({
             userId: session?.user?.id || parsed.userId || prev.userId,
           };
 
-          console.log("✅ Nuevo estado del mural desde localStorage:", {
-            titulo: newMural.titulo,
-            tecnica: newMural.tecnica,
-            anio: newMural.anio,
-            userId: newMural.userId,
-          });
-
           return newMural;
         });
         
@@ -387,7 +359,6 @@ export default function CrearMuralStepper({
 
     if (savedStep && session?.user?.id) {
       const stepNumber = parseInt(savedStep);
-      console.log("📍 Cargando step guardado:", stepNumber);
       setStep(stepNumber);
     }
   }, [session?.user?.id, editMode, initialData]); // Añadir editMode e initialData como dependencias
@@ -406,7 +377,6 @@ export default function CrearMuralStepper({
     
     if (fromStepper === "true" && stepperReturnStep) {
       // El usuario regresó del canvas
-      console.log("🎨 Usuario regresó del canvas, mostrando mensaje de bienvenida");
       setShowCanvasReturnMessage(true);
       setStep(parseInt(stepperReturnStep));
       
@@ -472,26 +442,14 @@ export default function CrearMuralStepper({
   // Verificar si hay imagen del canvas al cargar el componente
   useEffect(() => {
     const savedCanvasImage = localStorage.getItem("canvasImage");
-    console.log("🔍 Verificando imagen del canvas:", {
-      hasImage: !!savedCanvasImage,
-      canvasImageLoaded: canvasImageLoaded.current,
-      currentStep: step,
-      hasMuralData: !!mural.titulo, // Verificar si ya hay datos del mural
-    });
 
     if (savedCanvasImage && !canvasImageLoaded.current) {
-      console.log("📸 Cargando imagen del canvas...");
-
       // Verificar si ya tenemos datos del mural antes de cargar la imagen
       const currentMuralData = localStorage.getItem("muralDraftData");
       let existingData = {};
       if (currentMuralData) {
         try {
           existingData = JSON.parse(currentMuralData);
-          console.log("📋 Datos existentes antes de cargar imagen:", {
-            titulo: existingData.titulo,
-            tecnica: existingData.tecnica,
-          });
         } catch (error) {
           console.error("❌ Error parsing existing data:", error);
         }
@@ -500,7 +458,6 @@ export default function CrearMuralStepper({
       // Comprimir la imagen si es muy grande
       compressImage(savedCanvasImage)
         .then((compressedImage) => {
-          console.log("✅ Imagen comprimida, actualizando estado");
           setMural((currentMural) => {
             // Usar datos actuales del mural como base principal y completar con localStorage
             const updatedMural = {
@@ -540,14 +497,6 @@ export default function CrearMuralStepper({
                   ? existingData.orden 
                   : 0,
             };
-            
-            console.log("🎨 Mural actualizado con imagen:", {
-              titulo: updatedMural.titulo,
-              tecnica: updatedMural.tecnica,
-              anio: updatedMural.anio,
-              hasImage: !!updatedMural.url_imagen,
-              userId: updatedMural.userId,
-            });
 
             // Forzar un guardado inmediato para preservar los datos
             setTimeout(() => {
@@ -558,18 +507,12 @@ export default function CrearMuralStepper({
               if (safeLSSet("muralDraftData", muralWithoutImage)) {
                 safeLSSet("muralStep", step.toString());
               }
-              console.log("💾 Guardado inmediato después de cargar imagen:", {
-                titulo: muralWithoutImage.titulo,
-                tecnica: muralWithoutImage.tecnica,
-                anio: muralWithoutImage.anio,
-              });
             }, 100);
 
             return updatedMural;
           });
           // Solo cambiar al paso 1 si no estamos ya en un paso más avanzado
           if (step < 1) {
-            console.log("🔄 Cambiando al paso 1");
             setStep(1);
           }
         })
@@ -611,14 +554,6 @@ export default function CrearMuralStepper({
           url_imagen: null, // No guardar la imagen en localStorage para evitar exceder límites
         };
 
-        console.log("💾 Guardando estado en localStorage:", {
-          hasSignificantData,
-          step,
-          titulo: mural.titulo,
-          tecnica: mural.tecnica,
-          anio: mural.anio,
-        });
-
         // Usar la función segura para guardar
         if (safeLSSet("muralDraftData", muralWithoutImage)) {
           safeLSSet("muralStep", step.toString());
@@ -651,7 +586,6 @@ export default function CrearMuralStepper({
   // Función para generar modelo 3D con fallbacks
   const generateAndValidateModel = async (imageUrl, title = "mural") => {
     setGeneratingModel(true);
-    console.log("🚀 Iniciando generación de modelo 3D para:", title);
 
     let glbBlob = null;
     let generationMethod = "";
@@ -659,7 +593,6 @@ export default function CrearMuralStepper({
     try {
       // Intentar primero con la imagen real
       setModelGenerationStep("Generando modelo 3D con imagen...");
-      console.log("📸 Intentando generar modelo con imagen:", imageUrl);
       glbBlob = await generateMuralGLB(imageUrl);
       generationMethod = "imagen_real";
 
@@ -669,24 +602,13 @@ export default function CrearMuralStepper({
       if (!validation.isValid) {
         throw new Error(`Modelo inválido: ${validation.error}`);
       }
-
-      console.log("✅ Modelo generado exitosamente con imagen real");
     } catch (error) {
-      console.warn(
-        "⚠️ Error con imagen real, intentando fallback:",
-        error.message
-      );
-
       try {
         // Fallback: generar con textura programática
         setModelGenerationStep("Generando modelo alternativo...");
         const fallbackColor = "#4A90E2"; // Azul atractivo
         const fallbackText = title.substring(0, 10).toUpperCase() || "OBRA";
 
-        console.log("🎨 Generando modelo fallback con:", {
-          color: fallbackColor,
-          text: fallbackText,
-        });
         glbBlob = await generateMuralGLBFallback(fallbackColor, fallbackText);
         generationMethod = "fallback";
 
@@ -696,14 +618,7 @@ export default function CrearMuralStepper({
         if (!validation.isValid) {
           throw new Error(`Modelo fallback inválido: ${validation.error}`);
         }
-
-        console.log("✅ Modelo fallback generado exitosamente");
       } catch (fallbackError) {
-        console.error(
-          "❌ Error en fallback, intentando modelo simple:",
-          fallbackError.message
-        );
-
         // Último recurso: modelo simple
         setModelGenerationStep("Generando modelo básico...");
         const { generateSimpleGLB } = await import(
@@ -717,15 +632,12 @@ export default function CrearMuralStepper({
         if (!validation.isValid) {
           throw new Error(`Modelo simple inválido: ${validation.error}`);
         }
-
-        console.log("✅ Modelo simple generado como último recurso");
       }
     }
 
     // Diagnóstico del modelo final
     setModelGenerationStep("Analizando calidad del modelo...");
     const diagnostic = await diagnoseModel(glbBlob);
-    console.log("📊 Diagnóstico del modelo:", diagnostic);
 
     setGeneratingModel(false);
     setModelGenerationStep("");
@@ -739,15 +651,6 @@ export default function CrearMuralStepper({
 
   // Función para crear el mural
   const handleCreateMural = async () => {
-    console.log("🔍 Validando datos antes de crear mural:", {
-      titulo: mural.titulo,
-      tecnica: mural.tecnica,
-      anio: mural.anio,
-      userId: mural.userId,
-      sessionUserId: session?.user?.id,
-      hasImage: !!mural.url_imagen,
-    });
-
     if (!mural.url_imagen) {
       alert("Debes seleccionar o crear una imagen");
       return;
@@ -788,7 +691,6 @@ export default function CrearMuralStepper({
       ) {
         // Ya es una URL de imagen existente, no subir de nuevo
         url_imagen = mural.url_imagen;
-        console.log("✅ Usando imagen existente:", url_imagen);
       } else if (mural.url_imagen) {
         // Es imagen nueva que necesita ser subida
         let imgFile;
@@ -807,7 +709,6 @@ export default function CrearMuralStepper({
         const formDataImage = new FormData();
         formDataImage.append("imagen", imgFile);
 
-        console.log("📤 Subiendo imagen nueva...");
         const resImg = await fetch("/api/upload", {
           method: "POST",
           body: formDataImage,
@@ -819,11 +720,9 @@ export default function CrearMuralStepper({
 
         const dataImg = await resImg.json();
         url_imagen = dataImg.url;
-        console.log("✅ Imagen nueva subida:", url_imagen);
       } else {
         throw new Error("No hay imagen para procesar");
       }
-      console.log("✅ Imagen subida:", url_imagen);
 
       // Generar y subir modelo 3D
       let modelo3dUrl = null;
@@ -831,8 +730,6 @@ export default function CrearMuralStepper({
 
       if (url_imagen) {
         try {
-          console.log("🏗️ Iniciando proceso de generación de modelo 3D...");
-
           // Usar la función mejorada para generar el modelo
           const modelResult = await generateAndValidateModel(
             url_imagen,
@@ -847,7 +744,6 @@ export default function CrearMuralStepper({
 
           // Subir a Cloudinary
           setModelGenerationStep("Subiendo modelo a la nube...");
-          console.log("☁️ Subiendo modelo a Cloudinary...");
           modelo3dUrl = await uploadModelToCloudinary(
             modelResult.blob,
             safeFileName
@@ -858,12 +754,6 @@ export default function CrearMuralStepper({
             size: Math.round(modelResult.blob.size / 1024), // KB
             diagnostic: modelResult.diagnostic,
           };
-
-          console.log("✅ Modelo 3D procesado exitosamente:", {
-            url: modelo3dUrl,
-            method: modelResult.method,
-            size: `${modelInfo.size} KB`,
-          });
         } catch (err) {
           console.error("❌ Error completo en generación de modelo 3D:", err);
           // Continuar sin modelo 3D
@@ -872,8 +762,6 @@ export default function CrearMuralStepper({
           setGeneratingModel(false);
           setModelGenerationStep("");
         }
-      } else {
-        console.log("ℹ️ No hay imagen, saltando generación de modelo 3D");
       }
 
       // Crear FormData para el mural
@@ -927,35 +815,6 @@ export default function CrearMuralStepper({
         formData.append("colaboradores", JSON.stringify(mural.colaboradores));
       }
 
-      // Debug: mostrar qué datos se están enviando
-      console.log("📤 Enviando datos a la API:", {
-        titulo: mural.titulo,
-        tecnica: mural.tecnica,
-        anio: mural.anio,
-        descripcion: mural.descripcion,
-        autor: mural.autor,
-        artistId:
-          mural.artistId && mural.artistId.trim() !== ""
-            ? mural.artistId
-            : "No enviado",
-        userId: mural.userId || session?.user?.id,
-        url_imagen: url_imagen,
-        modelo3dUrl: modelo3dUrl || "No generado",
-        dimensiones: mural.dimensiones || "No especificadas",
-        latitud: mural.latitud || "No especificada",
-        longitud: mural.longitud || "No especificada",
-        ubicacion: mural.ubicacion || "No especificada",
-        salaId: mural.salaId || "No especificada",
-        estado: mural.estado || "No especificado",
-        publica: mural.publica,
-        destacada: mural.destacada,
-        orden: mural.orden,
-        tags: mural.tags || [],
-        colaboradores: mural.colaboradores || [],
-        artistListLength: artistList.length,
-        availableArtistIds: artistList.map((a) => a.id),
-      });
-
       // Enviar a la API
       const apiUrl = editMode
         ? `/api/murales/${initialData.id}`
@@ -969,12 +828,6 @@ export default function CrearMuralStepper({
 
       if (response.ok) {
         const result = await response.json();
-        console.log(
-          editMode
-            ? "✅ Obra actualizada exitosamente:"
-            : "✅ Obra creada exitosamente:",
-          result
-        );
 
         // Mostrar mensaje de éxito
         setSuccessMessage(
@@ -1046,18 +899,11 @@ export default function CrearMuralStepper({
         ...mural,
         url_imagen: null, // No guardar la imagen en localStorage
       };
-      
-      console.log("🔙 Guardando datos antes de retroceder:", {
-        step: step - 1,
-        titulo: mural.titulo,
-        tecnica: mural.tecnica,
-      });
 
       safeLSSet("muralDraftData", muralWithoutImage);
       safeLSSet("muralStep", (step - 1).toString());
     } else {
       // Si no hay datos significativos, solo actualizar el step en localStorage
-      console.log("🔙 Retrocediendo sin datos significativos, solo actualizando step");
       safeLSSet("muralStep", (step - 1).toString());
     }
 
@@ -1085,8 +931,6 @@ export default function CrearMuralStepper({
           }
         }
       });
-
-      console.log("🧹 Draft limpiado completamente");
     } catch (error) {
       console.error("❌ Error limpiando draft:", error);
     }
