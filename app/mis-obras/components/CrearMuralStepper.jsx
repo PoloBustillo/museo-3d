@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Stepper from "@/components/ui/Stepper";
@@ -13,6 +13,14 @@ import {
   Users,
   Image as ImageIcon,
   Trash2,
+  Globe,
+  EyeOff,
+  Star,
+  Archive,
+  RefreshCw,
+  ArrowUp,
+  ArrowDown,
+  HelpCircle,
 } from "lucide-react";
 import MuralImageStep from "./MuralImageStep";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -22,7 +30,6 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
-import React from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -87,6 +94,28 @@ const mapStyles = `
     background: #4b5563 !important;
     color: white !important;
   }
+  
+  /* Prevenir scroll automático durante actualizaciones de estado */
+  .form-updating {
+    scroll-behavior: auto !important;
+    overflow-anchor: none !important;
+  }
+  
+  .form-updating * {
+    scroll-behavior: auto !important;
+    overflow-anchor: none !important;
+  }
+  
+  /* Estabilizar el contenedor del formulario */
+  .form-container {
+    scroll-behavior: smooth;
+    overflow-anchor: auto;
+  }
+  
+  .form-container.updating {
+    scroll-behavior: auto !important;
+    overflow-anchor: none !important;
+  }
 `;
 
 // Inyectar estilos
@@ -124,7 +153,7 @@ export default function CrearMuralStepper({
       subtitle: "Dónde está el mural",
       icon: <Navigation />,
     },
-    { label: "Estado", subtitle: "Visibilidad y orden", icon: <Eye /> },
+    { label: "Estado", subtitle: "Visibilidad y configuración", icon: <Eye /> },
     { label: "Autores", subtitle: "Artistas y colaboradores", icon: <Users /> },
     {
       label: "Confirmar",
@@ -134,6 +163,9 @@ export default function CrearMuralStepper({
   ];
   const canvasImageLoaded = useRef(false);
   const localStorageLoaded = useRef(false);
+  const formContainerRef = useRef(null);
+  const isUpdatingState = useRef(false);
+  const savedScrollPosition = useRef(0);
 
   // Función para comprimir imagen si es muy grande
   const compressImage = (dataUrl, maxSize = 800) => {
@@ -258,6 +290,70 @@ export default function CrearMuralStepper({
   const [generatingModel, setGeneratingModel] = useState(false);
   const [modelGenerationStep, setModelGenerationStep] = useState("");
   const [showCanvasReturnMessage, setShowCanvasReturnMessage] = useState(false);
+
+  // Funciones optimizadas para manejar cambios de estado (evitan scroll automático)
+  const updateMural = useCallback((updater) => {
+    // Capturar elementos activos antes del cambio
+    const activeElement = document.activeElement;
+    const formContainer = formContainerRef.current;
+    
+    // Marcar que estamos actualizando y guardar posición
+    isUpdatingState.current = true;
+    
+    if (formContainer) {
+      savedScrollPosition.current = formContainer.scrollTop;
+      
+      // Aplicar estilos CSS temporales más agresivos
+      formContainer.style.overflowAnchor = 'none';
+      formContainer.style.scrollBehavior = 'auto';
+      formContainer.style.overflow = 'hidden';
+      formContainer.style.pointerEvents = 'none';
+      
+      // Prevenir que cualquier elemento cause scroll
+      const allScrollableElements = formContainer.querySelectorAll('*');
+      allScrollableElements.forEach(el => {
+        if (el.scrollIntoView) {
+          const originalScrollIntoView = el.scrollIntoView;
+          el.scrollIntoView = () => {}; // Deshabilitar temporalmente
+          
+          // Restaurar después del update
+          setTimeout(() => {
+            el.scrollIntoView = originalScrollIntoView;
+          }, 100);
+        }
+      });
+    }
+    
+    // Actualizar estado
+    setMural(prev => {
+      const newState = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
+      
+      // Programar restauración inmediata
+      Promise.resolve().then(() => {
+        setTimeout(() => {
+          if (formContainer && savedScrollPosition.current !== undefined) {
+            formContainer.style.overflow = '';
+            formContainer.style.pointerEvents = '';
+            formContainer.scrollTop = savedScrollPosition.current;
+            formContainer.style.overflowAnchor = '';
+            formContainer.style.scrollBehavior = '';
+            
+            // Restaurar foco si era necesario
+            if (activeElement && document.contains(activeElement)) {
+              try {
+                activeElement.focus({ preventScroll: true });
+              } catch (e) {
+                // Ignorar errores de foco
+              }
+            }
+          }
+          isUpdatingState.current = false;
+        }, 0);
+      });
+      
+      return newState;
+    });
+  }, []);
 
   React.useEffect(() => {
     if (mural.anio === undefined) {
@@ -424,9 +520,10 @@ export default function CrearMuralStepper({
   // Establecer userId cuando la sesión esté disponible (solo si no está ya establecido)
   useEffect(() => {
     if (session?.user?.id && !mural.userId) {
-      setMural((prev) => ({ ...prev, userId: session.user.id }));
+      // Usar updateMural para evitar scroll automático
+      updateMural(prev => ({ ...prev, userId: session.user.id }));
     }
-  }, [session, mural.userId]);
+  }, [session?.user?.id, mural.userId, updateMural]);
 
   // Detectar si el usuario regresa del canvas y mostrar mensaje
   useEffect(() => {
@@ -451,6 +548,11 @@ export default function CrearMuralStepper({
 
   // Auto-guardar los datos del mural cada vez que cambien (excepto si estamos cargando)
   useEffect(() => {
+    // Evitar guardar durante actualizaciones de estado que causan scroll
+    if (isUpdatingState.current) {
+      return;
+    }
+
     // Solo guardar si tenemos datos significativos y la sesión está lista
     const hasSignificantData =
       mural.titulo ||
@@ -459,28 +561,33 @@ export default function CrearMuralStepper({
       (mural.anio && mural.anio !== new Date().getFullYear());
 
     if (hasSignificantData && session?.user?.id) {
-      // Crear una copia del mural sin las imágenes pesadas para localStorage
-      const muralToSave = {
-        ...mural,
-        // Excluir campos que pueden ser muy grandes
-        url_imagen:
-          mural.url_imagen && mural.url_imagen.startsWith("data:")
-            ? null
-            : mural.url_imagen,
-        imagenesSecundarias:
-          mural.imagenesSecundarias?.filter(
-            (img) => !img.startsWith("data:")
-          ) || [],
-        imagenUrlWebp:
-          mural.imagenUrlWebp && mural.imagenUrlWebp.startsWith("data:")
-            ? null
-            : mural.imagenUrlWebp,
-      };
+      // Usar un timeout para debounce y evitar guardados excesivos
+      const saveTimeout = setTimeout(() => {
+        // Crear una copia del mural sin las imágenes pesadas para localStorage
+        const muralToSave = {
+          ...mural,
+          // Excluir campos que pueden ser muy grandes
+          url_imagen:
+            mural.url_imagen && mural.url_imagen.startsWith("data:")
+              ? null
+              : mural.url_imagen,
+          imagenesSecundarias:
+            mural.imagenesSecundarias?.filter(
+              (img) => !img.startsWith("data:")
+            ) || [],
+          imagenUrlWebp:
+            mural.imagenUrlWebp && mural.imagenUrlWebp.startsWith("data:")
+              ? null
+              : mural.imagenUrlWebp,
+        };
 
-      // Usar la función segura para guardar
-      if (safeLSSet("muralDraftData", muralToSave)) {
-        safeLSSet("muralStep", step.toString());
-      }
+        // Usar la función segura para guardar
+        if (safeLSSet("muralDraftData", muralToSave)) {
+          safeLSSet("muralStep", step.toString());
+        }
+      }, 500); // Debounce de 500ms
+
+      return () => clearTimeout(saveTimeout);
     }
   }, [mural, step, session?.user?.id]);
 
@@ -640,6 +747,87 @@ export default function CrearMuralStepper({
     isCreating,
     session?.user?.id,
   ]);
+
+  // Prevenir scroll automático durante actualizaciones de estado
+  useEffect(() => {
+    let observer;
+    let scrollTimeout;
+    
+    if (formContainerRef.current) {
+      const container = formContainerRef.current;
+      
+      // Función para prevenir scroll automático
+      const preventAutoScroll = (e) => {
+        if (isUpdatingState.current) {
+          e.preventDefault();
+          e.stopPropagation();
+          container.scrollTop = savedScrollPosition.current;
+          return false;
+        }
+      };
+      
+      // Listener para interceptar scrolls durante actualizaciones
+      const handleScroll = (e) => {
+        if (isUpdatingState.current && container.scrollTop !== savedScrollPosition.current) {
+          e.preventDefault();
+          e.stopPropagation();
+          container.scrollTop = savedScrollPosition.current;
+          return false;
+        }
+      };
+      
+      // Interceptor para eventos de foco que pueden causar scroll
+      const handleFocus = (e) => {
+        if (isUpdatingState.current) {
+          e.preventDefault();
+          e.stopPropagation();
+          // Quitar foco temporalmente para evitar scroll automático
+          setTimeout(() => {
+            if (e.target && typeof e.target.blur === 'function') {
+              e.target.blur();
+            }
+          }, 0);
+          return false;
+        }
+      };
+      
+      // Observer para detectar cambios en el DOM
+      observer = new MutationObserver(() => {
+        if (isUpdatingState.current) {
+          clearTimeout(scrollTimeout);
+          scrollTimeout = setTimeout(() => {
+            if (container && savedScrollPosition.current !== undefined) {
+              container.scrollTop = savedScrollPosition.current;
+            }
+          }, 0);
+        }
+      });
+      
+      observer.observe(container, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style', 'value']
+      });
+      
+      // Agregar listeners con capture para interceptar temprano
+      container.addEventListener('scroll', handleScroll, { passive: false, capture: true });
+      container.addEventListener('wheel', preventAutoScroll, { passive: false, capture: true });
+      container.addEventListener('touchmove', preventAutoScroll, { passive: false, capture: true });
+      container.addEventListener('focusin', handleFocus, { passive: false, capture: true });
+      container.addEventListener('focusout', handleFocus, { passive: false, capture: true });
+      
+      return () => {
+        observer?.disconnect();
+        clearTimeout(scrollTimeout);
+        container.removeEventListener('scroll', handleScroll, { capture: true });
+        container.removeEventListener('wheel', preventAutoScroll, { capture: true });
+        container.removeEventListener('touchmove', preventAutoScroll, { capture: true });
+        container.removeEventListener('focusin', handleFocus, { capture: true });
+        container.removeEventListener('focusout', handleFocus, { capture: true });
+      };
+    }
+  }, []);
 
   // Función para generar modelo 3D con fallbacks
   const generateAndValidateModel = async (imageUrl, title = "mural") => {
@@ -1027,6 +1215,93 @@ export default function CrearMuralStepper({
     setShowClearDraftModal(false);
   };
 
+  const handleEstadoChange = useCallback((estado) => {
+    updateMural(m => ({ ...m, estado }));
+  }, [updateMural]);
+
+  const handlePublicaChange = useCallback((publica) => {
+    updateMural(m => ({ ...m, publica }));
+  }, [updateMural]);
+
+  const handleDestacadaChange = useCallback((destacada) => {
+    updateMural(m => ({ ...m, destacada }));
+  }, [updateMural]);
+
+  const handleOrdenChange = useCallback((orden) => {
+    updateMural(m => ({ ...m, orden: parseInt(orden) || 0 }));
+  }, [updateMural]);
+
+  const handleOrdenIncrement = useCallback(() => {
+    updateMural(m => ({ ...m, orden: (m.orden || 0) + 1 }));
+  }, [updateMural]);
+
+  const handleOrdenDecrement = useCallback(() => {
+    updateMural(m => ({ ...m, orden: Math.max(0, (m.orden || 0) - 1) }));
+  }, [updateMural]);
+
+  // Funciones para campos básicos con prevención de scroll mejorada
+  const handleTituloChange = useCallback((e) => {
+    e.target.focus({ preventScroll: true });
+    updateMural(m => ({ ...m, titulo: e.target.value }));
+  }, [updateMural]);
+
+  const handleTecnicaChange = useCallback((e) => {
+    e.target.focus({ preventScroll: true });
+    updateMural(m => ({ ...m, tecnica: e.target.value }));
+  }, [updateMural]);
+
+  const handleAnioChange = useCallback((e) => {
+    e.target.focus({ preventScroll: true });
+    updateMural(m => ({ ...m, anio: e.target.value }));
+  }, [updateMural]);
+
+  const handleDescripcionChange = useCallback((e) => {
+    e.target.focus({ preventScroll: true });
+    updateMural(m => ({ ...m, descripcion: e.target.value }));
+  }, [updateMural]);
+
+  const handleDimensionesChange = useCallback((e) => {
+    e.target.focus({ preventScroll: true });
+    updateMural(m => ({ ...m, dimensiones: e.target.value }));
+  }, [updateMural]);
+
+  const handleTagsInputChange = useCallback((e) => {
+    e.target.focus({ preventScroll: true });
+    updateMural(m => ({ ...m, tagsInput: e.target.value }));
+  }, [updateMural]);
+
+  const handleRemoveTag = useCallback((indexToRemove) => {
+    updateMural(m => ({
+      ...m,
+      tags: m.tags.filter((_, idx) => idx !== indexToRemove)
+    }));
+  }, [updateMural]);
+
+  const handleTagKeyDown = useCallback((e) => {
+    if (["Enter", ","].includes(e.key)) {
+      e.preventDefault();
+      const val = mural.tagsInput?.trim();
+      if (val && !mural.tags.includes(val)) {
+        updateMural(m => ({
+          ...m,
+          tags: [...m.tags, val],
+          tagsInput: "",
+        }));
+      }
+    } else if (
+      e.key === "Backspace" &&
+      !mural.tagsInput &&
+      mural.tags.length > 0
+    ) {
+      updateMural(m => ({ ...m, tags: m.tags.slice(0, -1) }));
+    }
+  }, [updateMural, mural.tagsInput, mural.tags]);
+
+  // Función optimizada para cambio de imagen
+  const handleImageChange = useCallback((img) => {
+    updateMural(m => ({ ...m, url_imagen: img }));
+  }, [updateMural]);
+
   // Estilos inline para underline moderno
   const underlineInputClass =
     "block w-full bg-transparent border-0 border-b-2 border-gray-300 focus:border-indigo-600 transition-all duration-200 text-lg px-0 py-2 placeholder-gray-400 focus:outline-none";
@@ -1107,7 +1382,17 @@ export default function CrearMuralStepper({
         <div className="w-full h-[2px] bg-gradient-to-r from-indigo-200 via-indigo-400 to-indigo-200 dark:from-indigo-900 dark:via-indigo-700 dark:to-indigo-900 rounded-full shadow-md" />
       </div>
       {/* Formulario principal */}
-      <div className="bg-white/90 dark:bg-neutral-900/90 rounded-xl px-4 md:px-10 py-8 flex flex-col gap-12 shadow-lg border border-indigo-100 dark:border-indigo-900">
+      <div 
+        ref={formContainerRef} 
+        className="form-container bg-white/90 dark:bg-neutral-900/90 rounded-xl px-4 md:px-10 py-8 flex flex-col gap-12 shadow-lg border border-indigo-100 dark:border-indigo-900"
+        style={{
+          scrollBehavior: isUpdatingState.current ? 'auto' : 'smooth',
+          overflowAnchor: isUpdatingState.current ? 'none' : 'auto',
+          // Estilos adicionales para prevenir scroll automático
+          contain: 'layout style',
+          willChange: isUpdatingState.current ? 'scroll-position' : 'auto'
+        }}
+      >
         {/* Título del paso actual */}
         <div className="mb-6 text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -1116,6 +1401,11 @@ export default function CrearMuralStepper({
           {step === 0 && (
             <p className="text-sm text-muted-foreground mt-2">
               Completa los datos básicos de tu obra
+            </p>
+          )}
+          {step === 3 && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Configura cómo será visible tu obra en el museo virtual
             </p>
           )}
         </div>
@@ -1156,12 +1446,12 @@ export default function CrearMuralStepper({
                   id="titulo"
                   className="input-stepper"
                   value={mural.titulo}
-                  onChange={(e) =>
-                    setMural((m) => ({ ...m, titulo: e.target.value }))
-                  }
+                  onChange={handleTituloChange}
                   aria-invalid={!!errors.titulo}
                   placeholder="Ej: Mural de la esperanza"
                   autoComplete="off"
+                  onFocus={(e) => e.target.scrollIntoView = () => {}}
+                  style={{ scrollMargin: 0 }}
                 />
                 {errors.titulo && (
                   <span className={errorClass}>{errors.titulo}</span>
@@ -1175,12 +1465,12 @@ export default function CrearMuralStepper({
                   id="tecnica"
                   className="input-stepper"
                   value={mural.tecnica}
-                  onChange={(e) =>
-                    setMural((m) => ({ ...m, tecnica: e.target.value }))
-                  }
+                  onChange={handleTecnicaChange}
                   aria-invalid={!!errors.tecnica}
                   placeholder="Ej: Acrílico sobre muro"
                   autoComplete="off"
+                  onFocus={(e) => e.target.scrollIntoView = () => {}}
+                  style={{ scrollMargin: 0 }}
                 />
                 {errors.tecnica && (
                   <span className={errorClass}>{errors.tecnica}</span>
@@ -1193,9 +1483,9 @@ export default function CrearMuralStepper({
                 <select
                   className="input-stepper"
                   value={String(mural.anio)}
-                  onChange={(e) =>
-                    setMural((m) => ({ ...m, anio: e.target.value }))
-                  }
+                  onChange={handleAnioChange}
+                  onFocus={(e) => e.target.scrollIntoView = () => {}}
+                  style={{ scrollMargin: 0 }}
                 >
                   <option value="">Selecciona el año</option>
                   {years.map((y) => (
@@ -1216,9 +1506,7 @@ export default function CrearMuralStepper({
                   id="dimensiones"
                   className="input-stepper"
                   value={mural.dimensiones}
-                  onChange={(e) =>
-                    setMural((m) => ({ ...m, dimensiones: e.target.value }))
-                  }
+                  onChange={handleDimensionesChange}
                   placeholder="Ej: 3m x 5m"
                   autoComplete="off"
                 />
@@ -1232,9 +1520,7 @@ export default function CrearMuralStepper({
                 id="descripcion"
                 className="input-stepper min-h-[80px] resize-y mt-1"
                 value={mural.descripcion}
-                onChange={(e) =>
-                  setMural((m) => ({ ...m, descripcion: e.target.value }))
-                }
+                onChange={handleDescripcionChange}
                 placeholder="Describe brevemente el mural, su inspiración, etc."
               />
             </div>
@@ -1246,30 +1532,10 @@ export default function CrearMuralStepper({
                 id="tags"
                 className="input-stepper"
                 value={mural.tagsInput || ""}
-                onChange={(e) =>
-                  setMural((m) => ({ ...m, tagsInput: e.target.value }))
-                }
+                onChange={handleTagsInputChange}
                 placeholder="Escribe un tag y presiona Enter o coma"
                 autoComplete="off"
-                onKeyDown={(e) => {
-                  if (["Enter", ","].includes(e.key)) {
-                    e.preventDefault();
-                    const val = mural.tagsInput?.trim();
-                    if (val && !mural.tags.includes(val)) {
-                      setMural((m) => ({
-                        ...m,
-                        tags: [...m.tags, val],
-                        tagsInput: "",
-                      }));
-                    }
-                  } else if (
-                    e.key === "Backspace" &&
-                    !mural.tagsInput &&
-                    mural.tags.length > 0
-                  ) {
-                    setMural((m) => ({ ...m, tags: m.tags.slice(0, -1) }));
-                  }
-                }}
+                onKeyDown={handleTagKeyDown}
               />
               <div className="flex flex-wrap gap-2 mt-2">
                 {mural.tags.map((tag, i) => (
@@ -1278,12 +1544,7 @@ export default function CrearMuralStepper({
                     <button
                       type="button"
                       className="ml-1 text-blue-700 hover:text-red-500 focus:outline-none"
-                      onClick={() =>
-                        setMural((m) => ({
-                          ...m,
-                          tags: m.tags.filter((t, idx) => idx !== i),
-                        }))
-                      }
+                      onClick={() => handleRemoveTag(i)}
                       aria-label={`Eliminar tag ${tag}`}
                     >
                       <X className="w-3 h-3" />
@@ -1298,7 +1559,7 @@ export default function CrearMuralStepper({
         {step === 1 && (
           <MuralImageStep
             value={mural.url_imagen}
-            onChange={(img) => setMural((m) => ({ ...m, url_imagen: img }))}
+            onChange={handleImageChange}
             muralData={mural}
             editMode={editMode}
             obraId={initialData?.id}
@@ -1308,84 +1569,257 @@ export default function CrearMuralStepper({
         {step === 2 && <LocationPicker mural={mural} setMural={setMural} />}
         {/* Step 4: Estado y visibilidad */}
         {step === 3 && (
-          <div className="flex flex-col gap-6 mb-8">
-            <div>
-              <label
-                htmlFor="estado"
-                className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200"
-              >
-                Estado
-              </label>
-              <select
-                id="estado"
-                className="input-stepper"
-                value={mural.estado}
-                onChange={(e) =>
-                  setMural((m) => ({ ...m, estado: e.target.value }))
-                }
-              >
-                <option value="">Selecciona un estado</option>
-                <option value="Activo">Activo</option>
-                <option value="En restauración">En restauración</option>
-                <option value="Oculto">Oculto</option>
-                <option value="Archivado">Archivado</option>
-              </select>
+          <div className="flex flex-col gap-8 mb-8">
+            {/* Encabezado explicativo */}
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Info className="text-blue-500 h-5 w-5 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-blue-800 dark:text-blue-200 font-semibold text-sm mb-1">
+                    Configuración de visibilidad y orden
+                  </h3>
+                  <p className="text-blue-700 dark:text-blue-300 text-sm">
+                    Define cómo y cuándo será visible tu obra en el museo virtual. Estos ajustes afectan la experiencia de los visitantes.
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-              <input
-                id="publica"
-                type="checkbox"
-                checked={mural.publica}
-                onChange={(e) =>
-                  setMural((m) => ({ ...m, publica: e.target.checked }))
-                }
-                className="form-checkbox h-5 w-5 text-indigo-600 transition-all"
-              />
-              <label
-                htmlFor="publica"
-                className="text-base font-semibold text-gray-700 dark:text-gray-200 select-none cursor-pointer"
-              >
-                Pública
-              </label>
+
+            {/* Estado de la obra */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-3">
+                <RefreshCw className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Estado de la obra
+                </h3>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  {
+                    value: "Activo",
+                    label: "Activo",
+                    description: "La obra está disponible y visible",
+                    icon: <Eye className="h-4 w-4" />,
+                    color: "green"
+                  },
+                  {
+                    value: "En restauración",
+                    label: "En restauración",
+                    description: "Obra en proceso de restauración",
+                    icon: <RefreshCw className="h-4 w-4" />,
+                    color: "yellow"
+                  },
+                  {
+                    value: "Oculto",
+                    label: "Oculto",
+                    description: "No visible para el público",
+                    icon: <EyeOff className="h-4 w-4" />,
+                    color: "gray"
+                  },
+                  {
+                    value: "Archivado",
+                    label: "Archivado",
+                    description: "Obra archivada permanentemente",
+                    icon: <Archive className="h-4 w-4" />,
+                    color: "red"
+                  }
+                ].map((estado) => (
+                  <div
+                    key={estado.value}
+                    className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                      mural.estado === estado.value
+                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                    onClick={() => handleEstadoChange(estado.value)}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg ${
+                        estado.color === 'green' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
+                        estado.color === 'yellow' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                        estado.color === 'gray' ? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' :
+                        'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                      }`}>
+                        {estado.icon}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium text-gray-900 dark:text-white">
+                          {estado.label}
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                          {estado.description}
+                        </p>
+                      </div>
+                      {mural.estado === estado.value && (
+                        <CheckCircle className="h-5 w-5 text-indigo-500 flex-shrink-0" />
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="flex items-center gap-4">
-              <input
-                id="destacada"
-                type="checkbox"
-                checked={mural.destacada}
-                onChange={(e) =>
-                  setMural((m) => ({ ...m, destacada: e.target.checked }))
-                }
-                className="form-checkbox h-5 w-5 text-indigo-600 transition-all"
-              />
-              <label
-                htmlFor="destacada"
-                className="text-base font-semibold text-gray-700 dark:text-gray-200 select-none cursor-pointer"
-              >
-                Destacada
-              </label>
+
+            {/* Opciones de visibilidad */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Globe className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Opciones de visibilidad
+                </h3>
+              </div>
+
+              {/* Pública */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
+                      <Globe className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-white">
+                        Obra pública
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        Los visitantes pueden ver esta obra en el museo virtual y en búsquedas públicas
+                      </p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={mural.publica}
+                      onChange={(e) => handlePublicaChange(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Destacada */}
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded-lg">
+                      <Star className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-white">
+                        Obra destacada
+                      </h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                        Esta obra aparecerá en la sección de obras destacadas y tendrá mayor visibilidad
+                      </p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={mural.destacada}
+                      onChange={(e) => handleDestacadaChange(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 dark:peer-focus:ring-yellow-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-yellow-500"></div>
+                  </label>
+                </div>
+              </div>
             </div>
-            <div>
-              <label
-                htmlFor="orden"
-                className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200"
-              >
-                Orden
-              </label>
-              <input
-                id="orden"
-                className="input-stepper"
-                type="number"
-                value={mural.orden}
-                onChange={(e) =>
-                  setMural((m) => ({ ...m, orden: e.target.value }))
-                }
-                placeholder="Ejemplo: 1, 2, 3..."
-                min={0}
-              />
-              <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 block">
-                Entre menor sea el número, más arriba aparecerá tu obra.
-              </span>
+
+            {/* Orden de aparición */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-3">
+                <ArrowUp className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Orden de aparición
+                </h3>
+              </div>
+
+              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
+                    <ArrowUp className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1">
+                    <label
+                      htmlFor="orden"
+                      className="block font-medium text-gray-900 dark:text-white mb-2"
+                    >
+                      Prioridad de visualización
+                    </label>
+                    <div className="flex items-center gap-4">
+                      <input
+                        id="orden"
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-800 dark:text-white"
+                        type="number"
+                        value={mural.orden}
+                        onChange={(e) => handleOrdenChange(e.target.value)}
+                        placeholder="0"
+                        min={0}
+                        max={999}
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          onClick={handleOrdenDecrement}
+                        >
+                          <ArrowDown className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                          onClick={handleOrdenIncrement}
+                        >
+                          <ArrowUp className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 mt-2">
+                      <HelpCircle className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Las obras con números menores aparecen primero. Usa 0 para máxima prioridad, 
+                        números mayores para menor prioridad.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Resumen de configuración */}
+            <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                Resumen de configuración:
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
+                    mural.estado === 'Activo' ? 'bg-green-500' :
+                    mural.estado === 'En restauración' ? 'bg-yellow-500' :
+                    mural.estado === 'Oculto' ? 'bg-gray-500' :
+                    mural.estado === 'Archivado' ? 'bg-red-500' : 'bg-gray-300'
+                  }`}></div>
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {mural.estado || 'Sin estado definido'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${mural.publica ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {mural.publica ? 'Pública' : 'Privada'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${mural.destacada ? 'bg-yellow-500' : 'bg-gray-300'}`}></div>
+                  <span className="text-gray-700 dark:text-gray-300">
+                    {mural.destacada ? 'Destacada' : 'Normal'}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                Orden de prioridad: {mural.orden || 0}
+              </div>
             </div>
           </div>
         )}
