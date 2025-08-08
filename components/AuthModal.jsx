@@ -45,29 +45,20 @@ export default function AuthModal() {
   useEffect(() => {
     if (!isOpen) return;
 
-    const middlePosition = (document.documentElement.scrollHeight - window.innerHeight) / 2;
-  
-    window.scrollTo({
-      top: middlePosition,
-      behavior: 'smooth'
-    });
-
     const handleKey = (e) => {
       if (e.key === "Escape" && !success) {
         handleClose();
       }
     };
-
     window.addEventListener("keydown", handleKey);
 
-    // Bloquear el scroll inmediatamente
-    document.body.style.overflow = "hidden";
+    // Body lock sin alterar la posición actual
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
 
     return () => {
       window.removeEventListener("keydown", handleKey);
-
-      // Restaurar el scroll
-      document.body.style.overflow = "";
+      document.body.style.overflow = originalOverflow;
     };
   }, [isOpen, success]);
 

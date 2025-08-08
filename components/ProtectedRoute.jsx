@@ -39,12 +39,21 @@ export default function ProtectedRoute({
   }, [pathname, isAuthenticated]);
 
   useEffect(() => {
+    // Solo intentar abrir el modal cuando ya terminó la carga del estado de usuario
+    if (isLoading) return;
+    let timer = null;
     if (!isAuthenticated && showLoginModal) {
-      setTimeout(() => {
-        openModal("auth-login", { mode: "login", redirectTo: pathname });
-      }, 100);
+      timer = setTimeout(() => {
+        // Verificación final antes de abrir
+        if (!isAuthenticated) {
+          openModal("auth-login", { mode: "login", redirectTo: pathname });
+        }
+      }, 140); // pequeño retraso para permitir que llegue la sesión justo después del load
     }
-  }, [showLoginModal, openModal, pathname, isAuthenticated]);
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [showLoginModal, openModal, pathname, isAuthenticated, isLoading]);
 
   // Si está cargando, mostrar loading mejorado
   if (isLoading) {
