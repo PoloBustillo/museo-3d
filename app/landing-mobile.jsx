@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useTheme } from "../providers/ThemeProvider";
-import ParallaxClouds from '@/components/ui/ParallaxClouds';
+import { FaHeart, FaCommentAlt } from "react-icons/fa";
+import { BsSendFill  } from "react-icons/bs";
 
 export default function LandingMobile() {
   const { theme } = useTheme();
@@ -34,8 +35,6 @@ export default function LandingMobile() {
           <div className="dark-lunar-ray"></div>
         </div>
       )}
-
-      <ParallaxClouds />
       
 
       <main className="min-h-screen flex flex-col items-center px-4 py-6 pt-20 content-overlay">
@@ -61,12 +60,12 @@ export default function LandingMobile() {
         </p>
         <a
           href="galeria"
-          className="inline-block w-full max-w-xs py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-center transition-all duration-200 shadow-lg mb-8"
+          className="inline-block w-full max-w-xs py-3 px-4 bg-gradient-to-r from-pink-500 to-orange-400 dark:from-blue-500 dark:to-pink-500 text-white font-medium rounded-lg text-center transition-all duration-200 shadow-lg mb-8"
         >
           Visitar galeria
         </a>
       
-        <section className="w-full max-w-xs mb-8 bg-white/90 dark:bg-gray-800/90 p-4 rounded-xl shadow-md">
+        <section className="jusw-full max-w-xs mb-8 bg-white/90 dark:bg-gray-800/90 p-4 rounded-xl shadow-md">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-1 text-center">
             ¿Qué es el Museo 3D?
           </h2>
@@ -74,7 +73,13 @@ export default function LandingMobile() {
             Es una aplicación web donde puedes explorar murales, obras y
             artistas de manera interactiva, desde cualquier lugar.
           </p>
-        </section>
+          <img className="my-5 rounded-md" src="/images/Origen.webp" alt="Imagen de referencia"/>
+          <span className="flex gap-4">
+            <FaHeart />
+            <FaCommentAlt />
+            <BsSendFill  />
+          </span>
+          </section>
 
         <section className="w-full max-w-xs mb-8 bg-white/90 dark:bg-gray-800/90 p-4 rounded-xl shadow-md">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-white mb-1 text-center">
@@ -84,6 +89,12 @@ export default function LandingMobile() {
             Descubre galerías virtuales, detalles de cada obra y la historia
             detrás de los murales más emblemáticos.
           </p>
+          <img className="my-5 rounded-md" src="/images/Impulso_Humano_Creador.webp" alt="Imagen de referencia"/>
+          <span className="flex gap-4">
+            <FaHeart />
+            <FaCommentAlt />
+            <BsSendFill  />
+          </span>
         </section>
 
         <section className="w-full max-w-xs mb-8 bg-white/90 dark:bg-gray-800/90 p-4 rounded-xl shadow-md">
@@ -94,6 +105,12 @@ export default function LandingMobile() {
             Regístrate para subir tus propias obras, dejar comentarios y ser parte
             de la comunidad artística.
           </p>
+          <img className="my-5 rounded-md" src="/images/CCU_15_años_de_Arte_y_Cultura.webp" alt="Imagen de referencia"/>
+          <span className="flex gap-4">
+            <FaHeart />
+            <FaCommentAlt />
+            <BsSendFill  />
+          </span>
         </section>
 
         <section className="w-full max-w-xs mb-8 bg-white/90 dark:bg-gray-800/90 p-4 rounded-xl shadow-md">
