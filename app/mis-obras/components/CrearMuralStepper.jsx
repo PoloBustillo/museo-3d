@@ -2422,99 +2422,95 @@ function AutoresColaboradoresStep({ mural, setMural, artistList }) {
     }));
   };
 
+  // Modo de asignación (mutuamente excluyente) para claridad de UI
+  const [mode, setMode] = React.useState(() => (mural.artistId ? 'artist' : 'autor'));
+  React.useEffect(() => {
+    if (mural.artistId && mode !== 'artist') setMode('artist');
+    else if (!mural.artistId && mural.autor && mode !== 'autor') setMode('autor');
+  }, [mural.artistId, mural.autor, mode]);
+
+  const switchMode = (next) => {
+    setMode(next);
+    if (next === 'artist') {
+      // Limpiar autor libre cuando se elige artista
+      setMural(m => ({ ...m, autor: '' }));
+    } else {
+      // Limpiar artista cuando se elige autor libre
+      setMural(m => ({ ...m, artistId: '' }));
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 mb-8">
-      <div>
-        <label className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200">
-          Autor principal (texto libre)
-        </label>
-        <input
-          type="text"
-          placeholder="Escribe el nombre del autor"
-          value={mural.autor || ""}
-          onChange={(e) => {
-            setMural((m) => ({
-              ...m,
-              autor: e.target.value,
-              artistId: "", // Limpiar artista si se escribe autor
-            }));
-          }}
-          className="input-stepper"
-          disabled={!!mural.artistId}
-        />
-        {mural.artistId && (
-          <p className="text-sm text-orange-600 mt-1">
-            ⚠️ Desactiva el artista para poder escribir el autor
-          </p>
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">Autor / Artista</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-md">Elige si quieres escribir un autor libre o asociar un artista registrado. Son excluyentes.</p>
+          </div>
+          <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 w-fit">
+            <button type="button" onClick={() => switchMode('autor')}
+              className={`px-3 py-1.5 text-sm font-medium transition-colors ${mode==='autor' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>Autor libre</button>
+            <button type="button" onClick={() => switchMode('artist')}
+              className={`px-3 py-1.5 text-sm font-medium transition-colors border-l border-gray-300 dark:border-gray-600 ${mode==='artist' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>Artista registrado</button>
+          </div>
+        </div>
+        {mode === 'autor' && (
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Nombre del autor</label>
+            <input
+              type="text"
+              placeholder="Ej: Diego Rivera"
+              value={mural.autor || ''}
+              onChange={(e) => setMural(m => ({ ...m, autor: e.target.value }))}
+              className="input-stepper"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400">Escribe cualquier nombre. Si necesitas enlazar a un artista del sistema cambia al modo "Artista registrado".</p>
+          </div>
         )}
-      </div>
-
-      <div>
-        <label className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200">
-          Artista (opcional - excluye autor)
-        </label>
-        <ReactSelect
-          inputId="artistId"
-          classNamePrefix="react-select"
-          options={artistOptions}
-          value={artistaOption}
-          onChange={handleArtistChange}
-          placeholder="Selecciona un artista (excluye autor)"
-          isClearable
-          isDisabled={!!mural.autor}
-          menuPortalTarget={
-            typeof window !== "undefined" ? document.body : null
-          }
-          menuPosition="fixed"
-          styles={
-            isDarkMode()
-              ? {
-                  menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-                  control: (base, state) => ({
-                    ...base,
-                    backgroundColor: "#18181b",
-                    borderColor: state.isFocused ? "#6366f1" : "#27272a",
-                    color: "#fff",
-                    boxShadow: state.isFocused
-                      ? "0 0 0 1.5px #6366f1"
-                      : undefined,
-                  }),
-                  menu: (base) => ({
-                    ...base,
-                    backgroundColor: "#222",
-                    color: "#fff",
-                  }),
-                  option: (base, state) => ({
-                    ...base,
-                    backgroundColor: state.isSelected
-                      ? "#6366f1"
-                      : state.isFocused
-                        ? "#3730a3"
-                        : "#222",
-                    color: state.isSelected ? "#fff" : "#fff",
-                  }),
-                  multiValue: (base) => ({
-                    ...base,
-                    backgroundColor: "#6366f1",
-                    color: "#fff",
-                  }),
-                  multiValueLabel: (base) => ({ ...base, color: "#fff" }),
-                  multiValueRemove: (base) => ({
-                    ...base,
-                    color: "#fff",
-                    ":hover": { backgroundColor: "#3730a3", color: "#fff" },
-                  }),
-                  placeholder: (base) => ({ ...base, color: "#a1a1aa" }),
-                  singleValue: (base) => ({ ...base, color: "#fff" }),
-                  input: (base) => ({ ...base, color: "#fff" }),
-                }
-              : { menuPortal: (base) => ({ ...base, zIndex: 9999 }) }
-          }
-        />
-        {mural.autor && (
-          <p className="text-sm text-orange-600 mt-1">
-            ⚠️ Desactiva el autor para poder seleccionar un artista
-          </p>
+        {mode === 'artist' && (
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Seleccionar artista</label>
+            <ReactSelect
+              inputId="artistId"
+              classNamePrefix="react-select"
+              options={artistOptions}
+              value={artistaOption}
+              onChange={handleArtistChange}
+              placeholder="Buscar artista..."
+              isClearable
+              menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
+              menuPosition="fixed"
+              styles={
+                isDarkMode()
+                  ? {
+                      menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                      control: (base, state) => ({
+                        ...base,
+                        backgroundColor: '#18181b',
+                        borderColor: state.isFocused ? '#6366f1' : '#27272a',
+                        color: '#fff',
+                        boxShadow: state.isFocused ? '0 0 0 1.5px #6366f1' : undefined,
+                      }),
+                      menu: (base) => ({ ...base, backgroundColor: '#222', color: '#fff' }),
+                      option: (base, state) => ({
+                        ...base,
+                        backgroundColor: state.isSelected
+                          ? '#6366f1'
+                          : state.isFocused
+                            ? '#3730a3'
+                            : '#222',
+                        color: '#fff',
+                      }),
+                      placeholder: (base) => ({ ...base, color: '#a1a1aa' }),
+                      singleValue: (base) => ({ ...base, color: '#fff' }),
+                      input: (base) => ({ ...base, color: '#fff' }),
+                    }
+                  : { menuPortal: (base) => ({ ...base, zIndex: 9999 }) }
+              }
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400">Lista de artistas vinculados a usuarios. Si no aparece, usa el modo "Autor libre".</p>
+          </div>
         )}
       </div>
 
