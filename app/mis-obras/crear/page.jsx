@@ -38,7 +38,7 @@ export default function CrearObraPage() {
 
   return (
     <ProtectedRoute>
-  <div className="relative" ref={scrollRef} style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+  <div className="relative overflow-x-hidden" ref={scrollRef} style={{ overflowY: 'auto', maxHeight: '100vh' }}>
     <AnimatedBackground />
     <div className="relative z-10 w-full max-w-5xl mx-auto px-0 sm:px-4 pt-24 md:pt-28 pb-2 md:pb-4 min-h-screen flex flex-col">
           <motion.div

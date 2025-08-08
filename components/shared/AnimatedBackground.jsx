@@ -47,7 +47,7 @@ export function DotsPattern() {
 // Componente combinado para facilitar el uso
 export default function AnimatedBackground() {
   return (
-    <div className="absolute inset-0 pointer-events-none">
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
       {/* Blobs atrás (z-0), puntos adelante (z-10) */}
       <AnimatedBlobsBackground />
       <DotsPattern />

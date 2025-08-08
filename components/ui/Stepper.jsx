@@ -65,7 +65,7 @@ export default function Stepper({
   const visibleSteps = getVisibleSteps();
 
   return (
-    <div className="flex flex-col items-center mx-4 sm:mx-0">
+  <div className="flex flex-col items-center mx-0 w-full max-w-full overflow-x-hidden">
       {/* Contador de progreso en móviles */}
       {isMobile && (
         <div className="mb-2 text-xs text-gray-500 dark:text-gray-400">
@@ -73,7 +73,7 @@ export default function Stepper({
         </div>
       )}
       <div
-        className={`flex items-center justify-center gap-0.5 sm:gap-4 mb-6 px-2 sm:px-0 ${className}`}
+        className={`flex items-center justify-center gap-1 sm:gap-4 mb-6 px-2 sm:px-0 w-full max-w-full flex-wrap sm:flex-nowrap overflow-x-hidden ${className}`}
         role="list"
         aria-label="Progreso"
       >
@@ -99,7 +99,7 @@ export default function Stepper({
           return (
             <div
               key={i}
-              className="flex flex-col items-center min-w-[50px] sm:min-w-[100px] min-h-[80px] sm:min-h-[100px] justify-start px-1 sm:px-0"
+              className="flex flex-col items-center min-w-[56px] sm:min-w-[90px] min-h-[72px] sm:min-h-[100px] justify-start px-1 sm:px-0 flex-shrink-0"
             >
               <button
                 type="button"
