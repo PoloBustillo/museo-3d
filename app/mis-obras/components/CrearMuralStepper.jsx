@@ -1289,7 +1289,7 @@ export default function CrearMuralStepper({
           >Dump</button>
         </div>
       )}
-      <div>
+      <div className="w-full overflow-x-hidden">
         <Stepper
           steps={stepStates}
           activeStep={step}
