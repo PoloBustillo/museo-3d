@@ -1,6 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import CrearObraModal from "../components/CrearObraModal";
 import { AnimatedBackground } from "../../../components/shared";
 import { motion } from "framer-motion";
@@ -17,6 +17,11 @@ export default function CrearObraPage() {
   const router = useRouter();
   const [created, setCreated] = useState(false);
   const { user, userProfile } = useUser();
+  const hasMounted = useRef(false);
+  useEffect(() => { hasMounted.current = true; }, []);
+
+  // Contenedor de scroll dedicado para estabilizar el formulario
+  const scrollRef = useRef(null);
 
   // Botón de prueba para subir un modelo GLB simple
   const handleTestSimpleGLB = async () => {
@@ -33,16 +38,16 @@ export default function CrearObraPage() {
 
   return (
     <ProtectedRoute>
-      <div className="relative">
-        <AnimatedBackground />
-        <div className="relative z-10 w-full max-w-5xl mx-auto px-0 sm:px-4 pt-24 md:pt-28 pb-2 md:pb-4 min-h-screen flex flex-col justify-center">
+  <div className="relative" ref={scrollRef} style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+    <AnimatedBackground />
+    <div className="relative z-10 w-full max-w-5xl mx-auto px-0 sm:px-4 pt-24 md:pt-28 pb-2 md:pb-4 min-h-screen flex flex-col">
           <motion.div
-            initial={{ opacity: 0, y: 40 }}
+            initial={hasMounted.current ? false : { opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
           >
             <div className="w-full flex flex-col gap-4 items-start">
-              <CrearMuralStepper />
+      <CrearMuralStepper scrollParentRef={scrollRef} />
             </div>
           </motion.div>
         </div>

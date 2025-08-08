@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Stepper from "@/components/ui/Stepper";
 import {
@@ -129,7 +129,10 @@ export default function CrearMuralStepper({
   initialData = null,
   editMode = false,
   onSuccess,
+  scrollParentRef = null,
 }) {
+  const searchParams = useSearchParams();
+  const debugScroll = !!(searchParams?.get('debugScroll'));
   const router = useRouter();
   const { data: session } = useSession();
   const [step, setStep] = useState(0);
@@ -164,8 +167,15 @@ export default function CrearMuralStepper({
   const canvasImageLoaded = useRef(false);
   const localStorageLoaded = useRef(false);
   const formContainerRef = useRef(null);
-  const isUpdatingState = useRef(false);
-  const savedScrollPosition = useRef(0);
+  const headerBlockRef = useRef(null);
+  const headerFixedHeightRef = useRef(null);
+  const lastFieldRef = useRef("");
+  const lastUpdateTsRef = useRef(0);
+  const lastScrollYRef = useRef(0);
+  const jumpEventsRef = useRef([]);
+  const scrollAnchorRef = useRef(null);
+  const preUpdateAnchorTopRef = useRef(null);
+  const pendingCompensationRef = useRef(false);
 
   // Función para comprimir imagen si es muy grande
   const compressImage = (dataUrl, maxSize = 800) => {
@@ -291,72 +301,50 @@ export default function CrearMuralStepper({
   const [modelGenerationStep, setModelGenerationStep] = useState("");
   const [showCanvasReturnMessage, setShowCanvasReturnMessage] = useState(false);
 
-  // Funciones optimizadas para manejar cambios de estado (evitan scroll automático)
+  const safeScrollParentRef = scrollParentRef && typeof scrollParentRef === 'object' ? scrollParentRef : { current: null };
   const updateMural = useCallback((updater) => {
-    // Capturar elementos activos antes del cambio
-    const activeElement = document.activeElement;
-    const formContainer = formContainerRef.current;
-    
-    // Marcar que estamos actualizando y guardar posición
-    isUpdatingState.current = true;
-    
-    if (formContainer) {
-      savedScrollPosition.current = formContainer.scrollTop;
-      
-      // Aplicar estilos CSS temporales más agresivos
-      formContainer.style.overflowAnchor = 'none';
-      formContainer.style.scrollBehavior = 'auto';
-      formContainer.style.overflow = 'hidden';
-      formContainer.style.pointerEvents = 'none';
-      
-      // Prevenir que cualquier elemento cause scroll
-      const allScrollableElements = formContainer.querySelectorAll('*');
-      allScrollableElements.forEach(el => {
-        if (el.scrollIntoView) {
-          const originalScrollIntoView = el.scrollIntoView;
-          el.scrollIntoView = () => {}; // Deshabilitar temporalmente
-          
-          // Restaurar después del update
-          setTimeout(() => {
-            el.scrollIntoView = originalScrollIntoView;
-          }, 100);
-        }
-      });
+    const scroller = safeScrollParentRef.current || (typeof window !== 'undefined' ? window : null);
+    const getScrollY = () => scroller === window ? window.scrollY : (scroller?.scrollTop || 0);
+    const setScrollY = (y) => {
+      if (!scroller) return;
+      if (scroller === window) window.scrollTo({ top: y, behavior: 'auto' }); else scroller.scrollTop = y;
+    };
+    const prevY = getScrollY();
+    if (scrollAnchorRef.current) {
+      preUpdateAnchorTopRef.current = scrollAnchorRef.current.getBoundingClientRect().top;
+    } else {
+      preUpdateAnchorTopRef.current = null;
     }
-    
-    // Actualizar estado
-    setMural(prev => {
-      const newState = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
-      
-      // Programar restauración inmediata
-      Promise.resolve().then(() => {
-        setTimeout(() => {
-          if (formContainer && savedScrollPosition.current !== undefined) {
-            formContainer.style.overflow = '';
-            formContainer.style.pointerEvents = '';
-            formContainer.scrollTop = savedScrollPosition.current;
-            formContainer.style.overflowAnchor = '';
-            formContainer.style.scrollBehavior = '';
-            
-            // Restaurar foco si era necesario
-            if (activeElement && document.contains(activeElement)) {
-              try {
-                activeElement.focus({ preventScroll: true });
-              } catch (e) {
-                // Ignorar errores de foco
-              }
-            }
-          }
-          isUpdatingState.current = false;
-        }, 0);
-      });
-      
-      return newState;
-    });
-  }, []);
+    setMural(prev => (typeof updater === 'function' ? updater(prev) : { ...prev, ...updater }));
+    pendingCompensationRef.current = { getScrollY, setScrollY, prevY };
+    if (debugScroll) {
+      // eslint-disable-next-line no-console
+      console.log('[updateMural] scheduled', { prevY });
+    }
+  }, [debugScroll, safeScrollParentRef]);
+
+  // Compensar desplazamiento después de cada render que siguió a un updateMural
+  React.useLayoutEffect(() => {
+    const context = pendingCompensationRef.current;
+    if (!context || !context.getScrollY) return;
+    pendingCompensationRef.current = false;
+    if (preUpdateAnchorTopRef.current == null || !scrollAnchorRef.current) return;
+    const newTop = scrollAnchorRef.current.getBoundingClientRect().top;
+    const delta = newTop - preUpdateAnchorTopRef.current;
+    if (Math.abs(delta) > 1) {
+      const currentY = context.getScrollY();
+      context.setScrollY(currentY - delta);
+      if (debugScroll) {
+        // eslint-disable-next-line no-console
+        console.log('[scrollCompensation]', { pre: preUpdateAnchorTopRef.current, post: newTop, delta, adjustedTo: context.getScrollY() });
+      }
+    }
+    preUpdateAnchorTopRef.current = null;
+  });
 
   React.useEffect(() => {
-    if (mural.anio === undefined) {
+    // Asegurar año por defecto si no está definido
+    if (mural.anio === undefined || mural.anio === null || mural.anio === "") {
       setMural((prev) => ({ ...prev, anio: new Date().getFullYear() }));
     }
   }, [mural.anio]);
@@ -364,7 +352,7 @@ export default function CrearMuralStepper({
   // useEffect para cargar datos iniciales en modo edición
   React.useEffect(() => {
     if (editMode && initialData) {
-      setMural({
+  setMural({
         titulo: initialData.titulo || "",
         descripcion: initialData.descripcion || "",
         tecnica: initialData.tecnica || "",
@@ -548,10 +536,7 @@ export default function CrearMuralStepper({
 
   // Auto-guardar los datos del mural cada vez que cambien (excepto si estamos cargando)
   useEffect(() => {
-    // Evitar guardar durante actualizaciones de estado que causan scroll
-    if (isUpdatingState.current) {
-      return;
-    }
+  // (scroll guard removed)
 
     // Solo guardar si tenemos datos significativos y la sesión está lista
     const hasSignificantData =
@@ -748,86 +733,7 @@ export default function CrearMuralStepper({
     session?.user?.id,
   ]);
 
-  // Prevenir scroll automático durante actualizaciones de estado
-  useEffect(() => {
-    let observer;
-    let scrollTimeout;
-    
-    if (formContainerRef.current) {
-      const container = formContainerRef.current;
-      
-      // Función para prevenir scroll automático
-      const preventAutoScroll = (e) => {
-        if (isUpdatingState.current) {
-          e.preventDefault();
-          e.stopPropagation();
-          container.scrollTop = savedScrollPosition.current;
-          return false;
-        }
-      };
-      
-      // Listener para interceptar scrolls durante actualizaciones
-      const handleScroll = (e) => {
-        if (isUpdatingState.current && container.scrollTop !== savedScrollPosition.current) {
-          e.preventDefault();
-          e.stopPropagation();
-          container.scrollTop = savedScrollPosition.current;
-          return false;
-        }
-      };
-      
-      // Interceptor para eventos de foco que pueden causar scroll
-      const handleFocus = (e) => {
-        if (isUpdatingState.current) {
-          e.preventDefault();
-          e.stopPropagation();
-          // Quitar foco temporalmente para evitar scroll automático
-          setTimeout(() => {
-            if (e.target && typeof e.target.blur === 'function') {
-              e.target.blur();
-            }
-          }, 0);
-          return false;
-        }
-      };
-      
-      // Observer para detectar cambios en el DOM
-      observer = new MutationObserver(() => {
-        if (isUpdatingState.current) {
-          clearTimeout(scrollTimeout);
-          scrollTimeout = setTimeout(() => {
-            if (container && savedScrollPosition.current !== undefined) {
-              container.scrollTop = savedScrollPosition.current;
-            }
-          }, 0);
-        }
-      });
-      
-      observer.observe(container, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['class', 'style', 'value']
-      });
-      
-      // Agregar listeners con capture para interceptar temprano
-      container.addEventListener('scroll', handleScroll, { passive: false, capture: true });
-      container.addEventListener('wheel', preventAutoScroll, { passive: false, capture: true });
-      container.addEventListener('touchmove', preventAutoScroll, { passive: false, capture: true });
-      container.addEventListener('focusin', handleFocus, { passive: false, capture: true });
-      container.addEventListener('focusout', handleFocus, { passive: false, capture: true });
-      
-      return () => {
-        observer?.disconnect();
-        clearTimeout(scrollTimeout);
-        container.removeEventListener('scroll', handleScroll, { capture: true });
-        container.removeEventListener('wheel', preventAutoScroll, { capture: true });
-        container.removeEventListener('touchmove', preventAutoScroll, { capture: true });
-        container.removeEventListener('focusin', handleFocus, { capture: true });
-        container.removeEventListener('focusout', handleFocus, { capture: true });
-      };
-    }
-  }, []);
+  // Eliminado el bloqueo agresivo de scroll: ya no necesario
 
   // Función para generar modelo 3D con fallbacks
   const generateAndValidateModel = async (imageUrl, title = "mural") => {
@@ -1241,17 +1147,20 @@ export default function CrearMuralStepper({
 
   // Funciones para campos básicos con prevención de scroll mejorada
   const handleTituloChange = useCallback((e) => {
-    e.target.focus({ preventScroll: true });
+  lastFieldRef.current = 'titulo';
+  lastUpdateTsRef.current = performance.now();
     updateMural(m => ({ ...m, titulo: e.target.value }));
   }, [updateMural]);
 
   const handleTecnicaChange = useCallback((e) => {
-    e.target.focus({ preventScroll: true });
+  lastFieldRef.current = 'tecnica';
+  lastUpdateTsRef.current = performance.now();
     updateMural(m => ({ ...m, tecnica: e.target.value }));
   }, [updateMural]);
 
   const handleAnioChange = useCallback((e) => {
-    e.target.focus({ preventScroll: true });
+  lastFieldRef.current = 'anio';
+  lastUpdateTsRef.current = performance.now();
     updateMural(m => ({ ...m, anio: e.target.value }));
   }, [updateMural]);
 
@@ -1366,33 +1275,43 @@ export default function CrearMuralStepper({
 
   // Render steps
   return (
-    <div className="w-full max-w-3xl mx-auto bg-white/80 dark:bg-neutral-900/80 rounded-2xl shadow-xl border border-border p-0 md:p-8">
-      <Stepper
-        steps={stepStates}
-        activeStep={step}
-        color="indigo"
-        className="mb-8"
-        onStepClick={(i) => {
-          if (i < step) setStep(i);
-        }}
-      />
+    <div className="w-full max-w-3xl mx-auto bg-white/80 dark:bg-neutral-900/80 rounded-2xl shadow-xl border border-border p-0 md:p-8" ref={headerBlockRef}>
+      {debugScroll && (
+        <div className="fixed bottom-4 right-4 z-[9999] bg-black/70 text-xs text-green-300 font-mono p-3 rounded-lg max-w-xs space-y-1">
+          <div className="font-bold text-white">Scroll Debug</div>
+          <div>Y: {typeof window !== 'undefined' ? window.scrollY : 0}</div>
+          <div>Last Field: {lastFieldRef.current || '-'}</div>
+          <div>Events: {jumpEventsRef.current.length}</div>
+          <button
+            type="button"
+            className="mt-1 px-2 py-1 bg-green-600 hover:bg-green-500 text-white rounded"
+            onClick={() => { /* force log dump */ console.log('Dump jumps', jumpEventsRef.current); }}
+          >Dump</button>
+        </div>
+      )}
+      <div>
+        <Stepper
+          steps={stepStates}
+          activeStep={step}
+          color="indigo"
+          className="mb-8"
+          onStepClick={(i) => {
+            if (i < step) setStep(i);
+          }}
+        />
 
-      {/* Separador visual */}
-      <div className="w-full flex items-center justify-center mb-10">
-        <div className="w-full h-[2px] bg-gradient-to-r from-indigo-200 via-indigo-400 to-indigo-200 dark:from-indigo-900 dark:via-indigo-700 dark:to-indigo-900 rounded-full shadow-md" />
+        {/* Separador visual */}
+        <div className="w-full flex items-center justify-center mb-10">
+          <div className="w-full h-[2px] bg-gradient-to-r from-indigo-200 via-indigo-400 to-indigo-200 dark:from-indigo-900 dark:via-indigo-700 dark:to-indigo-900 rounded-full shadow-md" />
+        </div>
       </div>
       {/* Formulario principal */}
-      <div 
-        ref={formContainerRef} 
+      <div
+        ref={formContainerRef}
         className="form-container bg-white/90 dark:bg-neutral-900/90 rounded-xl px-4 md:px-10 py-8 flex flex-col gap-12 shadow-lg border border-indigo-100 dark:border-indigo-900"
-        style={{
-          scrollBehavior: isUpdatingState.current ? 'auto' : 'smooth',
-          overflowAnchor: isUpdatingState.current ? 'none' : 'auto',
-          // Estilos adicionales para prevenir scroll automático
-          contain: 'layout style',
-          willChange: isUpdatingState.current ? 'scroll-position' : 'auto'
-        }}
+        style={{overflowAnchor:'none'}}
       >
+  <div ref={scrollAnchorRef} style={{ position:'relative', height:1, marginTop:-1 }} />
         {/* Título del paso actual */}
         <div className="mb-6 text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -1450,7 +1369,7 @@ export default function CrearMuralStepper({
                   aria-invalid={!!errors.titulo}
                   placeholder="Ej: Mural de la esperanza"
                   autoComplete="off"
-                  onFocus={(e) => e.target.scrollIntoView = () => {}}
+                  // onFocus scroll override removed
                   style={{ scrollMargin: 0 }}
                 />
                 {errors.titulo && (
@@ -1469,7 +1388,7 @@ export default function CrearMuralStepper({
                   aria-invalid={!!errors.tecnica}
                   placeholder="Ej: Acrílico sobre muro"
                   autoComplete="off"
-                  onFocus={(e) => e.target.scrollIntoView = () => {}}
+                  // onFocus scroll override removed
                   style={{ scrollMargin: 0 }}
                 />
                 {errors.tecnica && (
@@ -1484,7 +1403,7 @@ export default function CrearMuralStepper({
                   className="input-stepper"
                   value={String(mural.anio)}
                   onChange={handleAnioChange}
-                  onFocus={(e) => e.target.scrollIntoView = () => {}}
+                  // onFocus scroll override removed
                   style={{ scrollMargin: 0 }}
                 >
                   <option value="">Selecciona el año</option>
@@ -2083,30 +2002,26 @@ function isDarkMode() {
 
 // Componente auxiliar para geolocalización automática y reverse geocoding
 function GeolocateIfNeeded({ mural, setMural }) {
+  // Obtener coords iniciales si faltan
   useEffect(() => {
-    // Solo si no hay lat/lon ya seleccionadas
-    if (!mural.latitud && !mural.longitud) {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          async (pos) => {
-            const lat = pos.coords.latitude;
-            const lon = pos.coords.longitude;
-            let ubicacion = mural.ubicacion;
-            if (!ubicacion) {
-              ubicacion = await fetchAddressFromLatLon(lat, lon);
-            }
-            setMural((m) => ({ ...m, latitud: lat, longitud: lon, ubicacion }));
-          },
-          () => {
-            // Si falla, no hacer nada (se usará el default CCU BUAP)
-          },
-          { enableHighAccuracy: true, timeout: 5000 }
-        );
-      }
+    if (!mural.latitud && !mural.longitud && typeof navigator !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          let ubicacion = mural.ubicacion;
+          if (!ubicacion) {
+            ubicacion = await fetchAddressFromLatLon(lat, lon);
+          }
+          setMural((m) => ({ ...m, latitud: lat, longitud: lon, ubicacion }));
+        },
+        () => {},
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
     }
   }, [mural.latitud, mural.longitud, mural.ubicacion, setMural]);
 
-  // Reverse geocoding cuando el usuario selecciona en el mapa
+  // Reverse geocoding si se escogieron coords manualmente sin dirección
   useEffect(() => {
     if (mural.latitud && mural.longitud && !mural.ubicacion) {
       let ignore = false;
@@ -2115,9 +2030,7 @@ function GeolocateIfNeeded({ mural, setMural }) {
           setMural((m) => ({ ...m, ubicacion: address }));
         }
       });
-      return () => {
-        ignore = true;
-      };
+      return () => { ignore = true; };
     }
   }, [mural.latitud, mural.longitud, mural.ubicacion, setMural]);
   return null;
