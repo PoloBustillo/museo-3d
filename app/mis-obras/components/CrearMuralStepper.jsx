@@ -1757,22 +1757,14 @@ export default function CrearMuralStepper({
               <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <CheckCircle className="text-green-500 h-6 w-6" />
-                  <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">
-                    ¡Éxito!
-                  </h3>
+                  <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">¡Éxito!</h3>
                 </div>
-                <p className="text-green-700 dark:text-green-300 mb-4">
-                  {successMessage}
-                </p>
-                <p className="text-sm text-green-600 dark:text-green-400 mb-4">
-                  Redirigiendo a tus obras...
-                </p>
+                <p className="text-green-700 dark:text-green-300 mb-4">{successMessage}</p>
+                <p className="text-sm text-green-600 dark:text-green-400 mb-4">Redirigiendo a tus obras...</p>
                 <div className="bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-3">
                   <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-sm">
-                      Modelo 3D generado y listo para AR
-                    </span>
+                    <div className="w-2 h-2 bg-green-500 rounded-full" />
+                    <span className="text-sm">Modelo 3D generado y listo para AR</span>
                   </div>
                 </div>
               </div>
@@ -1780,132 +1772,112 @@ export default function CrearMuralStepper({
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <AlertCircle className="text-red-500 h-6 w-6" />
-                  <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">
-                    Error al crear la obra
-                  </h3>
+                  <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">Error al crear la obra</h3>
                 </div>
-                <p className="text-red-700 dark:text-red-300 mb-4">
-                  {apiError.message}
-                </p>
-                {apiError.details && (
-                  <p className="text-sm text-red-600 dark:text-red-400 mb-4">
-                    Detalles: {apiError.details}
-                  </p>
-                )}
-                <div className="flex gap-3">
-                  <Button
-                    onClick={() => {
-                      setApiError(null);
-                      handleCreateMural();
-                    }}
-                    className="bg-red-600 hover:bg-red-700 text-white"
-                  >
-                    Reintentar
-                  </Button>
-                  <Button onClick={() => setApiError(null)} variant="outline">
-                    Cancelar
-                  </Button>
+                <p className="text-red-700 dark:text-red-300 mb-4">{apiError.message}</p>
+                {apiError.details && <p className="text-sm text-red-600 dark:text-red-400 mb-4">Detalles: {apiError.details}</p>}
+                <div className="flex gap-3 flex-wrap">
+                  <Button onClick={() => { setApiError(null); handleCreateMural(); }} className="bg-red-600 hover:bg-red-700 text-white">Reintentar</Button>
+                  <Button onClick={() => setApiError(null)} variant="outline">Cancelar</Button>
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col gap-8">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  <div className="flex-shrink-0 flex flex-col items-center">
-                    {mural.url_imagen ? (
-                      <img
-                        src={mural.url_imagen}
-                        alt="preview"
-                        className="w-[320px] h-[320px] object-contain rounded-2xl border-4 border-indigo-400 shadow-lg bg-white"
-                      />
-                    ) : (
-                      <div className="w-[320px] h-[320px] flex items-center justify-center rounded-2xl border-4 border-dashed border-gray-300 bg-gray-50 dark:bg-neutral-800 text-gray-400 text-lg">
-                        Sin imagen
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 max-w-md w-full flex flex-col justify-center items-center h-full">
-                    <div className="w-full max-w-xs mx-auto flex flex-col justify-center">
-                      <h3 className="text-2xl font-bold mb-4 text-foreground text-center">
-                        Datos de la obra
-                      </h3>
-                      <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                        <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                          <span className="text-sm font-medium">
-                            Se generará automáticamente un modelo 3D para AR
-                          </span>
-                        </div>
-                      </div>
-                      <div className="space-y-3 text-base w-full">
-                        <div className="flex gap-2 justify-start">
-                          <span className="font-semibold w-28 text-right">
-                            Título:
-                          </span>{" "}
-                          <span className="truncate text-left">
-                            {mural.titulo}
-                          </span>
-                        </div>
-                        <div className="flex gap-2 justify-start">
-                          <span className="font-semibold w-28 text-right">
-                            Técnica:
-                          </span>{" "}
-                          <span className="text-left">{mural.tecnica}</span>
-                        </div>
-                        <div className="flex gap-2 justify-start">
-                          <span className="font-semibold w-28 text-right">
-                            Año:
-                          </span>{" "}
-                          <span className="text-left">{mural.anio}</span>
-                        </div>
-                        <div className="flex gap-2 justify-start">
-                          <span className="font-semibold w-28 text-right">
-                            Ubicación:
-                          </span>{" "}
-                          <span className="text-left">
-                            {mural.ubicacion || (
-                              <span className="italic text-gray-400">
-                                No especificada
-                              </span>
-                            )}
-                          </span>
-                        </div>
-                        {mural.descripcion && (
-                          <div className="flex gap-2 items-start justify-start">
-                            <span className="font-semibold w-28 text-right">
-                              Descripción:
-                            </span>{" "}
-                            <span className="whitespace-pre-line text-left">
-                              {mural.descripcion}
-                            </span>
-                          </div>
+              <>
+                <div className="grid grid-cols-1 xl:grid-cols-5 gap-8 items-start">
+                  {/* Imagen */}
+                  <div className="xl:col-span-2 flex flex-col gap-4">
+                    <div className="rounded-2xl border border-indigo-200 dark:border-indigo-800 bg-white/80 dark:bg-neutral-800/60 p-4 shadow-md">
+                      <h3 className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-2 tracking-wide uppercase">Vista previa</h3>
+                      <div className="aspect-square w-full flex items-center justify-center overflow-hidden rounded-xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700">
+                        {mural.url_imagen ? (
+                          <img src={mural.url_imagen} alt="preview" className="object-contain w-full h-full" />
+                        ) : (
+                          <span className="text-gray-400 text-sm">Sin imagen</span>
                         )}
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button type="button" onClick={() => setStep(1)} className="text-xs px-2 py-1 rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900 transition">Cambiar imagen</button>
+                      </div>
+                    </div>
+                    <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/70 dark:bg-blue-900/20 p-4 text-xs leading-relaxed text-blue-700 dark:text-blue-300">
+                      Se generará automáticamente un modelo 3D optimizado. Puedes editarlo luego.
+                    </div>
+                  </div>
+                  {/* Resumen */}
+                  <div className="xl:col-span-3 flex flex-col gap-6">
+                    {/* Básico */}
+                    <div className="rounded-2xl border border-gray-200 dark:border-neutral-700 bg-white/90 dark:bg-neutral-900/70 p-5 shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2"><User className="w-4 h-4" />Datos básicos</h4>
+                        <button type="button" onClick={() => setStep(0)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Editar</button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                        <SummaryRow label="Título" value={mural.titulo} />
+                        <SummaryRow label="Técnica" value={mural.tecnica} />
+                        <SummaryRow label="Año" value={mural.anio || '-'} />
+                        <SummaryRow label="Dimensiones" value={mural.dimensiones || '—'} />
+                        <SummaryRow label="Tags" value={mural.tags?.length ? mural.tags.join(', ') : '—'} full />
+                        {mural.descripcion && <SummaryRow label="Descripción" value={mural.descripcion} full multiline />}
+                      </div>
+                    </div>
+                    {/* Ubicación / Sala */}
+                    <div className="rounded-2xl border border-gray-200 dark:border-neutral-700 bg-white/90 dark:bg-neutral-900/70 p-5 shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Navigation className="w-4 h-4" />Ubicación</h4>
+                        <button type="button" onClick={() => setStep(2)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Editar</button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                        <SummaryRow label="Dirección" value={mural.ubicacion || '—'} full />
+                        <SummaryRow label="Latitud" value={mural.latitud || '—'} />
+                        <SummaryRow label="Longitud" value={mural.longitud || '—'} />
+                        <SummaryRow label="Sala" value={mural.salaId || '—'} />
+                      </div>
+                    </div>
+                    {/* Estado / Visibilidad */}
+                    <div className="rounded-2xl border border-gray-200 dark:border-neutral-700 bg-white/90 dark:bg-neutral-900/70 p-5 shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Eye className="w-4 h-4" />Estado y visibilidad</h4>
+                        <button type="button" onClick={() => setStep(3)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Editar</button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                        <SummaryRow label="Estado" value={mural.estado || '—'} />
+                        <SummaryRow label="Pública" value={mural.publica ? 'Sí' : 'No'} />
+                        <SummaryRow label="Destacada" value={mural.destacada ? 'Sí' : 'No'} />
+                        <SummaryRow label="Orden" value={String(mural.orden || 0)} />
+                      </div>
+                    </div>
+                    {/* Autoría */}
+                    <div className="rounded-2xl border border-gray-200 dark:border-neutral-700 bg-white/90 dark:bg-neutral-900/70 p-5 shadow-sm">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Users className="w-4 h-4" />Autoría</h4>
+                        <button type="button" onClick={() => setStep(4)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Editar</button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                        <SummaryRow label="Autor libre" value={mural.autor || '—'} />
+                        <SummaryRow label="Artista ID" value={mural.artistId || '—'} />
+                        <SummaryRow label="Colaboradores" value={mural.colaboradores?.length ? mural.colaboradores.length + ' seleccionado(s)' : '—'} full />
                       </div>
                     </div>
                   </div>
                 </div>
-                <Button
-                  className="mt-4"
-                  onClick={handleCreateMural}
-                  disabled={isCreating || generatingModel}
-                >
-                  {isCreating ? (
-                    generatingModel ? (
-                      <div className="flex items-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        {modelGenerationStep || "Generando modelo 3D..."}
-                      </div>
-                    ) : editMode ? (
-                      "Actualizando obra..."
-                    ) : (
-                      "Creando obra..."
-                    )
-                  ) : editMode ? (
-                    "Actualizar obra"
-                  ) : (
-                    "Crear obra"
-                  )}
-                </Button>
-              </div>
+                <div className="flex flex-col sm:flex-row gap-4 justify-end mt-4">
+                  <Button variant="secondary" onClick={() => setStep(4)}>Volver</Button>
+                  <Button className="min-w-[180px]" onClick={handleCreateMural} disabled={isCreating || generatingModel}>
+                    {isCreating ? (
+                      generatingModel ? (
+                        <div className="flex items-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                          {modelGenerationStep || 'Generando modelo 3D...'}
+                        </div>
+                      ) : editMode ? (
+                        'Actualizando obra...'
+                      ) : (
+                        'Creando obra...'
+                      )
+                    ) : editMode ? 'Actualizar obra' : 'Crear obra'}
+                  </Button>
+                </div>
+              </>
             )}
           </div>
         )}
@@ -2584,6 +2556,16 @@ function AutoresColaboradoresStep({ mural, setMural, artistList }) {
           }
         />
       </div>
+    </div>
+  );
+}
+
+// Helper component for summary rows (after AutoresColaboradoresStep definition)
+function SummaryRow({ label, value, full=false, multiline=false }) {
+  return (
+    <div className={`flex ${full ? 'sm:col-span-2' : 'col-span-1'} ${multiline ? 'items-start' : 'items-center'} gap-2`}>
+      <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 w-28 shrink-0">{label}</span>
+      <span className={`text-sm text-gray-800 dark:text-gray-100 ${multiline ? 'whitespace-pre-line leading-relaxed' : 'truncate'}`}>{value || '—'}</span>
     </div>
   );
 }
