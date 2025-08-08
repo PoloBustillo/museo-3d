@@ -2,12 +2,21 @@
 
 import { motion } from "framer-motion";
 import { Edit3, Trash2, Ban } from "lucide-react";
+import { MdViewInAr } from "react-icons/md";
 import { useRouter } from "next/navigation";
 
 const MuralCard = ({ mural, view = "grid", onEdit, onDelete }) => {
   const router = useRouter();
   const handleEdit = () => {
     router.push(`/mis-obras/editar/${mural.id}`);
+  };
+  const handleAR = (e) => {
+    e.stopPropagation();
+    if (!mural.modelo3dUrl) {
+      router.push(`/galeria/${mural.id}/ar`);
+      return;
+    }
+    router.push(`/galeria/${mural.id}/ar`);
   };
 
   const handleDelete = () => {
@@ -43,6 +52,16 @@ const MuralCard = ({ mural, view = "grid", onEdit, onDelete }) => {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {mural?.modelo3dUrl && (
+            <button
+              onClick={handleAR}
+              className="p-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors relative"
+              title={"Ver en AR"}
+              style={{ opacity: 1 }}
+            >
+              <MdViewInAr className="h-4 w-4" />
+            </button>
+          )}
           <button
             onClick={handleEdit}
             className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors relative"
@@ -93,6 +112,15 @@ const MuralCard = ({ mural, view = "grid", onEdit, onDelete }) => {
         />
         <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors duration-300 flex items-center justify-center opacity-0 hover:opacity-100">
           <div className="flex gap-2">
+            {mural?.modelo3dUrl && (
+              <button
+                onClick={handleAR}
+                className="p-2 bg-emerald-500/90 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                title="Ver en AR"
+              >
+                <MdViewInAr className="h-4 w-4" />
+              </button>
+            )}
             <button
               onClick={handleEdit}
               className="p-2 bg-white/90 text-gray-800 rounded-lg hover:bg-white transition-colors relative"
