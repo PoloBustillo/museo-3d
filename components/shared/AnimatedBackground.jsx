@@ -3,11 +3,11 @@
 export function AnimatedBlobsBackground() {
   return (
     <div className="absolute inset-0 z-0 pointer-events-none">
-      <div className="absolute top-0 left-0 max-w-full max-h-full w-[520px] h-[520px] bg-orange-300/30 dark:bg-orange-700/15 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe overflow-hidden" style={{contain:'layout'}} />
-      <div className="absolute bottom-0 right-0 max-w-full max-h-full w-[520px] h-[520px] bg-pink-300/30 dark:bg-pink-700/15 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe-delayed overflow-hidden" style={{contain:'layout'}} />
+      <div className="absolute top-0 left-0 w-[520px] h-[520px] bg-orange-300/30 dark:bg-orange-700/15 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe" />
+      <div className="absolute bottom-0 right-0 w-[520px] h-[520px] bg-pink-300/30 dark:bg-pink-700/15 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe-delayed" />
       <div
-        className="absolute top-1/2 left-1/2 max-w-full max-h-full w-[340px] h-[340px] bg-fuchsia-200/20 dark:bg-fuchsia-800/10 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe overflow-hidden"
-        style={{ transform: "translate(-50%,-50%) scale(1.15)", contain:'layout' }}
+        className="absolute top-1/2 left-1/2 w-[340px] h-[340px] bg-fuchsia-200/20 dark:bg-fuchsia-800/10 rounded-full mix-blend-multiply filter blur-[100px] animate-breathe"
+        style={{ transform: "translate(-50%,-50%) scale(1.2)" }}
       />
     </div>
   );
@@ -47,7 +47,7 @@ export function DotsPattern() {
 // Componente combinado para facilitar el uso
 export default function AnimatedBackground() {
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden w-full">
+    <div className="absolute inset-0 pointer-events-none">
       {/* Blobs atrás (z-0), puntos adelante (z-10) */}
       <AnimatedBlobsBackground />
       <DotsPattern />
