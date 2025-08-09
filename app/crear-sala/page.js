@@ -168,7 +168,7 @@ function MuralSelectModal({
                 onClick={() => setValue(mural.id)}
               >
                 <img
-                  src={mural.url_imagen}
+                  src={mural.url_imagen || '/placeholder-image.jpg'}
                   alt={mural.titulo}
                   className="w-20 h-20 object-cover rounded mb-2"
                 />

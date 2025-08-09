@@ -211,7 +211,7 @@ export default function CanvasEditor({
           );
           saveToHistory();
         };
-        img.src = editingMural.url_imagen;
+        img.src = editingMural.url_imagen || '/placeholder-image.jpg';
       } else {
         saveToHistory();
       }

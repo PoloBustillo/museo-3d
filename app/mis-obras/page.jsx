@@ -178,7 +178,7 @@ function MisMuralesEliminados({ fetchUserMurales }) {
               <tr key={mural.id}>
                 <td className="px-4 py-2">
                   <img
-                    src={mural.url_imagen}
+                    src={mural.url_imagen || '/placeholder-image.jpg'}
                     alt={mural.titulo}
                     className="w-16 h-16 object-cover rounded shadow border"
                   />

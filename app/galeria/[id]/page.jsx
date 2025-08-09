@@ -80,7 +80,7 @@ export default function GaleriaDetalle() {
   // Descargar imagen
   const handleDownload = () => {
     const link = document.createElement("a");
-    link.href = mural.url_imagen;
+    link.href = mural.url_imagen || '/placeholder-image.jpg';
     link.download = mural.titulo || `mural-${id}`;
     link.click();
   };
@@ -113,7 +113,7 @@ export default function GaleriaDetalle() {
         <div className="relative flex-1 flex items-center justify-center bg-black select-none min-h-[60vh]">
           <img
             ref={imgRef}
-            src={mural.url_imagen}
+            src={mural.url_imagen || '/placeholder-image.jpg'}
             alt={mural.titulo}
             className="object-contain w-full h-full max-h-[70vh] bg-black cursor-grab"
             style={{

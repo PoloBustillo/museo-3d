@@ -33,7 +33,7 @@ const MuralCard = ({ mural, view = "grid", onEdit, onDelete }) => {
       >
         <div className="w-24 h-24 flex-shrink-0 relative overflow-hidden rounded-lg">
           <img
-            src={mural.url_imagen}
+            src={mural.url_imagen || '/placeholder-image.jpg'}
             alt={mural.titulo}
             className="w-full h-full object-cover"
           />
@@ -106,7 +106,7 @@ const MuralCard = ({ mural, view = "grid", onEdit, onDelete }) => {
     >
       <div className="aspect-square relative overflow-hidden">
         <img
-          src={mural.url_imagen}
+          src={mural.url_imagen || '/placeholder-image.jpg'}
           alt={mural.titulo}
           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
         />

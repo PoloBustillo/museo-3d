@@ -226,10 +226,10 @@ export default function MisSalas() {
                     {/* Murales de la sala */}
                     <td className="px-4 py-4 align-middle text-center">
                       <div className="grid grid-cols-3 md:grid-cols-4 gap-3 justify-center items-center max-w-xs mx-auto">
-                        {sala.murales.map((sm) => (
+                        {sala.murales.filter(sm => sm.mural).map((sm) => (
                           <div key={sm.mural.id} className="relative group">
                             <img
-                              src={sm.mural.url_imagen}
+                              src={sm.mural.url_imagen || '/placeholder-image.jpg'}
                               alt={sm.mural.titulo}
                               className="w-24 h-24 aspect-square object-cover rounded-lg border border-gray-200 dark:border-gray-700 shadow transition-all duration-200"
                             />
@@ -331,13 +331,13 @@ export default function MisSalas() {
                   </div>
                   {/* Murales en grid 2 columnas */}
                   <div className="grid grid-cols-2 gap-5 justify-items-center items-center py-2 mx-auto">
-                    {sala.murales.map((sm) => (
+                    {sala.murales.filter(sm => sm.mural).map((sm) => (
                       <div
                         key={sm.mural.id}
                         className="relative group overflow-visible w-20 h-20 flex items-center justify-center"
                       >
                         <img
-                          src={sm.mural.url_imagen}
+                          src={sm.mural.url_imagen || '/placeholder-image.jpg'}
                           alt={sm.mural.titulo}
                           className="w-20 h-20 object-cover object-center rounded-lg border border-gray-200 dark:border-gray-700 shadow"
                         />
@@ -404,8 +404,9 @@ export default function MisSalas() {
                   .filter((mural) => {
                     const sala = salas.find((s) => s.id === selectedSalaId);
                     return (
+                      mural && // Agregar verificación de que mural existe
                       sala &&
-                      !sala.murales.some((sm) => sm.mural.id === mural.id)
+                      !sala.murales.some((sm) => sm.mural && sm.mural.id === mural.id)
                     );
                   })
                   .map((mural) => (
@@ -422,7 +423,7 @@ export default function MisSalas() {
                       }}
                     >
                       <img
-                        src={mural.url_imagen}
+                        src={mural.url_imagen || '/placeholder-image.jpg'}
                         alt={mural.titulo}
                         className="w-14 h-14 md:w-24 md:h-24 object-cover rounded mr-3 md:mr-6"
                       />

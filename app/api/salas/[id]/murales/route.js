@@ -45,7 +45,7 @@ export async function GET(req, { params }) {
         artistName: mural.artist?.user?.name || mural.autor || "Desconocido",
         artistImage: mural.artist?.user?.image,
         artista: mural.artist?.user?.name || mural.autor || "Desconocido",
-        imagenUrl: mural.url_imagen,
+        imagenUrl: mural.url_imagen || null,
       };
     });
 
@@ -78,6 +78,8 @@ export async function POST(req, { params }) {
   const { id } = await params;
   try {
     const data = await req.json();
+    console.log("POST /api/salas/[id]/murales - Datos recibidos:", data);
+    console.log("POST /api/salas/[id]/murales - Sala ID:", id);
 
     // Validar que los murales existan
     if (data.murales && data.murales.length > 0) {
@@ -153,7 +155,16 @@ export async function POST(req, { params }) {
     );
   } catch (error) {
     console.error("Error al agregar murales a la sala:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("Error stack:", error.stack);
+    console.error("Error details:", {
+      name: error.name,
+      message: error.message,
+      code: error.code
+    });
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      details: error.stack 
+    }), {
       status: 500,
       headers: { "Content-Type": "application/json" },
     });
