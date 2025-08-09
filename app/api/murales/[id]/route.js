@@ -209,26 +209,30 @@ export async function PUT(req, context) {
     if (updateData.anio !== undefined && updateData.anio !== null) {
       updateData.anio = Number(updateData.anio);
     }
-    
+
     // Conversiones adicionales para campos problemáticos
     if (updateData.salaId !== undefined && updateData.salaId !== null) {
-      updateData.salaId = updateData.salaId === "" ? null : Number(updateData.salaId);
+      updateData.salaId =
+        updateData.salaId === "" ? null : Number(updateData.salaId);
     }
     if (updateData.orden !== undefined && updateData.orden !== null) {
-      updateData.orden = updateData.orden === "" ? null : Number(updateData.orden);
+      updateData.orden =
+        updateData.orden === "" ? null : Number(updateData.orden);
     }
     if (updateData.visitas !== undefined && updateData.visitas !== null) {
       updateData.visitas = Number(updateData.visitas);
     }
-    
+
     // Convertir strings booleanos a booleanos reales
     if (updateData.publica !== undefined) {
-      updateData.publica = updateData.publica === "true" || updateData.publica === true;
+      updateData.publica =
+        updateData.publica === "true" || updateData.publica === true;
     }
     if (updateData.destacada !== undefined) {
-      updateData.destacada = updateData.destacada === "true" || updateData.destacada === true;
+      updateData.destacada =
+        updateData.destacada === "true" || updateData.destacada === true;
     }
-    
+
     // Parsear JSON strings para campos JSON
     if (updateData.tags !== undefined && typeof updateData.tags === "string") {
       try {
@@ -238,7 +242,10 @@ export async function PUT(req, context) {
         updateData.tags = [];
       }
     }
-    if (updateData.exposiciones !== undefined && typeof updateData.exposiciones === "string") {
+    if (
+      updateData.exposiciones !== undefined &&
+      typeof updateData.exposiciones === "string"
+    ) {
       try {
         updateData.exposiciones = JSON.parse(updateData.exposiciones);
       } catch (e) {
@@ -246,21 +253,26 @@ export async function PUT(req, context) {
         updateData.exposiciones = null;
       }
     }
-    if (updateData.imagenesSecundarias !== undefined && typeof updateData.imagenesSecundarias === "string") {
+    if (
+      updateData.imagenesSecundarias !== undefined &&
+      typeof updateData.imagenesSecundarias === "string"
+    ) {
       try {
-        updateData.imagenesSecundarias = JSON.parse(updateData.imagenesSecundarias);
+        updateData.imagenesSecundarias = JSON.parse(
+          updateData.imagenesSecundarias
+        );
       } catch (e) {
         console.warn("Error parsing imagenesSecundarias:", e);
         updateData.imagenesSecundarias = null;
       }
     }
-    
+
     // Debug: logging de los datos procesados
     console.log("💾 Datos procesados para actualización:", {
       updateDataKeys: Object.keys(updateData),
-      updateData: JSON.stringify(updateData, null, 2)
+      updateData: JSON.stringify(updateData, null, 2),
     });
-    
+
     // Actualizar mural
     const mural = await prisma.mural.update({
       where: { id: muralId },

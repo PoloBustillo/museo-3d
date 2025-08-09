@@ -159,15 +159,18 @@ export async function POST(req, { params }) {
     console.error("Error details:", {
       name: error.name,
       message: error.message,
-      code: error.code
+      code: error.code,
     });
-    return new Response(JSON.stringify({ 
-      error: error.message,
-      details: error.stack 
-    }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: error.message,
+        details: error.stack,
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }
 
