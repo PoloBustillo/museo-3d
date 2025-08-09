@@ -433,6 +433,55 @@ export default function CrearMuralStepper({
       return;
     }
 
+    // Si es una nueva creación (no hay initialData), limpiar localStorage primero
+    if (!editMode && !initialData) {
+      // Verificar si venimos de una creación exitosa reciente
+      const lastCreationTime = localStorage.getItem('lastMuralCreationTime');
+      const now = Date.now();
+      
+      // Si fue hace menos de 10 segundos, limpiar todo para nueva creación
+      if (!lastCreationTime || (now - parseInt(lastCreationTime)) < 10000) {
+        console.log('🧹 Limpiando localStorage para nueva creación');
+        localStorage.removeItem("muralDraftData");
+        localStorage.removeItem("muralStep");
+        localStorage.removeItem("canvasImage");
+        localStorage.removeItem('lastMuralCreationTime');
+        
+        // Reiniciar estado a valores por defecto
+        setMural({
+          titulo: "",
+          descripcion: "",
+          tecnica: "",
+          anio: new Date().getFullYear(),
+          dimensiones: "",
+          tags: [],
+          url_imagen: null,
+          imagenesSecundarias: [],
+          imagenUrlWebp: "",
+          videoUrl: "",
+          audioUrl: "",
+          modelo3dUrl: "",
+          ubicacion: "",
+          latitud: "",
+          longitud: "",
+          salaId: "",
+          exposiciones: [],
+          estado: "",
+          publica: true,
+          destacada: false,
+          orden: 0,
+          autor: "",
+          artistId: "",
+          colaboradores: [],
+          tagsInput: "",
+          userId: session?.user?.id || "",
+        });
+        setStep(0); // Comenzar desde el step 0 (primer step)
+        localStorageLoaded.current = true;
+        return;
+      }
+    }
+
     const savedData = localStorage.getItem("muralDraftData");
     const savedStep = localStorage.getItem("muralStep");
 
@@ -993,6 +1042,8 @@ export default function CrearMuralStepper({
           localStorage.removeItem("muralDraftData");
           localStorage.removeItem("muralStep");
           localStorage.removeItem("canvasImage");
+          // Marcar timestamp de creación exitosa para limpiar en próxima sesión
+          localStorage.setItem('lastMuralCreationTime', Date.now().toString());
         }
 
         // Redirigir después de un breve delay para mostrar el mensaje
@@ -1812,10 +1863,10 @@ export default function CrearMuralStepper({
                         <button type="button" onClick={() => setStep(0)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Editar</button>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                        <SummaryRow label="Título" value={mural.titulo} />
-                        <SummaryRow label="Técnica" value={mural.tecnica} />
-                        <SummaryRow label="Año" value={mural.anio || '-'} />
-                        <SummaryRow label="Dimensiones" value={mural.dimensiones || '—'} />
+                        <SummaryRow label="Título" value={mural.titulo} full />
+                        <SummaryRow label="Técnica" value={mural.tecnica} full />
+                        <SummaryRow label="Año" value={mural.anio || '-'} full />
+                        <SummaryRow label="Dimensiones" value={mural.dimensiones || '—'} full />
                         <SummaryRow label="Tags" value={mural.tags?.length ? mural.tags.join(', ') : '—'} full />
                         {mural.descripcion && <SummaryRow label="Descripción" value={mural.descripcion} full multiline />}
                       </div>
@@ -1828,9 +1879,9 @@ export default function CrearMuralStepper({
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
                         <SummaryRow label="Dirección" value={mural.ubicacion || '—'} full />
-                        <SummaryRow label="Latitud" value={mural.latitud || '—'} />
-                        <SummaryRow label="Longitud" value={mural.longitud || '—'} />
-                        <SummaryRow label="Sala" value={mural.salaId || '—'} />
+                        <SummaryRow label="Latitud" value={mural.latitud || '—'} full />
+                        <SummaryRow label="Longitud" value={mural.longitud || '—'} full />
+                        <SummaryRow label="Sala" value={mural.salaId ? (salas.find(s => s.id === mural.salaId)?.nombre || mural.salaId) : '—'} full />
                       </div>
                     </div>
                     {/* Estado / Visibilidad */}
@@ -1840,7 +1891,7 @@ export default function CrearMuralStepper({
                         <button type="button" onClick={() => setStep(3)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Editar</button>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                        <SummaryRow label="Estado" value={mural.estado || '—'} />
+                        <SummaryRow label="Estado" value={mural.estado || '—'} full />
                         <SummaryRow label="Pública" value={mural.publica ? 'Sí' : 'No'} />
                         <SummaryRow label="Destacada" value={mural.destacada ? 'Sí' : 'No'} />
                         <SummaryRow label="Orden" value={String(mural.orden || 0)} />
@@ -1853,7 +1904,7 @@ export default function CrearMuralStepper({
                         <button type="button" onClick={() => setStep(4)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Editar</button>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                        <SummaryRow label="Autor libre" value={mural.autor || '—'} />
+                        <SummaryRow label="Autor libre" value={mural.autor || '—'} full />
                         <SummaryRow label="Artista ID" value={mural.artistId || '—'} />
                         <SummaryRow label="Colaboradores" value={mural.colaboradores?.length ? mural.colaboradores.length + ' seleccionado(s)' : '—'} full />
                       </div>
@@ -2565,7 +2616,7 @@ function SummaryRow({ label, value, full=false, multiline=false }) {
   return (
     <div className={`flex ${full ? 'sm:col-span-2' : 'col-span-1'} ${multiline ? 'items-start' : 'items-center'} gap-2`}>
       <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 w-28 shrink-0">{label}</span>
-      <span className={`text-sm text-gray-800 dark:text-gray-100 ${multiline ? 'whitespace-pre-line leading-relaxed' : 'truncate'}`}>{value || '—'}</span>
+      <span className={`text-sm text-gray-800 dark:text-gray-100 ${multiline ? 'whitespace-pre-line leading-relaxed' : full ? 'break-words' : 'truncate'}`}>{value || '—'}</span>
     </div>
   );
 }

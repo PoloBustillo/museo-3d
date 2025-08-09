@@ -164,17 +164,19 @@ export async function PUT(req, context) {
       "autor",
       "tecnica",
       "ubicacion",
-      "url_imagen",
+      "url_imagen", // Nombre correcto según schema
       "modelo3dUrl",
       "latitud",
       "longitud",
       "anio",
       "artistId",
-      "userId",
+      "userId", // Reactivado - debería funcionar ahora
       "dimensiones",
       "estado",
-      "imagenUrl",
-      "imagenUrlWebp",
+      "imagenUrlWebp", // Este sí existe en el schema
+      "imagenesSecundarias",
+      "videoUrl",
+      "audioUrl",
       "salaId",
       "exposiciones",
       "publica",
@@ -186,8 +188,13 @@ export async function PUT(req, context) {
     ];
     const updateData = {};
     for (const key of allowedFields) {
-      if (key === "url_imagen" || key === "imagenUrl") {
-        if (url_imagen !== undefined) updateData[key] = url_imagen;
+      if (key === "url_imagen") {
+        // Manejar tanto url_imagen como imagenUrl del frontend
+        if (url_imagen !== undefined) {
+          updateData["url_imagen"] = url_imagen;
+        } else if (data.imagenUrl !== undefined) {
+          updateData["url_imagen"] = data.imagenUrl;
+        }
       } else if (data[key] !== undefined) {
         updateData[key] = data[key];
       }
@@ -202,6 +209,58 @@ export async function PUT(req, context) {
     if (updateData.anio !== undefined && updateData.anio !== null) {
       updateData.anio = Number(updateData.anio);
     }
+    
+    // Conversiones adicionales para campos problemáticos
+    if (updateData.salaId !== undefined && updateData.salaId !== null) {
+      updateData.salaId = updateData.salaId === "" ? null : Number(updateData.salaId);
+    }
+    if (updateData.orden !== undefined && updateData.orden !== null) {
+      updateData.orden = updateData.orden === "" ? null : Number(updateData.orden);
+    }
+    if (updateData.visitas !== undefined && updateData.visitas !== null) {
+      updateData.visitas = Number(updateData.visitas);
+    }
+    
+    // Convertir strings booleanos a booleanos reales
+    if (updateData.publica !== undefined) {
+      updateData.publica = updateData.publica === "true" || updateData.publica === true;
+    }
+    if (updateData.destacada !== undefined) {
+      updateData.destacada = updateData.destacada === "true" || updateData.destacada === true;
+    }
+    
+    // Parsear JSON strings para campos JSON
+    if (updateData.tags !== undefined && typeof updateData.tags === "string") {
+      try {
+        updateData.tags = JSON.parse(updateData.tags);
+      } catch (e) {
+        console.warn("Error parsing tags:", e);
+        updateData.tags = [];
+      }
+    }
+    if (updateData.exposiciones !== undefined && typeof updateData.exposiciones === "string") {
+      try {
+        updateData.exposiciones = JSON.parse(updateData.exposiciones);
+      } catch (e) {
+        console.warn("Error parsing exposiciones:", e);
+        updateData.exposiciones = null;
+      }
+    }
+    if (updateData.imagenesSecundarias !== undefined && typeof updateData.imagenesSecundarias === "string") {
+      try {
+        updateData.imagenesSecundarias = JSON.parse(updateData.imagenesSecundarias);
+      } catch (e) {
+        console.warn("Error parsing imagenesSecundarias:", e);
+        updateData.imagenesSecundarias = null;
+      }
+    }
+    
+    // Debug: logging de los datos procesados
+    console.log("💾 Datos procesados para actualización:", {
+      updateDataKeys: Object.keys(updateData),
+      updateData: JSON.stringify(updateData, null, 2)
+    });
+    
     // Actualizar mural
     const mural = await prisma.mural.update({
       where: { id: muralId },
