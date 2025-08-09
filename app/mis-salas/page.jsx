@@ -12,8 +12,55 @@ import Unauthorized from "../../components/Unauthorized";
 import AnimatedBackground from "../../components/shared/AnimatedBackground";
 import AvatarTooltip from "@/components/ui/AvatarTooltip";
 import React, { useRef } from "react";
-import { Trash2, Plus, Search, Filter, Grid, List, Building } from "lucide-react";
+import { Trash2, Plus, Search, Filter, Grid, List, Building, Eye, UserPlus, Calendar, Palette } from "lucide-react";
 import { motion } from "framer-motion";
+
+// Componente Tooltip para mostrar murales
+const MuralesToolTip = ({ murales, children }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
+  
+  if (!murales || murales.length === 0) {
+    return children;
+  }
+
+  return (
+    <div 
+      className="relative"
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      {children}
+      {showTooltip && (
+        <div className="absolute z-[9999] bottom-full left-1/2 transform -translate-x-1/2 mb-2 p-3 bg-black/90 text-white rounded-lg shadow-xl backdrop-blur-sm min-w-[200px] max-w-[300px]">
+          <div className="text-xs font-semibold mb-2 text-center">
+            Murales en esta sala ({murales.length})
+          </div>
+          <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+            {murales.slice(0, 6).map((sm, index) => (
+              <div key={index} className="flex items-center gap-2 text-xs">
+                <img
+                  src={sm.mural?.url_imagen || '/placeholder-image.jpg'}
+                  alt={sm.mural?.titulo || 'Mural'}
+                  className="w-8 h-8 object-cover rounded"
+                />
+                <span className="truncate flex-1">
+                  {sm.mural?.titulo || 'Sin título'}
+                </span>
+              </div>
+            ))}
+            {murales.length > 6 && (
+              <div className="col-span-2 text-center text-xs text-gray-300 mt-1">
+                +{murales.length - 6} más...
+              </div>
+            )}
+          </div>
+          {/* Flecha del tooltip */}
+          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-black/90"></div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function MisSalas() {
   const { data: session, status } = useSession();
@@ -355,15 +402,15 @@ export default function MisSalas() {
 
           {/* Vista Grid */}
           {view === "grid" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative">
               {sortedSalas.map((sala) => (
                 <motion.div
                   key={sala.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="bg-white/90 dark:bg-neutral-800/90 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border"
+                  className="bg-white/90 dark:bg-neutral-800/90 backdrop-blur-sm rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border border-border overflow-visible"
                 >
-                  <Card>
+                  <Card className="overflow-visible">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-3">
@@ -396,44 +443,94 @@ export default function MisSalas() {
                         {sala.descripcion}
                       </p>
                       
-                      {/* Preview de murales */}
-                      {sala.murales && sala.murales.length > 0 && (
-                        <div className="grid grid-cols-3 gap-2 mb-4">
-                          {sala.murales.slice(0, 3).map((sm, index) => (
-                            <div key={index} className="aspect-square rounded-lg overflow-hidden">
-                              <img
-                                src={sm.mural?.url_imagen || '/placeholder-image.jpg'}
-                                alt={sm.mural?.titulo || 'Mural'}
-                                className="w-full h-full object-cover"
-                              />
+                      {/* Preview de murales mejorado */}
+                      {sala.murales && sala.murales.length > 0 ? (
+                        <div className="mb-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              Murales ({sala.murales.length})
+                            </span>
+                            <MuralesToolTip murales={sala.murales}>
+                              <button className="text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium transition-colors">
+                                Ver todos
+                              </button>
+                            </MuralesToolTip>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {sala.murales.slice(0, 3).map((sm, index) => (
+                              <div key={index} className="aspect-square rounded-lg overflow-hidden relative group">
+                                <img
+                                  src={sm.mural?.url_imagen || '/placeholder-image.jpg'}
+                                  alt={sm.mural?.titulo || 'Mural'}
+                                  className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                                />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                                  <span className="text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity text-center p-1">
+                                    {sm.mural?.titulo || 'Sin título'}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                          {sala.murales.length > 3 && (
+                            <div className="mt-2 text-center">
+                              <span className="text-xs text-muted-foreground">
+                                +{sala.murales.length - 3} más
+                              </span>
                             </div>
-                          ))}
+                          )}
+                        </div>
+                      ) : (
+                        <div className="mb-4 text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                          <Palette className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-xs text-muted-foreground">
+                            Sin murales
+                          </p>
                         </div>
                       )}
                       
                       <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
-                        <span>Por: {sala.creador?.name || "Anónimo"}</span>
-                        <span>{new Date(sala.createdAt).toLocaleDateString()}</span>
+                        <div className="flex items-center gap-1">
+                          <span>Por:</span>
+                          <span className="font-medium">{sala.creador?.name || "Anónimo"}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          <span>{new Date(sala.createdAt).toLocaleDateString()}</span>
+                        </div>
                       </div>
                       
-                      <div className="flex gap-2">
-                        <Button asChild className="flex-1" size="sm">
-                          <Link href={`/galeria?salaId=${sala.id}`}>
+                      <div className="flex flex-col gap-2">
+                        {/* Botón principal - Ver sala */}
+                        <Button asChild className="w-full" size="sm">
+                          <Link href={`/galeria?salaId=${sala.id}`} className="flex items-center gap-2">
+                            <Eye className="h-4 w-4" />
                             Ver sala
                           </Link>
                         </Button>
-                        {isAdmin && (
+                        
+                        {/* Botones secundarios */}
+                        <div className="flex gap-2">
+                          {isAdmin && (
+                            <button
+                              onClick={() => {
+                                setSelectedSalaId(sala.id);
+                                setShowAddMuralModal(true);
+                              }}
+                              className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                              title="Añadir murales"
+                            >
+                              <UserPlus className="h-4 w-4" />
+                              Añadir
+                            </button>
+                          )}
                           <button
-                            onClick={() => {
-                              setSelectedSalaId(sala.id);
-                              setShowAddMuralModal(true);
-                            }}
-                            className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-                            title="Añadir murales"
+                            className="flex items-center justify-center gap-1 px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors"
+                            title="Más opciones"
                           >
-                            + Murales
+                            <span className="text-lg leading-none">⋯</span>
                           </button>
-                        )}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -461,11 +558,9 @@ export default function MisSalas() {
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Fecha
                       </th>
-                      {isAdmin && (
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Acciones
-                        </th>
-                      )}
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Acciones
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-neutral-800 divide-y divide-gray-200 dark:divide-neutral-700">
@@ -489,9 +584,30 @@ export default function MisSalas() {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                          <Badge variant="secondary">
-                            {sala._count?.murales || 0} murales
-                          </Badge>
+                          <MuralesToolTip murales={sala.murales}>
+                            <div className="flex items-center gap-2 cursor-pointer">
+                              <Badge variant="secondary" className="hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                                {sala._count?.murales || 0} murales
+                              </Badge>
+                              {sala.murales && sala.murales.length > 0 && (
+                                <div className="flex -space-x-1">
+                                  {sala.murales.slice(0, 3).map((sm, index) => (
+                                    <img
+                                      key={index}
+                                      src={sm.mural?.url_imagen || '/placeholder-image.jpg'}
+                                      alt={sm.mural?.titulo || 'Mural'}
+                                      className="w-6 h-6 rounded-full border-2 border-white dark:border-neutral-800 object-cover"
+                                    />
+                                  ))}
+                                  {sala.murales.length > 3 && (
+                                    <div className="w-6 h-6 rounded-full border-2 border-white dark:border-neutral-800 bg-gray-200 dark:bg-neutral-600 flex items-center justify-center text-xs font-medium">
+                                      +{sala.murales.length - 3}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </MuralesToolTip>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {sala.creador?.name || "Anónimo"}
@@ -499,34 +615,38 @@ export default function MisSalas() {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {new Date(sala.createdAt).toLocaleDateString()}
                         </td>
-                        {isAdmin && (
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <div className="flex items-center justify-end gap-2">
-                              <Button asChild size="sm" variant="outline">
-                                <Link href={`/galeria?salaId=${sala.id}`}>
-                                  Ver
-                                </Link>
-                              </Button>
-                              <button
-                                onClick={() => {
-                                  setSelectedSalaId(sala.id);
-                                  setShowAddMuralModal(true);
-                                }}
-                                className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
-                                title="Añadir murales"
-                              >
-                                + Murales
-                              </button>
-                              <button
-                                onClick={() => setSalaToDelete(sala)}
-                                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
-                                title="Eliminar sala"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </button>
-                            </div>
-                          </td>
-                        )}
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button asChild size="sm" variant="outline" className="flex items-center gap-1">
+                              <Link href={`/galeria?salaId=${sala.id}`}>
+                                <Eye className="h-3 w-3" />
+                                Ver
+                              </Link>
+                            </Button>
+                            {isAdmin && (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    setSelectedSalaId(sala.id);
+                                    setShowAddMuralModal(true);
+                                  }}
+                                  className="flex items-center gap-1 px-3 py-1 text-sm bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 rounded hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                                  title="Añadir murales"
+                                >
+                                  <UserPlus className="h-3 w-3" />
+                                  Añadir
+                                </button>
+                                <button
+                                  onClick={() => setSalaToDelete(sala)}
+                                  className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                  title="Eliminar sala"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
