@@ -109,6 +109,8 @@ export default function MisSalas() {
   const [selectedSalaId, setSelectedSalaId] = useState(null);
   const [selectedMuralIds, setSelectedMuralIds] = useState([]);
   const [isAddingMurales, setIsAddingMurales] = useState(false);
+  const [modalPosition, setModalPosition] = useState({ top: 0, left: 0 });
+  const [triggerSalaElement, setTriggerSalaElement] = useState(null);
   
   // Estados para filtros y vista (similar a mis-obras)
   const [searchTerm, setSearchTerm] = useState("");
@@ -252,6 +254,17 @@ export default function MisSalas() {
       // Mostrar mensaje de éxito
       toast.success(`${selectedMuralIds.length} mural${selectedMuralIds.length > 1 ? 'es' : ''} agregado${selectedMuralIds.length > 1 ? 's' : ''} exitosamente`);
       
+      // Scroll suave de regreso a la sala si tenemos la referencia
+      if (triggerSalaElement) {
+        setTimeout(() => {
+          triggerSalaElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'nearest'
+          });
+        }, 300); // Pequeño delay para que se cierre el modal primero
+      }
+      
     } catch (e) {
       console.error("Error al agregar murales:", e);
       toast.error(e.message || "Error al agregar murales a la sala");
@@ -288,6 +301,39 @@ export default function MisSalas() {
 
   // Navegación a crear sala
   const goToCrearSala = () => router.push("/crear-sala");
+
+  // Función para abrir modal con posicionamiento
+  const openAddMuralModal = (salaId, triggerElement) => {
+    setSelectedSalaId(salaId);
+    setTriggerSalaElement(triggerElement);
+    
+    if (triggerElement) {
+      const rect = triggerElement.getBoundingClientRect();
+      const scrollY = window.scrollY;
+      const scrollX = window.scrollX;
+      
+      // Calcular posición óptima del modal (más pequeño)
+      const modalWidth = 400; // Reducido de 600 a 400
+      const modalHeight = 500; // Reducido de 600 a 500
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      // Centrar horizontalmente en la pantalla, no en el elemento
+      let left = (viewportWidth - modalWidth) / 2 + scrollX;
+      let top = rect.top + scrollY - modalHeight / 2;
+      
+      // Ajustar si se sale de la pantalla (con más margen)
+      const margin = 20;
+      if (left < margin + scrollX) left = margin + scrollX;
+      if (left + modalWidth > viewportWidth - margin + scrollX) left = viewportWidth - modalWidth - margin + scrollX;
+      if (top < margin + scrollY) top = margin + scrollY;
+      if (top + modalHeight > viewportHeight + scrollY - margin) top = viewportHeight + scrollY - modalHeight - margin;
+      
+      setModalPosition({ top, left });
+    }
+    
+    setShowAddMuralModal(true);
+  };
 
   if (status === "loading" || loading) {
     return (
@@ -444,6 +490,7 @@ export default function MisSalas() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   className="bg-white/90 dark:bg-neutral-800/90 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border"
+                  data-sala-card
                 >
                   <Card>
                     <CardHeader className="pb-3">
@@ -548,9 +595,8 @@ export default function MisSalas() {
                         <div className="flex gap-2">
                           {isAdmin && (
                             <button
-                              onClick={() => {
-                                setSelectedSalaId(sala.id);
-                                setShowAddMuralModal(true);
+                              onClick={(e) => {
+                                openAddMuralModal(sala.id, e.currentTarget.closest('[data-sala-card]'));
                               }}
                               className="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-sm bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
                               title="Añadir murales"
@@ -600,7 +646,7 @@ export default function MisSalas() {
                   </thead>
                   <tbody className="bg-white dark:bg-neutral-800 divide-y divide-gray-200 dark:divide-neutral-700">
                     {sortedSalas.map((sala) => (
-                      <tr key={sala.id} className="hover:bg-gray-50 dark:hover:bg-neutral-700/50">
+                      <tr key={sala.id} className="hover:bg-gray-50 dark:hover:bg-neutral-700/50" data-sala-card>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="flex-shrink-0 h-10 w-10">
@@ -661,9 +707,8 @@ export default function MisSalas() {
                             {isAdmin && (
                               <>
                                 <button
-                                  onClick={() => {
-                                    setSelectedSalaId(sala.id);
-                                    setShowAddMuralModal(true);
+                                  onClick={(e) => {
+                                    openAddMuralModal(sala.id, e.currentTarget.closest('tr'));
                                   }}
                                   className="flex items-center gap-1 px-3 py-1 text-sm bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800 rounded hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
                                   title="Añadir murales"
@@ -725,12 +770,34 @@ export default function MisSalas() {
       {/* Modales */}
       {/* Modal para añadir murales */}
       {showAddMuralModal && (
-        <div className="fixed inset-0 z-50 flex justify-center items-start pt-10 pb-4 bg-black/40 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white dark:bg-neutral-900 border border-border rounded-2xl shadow-2xl p-4 md:p-8 flex flex-col items-center w-full max-w-xs md:max-w-lg mx-auto">
-            <h3 className="font-semibold mb-4 text-lg md:text-2xl text-indigo-700 dark:text-indigo-300">
-              Añadir mural a la sala
-            </h3>
-            <div className="flex flex-col gap-4 max-h-80 md:max-h-[32rem] overflow-y-auto w-full mb-6 border border-gray-200 dark:border-gray-700 dark:border-2 rounded-xl p-2 md:p-4">
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className="absolute bg-white dark:bg-neutral-900 border border-border rounded-2xl shadow-2xl p-4 w-full max-w-sm"
+            style={{
+              top: modalPosition.top,
+              left: modalPosition.left,
+              maxHeight: '70vh',
+              width: '400px'
+            }}
+          >
+            {/* Header del modal */}
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-lg text-indigo-700 dark:text-indigo-300">
+                Añadir obras
+              </h3>
+              <button
+                onClick={() => setShowAddMuralModal(false)}
+                className="p-1 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+              >
+                <span className="text-lg">&times;</span>
+              </button>
+            </div>
+
+            {/* Lista de murales */}
+            <div className="flex flex-col gap-2 max-h-72 overflow-y-auto mb-4 border border-gray-200 dark:border-gray-700 rounded-xl p-2">
               {muralesDisponibles
                 .filter((mural) => {
                   const sala = salas.find((s) => s.id === selectedSalaId);
@@ -741,10 +808,16 @@ export default function MisSalas() {
                   );
                 })
                 .map((mural) => (
-                  <button
+                  <motion.button
                     key={mural.id}
                     type="button"
-                    className={`flex flex-row items-center border rounded-lg p-2 md:p-4 transition shadow hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 ${selectedMuralIds.includes(mural.id) ? "border-indigo-600 ring-2 ring-indigo-400" : "border-gray-300 dark:border-gray-700 dark:border-2"}`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`flex flex-row items-center border rounded-lg p-2 transition-all duration-200 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-400 ${
+                      selectedMuralIds.includes(mural.id) 
+                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-2 ring-indigo-400" 
+                        : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
+                    }`}
                     onClick={() => {
                       setSelectedMuralIds((prev) =>
                         prev.includes(mural.id)
@@ -756,22 +829,22 @@ export default function MisSalas() {
                     <img
                       src={mural.url_imagen || '/placeholder-image.jpg'}
                       alt={mural.titulo}
-                      className="w-14 h-14 md:w-24 md:h-24 object-cover rounded mr-3 md:mr-6"
+                      className="w-10 h-10 object-cover rounded-lg mr-2 flex-shrink-0"
                     />
-                    <div className="flex flex-col flex-1 max-w-[10rem] md:max-w-[18rem] overflow-hidden">
-                      <span className="font-medium text-sm md:text-lg text-left truncate w-full">
+                    <div className="flex flex-col flex-1 min-w-0">
+                      <span className="font-medium text-sm text-left truncate">
                         {mural.titulo}
                       </span>
-                      <span className="text-xs md:text-base text-muted-foreground text-left truncate w-full">
+                      <span className="text-xs text-muted-foreground text-left truncate">
                         {mural.tecnica}
                       </span>
                     </div>
                     {selectedMuralIds.includes(mural.id) && (
-                      <span className="ml-2 text-indigo-600 font-bold text-lg md:text-2xl">
-                        ✓
-                      </span>
+                      <div className="ml-2 w-5 h-5 bg-indigo-600 text-white rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-bold">✓</span>
+                      </div>
                     )}
-                  </button>
+                  </motion.button>
                 ))}
               {muralesDisponibles.filter((mural) => {
                 const sala = salas.find((s) => s.id === selectedSalaId);
@@ -781,20 +854,23 @@ export default function MisSalas() {
                   !sala.murales.some((sm) => sm.mural && sm.mural.id === mural.id)
                 );
               }).length === 0 && (
-                <div className="text-center text-muted-foreground py-8">
-                  No hay murales disponibles para agregar.
+                <div className="text-center text-muted-foreground py-6">
+                  <Palette className="h-10 w-10 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm">No hay obras disponibles.</p>
                 </div>
               )}
             </div>
-            <div className="flex gap-4 w-full justify-center">
+
+            {/* Footer con botones */}
+            <div className="flex gap-2">
               <button
-                className="px-4 py-2 rounded bg-gray-200 dark:bg-neutral-800 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-300 dark:hover:bg-neutral-700 transition w-1/2"
+                className="flex-1 px-3 py-2 text-sm rounded-lg bg-gray-100 dark:bg-neutral-800 text-gray-700 dark:text-gray-200 font-medium hover:bg-gray-200 dark:hover:bg-neutral-700 transition-colors"
                 onClick={() => setShowAddMuralModal(false)}
               >
                 Cancelar
               </button>
               <button
-                className="px-4 py-2 rounded bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition w-1/2 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="flex-1 px-3 py-2 text-sm rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-1"
                 onClick={handleAddMural}
                 disabled={
                   isAddingMurales ||
@@ -810,7 +886,7 @@ export default function MisSalas() {
                 }
               >
                 {isAddingMurales && (
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
                 )}
                 {isAddingMurales ? "Agregando..." : "Añadir"}
                 {!isAddingMurales && selectedMuralIds.length > 0
@@ -818,7 +894,7 @@ export default function MisSalas() {
                   : ""}
               </button>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
