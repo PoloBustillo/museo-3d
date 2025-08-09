@@ -12,7 +12,8 @@ import Unauthorized from "../../components/Unauthorized";
 import AnimatedBackground from "../../components/shared/AnimatedBackground";
 import AvatarTooltip from "@/components/ui/AvatarTooltip";
 import React, { useRef } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, Plus, Search, Filter, Grid, List, Building } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function MisSalas() {
   const { data: session, status } = useSession();
@@ -26,11 +27,14 @@ export default function MisSalas() {
   const [selectedSalaId, setSelectedSalaId] = useState(null);
   const [selectedMuralIds, setSelectedMuralIds] = useState([]);
   const [isAddingMurales, setIsAddingMurales] = useState(false);
-  const addMuralBtnRef = useRef(null);
-  const [modalPosition, setModalPosition] = useState({ top: 0, left: 0 });
+  
+  // Estados para filtros y vista (similar a mis-obras)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [view, setView] = useState("grid"); // 'grid' o 'list'
+  const [sortBy, setSortBy] = useState("nombre"); // 'nombre', 'fecha', 'murales'
+  
   const router = useRouter();
-  // Nuevo estado para el mural a eliminar
-  const [muralToRemove, setMuralToRemove] = useState(null);
 
   const isAdmin = session?.user?.role === "ADMIN";
   const userId = session?.user?.id;
@@ -48,52 +52,37 @@ export default function MisSalas() {
           allSalas = allSalas.filter(
             (sala) =>
               sala.creadorId === userId ||
-              sala.colaboradores?.some((col) => col.id === userId)
+              (sala.colaboradores && sala.colaboradores.some((c) => c.userId === userId))
           );
         }
         setSalas(allSalas);
-      } catch (e) {
-        setError(e.message);
+      } catch (err) {
+        setError(err.message);
       } finally {
         setLoading(false);
       }
     };
-    fetchSalas();
-  }, [isAdmin, userId]);
 
+    if (status !== "loading") {
+      fetchSalas();
+    }
+  }, [isAdmin, userId, status]);
+
+  // Cargar murales disponibles para añadir
   useEffect(() => {
-    // Cargar murales disponibles para añadir
     const fetchMurales = async () => {
-      const res = await fetch("/api/murales");
-      if (res.ok) {
-        const data = await res.json();
-        setMuralesDisponibles(data.murales || []);
+      try {
+        const res = await fetch("/api/murales");
+        if (res.ok) {
+          const data = await res.json();
+          setMuralesDisponibles(data.murales || []);
+        }
+      } catch (err) {
+        console.error("Error al cargar murales:", err);
       }
     };
     fetchMurales();
   }, []);
-
-  const handleDelete = async (id) => {
-    setSalaToDelete(id);
-  };
-
-  const confirmDelete = async () => {
-    if (!salaToDelete) return;
-    setIsDeleting(true);
-    try {
-      const res = await fetch(`/api/salas/${salaToDelete}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("No se pudo eliminar la sala");
-      setSalas((prev) => prev.filter((s) => s.id !== salaToDelete));
-      setSalaToDelete(null);
-    } catch (e) {
-      alert(e.message);
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-  const cancelDelete = () => setSalaToDelete(null);
 
   const handleRemoveMural = async (salaId, muralId) => {
     try {
@@ -129,18 +118,6 @@ export default function MisSalas() {
     } catch (e) {
       console.error("Error al eliminar mural:", e);
       toast.error(e.message || "Error al eliminar mural de la sala");
-    }
-  };
-
-  const handleShowAddMural = (salaId, e) => {
-    setSelectedSalaId(salaId);
-    setShowAddMuralModal(true);
-    if (e && addMuralBtnRef.current) {
-      const rect = addMuralBtnRef.current.getBoundingClientRect();
-      setModalPosition({
-        top: rect.bottom + window.scrollY + 8,
-        left: rect.left + window.scrollX,
-      });
     }
   };
 
@@ -201,338 +178,495 @@ export default function MisSalas() {
     }
   };
 
-  // UI igual a admin/salas: tabla en desktop, cards en mobile, controles solo para admin
+  // Funciones de filtrado y ordenamiento
+  const filteredSalas = salas.filter(sala => {
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      return (
+        sala.nombre?.toLowerCase().includes(search) ||
+        sala.descripcion?.toLowerCase().includes(search) ||
+        sala.creador?.name?.toLowerCase().includes(search)
+      );
+    }
+    return true;
+  });
+
+  const sortedSalas = [...filteredSalas].sort((a, b) => {
+    switch (sortBy) {
+      case "nombre":
+        return (a.nombre || "").localeCompare(b.nombre || "");
+      case "fecha":
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      case "murales":
+        return (b._count?.murales || 0) - (a._count?.murales || 0);
+      default:
+        return 0;
+    }
+  });
+
+  // Navegación a crear sala
+  const goToCrearSala = () => router.push("/crear-sala");
+
+  if (status === "loading" || loading) {
+    return (
+      <div className="relative min-h-screen overflow-hidden flex items-center justify-center">
+        <AnimatedBackground />
+        <div className="relative z-10 text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-xl text-muted-foreground">Cargando tus salas...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <Unauthorized />;
+  }
+
   return (
     <div className="relative min-h-screen overflow-hidden">
       <AnimatedBackground />
-      <div className="relative z-10 w-full max-w-6xl mx-auto p-4 sm:p-8">
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-          <h1 className="text-2xl sm:text-3xl font-bold">Mis Salas</h1>
-          <Button asChild variant="default" className="w-full sm:w-auto">
-            <Link href="/crear-sala">Crear nueva sala</Link>
-          </Button>
-        </div>
-        {/* Desktop/tablet: tabla, mobile: cards */}
-        <div className="hidden md:block">
-          {loading ? (
-            <div className="text-center py-8">Cargando salas...</div>
-          ) : error ? (
-            <div className="text-center text-red-500 py-8">{error}</div>
-          ) : salas.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No hay salas registradas.
+      
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-8 pt-24 md:pt-28 pb-2 md:pb-4">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+        >
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-foreground mb-4 flex items-center gap-3">
+              <Building className="h-10 w-10 text-indigo-600" />
+              Mis Salas
+            </h1>
+            <p className="text-lg text-muted-foreground mb-6">
+              Crea y administra tus salas de exposición virtual
+            </p>
+
+            {/* Botones de acción principales */}
+            <div className="flex flex-wrap gap-4 mb-6">
+              <button
+                onClick={goToCrearSala}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-bold shadow hover:bg-indigo-700 transition"
+              >
+                <Plus className="h-5 w-5" /> Crear sala
+              </button>
             </div>
-          ) : (
-            <table className="w-full border-separate border-spacing-y-3">
-              <thead>
-                <tr>
-                  <th className="text-left px-4 py-2">Nombre de la sala</th>
-                  <th className="text-center px-4 py-2">Creador</th>
-                  <th className="text-center px-4 py-2">Murales</th>
-                  <th className="text-center px-4 py-2">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {salas.map((sala) => (
-                  <tr
-                    key={sala.id}
-                    className="bg-white/80 dark:bg-zinc-900/80 rounded-xl shadow border border-gray-200 dark:border-gray-700 dark:border-2"
-                  >
-                    {/* Nombre y creador centrados verticalmente */}
-                    <td className="px-4 py-4 align-middle text-lg font-semibold text-foreground text-center">
-                      <div className="flex flex-col items-center justify-center gap-1">
-                        <span>{sala.nombre}</span>
-                        <span className="text-xs text-muted-foreground font-normal">
-                          ID: {sala.id}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 align-middle text-center">
-                      <div className="flex flex-col items-center justify-center gap-1">
-                        <span className="font-medium text-base">
-                          {sala.creador?.id === userId ? (
-                            <span className="text-green-600 font-bold">
-                              Tú (Propietario)
-                            </span>
-                          ) : (
-                            sala.creador?.name || (
-                              <span className="italic text-muted-foreground">
-                                Sin nombre
-                              </span>
-                            )
-                          )}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {sala.creador?.email}
-                        </span>
-                      </div>
-                    </td>
-                    {/* Murales de la sala */}
-                    <td className="px-4 py-4 align-middle text-center">
-                      <div className="grid grid-cols-3 md:grid-cols-4 gap-3 justify-center items-center max-w-xs mx-auto">
-                        {sala.murales.filter(sm => sm.mural).map((sm) => (
-                          <div key={sm.mural.id} className="relative group">
-                            <img
-                              src={sm.mural.url_imagen || '/placeholder-image.jpg'}
-                              alt={sm.mural.titulo}
-                              className="w-24 h-24 aspect-square object-cover rounded-lg border border-gray-200 dark:border-gray-700 shadow transition-all duration-200"
-                            />
-                            {isAdmin && (
-                              <button
-                                type="button"
-                                className="absolute inset-0 flex items-center justify-center bg-black/40 hover:bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
-                                title="Eliminar mural de la sala"
-                                onClick={() =>
-                                  setMuralToRemove({
-                                    salaId: sala.id,
-                                    muralId: sm.mural.id,
-                                  })
-                                }
-                              >
-                                <Trash2 className="w-8 h-8 text-red-500 drop-shadow" />
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                        {isAdmin && (
-                          <button
-                            type="button"
-                            ref={addMuralBtnRef}
-                            className="flex flex-col items-center justify-center gap-1 p-0.5 border-2 border-dashed border-indigo-400 rounded-lg bg-white dark:bg-neutral-900 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-neutral-800 transition h-16 w-16 min-w-[4rem] min-h-[4rem]"
-                            onClick={(e) => handleShowAddMural(sala.id, e)}
-                            title="Añadir mural a la sala"
-                          >
-                            <span className="text-2xl leading-none">＋</span>
-                            <span className="text-xs font-medium">Añadir</span>
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 align-middle text-center">
-                      <div className="flex flex-row gap-2 justify-center">
-                        <Button asChild size="sm" variant="outline">
-                          <Link href={`/admin/salas/${sala.id}`}>Editar</Link>
-                        </Button>
-                        {isAdmin && (
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleDelete(sala.id)}
-                          >
-                            Eliminar
-                          </Button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-        {/* Mobile: cards */}
-        <div className="block md:hidden">
-          {loading ? (
-            <div className="text-center py-8">Cargando salas...</div>
-          ) : error ? (
-            <div className="text-center text-red-500 py-8">{error}</div>
-          ) : salas.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No hay salas registradas.
-            </div>
-          ) : (
-            <div className="flex flex-col gap-6">
-              {salas.map((sala) => (
-                <div
-                  key={sala.id}
-                  className="bg-white/80 dark:bg-zinc-900/80 rounded-2xl shadow border border-gray-200 dark:border-gray-700 dark:border-2 p-4 flex flex-col gap-3"
+          </div>
+
+          {/* Controles de filtros y vista */}
+          <div className="mb-16 md:mb-20">
+            <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-between gap-2 sm:gap-4 bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm rounded-xl p-4 border border-border overflow-hidden min-w-0 w-full">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1 sm:gap-4 w-full sm:w-auto min-w-0">
+                {/* Barra de búsqueda */}
+                <div className="relative w-full sm:w-auto">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Buscar salas..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-700 text-foreground focus:ring-2 focus:ring-indigo-500 w-full sm:w-auto"
+                  />
+                </div>
+
+                {/* Botón de filtros */}
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="flex items-center gap-2 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-neutral-700 transition-colors w-full sm:w-auto min-w-0 overflow-hidden break-words"
                 >
-                  <div className="flex flex-col items-center justify-center gap-1">
-                    <span className="text-lg font-semibold text-foreground">
-                      {sala.nombre}
-                    </span>
-                    <span className="text-xs text-muted-foreground font-normal">
-                      ID: {sala.id}
-                    </span>
+                  <Filter className="h-4 w-4" />
+                  <span>Filtros</span>
+                </button>
+              </div>
+
+              {/* Controles de vista y estadísticas */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">
+                  {sortedSalas.length} sala{sortedSalas.length !== 1 ? 's' : ''}
+                </span>
+                
+                {/* Selectores de vista */}
+                <div className="flex border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => setView("grid")}
+                    className={`p-2 ${view === "grid" ? "bg-indigo-600 text-white" : "bg-white dark:bg-neutral-700 text-gray-600 dark:text-gray-300"} transition-colors`}
+                  >
+                    <Grid className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setView("list")}
+                    className={`p-2 ${view === "list" ? "bg-indigo-600 text-white" : "bg-white dark:bg-neutral-700 text-gray-600 dark:text-gray-300"} transition-colors`}
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Panel de filtros expandible */}
+            {showFilters && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm rounded-xl p-4 border border-border mt-4"
+              >
+                <div className="flex flex-wrap gap-4">
+                  {/* Ordenar por */}
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium text-foreground">
+                      Ordenar por:
+                    </label>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-neutral-700 text-foreground focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="nombre">Nombre</option>
+                      <option value="fecha">Fecha de creación</option>
+                      <option value="murales">Número de murales</option>
+                    </select>
                   </div>
-                  <div className="flex flex-col items-center justify-center gap-1">
-                    <span className="font-medium text-base">
-                      {sala.creador?.id === userId ? (
-                        <span className="text-green-600 font-bold">
-                          Tú (Propietario)
-                        </span>
-                      ) : (
-                        sala.creador?.name || (
-                          <span className="italic text-muted-foreground">
-                            Sin nombre
-                          </span>
-                        )
-                      )}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {sala.creador?.email}
-                    </span>
-                  </div>
-                  {/* Murales en grid 2 columnas */}
-                  <div className="grid grid-cols-2 gap-5 justify-items-center items-center py-2 mx-auto">
-                    {sala.murales.filter(sm => sm.mural).map((sm) => (
-                      <div
-                        key={sm.mural.id}
-                        className="relative group overflow-visible w-20 h-20 flex items-center justify-center"
-                      >
-                        <img
-                          src={sm.mural.url_imagen || '/placeholder-image.jpg'}
-                          alt={sm.mural.titulo}
-                          className="w-20 h-20 object-cover object-center rounded-lg border border-gray-200 dark:border-gray-700 shadow"
-                        />
-                        {isAdmin && (
-                          <button
-                            type="button"
-                            className="absolute top-1 right-1 z-10 bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-base shadow-lg transition pointer-events-auto"
-                            title="Eliminar mural de la sala"
-                            onClick={() =>
-                              handleRemoveMural(sala.id, sm.mural.id)
-                            }
-                          >
-                            ×
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    {isAdmin && (
-                      <button
-                        type="button"
-                        ref={addMuralBtnRef}
-                        className="col-span-2 flex flex-col items-center justify-center gap-1 p-2 border-2 border-dashed border-indigo-400 rounded-lg bg-white dark:bg-neutral-900 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-neutral-800 transition min-h-[4rem]"
-                        onClick={(e) => handleShowAddMural(sala.id, e)}
-                        title="Añadir mural a la sala"
-                      >
-                        <span className="text-2xl leading-none">＋</span>
-                        <span className="text-xs font-medium">
-                          Añadir mural
-                        </span>
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex flex-row gap-2 justify-center mt-2">
-                    <Button asChild size="sm" variant="outline">
-                      <Link href={`/admin/salas/${sala.id}`}>Editar</Link>
-                    </Button>
-                    {isAdmin && (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => handleDelete(sala.id)}
-                      >
-                        Eliminar
-                      </Button>
-                    )}
+
+                  {/* Botón para limpiar filtros */}
+                  <div className="flex items-end">
+                    <button
+                      onClick={() => {
+                        setSearchTerm("");
+                        setSortBy("nombre");
+                      }}
+                      className="px-4 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-colors"
+                    >
+                      Limpiar filtros
+                    </button>
                   </div>
                 </div>
+              </motion.div>
+            )}
+          </div>
+
+          {/* Contenido principal - Lista de salas */}
+          {error && (
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+              <p className="text-red-700 dark:text-red-300">{error}</p>
+            </div>
+          )}
+
+          {/* Vista Grid */}
+          {view === "grid" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {sortedSalas.map((sala) => (
+                <motion.div
+                  key={sala.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-white/90 dark:bg-neutral-800/90 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 border border-border"
+                >
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg">
+                            <SalaIcon className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                          </div>
+                          <div>
+                            <CardTitle className="text-lg font-bold text-foreground">
+                              {sala.nombre}
+                            </CardTitle>
+                            <p className="text-sm text-muted-foreground">
+                              {sala._count?.murales || 0} murales
+                            </p>
+                          </div>
+                        </div>
+                        {isAdmin && (
+                          <button
+                            onClick={() => setSalaToDelete(sala)}
+                            className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            title="Eliminar sala"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </CardHeader>
+                    
+                    <CardContent className="pt-0">
+                      <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                        {sala.descripcion}
+                      </p>
+                      
+                      {/* Preview de murales */}
+                      {sala.murales && sala.murales.length > 0 && (
+                        <div className="grid grid-cols-3 gap-2 mb-4">
+                          {sala.murales.slice(0, 3).map((sm, index) => (
+                            <div key={index} className="aspect-square rounded-lg overflow-hidden">
+                              <img
+                                src={sm.mural?.url_imagen || '/placeholder-image.jpg'}
+                                alt={sm.mural?.titulo || 'Mural'}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+                        <span>Por: {sala.creador?.name || "Anónimo"}</span>
+                        <span>{new Date(sala.createdAt).toLocaleDateString()}</span>
+                      </div>
+                      
+                      <div className="flex gap-2">
+                        <Button asChild className="flex-1" size="sm">
+                          <Link href={`/galeria?salaId=${sala.id}`}>
+                            Ver sala
+                          </Link>
+                        </Button>
+                        {isAdmin && (
+                          <button
+                            onClick={() => {
+                              setSelectedSalaId(sala.id);
+                              setShowAddMuralModal(true);
+                            }}
+                            className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                            title="Añadir murales"
+                          >
+                            + Murales
+                          </button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               ))}
             </div>
           )}
-        </div>
-        {/* Modal para añadir mural en mobile */}
-        {showAddMuralModal && (
-          <div
-            id="add-mural-modal"
-            className="fixed inset-0 z-50 flex justify-center items-start pt-10 pb-4 bg-black/40 backdrop-blur-sm overflow-y-auto"
-          >
-            <div className="bg-white dark:bg-neutral-900 border border-border rounded-2xl shadow-2xl p-4 md:p-8 flex flex-col items-center w-full max-w-xs md:max-w-lg mx-auto">
-              <h3 className="font-semibold mb-4 text-lg md:text-2xl text-indigo-700 dark:text-indigo-300">
-                Añadir mural a la sala
+
+          {/* Vista Lista */}
+          {view === "list" && (
+            <div className="bg-white/90 dark:bg-neutral-800/90 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden border border-border">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 dark:bg-neutral-700">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Sala
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Murales
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Creador
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Fecha
+                      </th>
+                      {isAdmin && (
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Acciones
+                        </th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white dark:bg-neutral-800 divide-y divide-gray-200 dark:divide-neutral-700">
+                    {sortedSalas.map((sala) => (
+                      <tr key={sala.id} className="hover:bg-gray-50 dark:hover:bg-neutral-700/50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-10 w-10">
+                              <div className="h-10 w-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
+                                <SalaIcon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                {sala.nombre}
+                              </div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
+                                {sala.descripcion}
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                          <Badge variant="secondary">
+                            {sala._count?.murales || 0} murales
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {sala.creador?.name || "Anónimo"}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                          {new Date(sala.createdAt).toLocaleDateString()}
+                        </td>
+                        {isAdmin && (
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex items-center justify-end gap-2">
+                              <Button asChild size="sm" variant="outline">
+                                <Link href={`/galeria?salaId=${sala.id}`}>
+                                  Ver
+                                </Link>
+                              </Button>
+                              <button
+                                onClick={() => {
+                                  setSelectedSalaId(sala.id);
+                                  setShowAddMuralModal(true);
+                                }}
+                                className="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
+                                title="Añadir murales"
+                              >
+                                + Murales
+                              </button>
+                              <button
+                                onClick={() => setSalaToDelete(sala)}
+                                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+                                title="Eliminar sala"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Estado vacío */}
+          {sortedSalas.length === 0 && !loading && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-16"
+            >
+              <Building className="h-24 w-24 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-600 dark:text-gray-300 mb-2">
+                {searchTerm ? "No se encontraron salas" : "No tienes salas creadas"}
               </h3>
-              <div className="flex flex-col gap-4 max-h-80 md:max-h-[32rem] overflow-y-auto w-full mb-6 border border-gray-200 dark:border-gray-700 dark:border-2 rounded-xl p-2 md:p-4">
-                {muralesDisponibles
-                  .filter((mural) => {
+              <p className="text-gray-500 dark:text-gray-400 mb-6">
+                {searchTerm 
+                  ? "Intenta con otros términos de búsqueda"
+                  : "Crea tu primera sala para empezar a organizar tus obras"
+                }
+              </p>
+              {!searchTerm && (
+                <button
+                  onClick={goToCrearSala}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-bold shadow hover:bg-indigo-700 transition"
+                >
+                  <Plus className="h-5 w-5" />
+                  Crear primera sala
+                </button>
+              )}
+            </motion.div>
+          )}
+
+        </motion.div>
+      </div>
+
+      {/* Modales */}
+      {/* Modal para añadir murales */}
+      {showAddMuralModal && (
+        <div className="fixed inset-0 z-50 flex justify-center items-start pt-10 pb-4 bg-black/40 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white dark:bg-neutral-900 border border-border rounded-2xl shadow-2xl p-4 md:p-8 flex flex-col items-center w-full max-w-xs md:max-w-lg mx-auto">
+            <h3 className="font-semibold mb-4 text-lg md:text-2xl text-indigo-700 dark:text-indigo-300">
+              Añadir mural a la sala
+            </h3>
+            <div className="flex flex-col gap-4 max-h-80 md:max-h-[32rem] overflow-y-auto w-full mb-6 border border-gray-200 dark:border-gray-700 dark:border-2 rounded-xl p-2 md:p-4">
+              {muralesDisponibles
+                .filter((mural) => {
+                  const sala = salas.find((s) => s.id === selectedSalaId);
+                  return (
+                    mural &&
+                    sala &&
+                    !sala.murales.some((sm) => sm.mural && sm.mural.id === mural.id)
+                  );
+                })
+                .map((mural) => (
+                  <button
+                    key={mural.id}
+                    type="button"
+                    className={`flex flex-row items-center border rounded-lg p-2 md:p-4 transition shadow hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 ${selectedMuralIds.includes(mural.id) ? "border-indigo-600 ring-2 ring-indigo-400" : "border-gray-300 dark:border-gray-700 dark:border-2"}`}
+                    onClick={() => {
+                      setSelectedMuralIds((prev) =>
+                        prev.includes(mural.id)
+                          ? prev.filter((id) => id !== mural.id)
+                          : [...prev, mural.id]
+                      );
+                    }}
+                  >
+                    <img
+                      src={mural.url_imagen || '/placeholder-image.jpg'}
+                      alt={mural.titulo}
+                      className="w-14 h-14 md:w-24 md:h-24 object-cover rounded mr-3 md:mr-6"
+                    />
+                    <div className="flex flex-col flex-1 max-w-[10rem] md:max-w-[18rem] overflow-hidden">
+                      <span className="font-medium text-sm md:text-lg text-left truncate w-full">
+                        {mural.titulo}
+                      </span>
+                      <span className="text-xs md:text-base text-muted-foreground text-left truncate w-full">
+                        {mural.tecnica}
+                      </span>
+                    </div>
+                    {selectedMuralIds.includes(mural.id) && (
+                      <span className="ml-2 text-indigo-600 font-bold text-lg md:text-2xl">
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                ))}
+              {muralesDisponibles.filter((mural) => {
+                const sala = salas.find((s) => s.id === selectedSalaId);
+                return (
+                  mural &&
+                  sala &&
+                  !sala.murales.some((sm) => sm.mural && sm.mural.id === mural.id)
+                );
+              }).length === 0 && (
+                <div className="text-center text-muted-foreground py-8">
+                  No hay murales disponibles para agregar.
+                </div>
+              )}
+            </div>
+            <div className="flex gap-4 w-full justify-center">
+              <button
+                className="px-4 py-2 rounded bg-gray-200 dark:bg-neutral-800 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-300 dark:hover:bg-neutral-700 transition w-1/2"
+                onClick={() => setShowAddMuralModal(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition w-1/2 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                onClick={handleAddMural}
+                disabled={
+                  isAddingMurales ||
+                  selectedMuralIds.length === 0 ||
+                  muralesDisponibles.filter((mural) => {
                     const sala = salas.find((s) => s.id === selectedSalaId);
                     return (
-                      mural && // Agregar verificación de que mural existe
+                      mural &&
                       sala &&
                       !sala.murales.some((sm) => sm.mural && sm.mural.id === mural.id)
                     );
-                  })
-                  .map((mural) => (
-                    <button
-                      key={mural.id}
-                      type="button"
-                      className={`flex flex-row items-center border rounded-lg p-2 md:p-4 transition shadow hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 ${selectedMuralIds.includes(mural.id) ? "border-indigo-600 ring-2 ring-indigo-400" : "border-gray-300 dark:border-gray-700 dark:border-2"}`}
-                      onClick={() => {
-                        setSelectedMuralIds((prev) =>
-                          prev.includes(mural.id)
-                            ? prev.filter((id) => id !== mural.id)
-                            : [...prev, mural.id]
-                        );
-                      }}
-                    >
-                      <img
-                        src={mural.url_imagen || '/placeholder-image.jpg'}
-                        alt={mural.titulo}
-                        className="w-14 h-14 md:w-24 md:h-24 object-cover rounded mr-3 md:mr-6"
-                      />
-                      <div className="flex flex-col flex-1 max-w-[10rem] md:max-w-[18rem] overflow-hidden">
-                        <span className="font-medium text-sm md:text-lg text-left truncate w-full">
-                          {mural.titulo}
-                        </span>
-                        <span className="text-xs md:text-base text-muted-foreground text-left truncate w-full">
-                          {mural.tecnica}
-                        </span>
-                      </div>
-                      {selectedMuralIds.includes(mural.id) && (
-                        <span className="ml-2 text-indigo-600 font-bold text-lg md:text-2xl">
-                          ✓
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                {muralesDisponibles.filter((mural) => {
-                  const sala = salas.find((s) => s.id === selectedSalaId);
-                  return (
-                    sala && !sala.murales.some((sm) => sm.mural.id === mural.id)
-                  );
-                }).length === 0 && (
-                  <div className="text-center text-muted-foreground py-8">
-                    No hay murales disponibles para agregar.
-                  </div>
+                  }).length === 0
+                }
+              >
+                {isAddingMurales && (
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 )}
-              </div>
-              <div className="flex gap-4 w-full justify-center">
-                <button
-                  className="px-4 py-2 rounded bg-gray-200 dark:bg-neutral-800 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-300 dark:hover:bg-neutral-700 transition w-1/2"
-                  onClick={() => setShowAddMuralModal(false)}
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="px-4 py-2 rounded bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition w-1/2 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  onClick={handleAddMural}
-                  disabled={
-                    isAddingMurales ||
-                    selectedMuralIds.length === 0 ||
-                    muralesDisponibles.filter((mural) => {
-                      const sala = salas.find((s) => s.id === selectedSalaId);
-                      return (
-                        mural && // Agregar verificación de que mural existe
-                        sala &&
-                        !sala.murales.some((sm) => sm.mural && sm.mural.id === mural.id)
-                      );
-                    }).length === 0
-                  }
-                >
-                  {isAddingMurales && (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  )}
-                  {isAddingMurales ? "Agregando..." : "Añadir"}
-                  {!isAddingMurales && selectedMuralIds.length > 0
-                    ? ` (${selectedMuralIds.length})`
-                    : ""}
-                </button>
-              </div>
+                {isAddingMurales ? "Agregando..." : "Añadir"}
+                {!isAddingMurales && selectedMuralIds.length > 0
+                  ? ` (${selectedMuralIds.length})`
+                  : ""}
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
       {/* Modal de confirmación de borrado */}
       {salaToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -540,59 +674,35 @@ export default function MisSalas() {
             <h3 className="font-semibold mb-4 text-lg text-red-700 dark:text-red-300">
               ¿Eliminar sala?
             </h3>
-            <p className="mb-6 text-gray-700 dark:text-gray-200 text-center">
-              Esta acción eliminará la sala y no se puede deshacer. ¿Seguro que
-              quieres continuar?
+            <p className="mb-6 text-gray-700 dark:text-gray-200">
+              Se eliminará "{salaToDelete.nombre}" y todas sus configuraciones.
             </p>
             <div className="flex gap-4">
               <button
                 className="px-4 py-2 rounded bg-gray-200 dark:bg-neutral-800 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-300 dark:hover:bg-neutral-700 transition"
-                onClick={cancelDelete}
-                disabled={isDeleting}
+                onClick={() => setSalaToDelete(null)}
               >
                 Cancelar
               </button>
               <button
                 className="px-4 py-2 rounded bg-red-600 text-white font-bold hover:bg-red-700 transition"
-                onClick={confirmDelete}
                 disabled={isDeleting}
-              >
-                {isDeleting ? "Eliminando..." : "Eliminar"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Modal de confirmación para eliminar mural de sala */}
-      {muralToRemove && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-          <div className="bg-white dark:bg-neutral-900 border border-border rounded-2xl shadow-2xl p-8 flex flex-col items-center max-w-xs">
-            <h3 className="font-semibold mb-4 text-lg text-red-600">
-              ¿Eliminar mural de la sala?
-            </h3>
-            <p className="mb-6 text-center text-sm">
-              Esta acción no se puede deshacer.
-              <br />
-              ¿Seguro que quieres quitar este mural de la sala?
-            </p>
-            <div className="flex gap-4 w-full justify-center">
-              <button
-                className="px-4 py-2 rounded bg-gray-200 dark:bg-neutral-800 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-300 dark:hover:bg-neutral-700 transition w-1/2"
-                onClick={() => setMuralToRemove(null)}
-              >
-                Cancelar
-              </button>
-              <button
-                className="px-4 py-2 rounded bg-red-600 text-white font-bold hover:bg-red-700 transition w-1/2"
                 onClick={async () => {
-                  await handleRemoveMural(
-                    muralToRemove.salaId,
-                    muralToRemove.muralId
-                  );
-                  setMuralToRemove(null);
+                  setIsDeleting(true);
+                  const res = await fetch(`/api/salas/${salaToDelete.id}`, {
+                    method: "DELETE",
+                  });
+                  if (res.ok) {
+                    setSalas(salas.filter((s) => s.id !== salaToDelete.id));
+                    toast.success("Sala eliminada exitosamente");
+                  } else {
+                    toast.error("Error al eliminar la sala");
+                  }
+                  setSalaToDelete(null);
+                  setIsDeleting(false);
                 }}
               >
-                Eliminar
+                {isDeleting ? "Eliminando..." : "Eliminar"}
               </button>
             </div>
           </div>

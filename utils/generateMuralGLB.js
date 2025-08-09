@@ -61,9 +61,13 @@ export async function generateMuralGLB(imageUrl) {
 
             // Crear lienzo como BOX SÓLIDO en lugar de plano para eliminar transparencias
             const canvasThickness = 0.025; // Grosor real del lienzo
-            const boxGeometry = new THREE.BoxGeometry(width, height, canvasThickness);
-            
-            // Materiales para cada cara del cubo 
+            const boxGeometry = new THREE.BoxGeometry(
+              width,
+              height,
+              canvasThickness
+            );
+
+            // Materiales para cada cara del cubo
             // Orden correcto en BoxGeometry: [+X, -X, +Y, -Y, +Z, -Z]
             // +Z es el frente (hacia la cámara), -Z es la parte trasera
             const canvasEdgeMaterial = new THREE.MeshPhongMaterial({
@@ -78,31 +82,31 @@ export async function generateMuralGLB(imageUrl) {
               color: 0x2a2a2a,
               shininess: 5,
             });
-            
+
             // Array de materiales en orden correcto: [+X, -X, +Y, -Y, +Z, -Z]
             const canvasMaterials = [
               canvasEdgeMaterial, // +X (derecha)
-              canvasEdgeMaterial, // -X (izquierda)  
+              canvasEdgeMaterial, // -X (izquierda)
               canvasEdgeMaterial, // +Y (arriba)
               canvasEdgeMaterial, // -Y (abajo)
               canvasFrontMaterial, // +Z (frente) - AQUÍ va la imagen
-              canvasBackMaterial  // -Z (atrás)
+              canvasBackMaterial, // -Z (atrás)
             ];
-            
+
             const mesh = new THREE.Mesh(boxGeometry, canvasMaterials);
             mesh.position.set(0, 0, 0.045); // Ligeramente adelante del marco
-            
+
             // Asegurar que la cara frontal (+Z) con la imagen esté hacia el frente
             // Si la imagen aparece en la parte trasera, rotar 180° en Y
             mesh.rotation.y = 0; // Intentar sin rotación primero
-            
+
             console.log("Canvas materials order:", {
               front_Z_positive: "+Z (frente con imagen)",
               back_Z_negative: "-Z (trasero gris)",
               sides: "±X, ±Y (bordes negros)",
               position: mesh.position,
-              rotation: mesh.rotation
-            });            // Crear marco volumétrico más realista con textura premium
+              rotation: mesh.rotation,
+            }); // Crear marco volumétrico más realista con textura premium
             const frameGroup = new THREE.Group();
 
             // Parámetros del marco mejorados
@@ -252,7 +256,7 @@ export async function generateMuralGLB(imageUrl) {
 
             // MARCO SÓLIDO ÚNICO - Sin gaps ni uniones problemáticas
             // En lugar de 4 piezas separadas, creamos una estructura sólida completa
-            
+
             // Marco superior - extendido para cubrir completamente
             const topFrame = new THREE.BoxGeometry(
               outerWidth + 0.02, // Ligeramente más ancho para evitar gaps
@@ -263,7 +267,7 @@ export async function generateMuralGLB(imageUrl) {
             topMesh.position.set(0, height / 2 + frameWidth / 2, 0);
             frameGroup.add(topMesh);
 
-            // Marco inferior - extendido para cubrir completamente  
+            // Marco inferior - extendido para cubrir completamente
             const bottomFrame = new THREE.BoxGeometry(
               outerWidth + 0.02,
               frameWidth,
@@ -304,8 +308,15 @@ export async function generateMuralGLB(imageUrl) {
             });
 
             // Esquina superior izquierda
-            const topLeftCorner = new THREE.BoxGeometry(cornerSize, cornerSize, frameDepth + 0.02);
-            const topLeftCornerMesh = new THREE.Mesh(topLeftCorner, cornerMaterial);
+            const topLeftCorner = new THREE.BoxGeometry(
+              cornerSize,
+              cornerSize,
+              frameDepth + 0.02
+            );
+            const topLeftCornerMesh = new THREE.Mesh(
+              topLeftCorner,
+              cornerMaterial
+            );
             topLeftCornerMesh.position.set(
               -width / 2 - frameWidth / 2,
               height / 2 + frameWidth / 2,
@@ -314,8 +325,15 @@ export async function generateMuralGLB(imageUrl) {
             frameGroup.add(topLeftCornerMesh);
 
             // Esquina superior derecha
-            const topRightCorner = new THREE.BoxGeometry(cornerSize, cornerSize, frameDepth + 0.02);
-            const topRightCornerMesh = new THREE.Mesh(topRightCorner, cornerMaterial);
+            const topRightCorner = new THREE.BoxGeometry(
+              cornerSize,
+              cornerSize,
+              frameDepth + 0.02
+            );
+            const topRightCornerMesh = new THREE.Mesh(
+              topRightCorner,
+              cornerMaterial
+            );
             topRightCornerMesh.position.set(
               width / 2 + frameWidth / 2,
               height / 2 + frameWidth / 2,
@@ -324,8 +342,15 @@ export async function generateMuralGLB(imageUrl) {
             frameGroup.add(topRightCornerMesh);
 
             // Esquina inferior izquierda
-            const bottomLeftCorner = new THREE.BoxGeometry(cornerSize, cornerSize, frameDepth + 0.02);
-            const bottomLeftCornerMesh = new THREE.Mesh(bottomLeftCorner, cornerMaterial);
+            const bottomLeftCorner = new THREE.BoxGeometry(
+              cornerSize,
+              cornerSize,
+              frameDepth + 0.02
+            );
+            const bottomLeftCornerMesh = new THREE.Mesh(
+              bottomLeftCorner,
+              cornerMaterial
+            );
             bottomLeftCornerMesh.position.set(
               -width / 2 - frameWidth / 2,
               -height / 2 - frameWidth / 2,
@@ -334,8 +359,15 @@ export async function generateMuralGLB(imageUrl) {
             frameGroup.add(bottomLeftCornerMesh);
 
             // Esquina inferior derecha
-            const bottomRightCorner = new THREE.BoxGeometry(cornerSize, cornerSize, frameDepth + 0.02);
-            const bottomRightCornerMesh = new THREE.Mesh(bottomRightCorner, cornerMaterial);
+            const bottomRightCorner = new THREE.BoxGeometry(
+              cornerSize,
+              cornerSize,
+              frameDepth + 0.02
+            );
+            const bottomRightCornerMesh = new THREE.Mesh(
+              bottomRightCorner,
+              cornerMaterial
+            );
             bottomRightCornerMesh.position.set(
               width / 2 + frameWidth / 2,
               -height / 2 - frameWidth / 2,
@@ -354,27 +386,71 @@ export async function generateMuralGLB(imageUrl) {
             const innerDepth = frameDepth * 0.6;
 
             // Panel lateral superior interior
-            const topInnerPanel = new THREE.BoxGeometry(width, innerPanelThickness, innerDepth);
-            const topInnerPanelMesh = new THREE.Mesh(topInnerPanel, innerPanelMaterial);
-            topInnerPanelMesh.position.set(0, height / 2 - innerPanelThickness / 2, -innerDepth / 4);
+            const topInnerPanel = new THREE.BoxGeometry(
+              width,
+              innerPanelThickness,
+              innerDepth
+            );
+            const topInnerPanelMesh = new THREE.Mesh(
+              topInnerPanel,
+              innerPanelMaterial
+            );
+            topInnerPanelMesh.position.set(
+              0,
+              height / 2 - innerPanelThickness / 2,
+              -innerDepth / 4
+            );
             frameGroup.add(topInnerPanelMesh);
 
             // Panel lateral inferior interior
-            const bottomInnerPanel = new THREE.BoxGeometry(width, innerPanelThickness, innerDepth);
-            const bottomInnerPanelMesh = new THREE.Mesh(bottomInnerPanel, innerPanelMaterial);
-            bottomInnerPanelMesh.position.set(0, -height / 2 + innerPanelThickness / 2, -innerDepth / 4);
+            const bottomInnerPanel = new THREE.BoxGeometry(
+              width,
+              innerPanelThickness,
+              innerDepth
+            );
+            const bottomInnerPanelMesh = new THREE.Mesh(
+              bottomInnerPanel,
+              innerPanelMaterial
+            );
+            bottomInnerPanelMesh.position.set(
+              0,
+              -height / 2 + innerPanelThickness / 2,
+              -innerDepth / 4
+            );
             frameGroup.add(bottomInnerPanelMesh);
 
             // Panel lateral izquierdo interior
-            const leftInnerPanel = new THREE.BoxGeometry(innerPanelThickness, height, innerDepth);
-            const leftInnerPanelMesh = new THREE.Mesh(leftInnerPanel, innerPanelMaterial);
-            leftInnerPanelMesh.position.set(-width / 2 + innerPanelThickness / 2, 0, -innerDepth / 4);
+            const leftInnerPanel = new THREE.BoxGeometry(
+              innerPanelThickness,
+              height,
+              innerDepth
+            );
+            const leftInnerPanelMesh = new THREE.Mesh(
+              leftInnerPanel,
+              innerPanelMaterial
+            );
+            leftInnerPanelMesh.position.set(
+              -width / 2 + innerPanelThickness / 2,
+              0,
+              -innerDepth / 4
+            );
             frameGroup.add(leftInnerPanelMesh);
 
             // Panel lateral derecho interior
-            const rightInnerPanel = new THREE.BoxGeometry(innerPanelThickness, height, innerDepth);
-            const rightInnerPanelMesh = new THREE.Mesh(rightInnerPanel, innerPanelMaterial);
-            rightInnerPanelMesh.position.set(width / 2 - innerPanelThickness / 2, 0, -innerDepth / 4);
+            const rightInnerPanel = new THREE.BoxGeometry(
+              innerPanelThickness,
+              height,
+              innerDepth
+            );
+            const rightInnerPanelMesh = new THREE.Mesh(
+              rightInnerPanel,
+              innerPanelMaterial
+            );
+            rightInnerPanelMesh.position.set(
+              width / 2 - innerPanelThickness / 2,
+              0,
+              -innerDepth / 4
+            );
             frameGroup.add(rightInnerPanelMesh);
 
             // BISELES INTERIORES más definidos
@@ -579,7 +655,7 @@ export async function generateMuralGLB(imageUrl) {
             console.log("Canvas mesh creado:", {
               dimensions: { width, height, thickness: canvasThickness },
               position: mesh.position,
-              materials: canvasMaterials.length
+              materials: canvasMaterials.length,
             });
 
             frameGroup.position.set(0, 0, 0);
@@ -588,7 +664,7 @@ export async function generateMuralGLB(imageUrl) {
             console.log("Frame group creado:", {
               frameDepth,
               frameWidth,
-              children: frameGroup.children.length
+              children: frameGroup.children.length,
             });
 
             scene.add(mesh);
