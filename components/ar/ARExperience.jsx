@@ -335,35 +335,38 @@ export default function ARExperience({
           });
         }
 
-        // Configurar materiales para AR - preservar back panel
+        // Configurar materiales para AR - preservar back panel y eliminar transparencias
         model.traverse((child) => {
           if (child.isMesh) {
             child.frustumCulled = false; // NO desaparecer por culling
             if (child.material) {
               child.material.side = THREE.DoubleSide; // Visible desde ambos lados
 
-              // Preservar depth testing para el back panel y asegurar opacidad completa
-              if (child.name && child.name.toLowerCase().includes("back")) {
-                child.material.depthTest = true;
-                child.material.depthWrite = true;
-                child.material.transparent = false;
-                child.material.opacity = 1.0;
-                child.material.needsUpdate = true;
-                console.log(
-                  "[AR] Configurando back panel:",
-                  child.name,
-                  "depthTest:",
-                  true,
-                  "depthWrite:",
-                  true
-                );
-              } else {
-                child.material.depthTest = false; // NO hacer depth test para otros elementos
-                child.material.depthWrite = false; // NO escribir al depth buffer
-                child.material.transparent = false;
-                child.material.opacity = 1.0;
-                child.material.needsUpdate = true;
+              // Configuración uniforme para TODOS los materiales - eliminando diferencias problemáticas
+              child.material.depthTest = true;
+              child.material.depthWrite = true;
+              child.material.transparent = false;
+              child.material.opacity = 1.0;
+              child.material.needsUpdate = true;
+              
+              // Si es un array de materiales (como nuestro canvas con múltiples caras)
+              if (Array.isArray(child.material)) {
+                child.material.forEach(mat => {
+                  mat.side = THREE.DoubleSide;
+                  mat.depthTest = true;
+                  mat.depthWrite = true;
+                  mat.transparent = false;
+                  mat.opacity = 1.0;
+                  mat.needsUpdate = true;
+                });
               }
+              
+              console.log("[AR] Material AR configurado:", {
+                name: child.name || 'unnamed',
+                side: child.material.side,
+                transparent: child.material.transparent,
+                isArray: Array.isArray(child.material)
+              });
             }
           }
         });

@@ -59,37 +59,50 @@ export async function generateMuralGLB(imageUrl) {
               }
             }
 
-            // Crear geometría del cuadro principal con subdivisiones optimizadas
-            // Crear lienzo principal como plano para mejor visibilidad de la textura
-            const geometry = new THREE.PlaneGeometry(width, height, 2, 2);
-            const material = new THREE.MeshPhongMaterial({
+            // Crear lienzo como BOX SÓLIDO en lugar de plano para eliminar transparencias
+            const canvasThickness = 0.025; // Grosor real del lienzo
+            const boxGeometry = new THREE.BoxGeometry(width, height, canvasThickness);
+            
+            // Materiales para cada cara del cubo 
+            // Orden correcto en BoxGeometry: [+X, -X, +Y, -Y, +Z, -Z]
+            // +Z es el frente (hacia la cámara), -Z es la parte trasera
+            const canvasEdgeMaterial = new THREE.MeshPhongMaterial({
+              color: 0x1a1a1a,
+              shininess: 10,
+            });
+            const canvasFrontMaterial = new THREE.MeshPhongMaterial({
               map: texture,
-              side: THREE.DoubleSide,
-              transparent: false,
-              opacity: 1.0,
               shininess: 30,
             });
-            const mesh = new THREE.Mesh(geometry, material);
-            mesh.position.set(0, 0, 0.045); // Ligeramente adelante del marco
-
-            // Crear respaldo sólido del lienzo para evitar transparencias
-            const canvasBackGeometry = new THREE.PlaneGeometry(
-              width * 0.98,
-              height * 0.98
-            );
             const canvasBackMaterial = new THREE.MeshPhongMaterial({
               color: 0x2a2a2a,
-              side: THREE.BackSide,
               shininess: 5,
             });
-            const canvasBack = new THREE.Mesh(
-              canvasBackGeometry,
-              canvasBackMaterial
-            );
-            canvasBack.position.set(0, 0, 0.035);
-            mesh.add(canvasBack);
-
-            // Crear marco volumétrico más realista con textura premium
+            
+            // Array de materiales en orden correcto: [+X, -X, +Y, -Y, +Z, -Z]
+            const canvasMaterials = [
+              canvasEdgeMaterial, // +X (derecha)
+              canvasEdgeMaterial, // -X (izquierda)  
+              canvasEdgeMaterial, // +Y (arriba)
+              canvasEdgeMaterial, // -Y (abajo)
+              canvasFrontMaterial, // +Z (frente) - AQUÍ va la imagen
+              canvasBackMaterial  // -Z (atrás)
+            ];
+            
+            const mesh = new THREE.Mesh(boxGeometry, canvasMaterials);
+            mesh.position.set(0, 0, 0.045); // Ligeramente adelante del marco
+            
+            // Asegurar que la cara frontal (+Z) con la imagen esté hacia el frente
+            // Si la imagen aparece en la parte trasera, rotar 180° en Y
+            mesh.rotation.y = 0; // Intentar sin rotación primero
+            
+            console.log("Canvas materials order:", {
+              front_Z_positive: "+Z (frente con imagen)",
+              back_Z_negative: "-Z (trasero gris)",
+              sides: "±X, ±Y (bordes negros)",
+              position: mesh.position,
+              rotation: mesh.rotation
+            });            // Crear marco volumétrico más realista con textura premium
             const frameGroup = new THREE.Group();
 
             // Parámetros del marco mejorados
@@ -237,47 +250,132 @@ export async function generateMuralGLB(imageUrl) {
 
             // Eliminamos el panel sombra redundante que puede causar conflictos
 
-            // Marco principal - superior
+            // MARCO SÓLIDO ÚNICO - Sin gaps ni uniones problemáticas
+            // En lugar de 4 piezas separadas, creamos una estructura sólida completa
+            
+            // Marco superior - extendido para cubrir completamente
             const topFrame = new THREE.BoxGeometry(
-              outerWidth,
+              outerWidth + 0.02, // Ligeramente más ancho para evitar gaps
               frameWidth,
-              frameDepth
+              frameDepth + 0.02 // Ligeramente más profundo
             );
             const topMesh = new THREE.Mesh(topFrame, frameMaterial);
             topMesh.position.set(0, height / 2 + frameWidth / 2, 0);
             frameGroup.add(topMesh);
 
-            // Marco principal - inferior
+            // Marco inferior - extendido para cubrir completamente  
             const bottomFrame = new THREE.BoxGeometry(
-              outerWidth,
+              outerWidth + 0.02,
               frameWidth,
-              frameDepth
+              frameDepth + 0.02
             );
             const bottomMesh = new THREE.Mesh(bottomFrame, frameMaterial);
             bottomMesh.position.set(0, -height / 2 - frameWidth / 2, 0);
             frameGroup.add(bottomMesh);
 
-            // Marco principal - izquierdo
+            // Marco izquierdo - SIN solapamiento con superior/inferior para evitar conflictos
             const leftFrame = new THREE.BoxGeometry(
               frameWidth,
-              height,
-              frameDepth
+              height, // Solo la altura del interior, sin incluir las esquinas
+              frameDepth + 0.02
             );
             const leftMesh = new THREE.Mesh(leftFrame, frameMaterial);
             leftMesh.position.set(-width / 2 - frameWidth / 2, 0, 0);
             frameGroup.add(leftMesh);
 
-            // Marco principal - derecho
+            // Marco derecho - SIN solapamiento con superior/inferior
             const rightFrame = new THREE.BoxGeometry(
               frameWidth,
-              height,
-              frameDepth
+              height, // Solo la altura del interior
+              frameDepth + 0.02
             );
             const rightMesh = new THREE.Mesh(rightFrame, frameMaterial);
             rightMesh.position.set(width / 2 + frameWidth / 2, 0, 0);
             frameGroup.add(rightMesh);
 
-            // Paneles de cierre redundantes eliminados: el marco + backPanel ahora sellan la pieza
+            // PANELES DE ESQUINA SÓLIDOS para cerrar gaps
+            const cornerSize = frameWidth;
+            const cornerMaterial = new THREE.MeshPhongMaterial({
+              color: 0x7a3f15,
+              shininess: 50,
+              side: THREE.DoubleSide,
+              transparent: false,
+              opacity: 1.0,
+            });
+
+            // Esquina superior izquierda
+            const topLeftCorner = new THREE.BoxGeometry(cornerSize, cornerSize, frameDepth + 0.02);
+            const topLeftCornerMesh = new THREE.Mesh(topLeftCorner, cornerMaterial);
+            topLeftCornerMesh.position.set(
+              -width / 2 - frameWidth / 2,
+              height / 2 + frameWidth / 2,
+              0
+            );
+            frameGroup.add(topLeftCornerMesh);
+
+            // Esquina superior derecha
+            const topRightCorner = new THREE.BoxGeometry(cornerSize, cornerSize, frameDepth + 0.02);
+            const topRightCornerMesh = new THREE.Mesh(topRightCorner, cornerMaterial);
+            topRightCornerMesh.position.set(
+              width / 2 + frameWidth / 2,
+              height / 2 + frameWidth / 2,
+              0
+            );
+            frameGroup.add(topRightCornerMesh);
+
+            // Esquina inferior izquierda
+            const bottomLeftCorner = new THREE.BoxGeometry(cornerSize, cornerSize, frameDepth + 0.02);
+            const bottomLeftCornerMesh = new THREE.Mesh(bottomLeftCorner, cornerMaterial);
+            bottomLeftCornerMesh.position.set(
+              -width / 2 - frameWidth / 2,
+              -height / 2 - frameWidth / 2,
+              0
+            );
+            frameGroup.add(bottomLeftCornerMesh);
+
+            // Esquina inferior derecha
+            const bottomRightCorner = new THREE.BoxGeometry(cornerSize, cornerSize, frameDepth + 0.02);
+            const bottomRightCornerMesh = new THREE.Mesh(bottomRightCorner, cornerMaterial);
+            bottomRightCornerMesh.position.set(
+              width / 2 + frameWidth / 2,
+              -height / 2 - frameWidth / 2,
+              0
+            );
+            frameGroup.add(bottomRightCornerMesh);
+
+            // PANELES LATERALES INTERIORES para cerrar completamente el hueco entre marco y lienzo
+            const innerPanelMaterial = new THREE.MeshPhongMaterial({
+              color: 0x3a2f20,
+              shininess: 20,
+              side: THREE.DoubleSide,
+            });
+
+            const innerPanelThickness = 0.02;
+            const innerDepth = frameDepth * 0.6;
+
+            // Panel lateral superior interior
+            const topInnerPanel = new THREE.BoxGeometry(width, innerPanelThickness, innerDepth);
+            const topInnerPanelMesh = new THREE.Mesh(topInnerPanel, innerPanelMaterial);
+            topInnerPanelMesh.position.set(0, height / 2 - innerPanelThickness / 2, -innerDepth / 4);
+            frameGroup.add(topInnerPanelMesh);
+
+            // Panel lateral inferior interior
+            const bottomInnerPanel = new THREE.BoxGeometry(width, innerPanelThickness, innerDepth);
+            const bottomInnerPanelMesh = new THREE.Mesh(bottomInnerPanel, innerPanelMaterial);
+            bottomInnerPanelMesh.position.set(0, -height / 2 + innerPanelThickness / 2, -innerDepth / 4);
+            frameGroup.add(bottomInnerPanelMesh);
+
+            // Panel lateral izquierdo interior
+            const leftInnerPanel = new THREE.BoxGeometry(innerPanelThickness, height, innerDepth);
+            const leftInnerPanelMesh = new THREE.Mesh(leftInnerPanel, innerPanelMaterial);
+            leftInnerPanelMesh.position.set(-width / 2 + innerPanelThickness / 2, 0, -innerDepth / 4);
+            frameGroup.add(leftInnerPanelMesh);
+
+            // Panel lateral derecho interior
+            const rightInnerPanel = new THREE.BoxGeometry(innerPanelThickness, height, innerDepth);
+            const rightInnerPanelMesh = new THREE.Mesh(rightInnerPanel, innerPanelMaterial);
+            rightInnerPanelMesh.position.set(width / 2 - innerPanelThickness / 2, 0, -innerDepth / 4);
+            frameGroup.add(rightInnerPanelMesh);
 
             // BISELES INTERIORES más definidos
             const bevelMaterial = new THREE.MeshPhongMaterial({
@@ -475,13 +573,23 @@ export async function generateMuralGLB(imageUrl) {
             );
             frameGroup.add(bottomCenterOrnamentMesh);
 
-            // Asegurar transformaciones válidas
+            // Asegurar transformaciones válidas y debug de la estructura
             mesh.rotation.set(0, 0, 0);
             mesh.scale.set(1, 1, 1);
+            console.log("Canvas mesh creado:", {
+              dimensions: { width, height, thickness: canvasThickness },
+              position: mesh.position,
+              materials: canvasMaterials.length
+            });
 
             frameGroup.position.set(0, 0, 0);
             frameGroup.rotation.set(0, 0, 0);
             frameGroup.scale.set(1, 1, 1);
+            console.log("Frame group creado:", {
+              frameDepth,
+              frameWidth,
+              children: frameGroup.children.length
+            });
 
             scene.add(mesh);
             scene.add(frameGroup);
@@ -490,12 +598,12 @@ export async function generateMuralGLB(imageUrl) {
 
             const exportOptions = {
               binary: true,
-              onlyVisible: false, // Cambiado para asegurar que se incluyan todos los elementos
+              onlyVisible: true, // Cambiado a true para asegurar que solo se exporten elementos visibles
               truncateDrawRange: true,
               embedImages: true,
-              maxTextureSize: 1024, // Reducido de 4096 para optimizar
+              maxTextureSize: 1024,
               includeCustomExtensions: false,
-              forceIndices: true, // Añadido para forzar la inclusión de índices
+              forceIndices: true,
             };
 
             exporter.parse(
