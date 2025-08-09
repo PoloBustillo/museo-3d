@@ -25,6 +25,7 @@ export default function MisSalas() {
   const [showAddMuralModal, setShowAddMuralModal] = useState(false);
   const [selectedSalaId, setSelectedSalaId] = useState(null);
   const [selectedMuralIds, setSelectedMuralIds] = useState([]);
+  const [isAddingMurales, setIsAddingMurales] = useState(false);
   const addMuralBtnRef = useRef(null);
   const [modalPosition, setModalPosition] = useState({ top: 0, left: 0 });
   const router = useRouter();
@@ -101,19 +102,33 @@ export default function MisSalas() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ murales: [muralId] }),
       });
-      if (!res.ok) throw new Error("No se pudo eliminar el mural de la sala");
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "No se pudo eliminar el mural de la sala");
+      }
+      
+      // Actualizar el estado local
       setSalas((prev) =>
-        prev.map((s) =>
-          s.id === salaId
+        prev.map((sala) =>
+          sala.id === salaId
             ? {
-                ...s,
-                murales: s.murales.filter((sm) => sm.mural.id !== muralId),
+                ...sala,
+                murales: sala.murales.filter((sm) => sm.mural.id !== muralId),
+                _count: {
+                  ...sala._count,
+                  murales: sala._count.murales - 1
+                }
               }
-            : s
+            : sala
         )
       );
+      
+      toast.success("Mural eliminado de la sala exitosamente");
+      
     } catch (e) {
-      alert(e.message);
+      console.error("Error al eliminar mural:", e);
+      toast.error(e.message || "Error al eliminar mural de la sala");
     }
   };
 
@@ -131,29 +146,58 @@ export default function MisSalas() {
 
   const handleAddMural = async () => {
     if (!selectedSalaId || selectedMuralIds.length === 0) return;
+    
+    setIsAddingMurales(true);
     try {
       const res = await fetch(`/api/salas/${selectedSalaId}/murales`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ murales: selectedMuralIds }),
       });
-      if (!res.ok) throw new Error("No se pudo agregar el mural a la sala");
-      // Refrescar la sala localmente
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || "No se pudo agregar el mural a la sala");
+      }
+      
+      // Actualizar el estado local correctamente
       setSalas((prev) =>
-        prev.map((s) => {
-          if (s.id === selectedSalaId) {
-            const newMurales = muralesDisponibles.filter((m) =>
-              selectedMuralIds.includes(m.id)
-            );
-            return { ...s, murales: [...s.murales, ...newMurales] };
+        prev.map((sala) => {
+          if (sala.id === selectedSalaId) {
+            // Agregar los nuevos murales con la estructura correcta {mural: {...}}
+            const nuevosEnlaces = selectedMuralIds.map((muralId) => {
+              const muralData = muralesDisponibles.find(m => m.id === muralId);
+              return {
+                mural: muralData
+              };
+            });
+            
+            return { 
+              ...sala, 
+              murales: [...sala.murales, ...nuevosEnlaces],
+              _count: {
+                ...sala._count,
+                murales: sala._count.murales + selectedMuralIds.length
+              }
+            };
           }
-          return s;
+          return sala;
         })
       );
+      
+      // Cerrar modal y limpiar selección
       setShowAddMuralModal(false);
       setSelectedMuralIds([]);
+      setSelectedSalaId(null);
+      
+      // Mostrar mensaje de éxito
+      toast.success(`${selectedMuralIds.length} mural${selectedMuralIds.length > 1 ? 'es' : ''} agregado${selectedMuralIds.length > 1 ? 's' : ''} exitosamente`);
+      
     } catch (e) {
-      alert(e.message);
+      console.error("Error al agregar murales:", e);
+      toast.error(e.message || "Error al agregar murales a la sala");
+    } finally {
+      setIsAddingMurales(false);
     }
   };
 
@@ -461,21 +505,26 @@ export default function MisSalas() {
                   Cancelar
                 </button>
                 <button
-                  className="px-4 py-2 rounded bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition w-1/2 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="px-4 py-2 rounded bg-indigo-600 text-white font-bold hover:bg-indigo-700 transition w-1/2 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   onClick={handleAddMural}
                   disabled={
+                    isAddingMurales ||
                     selectedMuralIds.length === 0 ||
                     muralesDisponibles.filter((mural) => {
                       const sala = salas.find((s) => s.id === selectedSalaId);
                       return (
+                        mural && // Agregar verificación de que mural existe
                         sala &&
-                        !sala.murales.some((sm) => sm.mural.id === mural.id)
+                        !sala.murales.some((sm) => sm.mural && sm.mural.id === mural.id)
                       );
                     }).length === 0
                   }
                 >
-                  Añadir
-                  {selectedMuralIds.length > 0
+                  {isAddingMurales && (
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  )}
+                  {isAddingMurales ? "Agregando..." : "Añadir"}
+                  {!isAddingMurales && selectedMuralIds.length > 0
                     ? ` (${selectedMuralIds.length})`
                     : ""}
                 </button>
