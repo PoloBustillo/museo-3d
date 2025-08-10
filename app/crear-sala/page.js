@@ -264,6 +264,7 @@ export default function CrearSala() {
   const [selectedMuralForAdd, setSelectedMuralForAdd] = useState("");
   const [showMuralModal, setShowMuralModal] = useState(false);
   const [muralSearch, setMuralSearch] = useState("");
+  const [textures, setTextures] = useState({ walls: [], floors: [] });
 
   // Stepper steps base (similar al de crear obra)
   const stepsBase = [
@@ -370,6 +371,24 @@ export default function CrearSala() {
     document.documentElement.style.setProperty("--global-mouse-y", `${y}%`);
   }, []);
 
+  // Cargar catálogo de texturas desde API
+  useEffect(() => {
+    const fetchTextures = async () => {
+      try {
+        const res = await fetch("/api/textures");
+        if (!res.ok) return;
+        const data = await res.json();
+        const all = Array.isArray(data.textures) ? data.textures : [];
+        const walls = all.filter((t) => t.category === "wall");
+        const floors = all.filter((t) => t.category === "floor");
+        setTextures({ walls, floors });
+      } catch (e) {
+        // silencioso, dejar fallbacks
+      }
+    };
+    fetchTextures();
+  }, []);
+
   const handleGlobalMouseEnter = useCallback(() => {
     setHasActiveGlow(true);
   }, []);
@@ -451,6 +470,28 @@ export default function CrearSala() {
       }
     };
     fetchMurales();
+  }, []);
+
+  // Cargar catálogo de texturas desde API para Step Estética
+  useEffect(() => {
+    const fetchTextures = async () => {
+      try {
+        const res = await fetch("/api/textures", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        const all = Array.isArray(data.textures) ? data.textures : [];
+        const walls = all.filter(
+          (t) => t.category === "wall" || t.category === "generic"
+        );
+        const floors = all.filter(
+          (t) => t.category === "floor" || t.category === "generic"
+        );
+        setTextures({ walls, floors });
+      } catch (e) {
+        // mantener fallback silenciosamente
+      }
+    };
+    fetchTextures();
   }, []);
 
   // Validar y avanzar de step SOLO con los campos del paso actual
@@ -660,18 +701,33 @@ export default function CrearSala() {
       <div className="mb-6">
         <div className="mb-2 font-semibold">Textura de paredes</div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {["moderna", "clasica", "industrial"].map((opt) => (
+          {(textures.walls.length
+            ? textures.walls
+            : [
+                {
+                  id: "moderna",
+                  name: "Moderna",
+                  previewUrl: "/assets/textures/wall.webp",
+                },
+                {
+                  id: "clasica",
+                  name: "Clásica",
+                  previewUrl: "/assets/textures/wall.jpg",
+                },
+                {
+                  id: "industrial",
+                  name: "Industrial",
+                  previewUrl: "/assets/textures/wall.jpg",
+                },
+              ]
+          ).map((t) => (
             <OptionCard
-              key={opt}
-              title={opt.charAt(0).toUpperCase() + opt.slice(1)}
-              imageSrc={
-                opt === "moderna"
-                  ? "/assets/textures/wall.webp"
-                  : "/assets/textures/wall.jpg"
-              }
-              selected={salaConfig.texturaPared === opt}
+              key={t.id}
+              title={t.name || t.id}
+              imageSrc={t.previewUrl}
+              selected={salaConfig.texturaPared === t.id}
               onClick={() =>
-                setSalaConfig((prev) => ({ ...prev, texturaPared: opt }))
+                setSalaConfig((prev) => ({ ...prev, texturaPared: t.id }))
               }
             />
           ))}
@@ -680,14 +736,33 @@ export default function CrearSala() {
       <div className="mb-6">
         <div className="mb-2 font-semibold">Textura de piso</div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {["madera", "marmol", "cemento"].map((opt) => (
+          {(textures.floors.length
+            ? textures.floors
+            : [
+                {
+                  id: "madera",
+                  name: "Madera",
+                  previewUrl: "/assets/textures/floor.webp",
+                },
+                {
+                  id: "marmol",
+                  name: "Mármol",
+                  previewUrl: "/assets/textures/floor.webp",
+                },
+                {
+                  id: "cemento",
+                  name: "Cemento",
+                  previewUrl: "/assets/textures/floor.webp",
+                },
+              ]
+          ).map((t) => (
             <OptionCard
-              key={opt}
-              title={opt.charAt(0).toUpperCase() + opt.slice(1)}
-              imageSrc={"/assets/textures/floor.webp"}
-              selected={salaConfig.texturaPiso === opt}
+              key={t.id}
+              title={t.name || t.id}
+              imageSrc={t.previewUrl}
+              selected={salaConfig.texturaPiso === t.id}
               onClick={() =>
-                setSalaConfig((prev) => ({ ...prev, texturaPiso: opt }))
+                setSalaConfig((prev) => ({ ...prev, texturaPiso: t.id }))
               }
             />
           ))}
