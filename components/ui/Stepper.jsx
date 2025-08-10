@@ -65,7 +65,7 @@ export default function Stepper({
   const visibleSteps = getVisibleSteps();
 
   return (
-  <div className="flex flex-col items-center mx-0 w-full max-w-full overflow-x-hidden">
+    <div className="flex flex-col items-center mx-0 w-full max-w-full overflow-x-hidden">
       {/* Contador de progreso en móviles */}
       {isMobile && (
         <div className="mb-2 text-xs text-gray-500 dark:text-gray-400">
@@ -73,7 +73,7 @@ export default function Stepper({
         </div>
       )}
       <div
-        className={`flex items-center justify-center gap-1 sm:gap-4 mb-6 px-2 sm:px-0 w-full max-w-full flex-wrap sm:flex-nowrap overflow-x-hidden ${className}`}
+        className={`flex items-start justify-center gap-1 sm:gap-4 mb-6 px-2 sm:px-0 w-full max-w-full flex-wrap sm:flex-nowrap overflow-x-hidden ${className}`}
         role="list"
         aria-label="Progreso"
       >
@@ -138,10 +138,16 @@ export default function Stepper({
                   i + 1
                 )}
               </button>
-              <span className="mt-2 sm:mt-1 text-[10px] sm:text-xs text-center min-w-[40px] sm:min-w-[90px] text-muted-foreground font-medium leading-tight max-w-[50px] sm:max-w-[100px] flex-shrink-0 h-[16px] sm:h-[18px] flex items-center justify-center">
+              <span
+                title={label}
+                className="mt-2 sm:mt-1 text-[10px] sm:text-xs text-center min-w-[40px] sm:min-w-[90px] text-muted-foreground font-medium leading-tight max-w-[50px] sm:max-w-[100px] flex-shrink-0 h-[16px] sm:h-[18px] flex items-center justify-center truncate"
+              >
                 {label}
               </span>
-              <span className="text-[10px] sm:text-[11px] text-center text-gray-400 dark:text-gray-500 mt-0.5 sm:mt-1 hidden sm:flex leading-tight max-w-[90px] sm:max-w-[100px] h-[24px] sm:h-[28px] items-start justify-center overflow-hidden">
+              <span
+                title={subtitle}
+                className="text-[10px] sm:text-[11px] text-center text-gray-400 dark:text-gray-500 mt-0.5 sm:mt-1 hidden sm:flex leading-tight max-w-[90px] sm:max-w-[100px] h-[28px] items-start justify-center overflow-hidden truncate"
+              >
                 {subtitle || "\u00A0"}
               </span>
               {status === "error" && (

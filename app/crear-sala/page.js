@@ -16,13 +16,22 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { DatePicker } from "@/components/ui/date-picker";
-import { X } from "lucide-react";
+import {
+  X,
+  CheckCircle,
+  AlertCircle,
+  Brush,
+  Layers,
+  Music,
+  ListChecks,
+} from "lucide-react";
 import RainbowBackground from "../perfil/RainbowBackground";
 import { useCardMouseGlow } from "../hooks/useCardMouseGlow";
 import { useTheme } from "../../providers/ThemeProvider";
 import { useSessionData } from "../../providers/SessionProvider";
 import { useCrearSalaStore } from "./crearSalaStore";
 import Stepper from "@/components/ui/Stepper";
+import ProtectedRoute from "../../components/ProtectedRoute";
 
 // Componentes de fondo animado (copiados de acerca-de)
 function AnimatedBlobsBackground() {
@@ -256,14 +265,57 @@ export default function CrearSala() {
   const [showMuralModal, setShowMuralModal] = useState(false);
   const [muralSearch, setMuralSearch] = useState("");
 
-  // Stepper steps
-  const steps = [
-    { label: "Datos de la sala" },
-    { label: "Textura y piso" },
-    { label: "Música" },
-    { label: "Seleccionar murales" },
-    { label: "Confirmar" },
+  // Stepper steps base (similar al de crear obra)
+  const stepsBase = [
+    { label: "Datos", subtitle: "Nombre y descripción", icon: <Layers /> },
+    { label: "Estética", subtitle: "Texturas y colores", icon: <Brush /> },
+    { label: "Ambiente", subtitle: "Música y ajustes", icon: <Music /> },
+    {
+      label: "Curaduría",
+      subtitle: "Selecciona murales",
+      icon: <ListChecks />,
+    },
+    { label: "Revisión", subtitle: "Confirma y crea", icon: <CheckCircle /> },
   ];
+
+  // Campos por paso para detectar errores del paso activo
+  const fieldsByStep = {
+    0: ["nombre", "descripcion"],
+    1: ["texturaPared", "texturaPiso", "colorParedes", "tema"],
+    2: [
+      "musica",
+      "imagenPortada",
+      "esPrivada",
+      "maxColaboradores",
+      "fechaApertura",
+      "notas",
+    ],
+    3: ["murales"],
+  };
+
+  const currentStepFields = fieldsByStep[step] || [];
+  const hasCurrentStepErrors = Object.keys(errors).some((k) =>
+    currentStepFields.includes(k)
+  );
+
+  // Estados visuales por step (success/error/icon), como en CrearMuralStepper
+  const stepStates = stepsBase.map((base, i) => {
+    if (i < step) {
+      return {
+        ...base,
+        status: "success",
+        icon: <CheckCircle className="text-green-600 mx-auto" />,
+      };
+    }
+    if (i === step && hasCurrentStepErrors) {
+      return {
+        ...base,
+        status: "error",
+        icon: <AlertCircle className="text-red-500 mx-auto" />,
+      };
+    }
+    return { ...base };
+  });
 
   // Animations
   const variants = {
@@ -380,42 +432,7 @@ export default function CrearSala() {
     return res.json();
   };
 
-  useEffect(() => {
-    if (status === "loading") {
-      return (
-        <div className="relative min-h-screen flex items-center justify-center">
-          <RainbowBackground />
-          <div className="absolute inset-0 z-0 pointer-events-none">
-            <div className="absolute -top-24 -right-24 w-[500px] h-[500px] bg-blue-300/60 dark:bg-blue-700/40 rounded-full mix-blend-multiply filter blur-[120px] animate-breathe"></div>
-            <div className="absolute -bottom-20 -left-24 w-[500px] h-[500px] bg-purple-200/60 dark:bg-purple-800/40 rounded-full mix-blend-multiply filter blur-[120px] animate-breathe-delayed"></div>
-          </div>
-          <div className="relative z-10 flex flex-col items-center justify-center">
-            <div className="w-16 h-16 rounded-full bg-indigo-200 animate-pulse mb-6" />
-            <p className="text-lg text-foreground font-semibold">
-              Cargando sesión...
-            </p>
-          </div>
-        </div>
-      );
-    }
-    if (!session) {
-      return (
-        <div className="relative min-h-screen flex items-center justify-center">
-          <RainbowBackground />
-          <div className="absolute inset-0 z-0 pointer-events-none">
-            <div className="absolute -top-24 -right-24 w-[500px] h-[500px] bg-blue-300/60 dark:bg-blue-700/40 rounded-full mix-blend-multiply filter blur-[120px] animate-breathe"></div>
-            <div className="absolute -bottom-20 -left-24 w-[500px] h-[500px] bg-purple-200/60 dark:bg-purple-800/40 rounded-full mix-blend-multiply filter blur-[120px] animate-breathe-delayed"></div>
-          </div>
-          <div className="relative z-10 flex flex-col items-center justify-center">
-            <div className="w-16 h-16 rounded-full bg-red-200 animate-pulse mb-6" />
-            <p className="text-lg text-foreground font-semibold">
-              Debes iniciar sesión para crear una sala
-            </p>
-          </div>
-        </div>
-      );
-    }
-  }, [status, session]);
+  // (la protección de acceso ahora la maneja ProtectedRoute)
 
   // 2. Cargar murales disponibles SOLO en el estado local
   useEffect(() => {
@@ -491,7 +508,7 @@ export default function CrearSala() {
   // Reemplazado por el Stepper reutilizable
   const StepperVisual = (
     <Stepper
-      steps={steps}
+      steps={stepStates}
       activeStep={step}
       color="indigo"
       className="mb-8"
@@ -499,6 +516,66 @@ export default function CrearSala() {
         if (i < step) setStep(i);
       }}
     />
+  );
+
+  // Banner de error para el paso actual
+  const currentStepErrorKey = Object.keys(errors).find((k) =>
+    currentStepFields.includes(k)
+  );
+  const currentStepError = currentStepErrorKey
+    ? errors[currentStepErrorKey]
+    : null;
+
+  const ErrorBanner = currentStepError ? (
+    <div className="w-full mb-4 rounded-xl border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm">
+      {currentStepError}
+    </div>
+  ) : null;
+
+  // UI helpers: opción tipo tarjeta y paleta de colores
+  const OptionCard = ({ selected, onClick, title, imageSrc }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group relative overflow-hidden rounded-xl border text-left shadow-sm transition ${
+        selected
+          ? "border-indigo-500 ring-2 ring-indigo-200"
+          : "border-gray-200 hover:border-gray-300"
+      }`}
+    >
+      <div className="aspect-[16/10] w-full bg-gray-100">
+        {imageSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={imageSrc}
+            alt={title}
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="h-full w-full" />
+        )}
+      </div>
+      <div className="flex items-center justify-between px-3 py-2">
+        <span className="font-medium text-sm text-foreground">{title}</span>
+        {selected && <CheckCircle className="h-4 w-4 text-indigo-600" />}
+      </div>
+    </button>
+  );
+
+  const ColorSwatch = ({ color, label, selected, onClick }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-sm transition ${
+        selected
+          ? "border-indigo-500 ring-1 ring-indigo-300"
+          : "border-gray-200 hover:border-gray-300"
+      }`}
+      title={label}
+    >
+      <span className="h-4 w-6 rounded" style={{ backgroundColor: color }} />
+      <span className="text-foreground/80">{label}</span>
+    </button>
   );
 
   // Step 1: Sala config (animación mejorada + shake si error)
@@ -580,52 +657,92 @@ export default function CrearSala() {
       transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.05 }}
       className="w-full"
     >
-      <label className="block font-semibold mb-2">Textura de paredes</label>
-      <select
-        value={salaConfig.texturaPared}
-        onChange={(e) =>
-          setSalaConfig((prev) => ({ ...prev, texturaPared: e.target.value }))
-        }
-        className="w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold shadow-sm focus:outline-none transition-all mb-4"
-      >
-        <option value="">Selecciona una textura</option>
-        <option value="moderna">Moderna</option>
-        <option value="clasica">Clásica</option>
-        <option value="industrial">Industrial</option>
-      </select>
-      <label className="block font-semibold mb-2">Textura de piso</label>
-      <select
-        value={salaConfig.texturaPiso}
-        onChange={(e) =>
-          setSalaConfig((prev) => ({ ...prev, texturaPiso: e.target.value }))
-        }
-        className="w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold shadow-sm focus:outline-none transition-all mb-4"
-      >
-        <option value="">Selecciona una textura</option>
-        <option value="madera">Madera</option>
-        <option value="marmol">Mármol</option>
-        <option value="cemento">Cemento</option>
-      </select>
-      <label className="block font-semibold mb-2">Color de paredes</label>
-      <input
-        type="color"
-        value={salaConfig.color}
-        onChange={(e) =>
-          setSalaConfig((prev) => ({ ...prev, color: e.target.value }))
-        }
-        className="w-16 h-10 rounded border-2"
-      />
-      <label className="block font-semibold mb-2 mt-4">Tema visual</label>
-      <input
-        type="text"
-        value={salaConfig.tema}
-        onChange={(e) =>
-          setSalaConfig((prev) => ({ ...prev, tema: e.target.value }))
-        }
-        className="w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold shadow-sm focus:outline-none transition-all mb-4"
-        placeholder="Ej: Minimalista, Clásico, etc."
-      />
-      <div className="flex justify-end mt-6">
+      <div className="mb-6">
+        <div className="mb-2 font-semibold">Textura de paredes</div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {["moderna", "clasica", "industrial"].map((opt) => (
+            <OptionCard
+              key={opt}
+              title={opt.charAt(0).toUpperCase() + opt.slice(1)}
+              imageSrc={
+                opt === "moderna"
+                  ? "/assets/textures/wall.webp"
+                  : "/assets/textures/wall.jpg"
+              }
+              selected={salaConfig.texturaPared === opt}
+              onClick={() =>
+                setSalaConfig((prev) => ({ ...prev, texturaPared: opt }))
+              }
+            />
+          ))}
+        </div>
+      </div>
+      <div className="mb-6">
+        <div className="mb-2 font-semibold">Textura de piso</div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {["madera", "marmol", "cemento"].map((opt) => (
+            <OptionCard
+              key={opt}
+              title={opt.charAt(0).toUpperCase() + opt.slice(1)}
+              imageSrc={"/assets/textures/floor.webp"}
+              selected={salaConfig.texturaPiso === opt}
+              onClick={() =>
+                setSalaConfig((prev) => ({ ...prev, texturaPiso: opt }))
+              }
+            />
+          ))}
+        </div>
+      </div>
+      <div className="mb-6">
+        <div className="mb-2 font-semibold">Color de paredes</div>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { c: "#ffffff", l: "Blanco" },
+            { c: "#f5f5f4", l: "Marfil" },
+            { c: "#e5e7eb", l: "Gris claro" },
+            { c: "#faf5ff", l: "Lila suave" },
+            { c: "#fff1f2", l: "Rosa suave" },
+            { c: "#f0fdf4", l: "Verde suave" },
+          ].map(({ c, l }) => (
+            <ColorSwatch
+              key={c}
+              color={c}
+              label={l}
+              selected={salaConfig.colorParedes === c}
+              onClick={() =>
+                setSalaConfig((prev) => ({
+                  ...prev,
+                  colorParedes: c,
+                  color: c,
+                }))
+              }
+            />
+          ))}
+        </div>
+      </div>
+      <div>
+        <label className="block font-semibold mb-2">Tema visual</label>
+        <input
+          type="text"
+          value={salaConfig.tema}
+          onChange={(e) =>
+            setSalaConfig((prev) => ({ ...prev, tema: e.target.value }))
+          }
+          className="w-full px-4 py-3 rounded-xl border-2 text-lg font-semibold shadow-sm focus:outline-none transition-all"
+          placeholder="Ej: Minimalista, Clásico, etc."
+        />
+      </div>
+      <div className="flex justify-between mt-6">
+        <button
+          type="button"
+          className="px-6 py-2 rounded-lg bg-gray-200 text-gray-700 font-bold hover:bg-gray-300 transition"
+          onClick={() => {
+            setDirection(-1);
+            setStep(0);
+          }}
+        >
+          Atrás
+        </button>
         <button
           type="button"
           className="px-6 py-2 rounded-lg bg-indigo-600 dark:bg-indigo-500 text-white font-bold hover:bg-indigo-700 dark:hover:bg-indigo-400 transition"
@@ -719,7 +836,17 @@ export default function CrearSala() {
         className="w-full px-4 py-3 rounded-xl border-2 text-base shadow-sm focus:outline-none transition-all resize-none min-h-[60px] mb-4"
         placeholder="Notas, instrucciones, etc. (opcional)"
       />
-      <div className="flex justify-end mt-6">
+      <div className="flex justify-between mt-6">
+        <button
+          type="button"
+          className="px-6 py-2 rounded-lg bg-gray-200 text-gray-700 font-bold hover:bg-gray-300 transition"
+          onClick={() => {
+            setDirection(-1);
+            setStep(1);
+          }}
+        >
+          Atrás
+        </button>
         <button
           type="button"
           className="px-6 py-2 rounded-lg bg-indigo-600 dark:bg-indigo-500 text-white font-bold hover:bg-indigo-700 dark:hover:bg-indigo-400 transition"
@@ -905,67 +1032,59 @@ export default function CrearSala() {
     </motion.div>
   );
 
-  if (!session) {
-    return (
-      <div className="relative min-h-screen">
-        {/* Fondo animado y patrones */}
-        <div className="absolute inset-0 z-0 pointer-events-none">
+  // La pantalla principal ahora se renderiza dentro de ProtectedRoute
+
+  return (
+    <ProtectedRoute>
+      <div className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-center">
+        {/* Fondo animado y patrón tipo acerca-de */}
+        <div className="pointer-events-none absolute inset-0 w-full h-full z-0">
           <AnimatedBlobsBackground />
           <DotsPattern />
         </div>
-        <div className="relative z-10 min-h-screen flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-lg text-foreground">Cargando...</p>
+        {/* Título neutro fuera de la card */}
+        <h1 className="text-3xl md:text-4xl font-bold text-center mb-8 text-foreground dark:text-neutral-100 z-20">
+          Crea tu sala personalizada
+        </h1>
+        <div className="relative z-10 max-w-3xl w-full flex items-center justify-center">
+          <div className="relative w-full">
+            {/* Glow detrás de la card, más grande y difuso */}
+            <div className="absolute -inset-16 md:-inset-32 z-0 pointer-events-none">
+              <div className="w-full h-full rounded-3xl bg-gradient-radial from-indigo-400/40 via-fuchsia-300/30 to-pink-300/40 blur-[120px] opacity-80 animate-pulse" />
+            </div>
+            <div
+              className="relative z-10 w-full bg-white/90 dark:bg-neutral-900/95 rounded-3xl shadow-xl p-6 md:p-14 flex flex-col items-center card-mouse-glow border border-border"
+              onMouseMove={cardGlow.handleMouseMove}
+              onMouseLeave={cardGlow.handleMouseLeave}
+            >
+              {StepperVisual}
+              {/* Subtítulo del paso y banner de error */}
+              <div className="w-full -mt-2 mb-4 text-center text-muted-foreground">
+                <span className="text-sm">{stepsBase[step]?.subtitle}</span>
+              </div>
+              {ErrorBanner}
+              <form onSubmit={handleSubmit} className="w-full">
+                <AnimatePresence initial={false} custom={direction} mode="wait">
+                  {step === 0 && StepSala}
+                  {step === 1 && StepTextura}
+                  {step === 2 && StepMusica}
+                  {step === 3 && StepMurales}
+                  {step === 4 && StepConfirm}
+                </AnimatePresence>
+              </form>
+            </div>
           </div>
         </div>
+        <MuralSelectModal
+          isOpen={showMuralModal}
+          onClose={() => setShowMuralModal(false)}
+          murales={muralesDisponibles}
+          muralesForm={muralesForm}
+          setValue={(id) => addMural(id)}
+          muralSearch={muralSearch}
+          setMuralSearch={setMuralSearch}
+        />
       </div>
-    );
-  }
-
-  return (
-    <div className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-center">
-      {/* Fondo animado y patrón tipo acerca-de */}
-      <div className="pointer-events-none absolute inset-0 w-full h-full z-0">
-        <AnimatedBlobsBackground />
-        <DotsPattern />
-      </div>
-      {/* Título neutro fuera de la card */}
-      <h1 className="text-3xl md:text-4xl font-bold text-center mb-8 text-foreground dark:text-neutral-100 z-20">
-        Crea tu sala personalizada
-      </h1>
-      <div className="relative z-10 max-w-2xl w-full flex items-center justify-center">
-        <div className="relative w-full">
-          {/* Glow detrás de la card, más grande y difuso */}
-          <div className="absolute -inset-16 md:-inset-32 z-0 pointer-events-none">
-            <div className="w-full h-full rounded-3xl bg-gradient-radial from-indigo-400/40 via-fuchsia-300/30 to-pink-300/40 blur-[120px] opacity-80 animate-pulse" />
-          </div>
-          <div
-            className="relative z-10 w-full bg-white/90 dark:bg-neutral-900/95 rounded-3xl shadow-xl p-6 md:p-14 flex flex-col items-center card-mouse-glow border border-border"
-            onMouseMove={cardGlow.handleMouseMove}
-            onMouseLeave={cardGlow.handleMouseLeave}
-          >
-            {StepperVisual}
-            <form onSubmit={handleSubmit} className="w-full">
-              <AnimatePresence initial={false} custom={direction} mode="wait">
-                {step === 0 && StepSala}
-                {step === 1 && StepTextura}
-                {step === 2 && StepMusica}
-                {step === 3 && StepMurales}
-                {step === 4 && StepConfirm}
-              </AnimatePresence>
-            </form>
-          </div>
-        </div>
-      </div>
-      <MuralSelectModal
-        isOpen={showMuralModal}
-        onClose={() => setShowMuralModal(false)}
-        murales={muralesDisponibles}
-        muralesForm={muralesForm}
-        setValue={(id) => addMural(id)}
-        muralSearch={muralSearch}
-        setMuralSearch={setMuralSearch}
-      />
-    </div>
+    </ProtectedRoute>
   );
 }
