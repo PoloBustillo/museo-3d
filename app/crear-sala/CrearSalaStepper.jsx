@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Stepper from "@/components/ui/Stepper";
@@ -11,12 +11,13 @@ import {
   Music,
   ListChecks,
   Trash2,
-  ChevronDown,
-  Eye,
-  Grid3x3,
+  Shield,
+  Users,
+  Globe,
+  Lock,
+  UserPlus,
   X,
 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,10 +25,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { SimpleModal } from "@/components/ui/SimpleModal";
 import { useCrearSalaStore } from "./crearSalaStore";
 
-export default function CrearSalaStepper({ scrollParentRef = null }) {
+export default function CrearSalaStepper() {
   const router = useRouter();
   const { data: session } = useSession();
-  const [step, setStep] = useState(0);
   const [isCreating, setIsCreating] = useState(false);
   const [showClearDraftModal, setShowClearDraftModal] = useState(false);
   const [errors, setErrors] = useState({});
@@ -40,24 +40,33 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
     descripcion,
     murales,
     texturas,
+    privacidad,
+    colaboradores,
+    step,
     setNombre,
     setDescripcion,
-    addMural,
-    removeMural,
+    setStep,
     setTextureFloor,
     setTextureWalls,
+    setPrivacidad,
+    addColaborador,
+    removeColaborador,
     reset,
   } = useCrearSalaStore();
 
-  // State for textures
+  // Texture modal states
+  const [showTextureModal, setShowTextureModal] = useState(false);
+  const [selectedTextureType, setSelectedTextureType] = useState(null);
+  const [textureFilter, setTextureFilter] = useState("all");
   const [availableTextures, setAvailableTextures] = useState([]);
   const [loadingTextures, setLoadingTextures] = useState(false);
   const [textureError, setTextureError] = useState(null);
 
-  // Modal states
-  const [showTextureModal, setShowTextureModal] = useState(false);
-  const [selectedTextureType, setSelectedTextureType] = useState(null); // 'floor' or 'walls'
-  const [textureFilter, setTextureFilter] = useState("all"); // 'all', 'floor', 'wall', 'generic'
+  // User search states
+  const [showUserSearch, setShowUserSearch] = useState(false);
+  const [userSearchQuery, setUserSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   // Steps configuration
   const STEPS_DYNAMIC = [
@@ -70,6 +79,16 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
       label: "Texturas",
       subtitle: "Personalización visual",
       icon: <Brush />,
+    },
+    {
+      label: "Privacidad",
+      subtitle: "Configuración de acceso",
+      icon: <Shield />,
+    },
+    {
+      label: "Colaboradores",
+      subtitle: "Gestión de usuarios",
+      icon: <Users />,
     },
     {
       label: "Configuración",
@@ -88,14 +107,7 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
     },
   ];
 
-  const hasMounted = useRef(false);
-  const formContainerRef = useRef(null);
-
-  useEffect(() => {
-    hasMounted.current = true;
-  }, []);
-
-  // Load textures from API
+  // Load textures
   useEffect(() => {
     const loadTextures = async () => {
       setLoadingTextures(true);
@@ -118,7 +130,37 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
     loadTextures();
   }, []);
 
-  // Validation for each step
+  // Search users with debouncing
+  useEffect(() => {
+    const searchUsers = async () => {
+      if (userSearchQuery.trim().length < 2) {
+        setSearchResults([]);
+        return;
+      }
+
+      setSearchLoading(true);
+      try {
+        const response = await fetch(
+          `/api/users/search?q=${encodeURIComponent(userSearchQuery)}&limit=10`
+        );
+        if (!response.ok) {
+          throw new Error("Error al buscar usuarios");
+        }
+        const data = await response.json();
+        setSearchResults(data.users || []);
+      } catch (error) {
+        console.error("Error searching users:", error);
+        setSearchResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(searchUsers, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [userSearchQuery]);
+
+  // Validation
   const validateStep = () => {
     const e = {};
     if (step === 0) {
@@ -129,7 +171,18 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
     return Object.keys(e).length === 0;
   };
 
-  // Texture helper functions
+  // Navigation
+  const handleNext = () => {
+    if (validateStep()) {
+      setStep(step + 1);
+    }
+  };
+
+  const handleBack = () => {
+    setStep(step - 1);
+  };
+
+  // Texture functions
   const openTextureModal = (type) => {
     setSelectedTextureType(type);
     setTextureFilter(type === "floor" ? "floor" : "wall");
@@ -162,18 +215,19 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
       .replace(/^\w/, (c) => c.toUpperCase());
   };
 
-  // Navigation handlers
-  const handleNext = () => {
-    if (validateStep()) {
-      setStep((s) => s + 1);
-    }
+  // Collaborator functions
+  const addUserAsCollaborator = (user) => {
+    addColaborador({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      image: user.image,
+    });
+    setUserSearchQuery("");
+    setShowUserSearch(false);
   };
 
-  const handleBack = () => {
-    setStep((s) => s - 1);
-  };
-
-  // Create sala handler
+  // Create sala
   const handleCreateSala = async () => {
     if (!nombre.trim() || !descripcion.trim()) {
       alert("Por favor completa los datos básicos");
@@ -191,6 +245,9 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
           piso: texturas.piso,
           paredes: texturas.paredes,
         },
+        publica: privacidad.publica,
+        esPrivada: privacidad.esPrivada,
+        colaboradores: colaboradores.map((c) => c.id),
         userId: session?.user?.id,
       };
 
@@ -228,7 +285,7 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
     }
   };
 
-  // Clear draft handler
+  // Clear draft
   const handleClearDraft = () => {
     reset();
     setStep(0);
@@ -259,35 +316,32 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
   });
 
   return (
-    <div className="w-full max-w-3xl mx-auto bg-white/80 dark:bg-neutral-900/80 rounded-2xl shadow-xl border border-border p-0 md:p-8">
-      <div>
+    <div className="w-full max-w-4xl mx-auto bg-white/80 dark:bg-neutral-900/80 rounded-2xl shadow-xl border border-border p-2 sm:p-4 md:p-8">
+      <div className="mb-4 sm:mb-8">
         <Stepper
           steps={stepStates}
           activeStep={step}
           color="indigo"
-          className="mb-8"
+          className="mb-4 sm:mb-8"
           onStepClick={(i) => {
             if (i < step) setStep(i);
           }}
         />
 
-        {/* Visual separator */}
-        <div className="w-full flex items-center justify-center mb-10">
+        {/* Visual separator - only on desktop */}
+        <div className="hidden sm:flex w-full items-center justify-center mb-6 md:mb-10">
           <div className="w-full h-[2px] bg-gradient-to-r from-indigo-200 via-indigo-400 to-indigo-200 dark:from-indigo-900 dark:via-indigo-700 dark:to-indigo-900 rounded-full shadow-md" />
         </div>
       </div>
 
       {/* Main form */}
-      <div
-        ref={formContainerRef}
-        className="form-container bg-white/90 dark:bg-neutral-900/90 rounded-xl px-4 md:px-10 py-8 flex flex-col gap-12 shadow-lg border border-indigo-100 dark:border-indigo-900"
-      >
+      <div className="form-container bg-white/90 dark:bg-neutral-900/90 rounded-xl px-3 sm:px-6 md:px-10 py-4 sm:py-6 md:py-8 flex flex-col gap-6 sm:gap-8 md:gap-12 shadow-lg border border-indigo-100 dark:border-indigo-900">
         {/* Current step title */}
-        <div className="mb-6 text-center">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <div className="mb-3 sm:mb-6 text-center">
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
             {STEPS_DYNAMIC[step].label}
           </h2>
-          <p className="text-sm text-muted-foreground mt-2">
+          <p className="text-sm text-muted-foreground mt-1 sm:mt-2">
             {STEPS_DYNAMIC[step].subtitle}
           </p>
         </div>
@@ -310,9 +364,7 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
                 className={errors.nombre ? "border-red-500" : ""}
               />
               {errors.nombre && (
-                <span className="text-red-500 text-xs mt-1 block">
-                  {errors.nombre}
-                </span>
+                <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>
               )}
             </div>
 
@@ -327,14 +379,14 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
                 id="descripcion"
                 value={descripcion}
                 onChange={(e) => setDescripcion(e.target.value)}
-                placeholder="Describe tu sala y qué tipo de obras contendrá..."
+                placeholder="Describe tu sala..."
                 rows={4}
                 className={errors.descripcion ? "border-red-500" : ""}
               />
               {errors.descripcion && (
-                <span className="text-red-500 text-xs mt-1 block">
+                <p className="text-red-500 text-sm mt-1">
                   {errors.descripcion}
-                </span>
+                </p>
               )}
             </div>
           </div>
@@ -342,7 +394,7 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
 
         {/* Step 1: Texturas */}
         {step === 1 && (
-          <div className="flex flex-col gap-8">
+          <div className="flex flex-col gap-6">
             {loadingTextures ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
@@ -351,205 +403,323 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
                 </span>
               </div>
             ) : textureError ? (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                <p className="text-red-700 dark:text-red-300">
+              <div className="text-center py-8">
+                <p className="text-red-500">
                   Error al cargar texturas: {textureError}
                 </p>
               </div>
             ) : (
               <>
                 {/* Selector compacto de texturas */}
-                <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Textura del piso */}
-                  <div className="bg-white dark:bg-neutral-800 rounded-xl border border-gray-200 dark:border-neutral-700 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <Label className="text-base font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
-                        <Home className="w-5 h-5 text-indigo-600" />
-                        Textura del piso
-                      </Label>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openTextureModal("floor")}
-                        className="flex items-center gap-2"
-                      >
-                        <Grid3x3 className="w-4 h-4" />
-                        Explorar texturas
-                      </Button>
-                    </div>
-
-                    {texturas.piso ? (
-                      <div className="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
-                        <div className="flex items-center gap-4">
+                  <div className="space-y-3">
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                      Textura del piso
+                    </h3>
+                    <button
+                      onClick={() => openTextureModal("floor")}
+                      className="w-full p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-indigo-400 transition-colors"
+                    >
+                      {texturas.piso ? (
+                        <div className="flex items-center gap-3">
                           <img
                             src={texturas.piso.previewUrl}
                             alt={texturas.piso.name}
-                            className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                            className="w-12 h-12 rounded object-cover"
                             onError={(e) => {
                               e.target.src = "/placeholder-image.jpg";
                             }}
                           />
-                          <div>
+                          <div className="text-left">
                             <p className="font-medium text-gray-900 dark:text-gray-100">
                               {formatTextureName(texturas.piso.name)}
                             </p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
                               {texturas.piso.category === "generic"
-                                ? "Textura universal"
+                                ? "Universal"
                                 : `Textura de ${texturas.piso.category}`}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openTextureModal("floor")}
-                            className="text-indigo-600 hover:text-indigo-700"
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            Cambiar
-                          </Button>
-                          <CheckCircle className="w-5 h-5 text-green-500" />
-                        </div>
-                      </div>
-                    ) : (
-                      <div
-                        className="flex items-center justify-center p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors"
-                        onClick={() => openTextureModal("floor")}
-                      >
-                        <div className="text-center">
-                          <Brush className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                          <p className="text-gray-500 dark:text-gray-400 font-medium">
+                      ) : (
+                        <div className="text-center py-4">
+                          <p className="text-gray-500 dark:text-gray-400">
                             Seleccionar textura de piso
                           </p>
-                          <p className="text-sm text-gray-400 dark:text-gray-500">
-                            Haz clic para explorar opciones
-                          </p>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </button>
                   </div>
 
                   {/* Textura de las paredes */}
-                  <div className="bg-white dark:bg-neutral-800 rounded-xl border border-gray-200 dark:border-neutral-700 p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <Label className="text-base font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
-                        <Brush className="w-5 h-5 text-indigo-600" />
-                        Textura de las paredes
-                      </Label>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => openTextureModal("walls")}
-                        className="flex items-center gap-2"
-                      >
-                        <Grid3x3 className="w-4 h-4" />
-                        Explorar texturas
-                      </Button>
-                    </div>
-
-                    {texturas.paredes ? (
-                      <div className="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
-                        <div className="flex items-center gap-4">
+                  <div className="space-y-3">
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                      Textura de las paredes
+                    </h3>
+                    <button
+                      onClick={() => openTextureModal("walls")}
+                      className="w-full p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-indigo-400 transition-colors"
+                    >
+                      {texturas.paredes ? (
+                        <div className="flex items-center gap-3">
                           <img
                             src={texturas.paredes.previewUrl}
                             alt={texturas.paredes.name}
-                            className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                            className="w-12 h-12 rounded object-cover"
                             onError={(e) => {
                               e.target.src = "/placeholder-image.jpg";
                             }}
                           />
-                          <div>
+                          <div className="text-left">
                             <p className="font-medium text-gray-900 dark:text-gray-100">
                               {formatTextureName(texturas.paredes.name)}
                             </p>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
                               {texturas.paredes.category === "generic"
-                                ? "Textura universal"
+                                ? "Universal"
                                 : `Textura de ${texturas.paredes.category}`}
                             </p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => openTextureModal("walls")}
-                            className="text-indigo-600 hover:text-indigo-700"
-                          >
-                            <Eye className="w-4 h-4 mr-1" />
-                            Cambiar
-                          </Button>
-                          <CheckCircle className="w-5 h-5 text-green-500" />
-                        </div>
-                      </div>
-                    ) : (
-                      <div
-                        className="flex items-center justify-center p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors"
-                        onClick={() => openTextureModal("walls")}
-                      >
-                        <div className="text-center">
-                          <Brush className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                          <p className="text-gray-500 dark:text-gray-400 font-medium">
+                      ) : (
+                        <div className="text-center py-4">
+                          <p className="text-gray-500 dark:text-gray-400">
                             Seleccionar textura de paredes
                           </p>
-                          <p className="text-sm text-gray-400 dark:text-gray-500">
-                            Haz clic para explorar opciones
-                          </p>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </button>
                   </div>
-                </div>
-
-                {/* Consejos */}
-                <div className="bg-blue-50/70 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
-                  <h3 className="text-blue-700 dark:text-blue-300 font-semibold mb-2 flex items-center gap-2">
-                    <AlertCircle className="w-5 h-5" />
-                    💡 Consejos de texturas
-                  </h3>
-                  <ul className="text-blue-600 dark:text-blue-400 text-sm space-y-1">
-                    <li>
-                      • Usa el modal para explorar todas las texturas
-                      disponibles
-                    </li>
-                    <li>
-                      • Las texturas se pueden filtrar por categoría (piso,
-                      pared, universal)
-                    </li>
-                    <li>
-                      • Puedes cambiar las texturas en cualquier momento durante
-                      o después de la creación
-                    </li>
-                    <li>
-                      • Las texturas universales funcionan bien tanto en pisos
-                      como en paredes
-                    </li>
-                  </ul>
                 </div>
               </>
             )}
           </div>
         )}
 
-        {/* Step 2: Configuración */}
+        {/* Step 2: Privacidad */}
         {step === 2 && (
           <div className="flex flex-col gap-6">
-            <div className="bg-green-50/70 dark:bg-green-900/20 p-4 rounded-xl border border-green-200 dark:border-green-800">
-              <h3 className="text-green-700 dark:text-green-300 font-semibold mb-2">
-                Audio y ambiente
+            <div className="space-y-4">
+              <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                Tipo de sala
               </h3>
-              <p className="text-green-600 dark:text-green-400 text-sm">
-                Próximamente podrás agregar música de fondo y efectos de sonido
-                para crear una experiencia inmersiva.
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Sala pública */}
+                <div
+                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    privacidad.publica
+                      ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                      : "border-gray-300 dark:border-gray-600 hover:border-indigo-400"
+                  }`}
+                  onClick={() =>
+                    setPrivacidad({ publica: true, esPrivada: false })
+                  }
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Globe className="w-5 h-5 text-blue-500" />
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                        Sala Pública
+                      </h4>
+                    </div>
+                    {privacidad.publica && (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Visible para todos los usuarios. Aparece en búsquedas
+                    públicas.
+                  </p>
+                </div>
+
+                {/* Sala privada */}
+                <div
+                  className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    privacidad.esPrivada
+                      ? "border-green-500 bg-green-50 dark:bg-green-900/20"
+                      : "border-gray-300 dark:border-gray-600 hover:border-indigo-400"
+                  }`}
+                  onClick={() =>
+                    setPrivacidad({ publica: false, esPrivada: true })
+                  }
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-5 h-5 text-orange-500" />
+                      <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                        Sala Privada
+                      </h4>
+                    </div>
+                    {privacidad.esPrivada && (
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Solo tú y los colaboradores que invites pueden acceder. No
+                    aparece en búsquedas públicas.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Colaboradores */}
+        {step === 3 && (
+          <div className="flex flex-col gap-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                  Colaboradores de la sala
+                </h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowUserSearch(!showUserSearch)}
+                >
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Agregar colaborador
+                </Button>
+              </div>
+
+              {/* Search users */}
+              {showUserSearch && (
+                <div className="bg-gray-50 dark:bg-neutral-800 p-4 rounded-lg space-y-3">
+                  <Input
+                    placeholder="Buscar usuarios por nombre o email..."
+                    value={userSearchQuery}
+                    onChange={(e) => setUserSearchQuery(e.target.value)}
+                  />
+
+                  {searchLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                      <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                        Buscando usuarios...
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="max-h-40 overflow-y-auto space-y-2">
+                      {searchResults.length > 0 ? (
+                        searchResults.map((user) => (
+                          <div
+                            key={user.id}
+                            className="flex items-center justify-between p-2 hover:bg-gray-100 dark:hover:bg-neutral-800 rounded cursor-pointer transition-colors"
+                            onClick={() => addUserAsCollaborator(user)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <img
+                                src={user.image || "/placeholder-image.jpg"}
+                                alt={user.name}
+                                className="w-8 h-8 rounded-full object-cover"
+                                onError={(e) => {
+                                  e.target.src = "/placeholder-image.jpg";
+                                }}
+                              />
+                              <div>
+                                <p className="font-medium text-gray-900 dark:text-gray-100">
+                                  {user.name}
+                                </p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">
+                                  {user.email}
+                                </p>
+                              </div>
+                            </div>
+                            <UserPlus className="w-4 h-4 text-indigo-600" />
+                          </div>
+                        ))
+                      ) : userSearchQuery.length >= 2 ? (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+                          No se encontraron usuarios con "{userSearchQuery}"
+                        </p>
+                      ) : userSearchQuery.length > 0 ? (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+                          Escribe al menos 2 caracteres
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+                          Escribe para buscar usuarios
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Current collaborators */}
+              {colaboradores.length > 0 ? (
+                <div className="space-y-3">
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                    Colaboradores agregados ({colaboradores.length})
+                  </h4>
+                  {colaboradores.map((colaborador) => (
+                    <div
+                      key={colaborador.id}
+                      className="flex items-center justify-between p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800"
+                    >
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={colaborador.image || "/placeholder-image.jpg"}
+                          alt={colaborador.name}
+                          className="w-8 h-8 rounded-full object-cover"
+                          onError={(e) => {
+                            e.target.src = "/placeholder-image.jpg";
+                          }}
+                        />
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-gray-100">
+                            {colaborador.name}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {colaborador.email}
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeColaborador(colaborador.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                  <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-gray-500 dark:text-gray-400 font-medium">
+                    No hay colaboradores agregados
+                  </p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">
+                    Los colaboradores pueden ayudar a gestionar la sala
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Configuración */}
+        {step === 4 && (
+          <div className="flex flex-col gap-6">
+            <div className="bg-blue-50/70 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
+              <h3 className="text-blue-700 dark:text-blue-300 font-semibold mb-2">
+                Configuraciones adicionales
+              </h3>
+              <p className="text-blue-600 dark:text-blue-400 text-sm">
+                Las configuraciones de audio y ambiente estarán disponibles
+                después de crear la sala.
               </p>
             </div>
           </div>
         )}
 
-        {/* Step 3: Murales */}
-        {step === 3 && (
+        {/* Step 5: Murales */}
+        {step === 5 && (
           <div className="flex flex-col gap-6">
             <div className="bg-purple-50/70 dark:bg-purple-900/20 p-4 rounded-xl border border-purple-200 dark:border-purple-800">
               <h3 className="text-purple-700 dark:text-purple-300 font-semibold mb-2">
@@ -570,113 +740,86 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
           </div>
         )}
 
-        {/* Step 4: Confirmación */}
-        {step === 4 && (
-          <div className="flex flex-col gap-10 mb-8">
+        {/* Step 6: Confirmación */}
+        {step === 6 && (
+          <div className="flex flex-col gap-6">
             {successMessage ? (
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <CheckCircle className="text-green-500 h-6 w-6" />
-                  <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">
-                    ¡Éxito!
-                  </h3>
-                </div>
-                <p className="text-green-700 dark:text-green-300 mb-4">
+              <div className="text-center py-8">
+                <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                <p className="text-lg font-semibold text-green-700 dark:text-green-400">
                   {successMessage}
-                </p>
-                <p className="text-sm text-green-600 dark:text-green-400 mb-4">
-                  Redirigiendo a tus salas...
                 </p>
               </div>
             ) : apiError ? (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <AlertCircle className="text-red-500 h-6 w-6" />
-                  <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">
-                    Error al crear la sala
-                  </h3>
-                </div>
-                <p className="text-red-700 dark:text-red-300 mb-4">
+              <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
+                <p className="text-red-700 dark:text-red-400 font-medium">
                   {apiError.message}
                 </p>
                 {apiError.details && (
-                  <p className="text-sm text-red-600 dark:text-red-400 mb-4">
+                  <p className="text-sm text-red-600 dark:text-red-500 mt-2">
                     Detalles: {apiError.details}
                   </p>
                 )}
-                <div className="flex gap-3 flex-wrap">
-                  <Button
-                    onClick={() => {
-                      setApiError(null);
-                      handleCreateSala();
-                    }}
-                    className="bg-red-600 hover:bg-red-700 text-white"
-                  >
-                    Reintentar
-                  </Button>
-                  <Button onClick={() => setApiError(null)} variant="outline">
-                    Cancelar
-                  </Button>
-                </div>
+                <Button
+                  onClick={() => setApiError(null)}
+                  variant="outline"
+                  className="mt-3"
+                >
+                  Reintentar
+                </Button>
               </div>
             ) : (
               <>
                 {/* Summary */}
-                <div className="grid grid-cols-1 gap-6">
+                <div className="bg-gray-50 dark:bg-neutral-800 p-6 rounded-lg space-y-4">
+                  <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                    Resumen de la sala
+                  </h3>
+
                   {/* Datos básicos */}
-                  <div className="rounded-2xl border border-gray-200 dark:border-neutral-700 bg-white/90 dark:bg-neutral-900/70 p-5 shadow-sm">
-                    <h4 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2 mb-4">
-                      <Home className="w-4 h-4" />
-                      Datos básicos
-                    </h4>
-                    <div className="grid grid-cols-1 gap-3 text-sm">
-                      <div className="flex items-start gap-2">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 w-20 shrink-0">
-                          Nombre
-                        </span>
-                        <span className="text-sm text-gray-800 dark:text-gray-100">
-                          {nombre || "—"}
-                        </span>
-                      </div>
-                      <div className="flex items-start gap-2">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 w-20 shrink-0">
-                          Descripción
-                        </span>
-                        <span className="text-sm text-gray-800 dark:text-gray-100 whitespace-pre-line leading-relaxed">
-                          {descripcion || "—"}
-                        </span>
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Nombre
+                      </p>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">
+                        {nombre || "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Descripción
+                      </p>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">
+                        {descripcion || "—"}
+                      </p>
                     </div>
                   </div>
 
                   {/* Texturas */}
-                  <div className="rounded-2xl border border-gray-200 dark:border-neutral-700 bg-white/90 dark:bg-neutral-900/70 p-5 shadow-sm">
-                    <h4 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2 mb-4">
-                      <Brush className="w-4 h-4" />
-                      Texturas seleccionadas
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                      Texturas
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Piso */}
-                      <div>
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 block mb-2">
-                          Piso
-                        </span>
+                      <div className="flex items-center gap-3">
                         {texturas.piso ? (
-                          <div className="flex items-center gap-3">
+                          <>
                             <img
                               src={texturas.piso.previewUrl}
                               alt={texturas.piso.name}
-                              className="w-12 h-12 object-cover rounded border border-gray-200 dark:border-gray-700"
+                              className="w-10 h-10 rounded object-cover"
                               onError={(e) => {
                                 e.target.src = "/placeholder-image.jpg";
                               }}
                             />
-                            <span className="text-sm text-gray-800 dark:text-gray-100">
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                               {texturas.piso.name
                                 .replace(/([A-Z])/g, " $1")
                                 .trim()}
                             </span>
-                          </div>
+                          </>
                         ) : (
                           <span className="text-sm text-gray-500 dark:text-gray-400">
                             No seleccionado
@@ -685,26 +828,23 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
                       </div>
 
                       {/* Paredes */}
-                      <div>
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 block mb-2">
-                          Paredes
-                        </span>
+                      <div className="flex items-center gap-3">
                         {texturas.paredes ? (
-                          <div className="flex items-center gap-3">
+                          <>
                             <img
                               src={texturas.paredes.previewUrl}
                               alt={texturas.paredes.name}
-                              className="w-12 h-12 object-cover rounded border border-gray-200 dark:border-gray-700"
+                              className="w-10 h-10 rounded object-cover"
                               onError={(e) => {
                                 e.target.src = "/placeholder-image.jpg";
                               }}
                             />
-                            <span className="text-sm text-gray-800 dark:text-gray-100">
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                               {texturas.paredes.name
                                 .replace(/([A-Z])/g, " $1")
                                 .trim()}
                             </span>
-                          </div>
+                          </>
                         ) : (
                           <span className="text-sm text-gray-500 dark:text-gray-400">
                             No seleccionado
@@ -714,8 +854,9 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
                     </div>
                   </div>
                 </div>
+
                 <div className="flex flex-col sm:flex-row gap-4 justify-end mt-4">
-                  <Button variant="secondary" onClick={() => setStep(3)}>
+                  <Button variant="secondary" onClick={() => setStep(5)}>
                     Volver
                   </Button>
                   <Button
@@ -732,23 +873,31 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
         )}
 
         {/* Navigation */}
-        <div className="flex gap-2 justify-end mt-8">
+        <div className="flex flex-col sm:flex-row gap-3 sm:gap-2 justify-between sm:justify-end mt-6 sm:mt-8">
           <Button
             variant="ghost"
             onClick={() => setShowClearDraftModal(true)}
-            className="text-red-600 hover:text-red-700 flex items-center gap-2"
+            className="text-red-600 hover:text-red-700 flex items-center gap-2 w-full sm:w-auto order-2 sm:order-1"
           >
             <Trash2 className="w-4 h-4" />
-            Limpiar
+            Limpiar borrador
           </Button>
-          {step > 0 && (
-            <Button variant="secondary" onClick={handleBack}>
-              Atrás
-            </Button>
-          )}
-          {step < STEPS_DYNAMIC.length - 1 && (
-            <Button onClick={handleNext}>Siguiente</Button>
-          )}
+          <div className="flex gap-2 order-1 sm:order-2">
+            {step > 0 && (
+              <Button
+                variant="secondary"
+                onClick={handleBack}
+                className="flex-1 sm:flex-initial"
+              >
+                Atrás
+              </Button>
+            )}
+            {step < STEPS_DYNAMIC.length - 1 && (
+              <Button onClick={handleNext} className="flex-1 sm:flex-initial">
+                Siguiente
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -850,63 +999,9 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
                       <CheckCircle className="w-4 h-4" />
                     </div>
                   )}
-
-                  {/* Quality indicators */}
-                  <div className="absolute top-2 left-2 flex flex-col gap-1">
-                    {texture.completeness.hasNormal && (
-                      <div
-                        className="bg-green-500 text-white rounded-full w-2 h-2"
-                        title="Tiene normal map"
-                      />
-                    )}
-                    {texture.completeness.hasRoughness && (
-                      <div
-                        className="bg-blue-500 text-white rounded-full w-2 h-2"
-                        title="Tiene roughness map"
-                      />
-                    )}
-                    {texture.completeness.hasMetalness && (
-                      <div
-                        className="bg-purple-500 text-white rounded-full w-2 h-2"
-                        title="Tiene metalness map"
-                      />
-                    )}
-                  </div>
                 </div>
               ))}
             </div>
-
-            {getFilteredTextures().length === 0 && (
-              <div className="flex items-center justify-center py-8">
-                <div className="text-center">
-                  <Brush className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-500 dark:text-gray-400 font-medium">
-                    No hay texturas disponibles
-                  </p>
-                  <p className="text-sm text-gray-400 dark:text-gray-500">
-                    Intenta con otro filtro
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Info footer */}
-          <div className="bg-gray-50 dark:bg-neutral-800 rounded-lg p-3">
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              💡 <strong>Indicadores de calidad:</strong>
-              <span className="ml-2 inline-flex items-center gap-1">
-                <div className="bg-green-500 rounded-full w-2 h-2"></div>Normal
-              </span>
-              <span className="ml-2 inline-flex items-center gap-1">
-                <div className="bg-blue-500 rounded-full w-2 h-2"></div>
-                Rugosidad
-              </span>
-              <span className="ml-2 inline-flex items-center gap-1">
-                <div className="bg-purple-500 rounded-full w-2 h-2"></div>
-                Metalizado
-              </span>
-            </p>
           </div>
 
           {/* Action buttons */}

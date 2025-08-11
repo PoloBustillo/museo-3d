@@ -9,6 +9,11 @@ const initialState = {
     piso: null,
     paredes: null,
   },
+  privacidad: {
+    publica: true,
+    esPrivada: false,
+  },
+  colaboradores: [],
 };
 
 export const useCrearSalaStore = create((set, get) => ({
@@ -27,5 +32,10 @@ export const useCrearSalaStore = create((set, get) => ({
     set({ texturas: { ...get().texturas, piso: texture } }),
   setTextureWalls: (texture) =>
     set({ texturas: { ...get().texturas, paredes: texture } }),
+  setPrivacidad: (privacidad) => set({ privacidad }),
+  addColaborador: (colaborador) =>
+    set({ colaboradores: [...get().colaboradores, colaborador] }),
+  removeColaborador: (id) =>
+    set({ colaboradores: get().colaboradores.filter((c) => c.id !== id) }),
   reset: () => set({ ...initialState }),
 }));

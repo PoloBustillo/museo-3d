@@ -8,6 +8,7 @@ import React from "react";
  * - color: tailwind color base (ej: 'indigo'), default 'indigo'
  * - className: clases extra opcionales
  * - onStepClick: función (índice) => void, si se pasa los steps serán clickeables
+ * - maxVisible: número máximo de pasos visibles (default: ilimitado)
  */
 export default function Stepper({
   steps = [],
@@ -15,6 +16,7 @@ export default function Stepper({
   color = "indigo",
   className = "",
   onStepClick,
+  maxVisible = null,
 }) {
   // Hook para detectar pantalla pequeña
   const [isMobile, setIsMobile] = React.useState(false);
@@ -49,8 +51,30 @@ export default function Stepper({
     warning: "bg-yellow-400 border-yellow-600 text-black",
   };
 
-  // Filtrar steps para móviles: mostrar solo actual, anterior y siguiente
+  // Filtrar steps basado en maxVisible o para móviles
   const getVisibleSteps = () => {
+    // Si maxVisible está definido, usar esa lógica independientemente del tamaño de pantalla
+    if (maxVisible && typeof maxVisible === 'number' && maxVisible > 0) {
+      const visibleSteps = [];
+      const halfMax = Math.floor(maxVisible / 2);
+      
+      // Calcular el rango de pasos a mostrar centrado en el paso activo
+      let startIndex = Math.max(0, activeStep - halfMax);
+      let endIndex = Math.min(steps.length - 1, startIndex + maxVisible - 1);
+      
+      // Ajustar si no tenemos suficientes pasos al final
+      if (endIndex - startIndex + 1 < maxVisible) {
+        startIndex = Math.max(0, endIndex - maxVisible + 1);
+      }
+      
+      for (let i = startIndex; i <= endIndex; i++) {
+        visibleSteps.push({ ...steps[i], originalIndex: i });
+      }
+      
+      return visibleSteps;
+    }
+    
+    // Lógica original para móviles si no hay maxVisible
     if (!isMobile) return steps;
 
     const visibleSteps = [];
@@ -66,19 +90,19 @@ export default function Stepper({
 
   return (
     <div className="flex flex-col items-center mx-0 w-full max-w-full overflow-visible">
-      {/* Contador de progreso en móviles */}
-      {isMobile && (
+      {/* Contador de progreso cuando hay límite de pasos visibles */}
+      {(maxVisible && steps.length > maxVisible) || (isMobile && !maxVisible) ? (
         <div className="mb-2 text-xs text-gray-500 dark:text-gray-400">
           Paso {activeStep + 1} de {steps.length}
         </div>
-      )}
+      ) : null}
       <div
         className={`flex items-start justify-center gap-1 sm:gap-4 mb-6 px-2 sm:px-0 py-2 w-full max-w-full flex-wrap sm:flex-nowrap overflow-visible ${className}`}
         role="list"
         aria-label="Progreso"
       >
-        {/* Indicador de steps anteriores en móviles */}
-        {isMobile && activeStep > 0 && (
+        {/* Indicador de steps anteriores cuando hay límite */}
+        {((maxVisible && activeStep > Math.floor(maxVisible / 2)) || (isMobile && !maxVisible && activeStep > 0)) && (
           <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 px-2">
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600"></div>
