@@ -11,6 +11,10 @@ import {
   Music,
   ListChecks,
   Trash2,
+  ChevronDown,
+  Eye,
+  Grid3x3,
+  X,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,26 +33,31 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
-  
+
   // Zustand store
-  const { 
-    nombre, 
-    descripcion, 
-    murales, 
-    texturas, 
-    setNombre, 
-    setDescripcion, 
-    addMural, 
-    removeMural, 
-    setTextureFloor, 
-    setTextureWalls, 
-    reset 
+  const {
+    nombre,
+    descripcion,
+    murales,
+    texturas,
+    setNombre,
+    setDescripcion,
+    addMural,
+    removeMural,
+    setTextureFloor,
+    setTextureWalls,
+    reset,
   } = useCrearSalaStore();
 
   // State for textures
   const [availableTextures, setAvailableTextures] = useState([]);
   const [loadingTextures, setLoadingTextures] = useState(false);
   const [textureError, setTextureError] = useState(null);
+
+  // Modal states
+  const [showTextureModal, setShowTextureModal] = useState(false);
+  const [selectedTextureType, setSelectedTextureType] = useState(null); // 'floor' or 'walls'
+  const [textureFilter, setTextureFilter] = useState("all"); // 'all', 'floor', 'wall', 'generic'
 
   // Steps configuration
   const STEPS_DYNAMIC = [
@@ -92,14 +101,14 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
       setLoadingTextures(true);
       setTextureError(null);
       try {
-        const response = await fetch('/api/textures');
+        const response = await fetch("/api/textures");
         if (!response.ok) {
-          throw new Error('Error al cargar las texturas');
+          throw new Error("Error al cargar las texturas");
         }
         const data = await response.json();
         setAvailableTextures(data.textures || []);
       } catch (error) {
-        console.error('Error loading textures:', error);
+        console.error("Error loading textures:", error);
         setTextureError(error.message);
       } finally {
         setLoadingTextures(false);
@@ -118,6 +127,39 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
     }
     setErrors(e);
     return Object.keys(e).length === 0;
+  };
+
+  // Texture helper functions
+  const openTextureModal = (type) => {
+    setSelectedTextureType(type);
+    setTextureFilter(type === "floor" ? "floor" : "wall");
+    setShowTextureModal(true);
+  };
+
+  const selectTexture = (texture) => {
+    if (selectedTextureType === "floor") {
+      setTextureFloor(texture);
+    } else if (selectedTextureType === "walls") {
+      setTextureWalls(texture);
+    }
+    setShowTextureModal(false);
+  };
+
+  const getFilteredTextures = () => {
+    if (textureFilter === "all") return availableTextures;
+    return availableTextures.filter(
+      (texture) =>
+        texture.category === textureFilter ||
+        (textureFilter === "floor" && texture.category === "generic") ||
+        (textureFilter === "wall" && texture.category === "generic")
+    );
+  };
+
+  const formatTextureName = (name) => {
+    return name
+      .replace(/([A-Z])/g, " $1")
+      .trim()
+      .replace(/^\w/, (c) => c.toUpperCase());
   };
 
   // Navigation handlers
@@ -167,15 +209,14 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
 
       const result = await response.json();
       setSuccessMessage("¡Sala creada exitosamente!");
-      
+
       // Clear the form
       reset();
-      
+
       // Redirect after a delay
       setTimeout(() => {
         router.push("/mis-salas");
       }, 2000);
-
     } catch (error) {
       console.error("Error creating sala:", error);
       setApiError({
@@ -255,7 +296,10 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
         {step === 0 && (
           <div className="flex flex-col gap-6">
             <div>
-              <Label htmlFor="nombre" className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200">
+              <Label
+                htmlFor="nombre"
+                className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200"
+              >
                 Nombre de la sala *
               </Label>
               <Input
@@ -265,11 +309,18 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
                 placeholder="Ej: Mi galería personal"
                 className={errors.nombre ? "border-red-500" : ""}
               />
-              {errors.nombre && <span className="text-red-500 text-xs mt-1 block">{errors.nombre}</span>}
+              {errors.nombre && (
+                <span className="text-red-500 text-xs mt-1 block">
+                  {errors.nombre}
+                </span>
+              )}
             </div>
 
             <div>
-              <Label htmlFor="descripcion" className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200">
+              <Label
+                htmlFor="descripcion"
+                className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200"
+              >
                 Descripción *
               </Label>
               <Textarea
@@ -280,7 +331,11 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
                 rows={4}
                 className={errors.descripcion ? "border-red-500" : ""}
               />
-              {errors.descripcion && <span className="text-red-500 text-xs mt-1 block">{errors.descripcion}</span>}
+              {errors.descripcion && (
+                <span className="text-red-500 text-xs mt-1 block">
+                  {errors.descripcion}
+                </span>
+              )}
             </div>
           </div>
         )}
@@ -291,124 +346,186 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
             {loadingTextures ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                <span className="ml-3 text-gray-600 dark:text-gray-400">Cargando texturas...</span>
+                <span className="ml-3 text-gray-600 dark:text-gray-400">
+                  Cargando texturas...
+                </span>
               </div>
             ) : textureError ? (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                <p className="text-red-700 dark:text-red-300">Error al cargar texturas: {textureError}</p>
+                <p className="text-red-700 dark:text-red-300">
+                  Error al cargar texturas: {textureError}
+                </p>
               </div>
             ) : (
               <>
-                {/* Selector de textura para el piso */}
-                <div>
-                  <Label className="block mb-4 text-base font-semibold text-gray-700 dark:text-gray-200">
-                    Textura del piso
-                  </Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {availableTextures
-                      .filter(texture => texture.category === 'floor' || texture.category === 'generic')
-                      .map((texture) => (
-                        <div
-                          key={texture.id}
-                          className={`relative cursor-pointer rounded-lg border-2 transition-all duration-200 ${
-                            texturas.piso?.id === texture.id
-                              ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                              : 'border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600'
-                          }`}
-                          onClick={() => setTextureFloor(texture)}
-                        >
-                          <div className="aspect-square overflow-hidden rounded-t-lg">
-                            <img
-                              src={texture.previewUrl}
-                              alt={texture.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.target.src = '/placeholder-image.jpg';
-                              }}
-                            />
-                          </div>
-                          <div className="p-2">
-                            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
-                              {texture.name.replace(/([A-Z])/g, ' $1').trim()}
+                {/* Selector compacto de texturas */}
+                <div className="space-y-6">
+                  {/* Textura del piso */}
+                  <div className="bg-white dark:bg-neutral-800 rounded-xl border border-gray-200 dark:border-neutral-700 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <Label className="text-base font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+                        <Home className="w-5 h-5 text-indigo-600" />
+                        Textura del piso
+                      </Label>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openTextureModal("floor")}
+                        className="flex items-center gap-2"
+                      >
+                        <Grid3x3 className="w-4 h-4" />
+                        Explorar texturas
+                      </Button>
+                    </div>
+
+                    {texturas.piso ? (
+                      <div className="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                        <div className="flex items-center gap-4">
+                          <img
+                            src={texturas.piso.previewUrl}
+                            alt={texturas.piso.name}
+                            className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                            onError={(e) => {
+                              e.target.src = "/placeholder-image.jpg";
+                            }}
+                          />
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                              {formatTextureName(texturas.piso.name)}
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                              {texturas.piso.category === "generic"
+                                ? "Textura universal"
+                                : `Textura de ${texturas.piso.category}`}
                             </p>
                           </div>
-                          {texturas.piso?.id === texture.id && (
-                            <div className="absolute top-2 right-2 bg-indigo-500 text-white rounded-full p-1">
-                              <CheckCircle className="w-4 h-4" />
-                            </div>
-                          )}
                         </div>
-                      ))
-                    }
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openTextureModal("floor")}
+                            className="text-indigo-600 hover:text-indigo-700"
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Cambiar
+                          </Button>
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        className="flex items-center justify-center p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors"
+                        onClick={() => openTextureModal("floor")}
+                      >
+                        <div className="text-center">
+                          <Brush className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-gray-500 dark:text-gray-400 font-medium">
+                            Seleccionar textura de piso
+                          </p>
+                          <p className="text-sm text-gray-400 dark:text-gray-500">
+                            Haz clic para explorar opciones
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  {texturas.piso && (
-                    <div className="mt-3 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
-                      <p className="text-sm text-indigo-700 dark:text-indigo-300">
-                        <strong>Seleccionado:</strong> {texturas.piso.name.replace(/([A-Z])/g, ' $1').trim()}
-                      </p>
-                    </div>
-                  )}
-                </div>
 
-                {/* Selector de textura para las paredes */}
-                <div>
-                  <Label className="block mb-4 text-base font-semibold text-gray-700 dark:text-gray-200">
-                    Textura de las paredes
-                  </Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {availableTextures
-                      .filter(texture => texture.category === 'wall' || texture.category === 'generic')
-                      .map((texture) => (
-                        <div
-                          key={texture.id}
-                          className={`relative cursor-pointer rounded-lg border-2 transition-all duration-200 ${
-                            texturas.paredes?.id === texture.id
-                              ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                              : 'border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600'
-                          }`}
-                          onClick={() => setTextureWalls(texture)}
-                        >
-                          <div className="aspect-square overflow-hidden rounded-t-lg">
-                            <img
-                              src={texture.previewUrl}
-                              alt={texture.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.target.src = '/placeholder-image.jpg';
-                              }}
-                            />
-                          </div>
-                          <div className="p-2">
-                            <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
-                              {texture.name.replace(/([A-Z])/g, ' $1').trim()}
+                  {/* Textura de las paredes */}
+                  <div className="bg-white dark:bg-neutral-800 rounded-xl border border-gray-200 dark:border-neutral-700 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <Label className="text-base font-semibold text-gray-700 dark:text-gray-200 flex items-center gap-2">
+                        <Brush className="w-5 h-5 text-indigo-600" />
+                        Textura de las paredes
+                      </Label>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openTextureModal("walls")}
+                        className="flex items-center gap-2"
+                      >
+                        <Grid3x3 className="w-4 h-4" />
+                        Explorar texturas
+                      </Button>
+                    </div>
+
+                    {texturas.paredes ? (
+                      <div className="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                        <div className="flex items-center gap-4">
+                          <img
+                            src={texturas.paredes.previewUrl}
+                            alt={texturas.paredes.name}
+                            className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-700"
+                            onError={(e) => {
+                              e.target.src = "/placeholder-image.jpg";
+                            }}
+                          />
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                              {formatTextureName(texturas.paredes.name)}
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">
+                              {texturas.paredes.category === "generic"
+                                ? "Textura universal"
+                                : `Textura de ${texturas.paredes.category}`}
                             </p>
                           </div>
-                          {texturas.paredes?.id === texture.id && (
-                            <div className="absolute top-2 right-2 bg-indigo-500 text-white rounded-full p-1">
-                              <CheckCircle className="w-4 h-4" />
-                            </div>
-                          )}
                         </div>
-                      ))
-                    }
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openTextureModal("walls")}
+                            className="text-indigo-600 hover:text-indigo-700"
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Cambiar
+                          </Button>
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        className="flex items-center justify-center p-8 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors"
+                        onClick={() => openTextureModal("walls")}
+                      >
+                        <div className="text-center">
+                          <Brush className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                          <p className="text-gray-500 dark:text-gray-400 font-medium">
+                            Seleccionar textura de paredes
+                          </p>
+                          <p className="text-sm text-gray-400 dark:text-gray-500">
+                            Haz clic para explorar opciones
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  {texturas.paredes && (
-                    <div className="mt-3 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
-                      <p className="text-sm text-indigo-700 dark:text-indigo-300">
-                        <strong>Seleccionado:</strong> {texturas.paredes.name.replace(/([A-Z])/g, ' $1').trim()}
-                      </p>
-                    </div>
-                  )}
                 </div>
 
-                {/* Info about texture categories */}
+                {/* Consejos */}
                 <div className="bg-blue-50/70 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
-                  <h3 className="text-blue-700 dark:text-blue-300 font-semibold mb-2">💡 Consejos de texturas</h3>
+                  <h3 className="text-blue-700 dark:text-blue-300 font-semibold mb-2 flex items-center gap-2">
+                    <AlertCircle className="w-5 h-5" />
+                    💡 Consejos de texturas
+                  </h3>
                   <ul className="text-blue-600 dark:text-blue-400 text-sm space-y-1">
-                    <li>• Las texturas del piso son ideales para superficies horizontales</li>
-                    <li>• Las texturas de pared funcionan mejor en superficies verticales</li>
-                    <li>• Las texturas genéricas pueden usarse en ambos casos</li>
-                    <li>• Puedes cambiar las texturas más tarde desde la configuración de la sala</li>
+                    <li>
+                      • Usa el modal para explorar todas las texturas
+                      disponibles
+                    </li>
+                    <li>
+                      • Las texturas se pueden filtrar por categoría (piso,
+                      pared, universal)
+                    </li>
+                    <li>
+                      • Puedes cambiar las texturas en cualquier momento durante
+                      o después de la creación
+                    </li>
+                    <li>
+                      • Las texturas universales funcionan bien tanto en pisos
+                      como en paredes
+                    </li>
                   </ul>
                 </div>
               </>
@@ -420,9 +537,12 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
         {step === 2 && (
           <div className="flex flex-col gap-6">
             <div className="bg-green-50/70 dark:bg-green-900/20 p-4 rounded-xl border border-green-200 dark:border-green-800">
-              <h3 className="text-green-700 dark:text-green-300 font-semibold mb-2">Audio y ambiente</h3>
+              <h3 className="text-green-700 dark:text-green-300 font-semibold mb-2">
+                Audio y ambiente
+              </h3>
               <p className="text-green-600 dark:text-green-400 text-sm">
-                Próximamente podrás agregar música de fondo y efectos de sonido para crear una experiencia inmersiva.
+                Próximamente podrás agregar música de fondo y efectos de sonido
+                para crear una experiencia inmersiva.
               </p>
             </div>
           </div>
@@ -432,9 +552,12 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
         {step === 3 && (
           <div className="flex flex-col gap-6">
             <div className="bg-purple-50/70 dark:bg-purple-900/20 p-4 rounded-xl border border-purple-200 dark:border-purple-800">
-              <h3 className="text-purple-700 dark:text-purple-300 font-semibold mb-2">Seleccionar obras</h3>
+              <h3 className="text-purple-700 dark:text-purple-300 font-semibold mb-2">
+                Seleccionar obras
+              </h3>
               <p className="text-purple-600 dark:text-purple-400 text-sm">
-                Después de crear la sala, podrás agregar tus obras desde la sección "Mis Salas".
+                Después de crear la sala, podrás agregar tus obras desde la
+                sección "Mis Salas".
               </p>
             </div>
             {murales.length > 0 && (
@@ -454,22 +577,46 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
               <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <CheckCircle className="text-green-500 h-6 w-6" />
-                  <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">¡Éxito!</h3>
+                  <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">
+                    ¡Éxito!
+                  </h3>
                 </div>
-                <p className="text-green-700 dark:text-green-300 mb-4">{successMessage}</p>
-                <p className="text-sm text-green-600 dark:text-green-400 mb-4">Redirigiendo a tus salas...</p>
+                <p className="text-green-700 dark:text-green-300 mb-4">
+                  {successMessage}
+                </p>
+                <p className="text-sm text-green-600 dark:text-green-400 mb-4">
+                  Redirigiendo a tus salas...
+                </p>
               </div>
             ) : apiError ? (
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <AlertCircle className="text-red-500 h-6 w-6" />
-                  <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">Error al crear la sala</h3>
+                  <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">
+                    Error al crear la sala
+                  </h3>
                 </div>
-                <p className="text-red-700 dark:text-red-300 mb-4">{apiError.message}</p>
-                {apiError.details && <p className="text-sm text-red-600 dark:text-red-400 mb-4">Detalles: {apiError.details}</p>}
+                <p className="text-red-700 dark:text-red-300 mb-4">
+                  {apiError.message}
+                </p>
+                {apiError.details && (
+                  <p className="text-sm text-red-600 dark:text-red-400 mb-4">
+                    Detalles: {apiError.details}
+                  </p>
+                )}
                 <div className="flex gap-3 flex-wrap">
-                  <Button onClick={() => { setApiError(null); handleCreateSala(); }} className="bg-red-600 hover:bg-red-700 text-white">Reintentar</Button>
-                  <Button onClick={() => setApiError(null)} variant="outline">Cancelar</Button>
+                  <Button
+                    onClick={() => {
+                      setApiError(null);
+                      handleCreateSala();
+                    }}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    Reintentar
+                  </Button>
+                  <Button onClick={() => setApiError(null)} variant="outline">
+                    Cancelar
+                  </Button>
                 </div>
               </div>
             ) : (
@@ -484,12 +631,20 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
                     </h4>
                     <div className="grid grid-cols-1 gap-3 text-sm">
                       <div className="flex items-start gap-2">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 w-20 shrink-0">Nombre</span>
-                        <span className="text-sm text-gray-800 dark:text-gray-100">{nombre || '—'}</span>
+                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 w-20 shrink-0">
+                          Nombre
+                        </span>
+                        <span className="text-sm text-gray-800 dark:text-gray-100">
+                          {nombre || "—"}
+                        </span>
                       </div>
                       <div className="flex items-start gap-2">
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 w-20 shrink-0">Descripción</span>
-                        <span className="text-sm text-gray-800 dark:text-gray-100 whitespace-pre-line leading-relaxed">{descripcion || '—'}</span>
+                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 w-20 shrink-0">
+                          Descripción
+                        </span>
+                        <span className="text-sm text-gray-800 dark:text-gray-100 whitespace-pre-line leading-relaxed">
+                          {descripcion || "—"}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -503,50 +658,72 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* Piso */}
                       <div>
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 block mb-2">Piso</span>
+                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 block mb-2">
+                          Piso
+                        </span>
                         {texturas.piso ? (
                           <div className="flex items-center gap-3">
-                            <img 
-                              src={texturas.piso.previewUrl} 
+                            <img
+                              src={texturas.piso.previewUrl}
                               alt={texturas.piso.name}
                               className="w-12 h-12 object-cover rounded border border-gray-200 dark:border-gray-700"
-                              onError={(e) => { e.target.src = '/placeholder-image.jpg'; }}
+                              onError={(e) => {
+                                e.target.src = "/placeholder-image.jpg";
+                              }}
                             />
                             <span className="text-sm text-gray-800 dark:text-gray-100">
-                              {texturas.piso.name.replace(/([A-Z])/g, ' $1').trim()}
+                              {texturas.piso.name
+                                .replace(/([A-Z])/g, " $1")
+                                .trim()}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-sm text-gray-500 dark:text-gray-400">No seleccionado</span>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            No seleccionado
+                          </span>
                         )}
                       </div>
-                      
+
                       {/* Paredes */}
                       <div>
-                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 block mb-2">Paredes</span>
+                        <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 block mb-2">
+                          Paredes
+                        </span>
                         {texturas.paredes ? (
                           <div className="flex items-center gap-3">
-                            <img 
-                              src={texturas.paredes.previewUrl} 
+                            <img
+                              src={texturas.paredes.previewUrl}
                               alt={texturas.paredes.name}
                               className="w-12 h-12 object-cover rounded border border-gray-200 dark:border-gray-700"
-                              onError={(e) => { e.target.src = '/placeholder-image.jpg'; }}
+                              onError={(e) => {
+                                e.target.src = "/placeholder-image.jpg";
+                              }}
                             />
                             <span className="text-sm text-gray-800 dark:text-gray-100">
-                              {texturas.paredes.name.replace(/([A-Z])/g, ' $1').trim()}
+                              {texturas.paredes.name
+                                .replace(/([A-Z])/g, " $1")
+                                .trim()}
                             </span>
                           </div>
                         ) : (
-                          <span className="text-sm text-gray-500 dark:text-gray-400">No seleccionado</span>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            No seleccionado
+                          </span>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4 justify-end mt-4">
-                  <Button variant="secondary" onClick={() => setStep(3)}>Volver</Button>
-                  <Button className="min-w-[180px]" onClick={handleCreateSala} disabled={isCreating}>
-                    {isCreating ? 'Creando sala...' : 'Crear sala'}
+                  <Button variant="secondary" onClick={() => setStep(3)}>
+                    Volver
+                  </Button>
+                  <Button
+                    className="min-w-[180px]"
+                    onClick={handleCreateSala}
+                    disabled={isCreating}
+                  >
+                    {isCreating ? "Creando sala..." : "Crear sala"}
                   </Button>
                 </div>
               </>
@@ -574,6 +751,185 @@ export default function CrearSalaStepper({ scrollParentRef = null }) {
           )}
         </div>
       </div>
+
+      {/* Texture selection modal */}
+      <SimpleModal
+        isOpen={showTextureModal}
+        onClose={() => setShowTextureModal(false)}
+        title={`Seleccionar textura ${selectedTextureType === "floor" ? "de piso" : "de paredes"}`}
+        size="large"
+      >
+        <div className="flex flex-col gap-4">
+          {/* Filter tabs */}
+          <div className="flex gap-2 p-1 bg-gray-100 dark:bg-neutral-800 rounded-lg">
+            <button
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                textureFilter === "all"
+                  ? "bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100 shadow-sm"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+              }`}
+              onClick={() => setTextureFilter("all")}
+            >
+              Todas ({availableTextures.length})
+            </button>
+            <button
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                textureFilter === "floor"
+                  ? "bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100 shadow-sm"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+              }`}
+              onClick={() => setTextureFilter("floor")}
+            >
+              Pisos (
+              {availableTextures.filter((t) => t.category === "floor").length})
+            </button>
+            <button
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                textureFilter === "wall"
+                  ? "bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100 shadow-sm"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+              }`}
+              onClick={() => setTextureFilter("wall")}
+            >
+              Paredes (
+              {availableTextures.filter((t) => t.category === "wall").length})
+            </button>
+            <button
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                textureFilter === "generic"
+                  ? "bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100 shadow-sm"
+                  : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+              }`}
+              onClick={() => setTextureFilter("generic")}
+            >
+              Universales (
+              {availableTextures.filter((t) => t.category === "generic").length}
+              )
+            </button>
+          </div>
+
+          {/* Texture grid */}
+          <div className="max-h-96 overflow-y-auto">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+              {getFilteredTextures().map((texture) => (
+                <div
+                  key={texture.id}
+                  className={`relative cursor-pointer rounded-lg border-2 transition-all duration-200 hover:scale-105 ${
+                    (selectedTextureType === "floor"
+                      ? texturas.piso?.id
+                      : texturas.paredes?.id) === texture.id
+                      ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-2 ring-indigo-500 ring-opacity-50"
+                      : "border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600"
+                  }`}
+                  onClick={() => selectTexture(texture)}
+                >
+                  <div className="aspect-square overflow-hidden rounded-t-lg">
+                    <img
+                      src={texture.previewUrl}
+                      alt={texture.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.src = "/placeholder-image.jpg";
+                      }}
+                    />
+                  </div>
+                  <div className="p-2">
+                    <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
+                      {formatTextureName(texture.name)}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">
+                      {texture.category === "generic"
+                        ? "Universal"
+                        : texture.category}
+                    </p>
+                  </div>
+                  {(selectedTextureType === "floor"
+                    ? texturas.piso?.id
+                    : texturas.paredes?.id) === texture.id && (
+                    <div className="absolute top-2 right-2 bg-indigo-500 text-white rounded-full p-1">
+                      <CheckCircle className="w-4 h-4" />
+                    </div>
+                  )}
+
+                  {/* Quality indicators */}
+                  <div className="absolute top-2 left-2 flex flex-col gap-1">
+                    {texture.completeness.hasNormal && (
+                      <div
+                        className="bg-green-500 text-white rounded-full w-2 h-2"
+                        title="Tiene normal map"
+                      />
+                    )}
+                    {texture.completeness.hasRoughness && (
+                      <div
+                        className="bg-blue-500 text-white rounded-full w-2 h-2"
+                        title="Tiene roughness map"
+                      />
+                    )}
+                    {texture.completeness.hasMetalness && (
+                      <div
+                        className="bg-purple-500 text-white rounded-full w-2 h-2"
+                        title="Tiene metalness map"
+                      />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {getFilteredTextures().length === 0 && (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <Brush className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-500 dark:text-gray-400 font-medium">
+                    No hay texturas disponibles
+                  </p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">
+                    Intenta con otro filtro
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Info footer */}
+          <div className="bg-gray-50 dark:bg-neutral-800 rounded-lg p-3">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              💡 <strong>Indicadores de calidad:</strong>
+              <span className="ml-2 inline-flex items-center gap-1">
+                <div className="bg-green-500 rounded-full w-2 h-2"></div>Normal
+              </span>
+              <span className="ml-2 inline-flex items-center gap-1">
+                <div className="bg-blue-500 rounded-full w-2 h-2"></div>
+                Rugosidad
+              </span>
+              <span className="ml-2 inline-flex items-center gap-1">
+                <div className="bg-purple-500 rounded-full w-2 h-2"></div>
+                Metalizado
+              </span>
+            </p>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-neutral-700">
+            <Button
+              variant="outline"
+              onClick={() => setShowTextureModal(false)}
+            >
+              Cancelar
+            </Button>
+            {(selectedTextureType === "floor"
+              ? texturas.piso
+              : texturas.paredes) && (
+              <Button
+                onClick={() => setShowTextureModal(false)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                Usar textura seleccionada
+              </Button>
+            )}
+          </div>
+        </div>
+      </SimpleModal>
 
       {/* Clear draft modal */}
       <SimpleModal

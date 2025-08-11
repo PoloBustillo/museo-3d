@@ -10,14 +10,20 @@ export default function CrearSalaPage() {
   const router = useRouter();
   const [created, setCreated] = useState(false);
   const hasMounted = useRef(false);
-  useEffect(() => { hasMounted.current = true; }, []);
+  useEffect(() => {
+    hasMounted.current = true;
+  }, []);
 
   // Contenedor de scroll dedicado para estabilizar el formulario
   const scrollRef = useRef(null);
 
   return (
     <ProtectedRoute>
-      <div className="relative overflow-x-hidden" ref={scrollRef} style={{ overflowY: 'auto', maxHeight: '100vh' }}>
+      <div
+        className="relative overflow-x-hidden"
+        ref={scrollRef}
+        style={{ overflowY: "auto", maxHeight: "100vh" }}
+      >
         <AnimatedBackground />
         <div className="relative z-10 w-full max-w-5xl mx-auto px-0 sm:px-4 pt-24 md:pt-28 pb-2 md:pb-4 min-h-screen flex flex-col">
           <motion.div

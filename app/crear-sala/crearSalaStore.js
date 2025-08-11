@@ -23,7 +23,9 @@ export const useCrearSalaStore = create((set, get) => ({
   },
   removeMural: (id) => set({ murales: get().murales.filter((m) => m !== id) }),
   setStep: (step) => set({ step }),
-  setTextureFloor: (texture) => set({ texturas: { ...get().texturas, piso: texture } }),
-  setTextureWalls: (texture) => set({ texturas: { ...get().texturas, paredes: texture } }),
+  setTextureFloor: (texture) =>
+    set({ texturas: { ...get().texturas, piso: texture } }),
+  setTextureWalls: (texture) =>
+    set({ texturas: { ...get().texturas, paredes: texture } }),
   reset: () => set({ ...initialState }),
 }));
