@@ -283,12 +283,14 @@ function PlayerControls({
   LAST_X,
   WALL_MARGIN_INITIAL,
   WALL_MARGIN_FINAL,
+  onReachEnd,
 }) {
   const passedWallRef = useRef(false);
   const { camera } = useThree();
   const velocity = useRef(new THREE.Vector3());
   const direction = useRef(new THREE.Vector3());
   const keys = useRef({ w: false, a: false, s: false, d: false });
+  const inEndZoneRef = useRef(false); // reemplaza reachedEndRef para permitir re-disparo con hysteresis
 
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -327,6 +329,16 @@ function PlayerControls({
     ) {
       onPassInitialWall();
       passedWallRef.current = true;
+    }
+    if (onReachEnd) {
+      const endThreshold = LAST_X + WALL_MARGIN_FINAL - 1.2;
+      const hysteresisBack = endThreshold - 0.6; // salir un poco para permitir nuevo disparo
+      if (camera.position.x > endThreshold && !inEndZoneRef.current) {
+        inEndZoneRef.current = true;
+        onReachEnd();
+      } else if (camera.position.x < hysteresisBack && inEndZoneRef.current) {
+        inEndZoneRef.current = false; // permitir que vuelva a disparar si regresa y avanza de nuevo
+      }
     }
   });
   return null;
@@ -611,13 +623,17 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
   const [collectionMessage, setCollectionMessage] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
   const imageContainerRef = useRef(null);
+  const dragState = useRef({ active: false, startX: 0, startY: 0, baseX: 0, baseY: 0 });
+  const containerSize = useRef({ w: 0, h: 0 });
   const clampZoom = (v) => Math.min(4, Math.max(0.5, v));
 
   const handleWheel = useCallback((e) => {
-    if (!e.ctrlKey) return; // usar ctrl+scroll para zoom para no interferir con scroll normal
+    // Ahora siempre usa la rueda para zoom dentro del contenedor (sin Ctrl)
     e.preventDefault();
-    setZoom((z) => clampZoom(z - e.deltaY * 0.0015));
+    const factor = e.deltaY * 0.0015; // deltaY > 0 aleja
+    setZoom((z) => clampZoom(z - factor));
   }, []);
 
   useEffect(() => {
@@ -680,6 +696,56 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
     [artwork, isInCollection, onCollectionUpdate, userId]
   );
 
+  const updateBounds = useCallback(() => {
+    const el = imageContainerRef.current;
+    if (!el) return;
+    containerSize.current = { w: el.clientWidth, h: el.clientHeight };
+  }, []);
+  useEffect(() => {
+    updateBounds();
+    window.addEventListener('resize', updateBounds);
+    return () => window.removeEventListener('resize', updateBounds);
+  }, [updateBounds]);
+
+  const clampPan = useCallback((x, y) => {
+    if (zoom <= 1) return { x: 0, y: 0 };
+    const { w, h } = containerSize.current;
+    const maxX = (w * (zoom - 1)) / 2;
+    const maxY = (h * (zoom - 1)) / 2;
+    return { x: Math.max(-maxX, Math.min(maxX, x)), y: Math.max(-maxY, Math.min(maxY, y)) };
+  }, [zoom]);
+
+  const onPointerDown = (e) => {
+    if (zoom <= 1) return;
+    dragState.current = {
+      active: true,
+      startX: e.clientX,
+      startY: e.clientY,
+      baseX: pan.x,
+      baseY: pan.y,
+    };
+  };
+  const onPointerMove = (e) => {
+    if (!dragState.current.active) return;
+    const dx = e.clientX - dragState.current.startX;
+    const dy = e.clientY - dragState.current.startY;
+    const next = clampPan(dragState.current.baseX + dx, dragState.current.baseY + dy);
+    setPan(next);
+  };
+  const endDrag = () => { dragState.current.active = false; };
+  useEffect(() => {
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointerleave', endDrag);
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', endDrag);
+      window.removeEventListener('pointerleave', endDrag);
+    };
+  }, [onPointerMove]);
+
+  useEffect(() => { if (zoom <= 1) setPan({ x: 0, y: 0 }); }, [zoom]);
+
   if (!artwork) return null;
 
   return (
@@ -698,30 +764,30 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
           exit={{ y: 50, opacity: 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
           onClick={(e) => e.stopPropagation()}
-          className="relative bg-gradient-to-br from-neutral-900/95 via-neutral-850/90 to-neutral-800/80 backdrop-blur-xl border border-neutral-700/60 text-white rounded-2xl shadow-2xl overflow-hidden max-w-5xl w-full flex flex-col md:flex-row"
+          className="relative bg-gradient-to-br from-slate-950/95 via-slate-900/90 to-slate-800/85 backdrop-blur-2xl border border-slate-700/60 text-slate-100 rounded-2xl shadow-[0_8px_40px_-8px_rgba(0,0,0,0.6)] overflow-hidden max-w-5xl w-full flex flex-col md:flex-row"
         >
           {/* Botón cerrar flotante */}
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 px-3 py-2 rounded-lg bg-neutral-700/70 hover:bg-neutral-600/80 text-sm backdrop-blur-md shadow"
+            className="absolute top-3 right-3 px-3 py-2 rounded-lg bg-slate-700/70 hover:bg-slate-600/80 text-sm backdrop-blur-md shadow"
             aria-label="Cerrar"
           >✕</button>
-          <div className="md:w-5/12 w-full p-6 flex flex-col justify-between gap-4">
-            <div className="space-y-3">
-              <h2 className="text-3xl font-bold leading-tight bg-gradient-to-r from-amber-300 to-amber-500 text-transparent bg-clip-text drop-shadow">
+          <div className="md:w-5/12 w-full p-6 flex flex-col justify-between gap-5">
+            <div className="space-y-4">
+              <h2 className="text-3xl font-bold leading-tight bg-gradient-to-r from-amber-300 via-amber-200 to-amber-400 text-transparent bg-clip-text drop-shadow-sm">
                 {artwork.title}
               </h2>
               <h3 className="text-lg font-semibold text-amber-200/90">{artwork.artist} ({artwork.year})</h3>
-              <div className="flex flex-wrap gap-2 text-[11px] tracking-wide uppercase text-neutral-300">
-                <span className="px-2 py-1 rounded bg-neutral-700/50 border border-neutral-600/40">{artwork.technique}</span>
-                <span className="px-2 py-1 rounded bg-neutral-700/50 border border-neutral-600/40">{artwork.dimensions}</span>
+              <div className="flex flex-wrap gap-2 text-[11px] tracking-wide uppercase text-slate-300">
+                <span className="px-2 py-1 rounded bg-slate-800/60 border border-slate-600/40">{artwork.technique}</span>
+                <span className="px-2 py-1 rounded bg-slate-800/60 border border-slate-600/40">{artwork.dimensions}</span>
               </div>
-              <div className="h-px bg-gradient-to-r from-transparent via-neutral-600 to-transparent" />
-              <p className="text-gray-300 text-sm leading-relaxed max-h-48 overflow-y-auto pr-1 custom-scroll">{artwork.description}</p>
+              <div className="h-px bg-gradient-to-r from-transparent via-slate-600 to-transparent" />
+              <p className="text-slate-300/90 text-sm leading-relaxed max-h-48 overflow-y-auto pr-1 custom-scroll">{artwork.description}</p>
             </div>
             <div className="space-y-4">
-              <div className="flex items-center justify-between text-xs text-gray-400">
-                <span>Zoom: {(zoom * 100).toFixed(0)}%</span>
+              <div className="flex items-center justify-between text-xs text-slate-400">
+                <span>Zoom: {(zoom * 100).toFixed(0)}% {zoom > 1 && '(Rueda y arrastra)'}</span>
                 {collectionMessage && <span className="text-amber-300 font-medium">{collectionMessage}</span>}
               </div>
               <input
@@ -735,17 +801,17 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
               <div className="flex gap-2">
                 <button
                   onClick={zoomOut}
-                  className="flex-1 py-2 rounded-lg bg-neutral-700/70 hover:bg-neutral-600/80 text-sm"
+                  className="flex-1 py-2 rounded-lg bg-slate-800/70 hover:bg-slate-700/80 text-sm"
                   aria-label="Alejar"
                 >−</button>
                 <button
                   onClick={resetZoom}
-                  className="flex-1 py-2 rounded-lg bg-neutral-700/70 hover:bg-neutral-600/80 text-sm"
+                  className="flex-1 py-2 rounded-lg bg-slate-800/70 hover:bg-slate-700/80 text-sm"
                   aria-label="Reset Zoom"
                 >Reset</button>
                 <button
                   onClick={zoomIn}
-                  className="flex-1 py-2 rounded-lg bg-neutral-700/70 hover:bg-neutral-600/80 text-sm"
+                  className="flex-1 py-2 rounded-lg bg-slate-800/70 hover:bg-slate-700/80 text-sm"
                   aria-label="Acercar"
                 >＋</button>
               </div>
@@ -755,7 +821,7 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
                   disabled={isUpdating}
                   className={`flex-1 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 shadow-inner ${
                     isUpdating
-                      ? 'bg-neutral-600 cursor-not-allowed'
+                      ? 'bg-slate-600 cursor-not-allowed'
                       : isInCollection
                         ? 'bg-red-600/80 hover:bg-red-600 text-white'
                         : 'bg-amber-400 hover:bg-amber-500 text-black'
@@ -765,30 +831,91 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
                 </button>
                 <button
                   onClick={() => navigator?.clipboard?.writeText(window.location.href).catch(()=>{})}
-                  className="px-4 rounded-lg bg-neutral-700/70 hover:bg-neutral-600/80 text-sm"
+                  className="px-4 rounded-lg bg-slate-800/70 hover:bg-slate-700/80 text-sm"
                 >Compartir</button>
               </div>
             </div>
           </div>
-          <div ref={imageContainerRef} className="md:w-7/12 w-full relative bg-black/70 overflow-hidden group rounded-l-2xl md:rounded-l-none md:rounded-r-2xl">
+          <div
+            ref={imageContainerRef}
+            className={`md:w-7/12 w-full relative bg-slate-950/70 overflow-hidden group rounded-l-2xl md:rounded-l-none md:rounded-r-2xl select-none ${zoom>1 ? 'cursor-grab' : 'cursor-zoom-in'}`}
+            onPointerDown={onPointerDown}
+          >
             <div
-              style={{ transform: `scale(${zoom})`, transition: 'transform 0.25s ease', transformOrigin: 'center center' }}
+              style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transition: dragState.current.active ? 'none' : 'transform 0.25s ease', transformOrigin: 'center center' }}
               className="w-full h-full flex items-center justify-center p-4"
             >
               <img
                 src={artwork.src}
                 alt={artwork.title}
-                className="object-contain max-h-[80vh] select-none pointer-events-none drop-shadow-[0_0_25px_rgba(255,200,120,0.25)]"
+                className="object-contain max-h-[80vh] pointer-events-none drop-shadow-[0_0_28px_rgba(255,200,120,0.22)]"
                 draggable={false}
               />
             </div>
-            {/* Overlay suave para borde */}
-            <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-neutral-700/40" />
+            {dragState.current.active && <div className="absolute inset-0 cursor-grabbing" />}
+            <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-slate-700/40" />
           </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
   );
+}
+
+function EndOfHallModal({ open, onClose, rooms = [], onSelectRoom, onExit }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+      <div className="w-full max-w-lg bg-slate-900/95 border border-slate-700 rounded-xl shadow-xl p-6 flex flex-col gap-5">
+        <div className="flex items-start justify-between">
+          <h2 className="text-xl font-semibold text-amber-300">Fin de la sala</h2>
+          <button onClick={onClose} className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-sm">✕</button>
+        </div>
+        <p className="text-slate-300 text-sm">Has llegado al final. ¿A dónde quieres ir?</p>
+        <div className="flex flex-col gap-3 max-h-60 overflow-y-auto pr-1">
+          {rooms && rooms.length > 0 ? rooms.map((r) => (
+            <button
+              key={r.id}
+              onClick={() => onSelectRoom && onSelectRoom(r)}
+              className="text-left px-4 py-3 rounded-lg bg-slate-800/70 hover:bg-slate-700/80 transition flex justify-between items-center"
+            >
+              <span className="font-medium text-slate-200">{r.nombre || r.name || `Sala ${r.id}`}</span>
+              <span className="text-xs text-amber-300">Ingresar →</span>
+            </button>
+          )) : <div className="text-slate-500 text-sm">No hay otras salas disponibles.</div>}
+        </div>
+        <div className="flex gap-3 pt-2">
+          <button onClick={onExit} className="flex-1 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 font-semibold text-black text-sm">Salir</button>
+          <button onClick={onClose} className="flex-1 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CameraZoomControls({ minFov = 45, maxFov = 90, zoomSpeed = 0.08, smooth = 0.15 }) {
+  const { camera, gl } = useThree();
+  const targetFovRef = useRef(camera.fov);
+  useEffect(() => {
+    const onWheel = (e) => {
+      // Permitir zoom siempre que no esté usando ctrl (ese ya lo usa el modal interno) y que no haya seleccionado una obra (modal cubre)
+      if (e.ctrlKey) return; // evitar conflicto con zoom del navegador / modal
+      // Evitar que el scroll accidental haga scroll de la página externa
+      e.preventDefault();
+      const delta = e.deltaY; // positivo alejando, negativo acercando
+      const next = targetFovRef.current + (delta > 0 ? 1 : -1) * (Math.abs(delta) * zoomSpeed);
+      targetFovRef.current = THREE.MathUtils.clamp(next, minFov, maxFov);
+    };
+    const el = gl.domElement;
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [gl, minFov, maxFov, zoomSpeed]);
+  useFrame(() => {
+    if (Math.abs(camera.fov - targetFovRef.current) > 0.01) {
+      camera.fov += (targetFovRef.current - camera.fov) * smooth;
+      camera.updateProjectionMatrix();
+    }
+  });
+  return null;
 }
 
 // Adaptar componente principal para aceptar sala con layout/scene
@@ -808,6 +935,10 @@ export default function GalleryRoom({
   const [showInstructions, setShowInstructions] = useState(true);
   const [passedInitialWall, setPassedInitialWall] = useState(false);
   const [showRoomSelector, setShowRoomSelector] = useState(false);
+  const [showEndModal, setShowEndModal] = useState(false);
+  const [otherRooms, setOtherRooms] = useState(() => availableRooms.filter(r => r.id !== salaId));
+  const roomsFetchedRef = useRef(false); // fetch único
+
   const { isMuted } = useSound();
   const [personalCollection, setPersonalCollection] = useState([]);
 
@@ -898,46 +1029,53 @@ export default function GalleryRoom({
 
   const handleSelectArtwork = (art) => setSelectedArtwork(art);
   const handleCloseModal = () => setSelectedArtwork(null);
-
-  const plRef = useRef(null);
-  useEffect(() => {
-    const handleContextMenu = (e) => {
-      e.preventDefault();
-      if (plRef.current) plRef.current.lock();
-    };
-    const handleMouseDown = (e) => {
-      if (e.button === 2 && plRef.current) {
-        plRef.current.lock();
-      }
-    };
-    const handleKeyDown = (e) => {
-      const k = e.key.toLowerCase();
-      if (
-        [
-          "w",
-          "a",
-          "s",
-          "d",
-          "arrowup",
-          "arrowdown",
-          "arrowleft",
-          "arrowright",
-        ].includes(k) &&
-        plRef.current &&
-        !document.pointerLockElement
-      ) {
-        plRef.current.lock();
-      }
-    };
-    document.addEventListener("contextmenu", handleContextMenu);
-    document.addEventListener("mousedown", handleMouseDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("contextmenu", handleContextMenu);
-      document.removeEventListener("mousedown", handleMouseDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
+  const handleSelectRoom = (room) => {
+    if (onRoomChange) onRoomChange(room);
+    setShowEndModal(false); // al elegir sala se cierra; re-aparecerá cuando llegue al final de la nueva sala (nuevo mount o hysteresis)
+  };
+  const handleExit = () => {
+    setShowEndModal(false);
+    if (typeof window !== 'undefined') window.location.href = '/museo';
+  };
+  const handleReachEnd = useCallback(() => {
+    // Mostrar siempre que llegue al final y no esté ya visible
+    setShowEndModal((open) => open ? open : true);
   }, []);
+  const handleCloseEndModal = () => {
+    setShowEndModal(false); // permitir que vuelva a salir al regresar y avanzar de nuevo
+  };
+
+  // Fetch salas solo una vez
+  useEffect(() => {
+    if (roomsFetchedRef.current) return;
+    roomsFetchedRef.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/salas');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (cancelled) return;
+        const fetched = Array.isArray(data) ? data : (Array.isArray(data?.salas) ? data.salas : []);
+        const merged = [...availableRooms, ...fetched];
+        const unique = [];
+        const seen = new Set();
+        for (const r of merged) {
+          if (!r || seen.has(r.id)) continue;
+          seen.add(r.id);
+          unique.push(r);
+        }
+        setOtherRooms(unique.filter(r => r.id !== salaId));
+      } catch (e) {
+        // silencioso
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []); // solo en mount
+  // Re-filtrar si cambia salaId para excluir sala actual sin refetch
+  useEffect(() => {
+    setOtherRooms(prev => prev.filter(r => r.id !== salaId));
+  }, [salaId]);
 
   return (
     <>
@@ -958,12 +1096,14 @@ export default function GalleryRoom({
             scene={scene}
             salaTextures={{ pared: texturaPared, piso: texturaPiso }}
           />
+          <CameraZoomControls />
           <PlayerControls
             onPassInitialWall={() => setPassedInitialWall(true)}
             FIRST_X={galleryDimensions.firstX}
             LAST_X={galleryDimensions.lastX}
             WALL_MARGIN_INITIAL={galleryDimensions.wallMarginInitial}
             WALL_MARGIN_FINAL={galleryDimensions.wallMarginFinal}
+            onReachEnd={handleReachEnd}
           />
           <ManualLookControls />
           {!isMuted && (
@@ -985,6 +1125,13 @@ export default function GalleryRoom({
             />
           )}
         </AnimatePresence>
+        <EndOfHallModal
+          open={showEndModal}
+          onClose={handleCloseEndModal}
+          rooms={otherRooms}
+          onSelectRoom={handleSelectRoom}
+          onExit={handleExit}
+        />
       </div>
     </>
   );
