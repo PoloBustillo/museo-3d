@@ -44,9 +44,7 @@ export const useCrearSalaStore = create((set, get) => ({
     set({ colaboradores: get().colaboradores.filter((c) => c.id !== id) }),
   setSelectedAudio: (audio) =>
     set({ audio: { ...get().audio, selectedAudio: audio } }),
-  setAudioVolume: (volume) =>
-    set({ audio: { ...get().audio, volume } }),
-  setAudioAutoplay: (autoplay) =>
-    set({ audio: { ...get().audio, autoplay } }),
+  setAudioVolume: (volume) => set({ audio: { ...get().audio, volume } }),
+  setAudioAutoplay: (autoplay) => set({ audio: { ...get().audio, autoplay } }),
   reset: () => set({ ...initialState }),
 }));

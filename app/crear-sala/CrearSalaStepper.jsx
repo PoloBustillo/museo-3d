@@ -193,7 +193,9 @@ export default function CrearSalaStepper() {
       setLoadingMurales(true);
       setMuralesError(null);
       try {
-        const response = await fetch(`/api/murales/available?includePublic=${includePublicMurales}&limit=100`);
+        const response = await fetch(
+          `/api/murales/available?includePublic=${includePublicMurales}&limit=100`
+        );
         if (!response.ok) {
           throw new Error("Error al cargar las obras");
         }
@@ -216,7 +218,9 @@ export default function CrearSalaStepper() {
       if (muralesQuery.trim().length < 2) {
         // Reload all murales
         try {
-          const response = await fetch(`/api/murales/available?includePublic=${includePublicMurales}&limit=100`);
+          const response = await fetch(
+            `/api/murales/available?includePublic=${includePublicMurales}&limit=100`
+          );
           if (response.ok) {
             const data = await response.json();
             setAvailableMurales(data.murales || []);
@@ -229,7 +233,9 @@ export default function CrearSalaStepper() {
 
       setLoadingMurales(true);
       try {
-        const response = await fetch(`/api/murales/available?q=${encodeURIComponent(muralesQuery)}&includePublic=${includePublicMurales}&limit=100`);
+        const response = await fetch(
+          `/api/murales/available?q=${encodeURIComponent(muralesQuery)}&includePublic=${includePublicMurales}&limit=100`
+        );
         if (response.ok) {
           const data = await response.json();
           setAvailableMurales(data.murales || []);
@@ -351,7 +357,7 @@ export default function CrearSalaStepper() {
     const newAudio = new Audio(audio.url);
     newAudio.volume = audio.volume || 0.5;
     newAudio.play();
-    
+
     setCurrentPlayingAudio(audio.id);
     setAudioRef(newAudio);
 
@@ -374,7 +380,7 @@ export default function CrearSalaStepper() {
       id: audio.id,
       name: audio.name,
       url: audio.url,
-      isCustom: false
+      isCustom: false,
     });
     setShowAudioModal(false);
     stopAudio();
@@ -385,43 +391,43 @@ export default function CrearSalaStepper() {
     if (!file) return;
 
     // Validar que sea un archivo de audio
-    if (!file.type.startsWith('audio/')) {
-      alert('Por favor selecciona un archivo de audio válido');
+    if (!file.type.startsWith("audio/")) {
+      alert("Por favor selecciona un archivo de audio válido");
       return;
     }
 
     // Validar tamaño (máximo 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      alert('El archivo es demasiado grande. Máximo 10MB permitido.');
+      alert("El archivo es demasiado grande. Máximo 10MB permitido.");
       return;
     }
 
     setUploadingCustomAudio(true);
-    
+
     try {
       // Crear URL temporal para el archivo
       const audioUrl = URL.createObjectURL(file);
-      
+
       // Agregar audio personalizado
       setSelectedAudio({
-        id: 'custom-' + Date.now(),
+        id: "custom-" + Date.now(),
         name: file.name.replace(/\.[^/.]+$/, ""),
         url: audioUrl,
         isCustom: true,
-        file: file
+        file: file,
       });
-      
+
       setShowAudioModal(false);
     } catch (error) {
-      console.error('Error al subir audio:', error);
-      alert('Error al procesar el archivo de audio');
+      console.error("Error al subir audio:", error);
+      alert("Error al procesar el archivo de audio");
     } finally {
       setUploadingCustomAudio(false);
     }
   };
 
   const getAudiosByCategory = (category) => {
-    return availableAudios.filter(audio => audio.category === category);
+    return availableAudios.filter((audio) => audio.category === category);
   };
 
   const formatAudioDuration = (audio) => {
@@ -443,7 +449,7 @@ export default function CrearSalaStepper() {
   };
 
   const getSelectedMuralesData = () => {
-    return availableMurales.filter(mural => murales.includes(mural.id));
+    return availableMurales.filter((mural) => murales.includes(mural.id));
   };
 
   const openMuralPreview = (mural) => {
@@ -469,8 +475,8 @@ export default function CrearSalaStepper() {
         descripcion: descripcion.trim(),
         murales: murales,
         texturas: {
-          piso: texturas.piso,
-          paredes: texturas.paredes,
+          piso: texturas.piso?.name || null,
+          paredes: texturas.paredes?.name || null,
         },
         audio: {
           selectedAudio: audio.selectedAudio,
@@ -480,7 +486,7 @@ export default function CrearSalaStepper() {
         publica: privacidad.publica,
         esPrivada: privacidad.esPrivada,
         colaboradores: colaboradores.map((c) => c.id),
-        userId: session?.user?.id,
+        creadorId: session?.user?.id,
       };
 
       const response = await fetch("/api/salas", {
@@ -942,11 +948,15 @@ export default function CrearSalaStepper() {
             {loadingAudios ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                <span className="ml-3 text-gray-600 dark:text-gray-400">Cargando audios...</span>
+                <span className="ml-3 text-gray-600 dark:text-gray-400">
+                  Cargando audios...
+                </span>
               </div>
             ) : audioError ? (
               <div className="text-center py-8">
-                <p className="text-red-500">Error al cargar audios: {audioError}</p>
+                <p className="text-red-500">
+                  Error al cargar audios: {audioError}
+                </p>
               </div>
             ) : (
               <>
@@ -956,7 +966,7 @@ export default function CrearSalaStepper() {
                     <Music className="w-5 h-5 text-indigo-600" />
                     Audio ambiente de la sala
                   </h3>
-                  
+
                   {/* Audio seleccionado */}
                   <div className="bg-gray-50 dark:bg-neutral-800 p-4 rounded-lg border">
                     {audio.selectedAudio ? (
@@ -970,7 +980,9 @@ export default function CrearSalaStepper() {
                               {audio.selectedAudio.name}
                             </p>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {audio.selectedAudio.isCustom ? "Audio personalizado" : "Audio del catálogo"}
+                              {audio.selectedAudio.isCustom
+                                ? "Audio personalizado"
+                                : "Audio del catálogo"}
                             </p>
                           </div>
                         </div>
@@ -979,7 +991,9 @@ export default function CrearSalaStepper() {
                             variant="outline"
                             size="sm"
                             onClick={() => {
-                              if (currentPlayingAudio === audio.selectedAudio.id) {
+                              if (
+                                currentPlayingAudio === audio.selectedAudio.id
+                              ) {
                                 stopAudio();
                               } else {
                                 playAudio(audio.selectedAudio);
@@ -1007,8 +1021,12 @@ export default function CrearSalaStepper() {
                         className="w-full p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-indigo-400 transition-colors text-center"
                       >
                         <Music className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                        <p className="text-gray-500 dark:text-gray-400 font-medium">Seleccionar audio ambiente</p>
-                        <p className="text-sm text-gray-400 dark:text-gray-500">Elige del catálogo o sube tu propio audio</p>
+                        <p className="text-gray-500 dark:text-gray-400 font-medium">
+                          Seleccionar audio ambiente
+                        </p>
+                        <p className="text-sm text-gray-400 dark:text-gray-500">
+                          Elige del catálogo o sube tu propio audio
+                        </p>
                       </button>
                     )}
                   </div>
@@ -1016,8 +1034,10 @@ export default function CrearSalaStepper() {
                   {/* Configuraciones de audio */}
                   {audio.selectedAudio && (
                     <div className="space-y-4 bg-white dark:bg-neutral-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                      <h4 className="font-medium text-gray-900 dark:text-gray-100">Configuraciones de reproducción</h4>
-                      
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                        Configuraciones de reproducción
+                      </h4>
+
                       {/* Volumen */}
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
@@ -1025,14 +1045,18 @@ export default function CrearSalaStepper() {
                             <Volume2 className="w-4 h-4" />
                             Volumen
                           </label>
-                          <span className="text-sm text-gray-500 dark:text-gray-400">{audio.volume}%</span>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            {audio.volume}%
+                          </span>
                         </div>
                         <input
                           type="range"
                           min="0"
                           max="100"
                           value={audio.volume}
-                          onChange={(e) => setAudioVolume(parseInt(e.target.value))}
+                          onChange={(e) =>
+                            setAudioVolume(parseInt(e.target.value))
+                          }
                           className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
                         />
                       </div>
@@ -1063,11 +1087,15 @@ export default function CrearSalaStepper() {
             {loadingMurales ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-                <span className="ml-3 text-gray-600 dark:text-gray-400">Cargando obras...</span>
+                <span className="ml-3 text-gray-600 dark:text-gray-400">
+                  Cargando obras...
+                </span>
               </div>
             ) : muralesError ? (
               <div className="text-center py-8">
-                <p className="text-red-500">Error al cargar obras: {muralesError}</p>
+                <p className="text-red-500">
+                  Error al cargar obras: {muralesError}
+                </p>
               </div>
             ) : (
               <>
@@ -1103,7 +1131,7 @@ export default function CrearSalaStepper() {
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          murales.forEach(id => removeMural(id));
+                          murales.forEach((id) => removeMural(id));
                         }}
                         className="text-red-600 hover:text-red-700"
                       >
@@ -1111,7 +1139,7 @@ export default function CrearSalaStepper() {
                         Limpiar selección
                       </Button>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {getSelectedMuralesData().map((mural) => (
                         <div
@@ -1166,9 +1194,12 @@ export default function CrearSalaStepper() {
                 ) : (
                   <div className="text-center py-12 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
                     <ListChecks className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-500 dark:text-gray-400 font-medium">No hay obras seleccionadas</p>
+                    <p className="text-gray-500 dark:text-gray-400 font-medium">
+                      No hay obras seleccionadas
+                    </p>
                     <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">
-                      Haz clic en "Explorar obras" para seleccionar las obras de tu sala
+                      Haz clic en "Explorar obras" para seleccionar las obras de
+                      tu sala
                     </p>
                     <Button onClick={() => setShowMuralesModal(true)}>
                       <Search className="w-4 h-4 mr-2" />
@@ -1182,24 +1213,36 @@ export default function CrearSalaStepper() {
                   <div className="bg-gray-50 dark:bg-neutral-800 p-4 rounded-lg">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
                       <div>
-                        <p className="text-2xl font-bold text-indigo-600">{availableMurales.length}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Obras disponibles</p>
+                        <p className="text-2xl font-bold text-indigo-600">
+                          {availableMurales.length}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Obras disponibles
+                        </p>
                       </div>
                       <div>
-                        <p className="text-2xl font-bold text-green-600">{murales.length}</p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Seleccionadas</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {murales.length}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Seleccionadas
+                        </p>
                       </div>
                       <div>
                         <p className="text-2xl font-bold text-orange-600">
-                          {availableMurales.filter(m => m.enSala).length}
+                          {availableMurales.filter((m) => m.enSala).length}
                         </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">En otras salas</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          En otras salas
+                        </p>
                       </div>
                       <div>
                         <p className="text-2xl font-bold text-purple-600">
-                          {availableMurales.filter(m => m.destacada).length}
+                          {availableMurales.filter((m) => m.destacada).length}
                         </p>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Destacadas</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          Destacadas
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1325,7 +1368,9 @@ export default function CrearSalaStepper() {
 
                   {/* Audio */}
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Audio ambiente</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                      Audio ambiente
+                    </p>
                     <div className="flex items-center gap-3">
                       {audio.selectedAudio ? (
                         <>
@@ -1358,28 +1403,37 @@ export default function CrearSalaStepper() {
 
                   {/* Murales */}
                   <div>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Obras seleccionadas</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                      Obras seleccionadas
+                    </p>
                     {murales.length > 0 ? (
                       <div className="space-y-3">
                         <div className="flex items-center gap-2">
                           <ListChecks className="w-4 h-4 text-indigo-600" />
                           <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {murales.length} obra{murales.length !== 1 ? 's' : ''} seleccionada{murales.length !== 1 ? 's' : ''}
+                            {murales.length} obra
+                            {murales.length !== 1 ? "s" : ""} seleccionada
+                            {murales.length !== 1 ? "s" : ""}
                           </span>
                         </div>
                         <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                          {getSelectedMuralesData().slice(0, 6).map((mural) => (
-                            <div key={mural.id} className="aspect-square bg-gray-100 dark:bg-gray-800 rounded overflow-hidden">
-                              <img
-                                src={mural.imagen}
-                                alt={mural.titulo}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.target.src = "/placeholder-image.jpg";
-                                }}
-                              />
-                            </div>
-                          ))}
+                          {getSelectedMuralesData()
+                            .slice(0, 6)
+                            .map((mural) => (
+                              <div
+                                key={mural.id}
+                                className="aspect-square bg-gray-100 dark:bg-gray-800 rounded overflow-hidden"
+                              >
+                                <img
+                                  src={mural.imagen}
+                                  alt={mural.titulo}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.target.src = "/placeholder-image.jpg";
+                                  }}
+                                />
+                              </div>
+                            ))}
                           {murales.length > 6 && (
                             <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
                               <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
@@ -1589,7 +1643,9 @@ export default function CrearSalaStepper() {
 
           {/* Filter controls */}
           <div className="flex items-center gap-3">
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mostrar:</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Mostrar:
+            </span>
             <div className="flex gap-2">
               <Button
                 variant={!includePublicMurales ? "default" : "outline"}
@@ -1621,26 +1677,26 @@ export default function CrearSalaStepper() {
             {loadingMurales ? (
               <div className="flex items-center justify-center py-8">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
-                <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Buscando obras...</span>
+                <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">
+                  Buscando obras...
+                </span>
               </div>
             ) : availableMurales.length === 0 ? (
               <div className="text-center py-8">
                 <Image className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-500 dark:text-gray-400 font-medium">
-                  {muralesQuery.length >= 2 
-                    ? `No se encontraron obras con "${muralesQuery}"` 
-                    : !includePublicMurales 
-                      ? "No tienes obras disponibles" 
-                      : "No hay obras disponibles"
-                  }
+                  {muralesQuery.length >= 2
+                    ? `No se encontraron obras con "${muralesQuery}"`
+                    : !includePublicMurales
+                      ? "No tienes obras disponibles"
+                      : "No hay obras disponibles"}
                 </p>
                 <p className="text-sm text-gray-400 dark:text-gray-500">
-                  {muralesQuery.length >= 2 
-                    ? "Intenta con otros términos de búsqueda" 
-                    : !includePublicMurales 
-                      ? "Crea tu primera obra para agregarla a la sala" 
-                      : "Aún no hay obras públicas disponibles"
-                  }
+                  {muralesQuery.length >= 2
+                    ? "Intenta con otros términos de búsqueda"
+                    : !includePublicMurales
+                      ? "Crea tu primera obra para agregarla a la sala"
+                      : "Aún no hay obras públicas disponibles"}
                 </p>
               </div>
             ) : (
@@ -1719,7 +1775,9 @@ export default function CrearSalaStepper() {
                           {mural.visitas} visitas
                         </span>
                         <Button
-                          variant={isMuralSelected(mural.id) ? "default" : "outline"}
+                          variant={
+                            isMuralSelected(mural.id) ? "default" : "outline"
+                          }
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1794,12 +1852,16 @@ export default function CrearSalaStepper() {
                   {selectedMuralForPreview.titulo}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {selectedMuralForPreview.tecnica} {selectedMuralForPreview.anio && `(${selectedMuralForPreview.anio})`}
+                  {selectedMuralForPreview.tecnica}{" "}
+                  {selectedMuralForPreview.anio &&
+                    `(${selectedMuralForPreview.anio})`}
                 </p>
               </div>
               {selectedMuralForPreview.descripcion && (
                 <div>
-                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1">Descripción</h4>
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                    Descripción
+                  </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     {selectedMuralForPreview.descripcion}
                   </p>
@@ -1807,7 +1869,9 @@ export default function CrearSalaStepper() {
               )}
               {selectedMuralForPreview.dimensiones && (
                 <div>
-                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1">Dimensiones</h4>
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                    Dimensiones
+                  </h4>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     {selectedMuralForPreview.dimensiones}
                   </p>
@@ -1828,7 +1892,11 @@ export default function CrearSalaStepper() {
                   toggleMural(selectedMuralForPreview);
                   closeMuralPreview();
                 }}
-                variant={isMuralSelected(selectedMuralForPreview.id) ? "destructive" : "default"}
+                variant={
+                  isMuralSelected(selectedMuralForPreview.id)
+                    ? "destructive"
+                    : "default"
+                }
               >
                 {isMuralSelected(selectedMuralForPreview.id) ? (
                   <>
@@ -1886,12 +1954,16 @@ export default function CrearSalaStepper() {
 
           {/* Audio catalog */}
           <div>
-            <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Catálogo de audios</h4>
-            
+            <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-4">
+              Catálogo de audios
+            </h4>
+
             {availableAudios.length === 0 ? (
               <div className="text-center py-8">
                 <Music className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-500 dark:text-gray-400">No hay audios disponibles</p>
+                <p className="text-gray-500 dark:text-gray-400">
+                  No hay audios disponibles
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto">

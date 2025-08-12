@@ -6,12 +6,9 @@ import { authOptions } from "@/lib/auth";
 export async function GET(request) {
   try {
     const session = await getServerSession(authOptions);
-    
+
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "No autorizado" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -25,54 +22,62 @@ export async function GET(request) {
       AND: [
         {
           // Excluir murales eliminados
-          deletedAt: null
+          deletedAt: null,
         },
         {
           // Incluir obras del usuario actual O obras públicas de otros usuarios
           OR: [
             {
               // Obras del usuario actual
-              userId: session.user.id
+              userId: session.user.id,
             },
-            ...(includePublic ? [{
-              // Obras públicas de otros usuarios
-              AND: [
-                {
-                  publica: true
-                },
-                {
-                  userId: {
-                    not: session.user.id
-                  }
-                }
-              ]
-            }] : [])
-          ]
+            ...(includePublic
+              ? [
+                  {
+                    // Obras públicas de otros usuarios
+                    AND: [
+                      {
+                        publica: true,
+                      },
+                      {
+                        userId: {
+                          not: session.user.id,
+                        },
+                      },
+                    ],
+                  },
+                ]
+              : []),
+          ],
         },
         // Si hay query de búsqueda, buscar en título, descripción y técnica
-        ...(query.length >= 2 ? [{
-          OR: [
-            {
-              titulo: {
-                contains: query,
-                mode: "insensitive"
-              }
-            },
-            {
-              descripcion: {
-                contains: query,
-                mode: "insensitive"
-              }
-            },
-            {
-              tecnica: {
-                contains: query,
-                mode: "insensitive"
-              }
-            }
-          ]
-        }] : [])
-      ]
+        ...(query.length >= 2
+          ? [
+              {
+                OR: [
+                  {
+                    titulo: {
+                      contains: query,
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    descripcion: {
+                      contains: query,
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    tecnica: {
+                      contains: query,
+                      mode: "insensitive",
+                    },
+                  },
+                ],
+              },
+            ]
+          : []),
+      ],
     };
 
     // Obtener murales
@@ -101,32 +106,30 @@ export async function GET(request) {
           select: {
             id: true,
             name: true,
-            image: true
-          }
-        }
+            image: true,
+          },
+        },
       },
-      orderBy: [
-        { destacada: "desc" },
-        { createdAt: "desc" }
-      ],
+      orderBy: [{ destacada: "desc" }, { createdAt: "desc" }],
       take: limit,
-      skip: offset
+      skip: offset,
     });
 
     // Obtener total para paginación
     const total = await prisma.mural.count({
-      where: whereConditions
+      where: whereConditions,
     });
 
     return NextResponse.json({
-      murales: murales.map(mural => ({
+      murales: murales.map((mural) => ({
         id: mural.id,
         titulo: mural.titulo || "Sin título",
         descripcion: mural.descripcion || "",
         anio: mural.anio,
         tecnica: mural.tecnica || "Técnica no especificada",
         dimensiones: mural.dimensiones || "",
-        imagen: mural.imagenUrlWebp || mural.url_imagen || "/placeholder-image.jpg",
+        imagen:
+          mural.imagenUrlWebp || mural.url_imagen || "/placeholder-image.jpg",
         videoUrl: mural.videoUrl,
         audioUrl: mural.audioUrl,
         publica: mural.publica,
@@ -135,25 +138,29 @@ export async function GET(request) {
         enSala: mural.salaId !== null,
         salaId: mural.salaId,
         isOwn: mural.userId === session.user.id,
-        author: mural.userId === session.user.id ? null : (mural.user ? {
-          id: mural.user.id,
-          name: mural.user.name || "Usuario anónimo",
-          image: mural.user.image
-        } : null),
-        createdAt: mural.createdAt
+        author:
+          mural.userId === session.user.id
+            ? null
+            : mural.user
+              ? {
+                  id: mural.user.id,
+                  name: mural.user.name || "Usuario anónimo",
+                  image: mural.user.image,
+                }
+              : null,
+        createdAt: mural.createdAt,
       })),
       total,
       hasMore: offset + limit < total,
       currentPage: Math.floor(offset / limit) + 1,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(total / limit),
     });
-
   } catch (error) {
     console.error("Error fetching murales:", error);
     return NextResponse.json(
-      { 
+      {
         error: "Error interno del servidor",
-        details: error.message 
+        details: error.message,
       },
       { status: 500 }
     );

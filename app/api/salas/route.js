@@ -237,9 +237,17 @@ export async function POST(req) {
         nombre: data.nombre,
         descripcion: data.descripcion || "",
         publica: data.publica || false,
+        esPrivada: data.esPrivada || false,
+        texturaPared: data.texturas?.paredes || null,
+        texturaPiso: data.texturas?.piso || null,
+        musica: data.audio?.selectedAudio?.url || null,
         creador: { connect: { id: data.creadorId } },
         colaboradores: {
-          connect: data.colaboradores?.map((id) => ({ id })) || [],
+          create:
+            data.colaboradores?.map((colaboradorId) => ({
+              user: { connect: { id: colaboradorId } },
+              rol: "colaborador",
+            })) || [],
         },
         murales: {
           create:
