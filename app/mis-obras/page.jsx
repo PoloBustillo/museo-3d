@@ -279,7 +279,8 @@ export default function MisObras() {
   const { data: session, status } = useSession();
   const { collection = [] } = useCollection();
   const router = useRouter();
-
+  // Nuevo: detectar admin de forma case-insensitive
+  const isAdmin = !!session?.user?.role && session.user.role.toLowerCase() === "admin";
   // Hook personalizado para manejo de murales
   const {
     murales,
@@ -430,7 +431,33 @@ export default function MisObras() {
             </div>
           )}
 
-          {/* Si no hay nada, mostrar empty state */}
+          {/* NUEVA SECCIÓN ADMIN: Todas las obras */}
+          {isAdmin && murales.filter((m) => !m.deletedAt).length > 0 && (
+            <div className="mb-16">
+              <div className="flex items-center gap-2 mb-4">
+                <h2 className="text-xl font-bold text-foreground">Todas las obras</h2>
+                <Badge variant="secondary">
+                  {murales.filter((m) => !m.deletedAt).length}
+                </Badge>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Vista administrativa de todas las obras activas. Solo puedes eliminar o editar las que te pertenecen.
+              </p>
+              <MuralGrid
+                murales={murales
+                  .filter((m) => !m.deletedAt)
+                  .map((m) => ({
+                    ...m,
+                    editable: m.userId === session.user.id,
+                    fromCollection: false,
+                  }))}
+                view={view}
+                onDeleteMural={handleDeleteMural}
+              />
+            </div>
+          )}
+
+          {/* Si no hay nada, mostrar empty state (solo si no eres admin o admin sin obras propias/favoritas) */}
           {propiosFiltrados.length === 0 && favoritosFiltrados.length === 0 && (
             <EmptyState
               hasAnyMurales={propios.length + favoritos.length > 0}
