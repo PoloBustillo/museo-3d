@@ -45,6 +45,19 @@ export function GalleryEnvironment({ dynamicLength, dynamicCenterX, wallTextureU
   }
   const [floorTexture, wallTexture] = loadedTextures || [];
 
+  // Intentar cargar normal y roughness si comparten prefijo
+  let normalMap, roughnessMap;
+  if (wallPath && wallPath.includes('_Color')) {
+    const base = wallPath.replace('_Color', '');
+    try { normalMap = useTexture(base + '_NormalGL.jpg'); } catch {}
+    try { roughnessMap = useTexture(base + '_Roughness.jpg'); } catch {}
+  }
+  if (floorPath && floorPath.includes('_Color')) {
+    const baseF = floorPath.replace('_Color', '');
+    try { if (!normalMap) normalMap = useTexture(baseF + '_NormalGL.jpg'); } catch {}
+    try { if (!roughnessMap) roughnessMap = useTexture(baseF + '_Roughness.jpg'); } catch {}
+  }
+
   if (wallTexture) {
     wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
     wallTexture.repeat.set(Math.ceil(dynamicLength / 4), 2);
@@ -84,7 +97,7 @@ export function GalleryEnvironment({ dynamicLength, dynamicCenterX, wallTextureU
       <mesh position={[dynamicCenterX, 2.5, HALL_WIDTH/2]}>
         <boxGeometry args={[dynamicLength, 5, 0.1]} />
         {wallTexture ? (
-          <meshStandardMaterial map={wallTexture} color={wallColor} />
+          <meshStandardMaterial map={wallTexture} normalMap={normalMap} roughnessMap={roughnessMap} color={wallColor} />
         ) : (
           <meshStandardMaterial color={wallColor} />
         )}
@@ -92,7 +105,7 @@ export function GalleryEnvironment({ dynamicLength, dynamicCenterX, wallTextureU
       <mesh position={[dynamicCenterX, 2.5, -HALL_WIDTH/2]}>
         <boxGeometry args={[dynamicLength, 5, 0.1]} />
         {wallTexture ? (
-          <meshStandardMaterial map={wallTexture} color={wallColor} />
+          <meshStandardMaterial map={wallTexture} normalMap={normalMap} roughnessMap={roughnessMap} color={wallColor} />
         ) : (
           <meshStandardMaterial color={wallColor} />
         )}

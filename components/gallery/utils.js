@@ -51,7 +51,8 @@ export function calculateArtworkPositions(
         ? HALL_WIDTH / 2 - cuadroProfundidad / 2
         : -(HALL_WIDTH / 2 - cuadroProfundidad / 2);
     const rotation = [0, side === 1 ? 0 : Math.PI, 0];
-    positions.push({ ...images[i], position: [x, WALL_HEIGHT / 2, z], rotation });
+    // Altura fija 1.5 para centrar mejor cuadros altos
+    positions.push({ ...images[i], position: [x, 1.5, z], rotation });
   }
   return positions;
 }

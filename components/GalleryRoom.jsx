@@ -169,47 +169,133 @@ function SceneFog({ fog }) {
   return null;
 }
 
+function ManualLookControls() {
+  const { camera, gl } = useThree();
+  const looking = useRef(false);
+  const sensitivity = 0.0025;
+  useEffect(() => {
+    const el = gl.domElement;
+    const onContext = (e) => e.preventDefault();
+    const onDown = (e) => {
+      if (e.button === 2) {
+        looking.current = true;
+        if (el.requestPointerLock) el.requestPointerLock();
+      }
+    };
+    const onUp = (e) => {
+      if (e.button === 2) {
+        looking.current = false;
+        if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+      }
+    };
+    const onMove = (e) => {
+      if (!looking.current) return;
+      const dx = e.movementX || 0; const dy = e.movementY || 0;
+      camera.rotation.order = 'YXZ';
+      camera.rotation.y -= dx * sensitivity;
+      camera.rotation.x -= dy * sensitivity;
+      const maxPitch = Math.PI / 2 - 0.05;
+      camera.rotation.x = Math.max(-maxPitch, Math.min(maxPitch, camera.rotation.x));
+    };
+    el.addEventListener('contextmenu', onContext);
+    el.addEventListener('mousedown', onDown);
+    window.addEventListener('mouseup', onUp);
+    window.addEventListener('mousemove', onMove);
+    return () => {
+      el.removeEventListener('contextmenu', onContext);
+      el.removeEventListener('mousedown', onDown);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('mousemove', onMove);
+      if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+    };
+  }, [camera, gl]);
+  return null;
+}
+
 function Room({ artworks, artworkPositions, galleryDimensions, passedInitialWall, setSelectedArtwork, selectedArtwork, showList, showCollection, showInstructions, layoutItems, scene, salaTextures }) {
   const { dynamicLength, dynamicCenterX, firstX, lastX, wallMarginInitial, wallMarginFinal } = galleryDimensions;
+  const WALL_Z = GALLERY_CONFIG.HALL_WIDTH / 2 - 0.12; // un poco más pegado a la pared
+
+  // Detectar si layout está "colapsado" en X
+  const layoutAllCenteredX = useMemo(() => layoutItems && layoutItems.length > 0 && layoutItems.every(li => Math.abs(li?.pos?.x ?? 0) < 0.5), [layoutItems]);
+
+  // Generar posiciones auto si layout colapsado (usa orden de layout original)
+  const autoFromLayout = useMemo(() => {
+    if (!layoutItems || layoutItems.length === 0) return [];
+    if (!layoutAllCenteredX) return [];
+    const dummyArtworks = layoutItems.map((li, i) => ({ id: li.mural?.id || li.muralId || i, titulo: li.mural?.titulo || 'Obra', url_imagen: li.mural?.url_imagen || li.mural?.imagenUrlWebp }));
+    const dims = calculateGalleryDimensions(dummyArtworks);
+    return calculateArtworkPositions(dummyArtworks, dims.firstX, GALLERY_CONFIG.PICTURE_SPACING, dims.contentLength).map((p, i) => ({
+      ...layoutItems[i],
+      pos: { ...(layoutItems[i].pos || {}), x: p.position[0], y: (layoutItems[i].pos?.y ?? 1.5), z: p.position[2] > 0 ? WALL_Z : -WALL_Z },
+      rot: { ...(layoutItems[i].rot || {}), y: p.rotation[1] },
+    }));
+  }, [layoutItems, layoutAllCenteredX]);
+
+  const normalizedLayout = useMemo(() => {
+    if (!layoutItems || layoutItems.length === 0) return [];
+    if (autoFromLayout.length) return autoFromLayout;
+    const centralThreshold = 0.6;
+    const centralCount = layoutItems.reduce((acc, li) => acc + ((Math.abs(li?.pos?.z ?? 0) < 0.5) ? 1 : 0), 0);
+    if (centralCount / layoutItems.length > centralThreshold) return [];
+    let altCounter = 0;
+    return layoutItems.map(li => {
+      const p = li.pos || {}; const r = li.rot || {}; const clone = { ...li };
+      const isCentralZ = Math.abs(p.z ?? 0) < 0.5;
+      if (isCentralZ) {
+        const side = (altCounter++ % 2 === 0) ? 1 : -1;
+        clone.pos = { ...p, z: side * WALL_Z };
+        clone.rot = { ...r, y: side === 1 ? 0 : Math.PI };
+      } else if (Math.abs((p.z ?? 0)) < WALL_Z * 0.6) {
+        const side = (p.z ?? 0) >= 0 ? 1 : -1;
+        clone.pos = { ...p, z: side * WALL_Z };
+        clone.rot = { ...r, y: side === 1 ? 0 : Math.PI };
+      } else {
+        const side = (p.z ?? 0) > 0 ? 1 : -1;
+        clone.rot = { ...r, y: side === 1 ? 0 : Math.PI };
+      }
+      if (!clone.pos) clone.pos = {};
+      if (!(clone.pos.y) || Math.abs(clone.pos.y) < 0.01) clone.pos.y = 1.5;
+      if (typeof clone.pos.x !== 'number') clone.pos.x = 0;
+      return clone;
+    });
+  }, [layoutItems, autoFromLayout]);
 
   return (
     <>
       <GalleryLighting dynamicLength={dynamicLength} dynamicCenterX={dynamicCenterX} lightingPreset={scene?.lightingPreset} ambientIntensity={scene?.ambientIntensity} />
       <GalleryEnvironment dynamicLength={dynamicLength} dynamicCenterX={dynamicCenterX} wallTextureUrl={salaTextures?.pared} floorTextureUrl={salaTextures?.piso} />
-      {/* Render según layoutItems si existen */}
-      {layoutItems && layoutItems.length > 0
-        ? layoutItems.map((li, i) => (
-            <Picture
-              key={li.mural?.id || li.muralId || i}
-              src={li.mural?.imagenUrlWebp || li.mural?.url_imagen}
-              title={li.mural?.titulo || "Sin título"}
-              artist={li.mural?.autor || "Desconocido"}
-              year={li.mural?.anio || "N/A"}
-              description={li.mural?.descripcion || "Sin descripción"}
-              technique={li.mural?.tecnica || "No especificada"}
-              dimensions={li.mural?.dimensiones || "Dimensiones no especificadas"}
-              position={[li.pos?.x ?? 0, (li.pos?.y ?? 0) + 1.5, li.pos?.z ?? 0]}
-              rotation={[li.rot?.x ?? 0, li.rot?.y ?? 0, li.rot?.z ?? 0]}
-              onClick={() => setSelectedArtwork(li.mural || null)}
-              showPlaque={passedInitialWall && !selectedArtwork && !showList && !showCollection && !showInstructions}
-              selected={selectedArtwork && selectedArtwork.id === li.mural?.id}
-              selectedArtwork={selectedArtwork}
-              spotlightIntensity={li.spotlightIntensity ?? 0}
-              frameStyle={li.frameStyle}
-            />
-          ))
-        : artworks.map((art, i) => (
-            <Picture
-              key={art.id || i}
-              {...art}
-              position={artworkPositions[i].position}
-              rotation={artworkPositions[i].rotation}
-              onClick={() => setSelectedArtwork(art)}
-              showPlaque={passedInitialWall && !selectedArtwork && !showList && !showCollection && !showInstructions}
-              selected={selectedArtwork && selectedArtwork.id === art.id}
-              selectedArtwork={selectedArtwork}
-            />
-          ))}
+      {normalizedLayout && normalizedLayout.length > 0 ? normalizedLayout.map((li, i) => (
+        <Picture
+          key={li.mural?.id || li.muralId || i}
+          src={li.mural?.imagenUrlWebp || li.mural?.url_imagen}
+          title={li.mural?.titulo || 'Sin título'}
+          artist={li.mural?.autor || 'Desconocido'}
+          year={li.mural?.anio || 'N/A'}
+          description={li.mural?.descripcion || 'Sin descripción'}
+          technique={li.mural?.tecnica || 'No especificada'}
+          dimensions={li.mural?.dimensiones || 'Dimensiones no especificadas'}
+          position={[li.pos?.x ?? 0, (li.pos?.y ?? 1.5), li.pos?.z ?? 0]}
+          rotation={[li.rot?.x ?? 0, li.rot?.y ?? 0, li.rot?.z ?? 0]}
+          onClick={() => setSelectedArtwork(li.mural || null)}
+          showPlaque={passedInitialWall && !selectedArtwork && !showList && !showCollection && !showInstructions}
+          selected={selectedArtwork && selectedArtwork.id === li.mural?.id}
+          selectedArtwork={selectedArtwork}
+          spotlightIntensity={li.spotlightIntensity ?? 0}
+          frameStyle={li.frameStyle}
+        />
+      )) : artworks.map((art, i) => (
+        <Picture
+          key={art.id || i}
+          {...art}
+          position={artworkPositions[i].position}
+          rotation={artworkPositions[i].rotation}
+          onClick={() => setSelectedArtwork(art)}
+          showPlaque={passedInitialWall && !selectedArtwork && !showList && !showCollection && !showInstructions}
+          selected={selectedArtwork && selectedArtwork.id === art.id}
+          selectedArtwork={selectedArtwork}
+        />
+      ))}
       <GalleryBenches dynamicLength={dynamicLength} />
       <GalleryWalls firstX={firstX} lastX={lastX} wallMarginInitial={wallMarginInitial} wallMarginFinal={wallMarginFinal} />
     </>
@@ -342,6 +428,19 @@ export default function GalleryRoom({ salaId = 1, murales = [], layout = [], sce
 
   useEffect(() => { fetchCollection(); }, [fetchCollection]);
 
+  // Determinar si el layout es realmente utilizable (no todo en 0,0,0)
+  const hasUsableLayout = useMemo(() => {
+    if (!layout || layout.length === 0) return false;
+    // Al menos una obra con posición distinta de origen o con rot/scale personalizada
+    return layout.some(l => {
+      const p = l.pos || {}; const r = l.rot || {};
+      return (p.x && Math.abs(p.x) > 0.01) || (p.z && Math.abs(p.z) > 0.01) || (p.y && Math.abs(p.y) > 0.01) || (r.y && Math.abs(r.y) > 0.01) || (l.scale && l.scale !== 1);
+    });
+  }, [layout]);
+
+  // Filtrar layout efectivo
+  const effectiveLayout = hasUsableLayout ? layout : [];
+
   const validArtworks = useMemo(() => murales
     .filter((art) => art && (art.url_imagen || art.imagenUrlWebp))
     .map((art) => ({
@@ -355,10 +454,9 @@ export default function GalleryRoom({ salaId = 1, murales = [], layout = [], sce
       dimensions: art.dimensiones || "Dimensiones no especificadas",
     })), [murales]);
 
-  // Si hay layout usarlo para dimensiones: extender longitud mínima según distribución X
   const galleryDimensions = useMemo(() => {
-    if (layout && layout.length > 0) {
-      const xs = layout.map(l => l.pos?.x ?? 0);
+    if (effectiveLayout.length > 0) {
+      const xs = effectiveLayout.map(l => l.pos?.x ?? 0);
       const minX = Math.min(...xs, 0);
       const maxX = Math.max(...xs, 0);
       const padding = 6;
@@ -369,27 +467,47 @@ export default function GalleryRoom({ salaId = 1, murales = [], layout = [], sce
         dynamicCenterX: center,
         firstX: minX - padding,
         lastX: maxX + padding,
+        contentLength: (maxX - minX) + padding * 2,
         wallMarginInitial: 4,
         wallMarginFinal: 3,
       };
     }
     return calculateGalleryDimensions(validArtworks);
-  }, [layout, validArtworks]);
+  }, [effectiveLayout, validArtworks]);
 
   const artworkPositions = useMemo(() => (
-    layout && layout.length > 0
-      ? [] // No se usan posiciones autocalculadas cuando hay layout
+    effectiveLayout.length > 0
+      ? []
       : calculateArtworkPositions(validArtworks, galleryDimensions.firstX, GALLERY_CONFIG.PICTURE_SPACING, galleryDimensions.contentLength)
-  ), [layout, validArtworks, galleryDimensions]);
+  ), [effectiveLayout, validArtworks, galleryDimensions]);
 
   const handleSelectArtwork = (art) => setSelectedArtwork(art);
   const handleCloseModal = () => setSelectedArtwork(null);
+
+  const plRef = useRef(null);
+  useEffect(() => {
+    const handleContextMenu = (e) => { e.preventDefault(); if (plRef.current) plRef.current.lock(); };
+    const handleMouseDown = (e) => { if (e.button === 2 && plRef.current) { plRef.current.lock(); } };
+    const handleKeyDown = (e) => {
+      const k = e.key.toLowerCase();
+      if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright"].includes(k) && plRef.current && !document.pointerLockElement) {
+        plRef.current.lock();
+      }
+    };
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   return (
     <>
       <div className="gallery-container absolute top-0 left-0 w-full h-full bg-black">
         <Canvas camera={{ position: [0, WALL_HEIGHT / 2, 5], fov: 75 }} shadows>
-          {/* Fog y ambientIntensity ya manejados en Room via presets. Fog adicional */}
           {scene?.fog && <SceneFog fog={scene.fog} />}
           <Room
             passedInitialWall={passedInitialWall}
@@ -401,13 +519,13 @@ export default function GalleryRoom({ salaId = 1, murales = [], layout = [], sce
             artworks={validArtworks}
             artworkPositions={artworkPositions}
             galleryDimensions={galleryDimensions}
-            layoutItems={layout}
+            layoutItems={effectiveLayout}
             scene={scene}
             salaTextures={{ pared: texturaPared, piso: texturaPiso }}
           />
           <PlayerControls onPassInitialWall={() => setPassedInitialWall(true)} FIRST_X={galleryDimensions.firstX} LAST_X={galleryDimensions.lastX} WALL_MARGIN_INITIAL={galleryDimensions.wallMarginInitial} WALL_MARGIN_FINAL={galleryDimensions.wallMarginFinal} />
-          {!selectedArtwork && <PointerLockControls />}
-          {!isMuted && <BackGroundSound url={scene?.audioZones?.[0]?.trackUrl || "/assets/audio.mp3"} />}
+          <ManualLookControls />
+          {!isMuted && <BackGroundSound url={scene?.audioZones?.[0]?.trackUrl || '/assets/audio.mp3'} />}
         </Canvas>
         <AnimatePresence>
           {selectedArtwork && (
