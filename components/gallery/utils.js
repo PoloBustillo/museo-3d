@@ -76,30 +76,45 @@ export function calculateGalleryDimensions(artworks) {
   }
   const pairs = Math.ceil(artworks.length / 2);
   const minSpacing = PICTURE_SPACING;
-  const spacingTotal = (pairs - 1) * minSpacing;
-  const contentLength = spacingTotal + PICTURE_WIDTH;
+  // Span mínimo entre centros (sin contar ancho de un cuadro)
+  let centerSpan = (pairs - 1) * minSpacing; // distancia entre primer y último centro
+  // Longitud mínima total requerida (centers span + ancho de un cuadro)
+  const naturalContent = centerSpan + PICTURE_WIDTH;
   const MIN_GALLERY_LENGTH = 20;
-  const minPairs = Math.max(3, pairs);
-  const adjustedSpacingTotal = (minPairs - 1) * minSpacing;
-  const adjustedContentLength = Math.max(
-    MIN_GALLERY_LENGTH,
-    adjustedSpacingTotal + PICTURE_WIDTH
-  );
-  const firstX = -adjustedContentLength / 2;
-  const lastX = firstX + adjustedSpacingTotal;
-  const dynamicLength =
-    adjustedContentLength + WALL_MARGIN_INITIAL + WALL_MARGIN_FINAL;
-  return {
+  // Ajustar a mínimo global
+  let targetContent = Math.max(MIN_GALLERY_LENGTH, naturalContent);
+  // Si targetContent es mayor, expandimos spacing para llenar uniformemente
+  let spacing = minSpacing;
+  if (pairs > 1) {
+    spacing = (targetContent - PICTURE_WIDTH) / (pairs - 1);
+    centerSpan = (pairs - 1) * spacing;
+  } else {
+    centerSpan = 0; // una sola obra
+  }
+  // Centrar: primer centro en -centerSpan/2, último en +centerSpan/2
+  const firstCenter = -centerSpan / 2;
+  const lastCenter = centerSpan / 2;
+  const firstX = firstCenter; // interpretamos firstX como posición X del primer centro
+  const lastX = lastCenter; // y lastX del último centro para alineación con slots
+  const contentLength = targetContent; // conservar semántica previa
+  const dynamicLength = contentLength + WALL_MARGIN_INITIAL + WALL_MARGIN_FINAL;
+  const result = {
     pairs,
-    spacingTotal: adjustedSpacingTotal,
-    contentLength: adjustedContentLength,
+    spacingTotal: centerSpan,
+    contentLength,
     firstX,
     lastX,
     dynamicLength,
     dynamicCenterX: 0,
     wallMarginInitial: WALL_MARGIN_INITIAL,
     wallMarginFinal: WALL_MARGIN_FINAL,
+    spacing, // nuevo: spacing real utilizado
   };
+  if (typeof window !== 'undefined' && !window.__GALLERY_DIM_LOGGED__) {
+    console.log('[GalleryDimensions] debug', result);
+    window.__GALLERY_DIM_LOGGED__ = true;
+  }
+  return result;
 }
 
 export function parseAutores(autorString) {

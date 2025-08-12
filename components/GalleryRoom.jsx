@@ -96,28 +96,24 @@ function Picture({
   const thickness = 0.15;
   const depth = 0.07;
 
-  // Frame style simple (placeholder)
   const frameColor =
     frameStyle === "gold" ? "#d4af37" : frameStyle === "dark" ? "#111" : "#111";
 
+  // Escala animada simple sin framer-motion 3D (evitamos motion.group para no perder position)
+  const scale = selected ? 1.15 : hovered ? 1.04 : 1;
+
   return (
-    <motion.group
+    <group
       position={position}
       rotation={rotation}
-      initial={{ scale: 0.85, opacity: 0 }}
-      animate={{
-        scale: selected ? 1.15 : hovered ? 1.04 : 1,
-        opacity: 1,
-        z: selected ? 0.5 : 0,
-      }}
-      transition={{ type: "spring", stiffness: 120, damping: 18 }}
+      scale={scale}
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
       <mesh position={[0, h / 2 + thickness / 2, depth]}>
         <boxGeometry args={[w + thickness * 2, thickness, thickness]} />
         <meshStandardMaterial
-          color={hovered ? frameColor : frameColor}
+          color={frameColor}
           metalness={0.5}
           roughness={0.3}
         />
@@ -125,7 +121,7 @@ function Picture({
       <mesh position={[0, -h / 2 - thickness / 2, depth]}>
         <boxGeometry args={[w + thickness * 2, thickness, thickness]} />
         <meshStandardMaterial
-          color={hovered ? frameColor : frameColor}
+          color={frameColor}
           metalness={0.5}
           roughness={0.3}
         />
@@ -133,7 +129,7 @@ function Picture({
       <mesh position={[-w / 2 - thickness / 2, 0, depth]}>
         <boxGeometry args={[thickness, h + thickness * 2, thickness]} />
         <meshStandardMaterial
-          color={hovered ? frameColor : frameColor}
+          color={frameColor}
           metalness={0.5}
           roughness={0.3}
         />
@@ -141,7 +137,7 @@ function Picture({
       <mesh position={[w / 2 + thickness / 2, 0, depth]}>
         <boxGeometry args={[thickness, h + thickness * 2, thickness]} />
         <meshStandardMaterial
-          color={hovered ? frameColor : frameColor}
+          color={frameColor}
           metalness={0.5}
           roughness={0.3}
         />
@@ -160,7 +156,6 @@ function Picture({
             dimensions,
           });
         }}
-        scale={1}
       >
         <planeGeometry args={[w, h]} />
         <meshStandardMaterial map={texture} side={THREE.DoubleSide} />
@@ -222,7 +217,7 @@ function Picture({
           </div>
         </Html>
       )}
-    </motion.group>
+    </group>
   );
 }
 
@@ -444,6 +439,40 @@ function Room({
     });
   }, [layoutItems, autoFromLayout]);
 
+  // NUEVO: slots de pared determinísticos para fallback sin layout (refactor centrado)
+  const slotPositions = useMemo(() => {
+    if (!artworks || artworks.length === 0) return [];
+    if (normalizedLayout.length > 0) return [];
+    const pairs = Math.ceil(artworks.length / 2);
+    if (pairs === 0) return [];
+    // Usar el rango calculado (firstX -> lastX) para garantizar que cámara pueda alcanzarlos
+    const span = Math.max(0.0001, lastX - firstX); // debería ser (pairs-1)*minSpacing
+    const spacing = pairs > 1 ? span / (pairs - 1) : 0;
+    const positions = [];
+    for (let i = 0; i < artworks.length; i++) {
+      const side = i % 2 === 0 ? 1 : -1; // alternar paredes
+      const pairIndex = Math.floor(i / 2);
+      const x = firstX + pairIndex * spacing;
+      const y = 1.6;
+      const z = side * WALL_Z;
+      const rotY = side === 1 ? 0 : Math.PI;
+      positions.push({ position: [x, y, z], rotation: [0, rotY, 0] });
+    }
+    if (process && process.env && !process.env.__GALLERY_FALLBACK_LOGGED2__) {
+      console.log("[GalleryRoom] Fallback slots (aligned)", {
+        count: artworks.length,
+        pairs,
+        firstX,
+        lastX,
+        span,
+        spacing,
+        sample: positions.slice(0, 8),
+      });
+      process.env.__GALLERY_FALLBACK_LOGGED2__ = "1";
+    }
+    return positions;
+  }, [artworks, normalizedLayout, firstX, lastX]);
+
   return (
     <>
       <GalleryLighting
@@ -487,24 +516,27 @@ function Room({
               frameStyle={li.frameStyle}
             />
           ))
-        : artworks.map((art, i) => (
-            <Picture
-              key={art.id || i}
-              {...art}
-              position={artworkPositions[i].position}
-              rotation={artworkPositions[i].rotation}
-              onClick={() => setSelectedArtwork(art)}
-              showPlaque={
-                passedInitialWall &&
-                !selectedArtwork &&
-                !showList &&
-                !showCollection &&
-                !showInstructions
-              }
-              selected={selectedArtwork && selectedArtwork.id === art.id}
-              selectedArtwork={selectedArtwork}
-            />
-          ))}
+        : artworks.map((art, i) => {
+            const sp = slotPositions[i] || { position: [0, 1.5, 0], rotation: [0, 0, 0] };
+            return (
+              <Picture
+                key={art.id || i}
+                {...art}
+                position={sp.position}
+                rotation={sp.rotation}
+                onClick={() => setSelectedArtwork(art)}
+                showPlaque={
+                  passedInitialWall &&
+                  !selectedArtwork &&
+                  !showList &&
+                  !showCollection &&
+                  !showInstructions
+                }
+                selected={selectedArtwork && selectedArtwork.id === art.id}
+                selectedArtwork={selectedArtwork}
+              />
+            );
+          })}
       <GalleryBenches dynamicLength={dynamicLength} />
       <GalleryWalls
         firstX={firstX}
