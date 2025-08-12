@@ -178,7 +178,7 @@ function MisMuralesEliminados({ fetchUserMurales }) {
               <tr key={mural.id}>
                 <td className="px-4 py-2">
                   <img
-                    src={mural.url_imagen || '/placeholder-image.jpg'}
+                    src={mural.url_imagen || "/placeholder-image.jpg"}
                     alt={mural.titulo}
                     className="w-16 h-16 object-cover rounded shadow border"
                   />
@@ -280,7 +280,8 @@ export default function MisObras() {
   const { collection = [] } = useCollection();
   const router = useRouter();
   // Nuevo: detectar admin de forma case-insensitive
-  const isAdmin = !!session?.user?.role && session.user.role.toLowerCase() === "admin";
+  const isAdmin =
+    !!session?.user?.role && session.user.role.toLowerCase() === "admin";
   // Hook personalizado para manejo de murales
   const {
     murales,
@@ -435,13 +436,16 @@ export default function MisObras() {
           {isAdmin && murales.filter((m) => !m.deletedAt).length > 0 && (
             <div className="mb-16">
               <div className="flex items-center gap-2 mb-4">
-                <h2 className="text-xl font-bold text-foreground">Todas las obras</h2>
+                <h2 className="text-xl font-bold text-foreground">
+                  Todas las obras
+                </h2>
                 <Badge variant="secondary">
                   {murales.filter((m) => !m.deletedAt).length}
                 </Badge>
               </div>
               <p className="text-sm text-muted-foreground mb-4">
-                Vista administrativa de todas las obras activas. Solo puedes eliminar o editar las que te pertenecen.
+                Vista administrativa de todas las obras activas. Solo puedes
+                eliminar o editar las que te pertenecen.
               </p>
               <MuralGrid
                 murales={murales

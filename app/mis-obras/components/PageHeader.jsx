@@ -19,10 +19,9 @@ const PageHeader = ({ onCreateNew }) => {
         )}
       </h1>
       <p className="text-lg text-muted-foreground mb-6">
-        {isAdmin 
+        {isAdmin
           ? "Administra todas las obras de arte del museo. Solo puedes editar/eliminar tus propias obras."
-          : "Crea, administra y comparte tus obras de arte digitales"
-        }
+          : "Crea, administra y comparte tus obras de arte digitales"}
       </p>
 
       {/* Botones de acción principales */}

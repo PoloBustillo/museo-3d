@@ -48,6 +48,7 @@ export async function GET(req) {
                 anio: true,
                 descripcion: true,
                 url_imagen: true,
+                imagenUrlWebp: true, // agregado para fallback correcto en frontend
                 latitud: true,
                 longitud: true,
                 ubicacion: true,
@@ -297,6 +298,7 @@ export async function POST(req) {
                 anio: true,
                 descripcion: true,
                 url_imagen: true,
+                imagenUrlWebp: true, // agregado también aquí
                 latitud: true,
                 longitud: true,
                 ubicacion: true,

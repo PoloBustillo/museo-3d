@@ -33,7 +33,8 @@ async function createSampleSalas() {
     const sala1 = await prisma.sala.create({
       data: {
         nombre: "Galería Clásica",
-        descripcion: "Una colección de murales que refleja la elegancia atemporal del arte clásico",
+        descripcion:
+          "Una colección de murales que refleja la elegancia atemporal del arte clásico",
         tema: "clasico",
         publica: true,
         esPrivada: false,
@@ -59,13 +60,16 @@ async function createSampleSalas() {
       });
     }
 
-    console.log(`✅ Created "${sala1.nombre}" with ${muralesSala1.length} murales`);
+    console.log(
+      `✅ Created "${sala1.nombre}" with ${muralesSala1.length} murales`
+    );
 
     // Sala 2: Espacio Futurista
     const sala2 = await prisma.sala.create({
       data: {
         nombre: "Espacio Futurista",
-        descripcion: "Una experiencia inmersiva con arte de vanguardia y tecnología",
+        descripcion:
+          "Una experiencia inmersiva con arte de vanguardia y tecnología",
         tema: "Arte digital experimental con elementos de realidad aumentada",
         publica: true,
         esPrivada: false,
@@ -91,15 +95,18 @@ async function createSampleSalas() {
       });
     }
 
-    console.log(`✅ Created "${sala2.nombre}" with ${muralesSala2.length} murales`);
+    console.log(
+      `✅ Created "${sala2.nombre}" with ${muralesSala2.length} murales`
+    );
 
     console.log("🎉 Sample salas created successfully!");
     console.log("\n📊 Summary:");
     console.log(`   • ${sala1.nombre}: Tema predefinido "${sala1.tema}"`);
     console.log(`   • ${sala2.nombre}: Tema personalizado "${sala2.tema}"`);
-    console.log(`   • Both salas have maxColaboradores: ${sala1.maxColaboradores}`);
+    console.log(
+      `   • Both salas have maxColaboradores: ${sala1.maxColaboradores}`
+    );
     console.log(`   • Both use imagenPortada from selected murales`);
-
   } catch (error) {
     console.error("❌ Error creating sample salas:", error);
   }

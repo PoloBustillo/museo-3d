@@ -35,22 +35,38 @@ export default function useSalas() {
         const response = await fetch("/api/salas");
         if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
         const data = await response.json();
-        const salasFormateadas = (data.salas || []).map((sala) => ({
-          id: sala.id,
-          nombre: sala.nombre,
-          descripcion: `Sala con ${sala._count?.murales ?? 0} murales`,
-          imagen:
-            sala.imagenPortada ||
-            sala.murales?.[0]?.mural?.url_imagen ||
-            "/assets/artworks/cuadro1.webp",
-          color: getColorBySalaId(sala.id),
-          cantidadMurales: sala._count?.murales ?? 0,
-          propietario: sala.creador?.name || sala.creador?.id || "Museo",
-          murales:
-            (sala.murales || [])
-              .map((salaMural) => salaMural.mural)
-              .filter(Boolean) || [],
-        }));
+        const getColorBySalaId = (id) =>
+          ({ 1: "#e3f2fd", 2: "#f3e5f5", 3: "#e8f5e8", 4: "#fff3e0" })[
+            id
+          ] || "#f5f5f5";
+        const salasFormateadas = (data.salas || []).map((sala) => {
+          const murales = (sala.murales || [])
+            .map((sm) => sm.mural)
+            .filter(Boolean);
+          // Buscar mural portada por ID si imagenPortada es Int
+          const portadaMural = murales.find(
+            (m) => sala.imagenPortada && m.id === sala.imagenPortada
+          );
+          const imagen =
+            portadaMural?.imagenUrlWebp ||
+            portadaMural?.url_imagen ||
+            murales[0]?.imagenUrlWebp ||
+            murales[0]?.url_imagen ||
+            "/assets/artworks/cuadro1.webp";
+          return {
+            id: sala.id,
+            nombre: sala.nombre,
+            descripcion:
+              `Sala con ${sala._count?.murales ?? 0} murales` ||
+              sala.descripcion ||
+              "Sin descripción",
+            imagen,
+            color: getColorBySalaId(sala.id),
+            cantidadMurales: sala._count?.murales ?? murales.length ?? 0,
+            propietario: sala.creador?.name || sala.creador?.id || "Museo",
+            murales,
+          };
+        });
         setSalas(salasFormateadas);
         setError(null);
       } catch (err) {
@@ -60,9 +76,6 @@ export default function useSalas() {
         setLoading(false);
       }
     };
-    const getColorBySalaId = (id) =>
-      ({ 1: "#e3f2fd", 2: "#f3e5f5", 3: "#e8f5e8", 4: "#fff3e0" })[id] ||
-      "#f5f5f5";
     cargarSalas();
   }, []);
 

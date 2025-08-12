@@ -33,7 +33,7 @@ const MuralCard = ({ mural, view = "grid", onEdit, onDelete }) => {
       >
         <div className="w-24 h-24 flex-shrink-0 relative overflow-hidden rounded-lg">
           <img
-            src={mural.url_imagen || '/placeholder-image.jpg'}
+            src={mural.url_imagen || "/placeholder-image.jpg"}
             alt={mural.titulo}
             className="w-full h-full object-cover"
           />
@@ -43,7 +43,7 @@ const MuralCard = ({ mural, view = "grid", onEdit, onDelete }) => {
             {mural.titulo}
             {!mural.isOwn && (
               <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">
-                de {mural.autor || 'Autor desconocido'}
+                de {mural.autor || "Autor desconocido"}
               </span>
             )}
           </h3>
@@ -111,7 +111,7 @@ const MuralCard = ({ mural, view = "grid", onEdit, onDelete }) => {
     >
       <div className="aspect-square relative overflow-hidden">
         <img
-          src={mural.url_imagen || '/placeholder-image.jpg'}
+          src={mural.url_imagen || "/placeholder-image.jpg"}
           alt={mural.titulo}
           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
         />
@@ -165,7 +165,7 @@ const MuralCard = ({ mural, view = "grid", onEdit, onDelete }) => {
           </h3>
           {!mural.isOwn && (
             <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full flex-shrink-0">
-              {mural.autor || 'Desconocido'}
+              {mural.autor || "Desconocido"}
             </span>
           )}
         </div>
