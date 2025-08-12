@@ -1,72 +1,64 @@
 "use client";
 import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import HybridGalleryRoom from "../../../../components/HybridGalleryRoom.jsx";
+import GalleryRoom from "../../../../components/GalleryRoom.jsx";
 import { PageLoader } from "@components/LoadingSpinner";
-import useSalas from "@hooks/useSalas";
 
 export default function SalaDetallePage() {
   const router = useRouter();
   const params = useParams();
   const salaId = params?.id;
-  const { salas, loading } = useSalas();
   const [sala, setSala] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!loading) {
-      const found = salas.find((s) => String(s.id) === String(salaId));
-      setSala(found || null);
-    }
-  }, [loading, salas, salaId]);
+    if (!salaId) return;
+    const loadSala = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/salas/${salaId}`);
+        if (!res.ok) throw new Error(`Error ${res.status}`);
+        const data = await res.json();
+        setSala(data.sala || data);
+        setError(null);
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadSala();
+  }, [salaId]);
 
-  if (loading || !sala) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <PageLoader text="Cargando sala..." />
       </div>
     );
   }
+  if (error || !sala) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center">
+        <p className="text-lg font-semibold">{error || "Sala no encontrada"}</p>
+        <button onClick={() => router.push('/museo')} className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition">Volver</button>
+      </div>
+    );
+  }
 
-  // Determinar el tipo de sala basado en el ID
-  const getRoomType = (salaId) => {
-    const id = parseInt(salaId);
-    switch (id) {
-      case 1: return 'standard';
-      case 2: return 'contemporary';
-      case 3: return 'digital';
-      case 4: return 'intimate';
-      default: return 'standard';
-    }
-  };
-
-  const roomType = getRoomType(salaId);
-
-  // Obtener información del tipo de sala
-  const getRoomInfo = (type) => {
-    const roomTypes = {
-      standard: { name: "Sala Estándar", icon: "🏛️", color: "#1976d2" },
-      contemporary: { name: "Sala Contemporánea", icon: "🖼️", color: "#7b1fa2" },
-      digital: { name: "Sala Digital", icon: "💻", color: "#f57c00" },
-      intimate: { name: "Sala Íntima", icon: "🎨", color: "#388e3c" }
-    };
-    return roomTypes[type] || roomTypes.standard;
-  };
-
-  const roomInfo = getRoomInfo(roomType);
+  const murales = (sala.murales || []).map(sm => sm.mural || sm).filter(Boolean);
 
   return (
-    <div className="fixed top-0 left-0 right-0 bottom-0 z-[100]">
-      <HybridGalleryRoom
+    <div className="fixed inset-0 z-[100]">
+      <GalleryRoom
         salaId={sala.id}
-        murales={sala.murales || []}
-        roomType={roomType}
-        onRoomChange={() => {}}
-        availableRooms={salas.map((s) => ({
-          id: s.id,
-          name: s.nombre,
-          icon: "🏛️",
-        }))}
+        murales={murales}
+        layout={sala.layout}
+        scene={sala.scene}
+        texturaPared={sala.texturaPared}
+        texturaPiso={sala.texturaPiso}
       />
     </div>
   );
-} 
+}

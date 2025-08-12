@@ -24,55 +24,35 @@ export function calculateArtworkPositions(
   contentLength = null
 ) {
   const positions = [];
-
   if (images.length === 0) return positions;
-
-  // Calcular cuántos pares de obras (una en cada pared)
+  // Distribuir siempre sobre ambas paredes alternando; si hay layout personalizado se ignora esta función.
   const pairs = Math.ceil(images.length / 2);
-
-  // Calcular el espaciado real basado en la longitud disponible
   let actualSpacing = pictureSpacing;
   let startX = firstX;
-
   if (contentLength && pairs > 1) {
-    // Distribuir uniformemente a lo largo de toda la longitud disponible
     const availableSpace = contentLength - PICTURE_WIDTH;
     actualSpacing = availableSpace / (pairs - 1);
-
-    // Limitar el espaciado máximo para evitar separación excesiva
-    const maxSpacing = pictureSpacing * 2;
+    const maxSpacing = pictureSpacing * 2.5; // permitir un poco más para aire
     actualSpacing = Math.min(actualSpacing, maxSpacing);
   }
-
-  // Para salas con pocos cuadros, centrarlos mejor
-  if (images.length <= 4 && contentLength) {
-    const totalArtworkWidth = (pairs - 1) * actualSpacing + PICTURE_WIDTH;
-    const extraSpace = contentLength - totalArtworkWidth;
-    startX = firstX + extraSpace * 0.4; // Centrar mejor usando 40% del espacio extra
+  // Centrado mejorado
+  if (contentLength) {
+    const totalWidth = (pairs - 1) * actualSpacing + PICTURE_WIDTH;
+    const offset = (contentLength - totalWidth) / 2;
+    startX = firstX + offset;
   }
-
   for (let i = 0; i < images.length; i++) {
-    const side = i % 2 === 0 ? 1 : -1; // Alternar entre paredes (izquierda/derecha)
+    const side = i % 2 === 0 ? 1 : -1;
     const index = Math.floor(i / 2);
     const x = startX + index * actualSpacing;
     const cuadroProfundidad = 0.15;
-
-    // Calcular posición Z según la pared (izquierda o derecha)
     const z =
       side === 1
-        ? HALL_WIDTH / 2 - cuadroProfundidad / 2 // Pared izquierda
-        : -(HALL_WIDTH / 2 - cuadroProfundidad / 2); // Pared derecha
-
-    // Rotación según la pared (mirar hacia el centro del pasillo)
+        ? HALL_WIDTH / 2 - cuadroProfundidad / 2
+        : -(HALL_WIDTH / 2 - cuadroProfundidad / 2);
     const rotation = [0, side === 1 ? 0 : Math.PI, 0];
-
-    positions.push({
-      ...images[i],
-      position: [x, WALL_HEIGHT / 2, z], // Centrar verticalmente en la pared
-      rotation,
-    });
+    positions.push({ ...images[i], position: [x, WALL_HEIGHT / 2, z], rotation });
   }
-
   return positions;
 }
 
@@ -83,7 +63,6 @@ export function calculateArtworkPositions(
  */
 export function calculateGalleryDimensions(artworks) {
   if (artworks.length === 0) {
-    // Dimensiones mínimas para sala vacía
     return {
       pairs: 0,
       spacingTotal: 0,
@@ -96,36 +75,21 @@ export function calculateGalleryDimensions(artworks) {
       wallMarginFinal: WALL_MARGIN_FINAL,
     };
   }
-
   const pairs = Math.ceil(artworks.length / 2);
-
-  // Calcular espaciado mínimo necesario
   const minSpacing = PICTURE_SPACING;
   const spacingTotal = (pairs - 1) * minSpacing;
   const contentLength = spacingTotal + PICTURE_WIDTH;
-
-  // Para salas pequeñas, usar dimensiones mínimas pero balanceadas
-  const MIN_GALLERY_LENGTH = 20; // Longitud mínima de la galería
-  const MIN_PAIRS = 3; // Mínimo 3 pares (6 obras) para distribución cómoda
-
-  let adjustedContentLength = contentLength;
-  let adjustedSpacingTotal = spacingTotal;
-
-  if (artworks.length < MIN_PAIRS * 2) {
-    // Para salas con pocas obras, usar espaciado más generoso
-    const minPairs = Math.max(MIN_PAIRS, pairs);
-    adjustedSpacingTotal = (minPairs - 1) * minSpacing;
-    adjustedContentLength = Math.max(
-      MIN_GALLERY_LENGTH,
-      adjustedSpacingTotal + PICTURE_WIDTH
-    );
-  }
-
+  const MIN_GALLERY_LENGTH = 20;
+  const minPairs = Math.max(3, pairs);
+  const adjustedSpacingTotal = (minPairs - 1) * minSpacing;
+  const adjustedContentLength = Math.max(
+    MIN_GALLERY_LENGTH,
+    adjustedSpacingTotal + PICTURE_WIDTH
+  );
   const firstX = -adjustedContentLength / 2;
   const lastX = firstX + adjustedSpacingTotal;
   const dynamicLength =
     adjustedContentLength + WALL_MARGIN_INITIAL + WALL_MARGIN_FINAL;
-
   return {
     pairs,
     spacingTotal: adjustedSpacingTotal,

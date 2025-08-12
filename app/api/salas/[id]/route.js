@@ -2,34 +2,22 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-// GET /api/salas/[id] - Obtener sala por ID
+// GET /api/salas/[id] - Obtener sala por ID (estructura extendida)
 export async function GET(req, context) {
   const params = await context.params;
   const { id } = params;
 
   try {
-    const sala = await prisma.sala.findUnique({
+    const s = await prisma.sala.findUnique({
       where: { id: Number(id) },
       include: {
-        creador: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
-        },
+        creador: { select: { id: true, name: true, email: true, role: true } },
         colaboradores: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-              }
-            }
-          }
+          select: {
+            rol: true,
+            createdAt: true,
+            user: { select: { id: true, name: true, email: true, role: true } },
+          },
         },
         murales: {
           include: {
@@ -40,38 +28,63 @@ export async function GET(req, context) {
                 autor: true,
                 tecnica: true,
                 anio: true,
+                descripcion: true,
                 url_imagen: true,
+                imagenUrlWebp: true,
                 latitud: true,
                 longitud: true,
                 ubicacion: true,
-                descripcion: true,
+                artistId: true,
+                artist: {
+                  select: {
+                    id: true,
+                    bio: true,
+                    especialidad: true,
+                    user: { select: { id: true, name: true, email: true } },
+                  },
+                },
               },
             },
           },
         },
-        _count: {
-          select: {
-            murales: true,
-            colaboradores: true,
-          },
-        },
+        _count: { select: { murales: true, colaboradores: true } },
       },
     });
 
-    if (!sala) {
+    if (!s) {
       return new Response(
         JSON.stringify({
           error: "Sala no encontrada",
           message: `No se encontró una sala con ID ${id}`,
         }),
-        {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        }
+        { status: 404, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    return new Response(JSON.stringify(sala), {
+    const sala = {
+      ...s,
+      layout: (s.murales || []).map((sm) => ({
+        muralId: sm.muralId,
+        pos: { x: sm.posX ?? 0, y: sm.posY ?? 0, z: sm.posZ ?? 0 },
+        rot: { x: sm.rotX ?? 0, y: sm.rotY ?? 0, z: sm.rotZ ?? 0 },
+        scale: sm.scale ?? 1,
+        wallId: sm.wallId || null,
+        frameStyle: sm.frameStyle || null,
+        spotlightIntensity: sm.spotlightIntensity ?? 1,
+        metadata: sm.metadata || null,
+        mural: sm.mural || null,
+      })),
+      scene: {
+        lightingPreset: s.lightingPreset || null,
+        ambientIntensity: s.ambientIntensity ?? 0.8,
+        fog: s.fogColor ? { color: s.fogColor, near: s.fogNear ?? 0, far: s.fogFar ?? 0 } : null,
+        audioZones: s.audioZones || null,
+        navigationMeshId: s.navigationMeshId || null,
+        layoutVersion: s.layoutVersion ?? 1,
+      },
+    };
+
+    return new Response(JSON.stringify({ sala }), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -82,49 +95,33 @@ export async function GET(req, context) {
         error: "Error interno del servidor al obtener la sala",
         details: error.message,
       }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }
 
-// PUT /api/salas/[id] - Actualizar sala por ID
+// PUT /api/salas/[id] - Actualizar sala por ID (mantener implementación existente)
 export async function PUT(req, context) {
   const params = await context.params;
   const { id } = params;
 
   try {
     const data = await req.json();
-
-    // Preparar datos de actualización
     const updateData = {
       nombre: data.nombre,
       descripcion: data.descripcion,
       publica: data.publica,
     };
-
-    // Actualizar creador si se proporciona
     if (data.creadorId) {
       updateData.creador = { connect: { id: data.creadorId } };
     }
-
-    // Actualizar colaboradores si se proporcionan
     if (data.colaboradores) {
       updateData.colaboradores = {
         set: data.colaboradores.map((id) => ({ id })),
       };
     }
-
-    // Actualizar murales si se proporcionan
     if (data.murales) {
-      // Primero eliminar todas las relaciones existentes
-      await prisma.salaMural.deleteMany({
-        where: { salaId: Number(id) },
-      });
-
-      // Luego crear las nuevas relaciones
+      await prisma.salaMural.deleteMany({ where: { salaId: Number(id) } });
       updateData.murales = {
         create: data.murales.map((muralId) => ({
           mural: { connect: { id: Number(muralId) } },
@@ -132,54 +129,26 @@ export async function PUT(req, context) {
       };
     }
 
-    const sala = await prisma.sala.update({
+    const salaUpdated = await prisma.sala.update({
       where: { id: Number(id) },
       data: updateData,
       include: {
-        creador: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
-        },
+        creador: { select: { id: true, name: true, email: true, role: true } },
         colaboradores: {
           include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-              }
-            }
-          }
+            user: { select: { id: true, name: true, email: true, role: true } },
+          },
         },
         murales: {
           include: {
-            mural: {
-              select: {
-                id: true,
-                titulo: true,
-                autor: true,
-                tecnica: true,
-                anio: true,
-                url_imagen: true,
-              },
-            },
+            mural: { select: { id: true, titulo: true, autor: true, tecnica: true, anio: true, url_imagen: true } },
           },
         },
-        _count: {
-          select: {
-            murales: true,
-            colaboradores: true,
-          },
-        },
+        _count: { select: { murales: true, colaboradores: true } },
       },
     });
 
-    return new Response(JSON.stringify(sala), {
+    return new Response(JSON.stringify(salaUpdated), {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
@@ -190,28 +159,19 @@ export async function PUT(req, context) {
         error: "Error interno del servidor al actualizar la sala",
         details: error.message,
       }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }
 
-// DELETE /api/salas/[id] - Eliminar sala por ID
+// DELETE /api/salas/[id] - Eliminar sala por ID (igual que antes)
 export async function DELETE(req, context) {
   const params = await context.params;
   const { id } = params;
 
   try {
-    // Eliminar la sala (las relaciones se eliminan automáticamente por CASCADE)
-    await prisma.sala.delete({
-      where: { id: Number(id) },
-    });
-
-    return new Response(null, {
-      status: 204,
-    });
+    await prisma.sala.delete({ where: { id: Number(id) } });
+    return new Response(null, { status: 204 });
   } catch (error) {
     console.error("Error al eliminar sala:", error);
     return new Response(
@@ -219,10 +179,7 @@ export async function DELETE(req, context) {
         error: "Error interno del servidor al eliminar la sala",
         details: error.message,
       }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }

@@ -11,30 +11,15 @@ export async function GET(req) {
     // Construir filtros dinámicamente
     const where = {};
     if (creadorId) where.creadorId = creadorId;
-
-    const salas = await prisma.sala.findMany({
+    const salasRaw = await prisma.sala.findMany({
       where,
       include: {
-        creador: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
-        },
+        creador: { select: { id: true, name: true, email: true, role: true } },
         colaboradores: {
           select: {
             rol: true,
             createdAt: true,
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                role: true,
-              },
-            },
+            user: { select: { id: true, name: true, email: true, role: true } },
           },
         },
         murales: {
@@ -48,7 +33,7 @@ export async function GET(req) {
                 anio: true,
                 descripcion: true,
                 url_imagen: true,
-                imagenUrlWebp: true, // agregado para fallback correcto en frontend
+                imagenUrlWebp: true,
                 latitud: true,
                 longitud: true,
                 ubicacion: true,
@@ -58,30 +43,41 @@ export async function GET(req) {
                     id: true,
                     bio: true,
                     especialidad: true,
-                    user: {
-                      select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                      },
-                    },
+                    user: { select: { id: true, name: true, email: true } },
                   },
                 },
               },
             },
           },
         },
-        _count: {
-          select: {
-            murales: true,
-            colaboradores: true,
-          },
-        },
+        _count: { select: { murales: true, colaboradores: true } },
       },
       orderBy: [{ nombre: "asc" }],
     });
-
-    // Agregar estadísticas
+    // Construir representación extendida (manteniendo compatibilidad)
+    const salas = salasRaw.map((s) => ({
+      ...s,
+      layout: (s.murales || []).map((sm) => ({
+        muralId: sm.muralId,
+        pos: { x: sm.posX ?? 0, y: sm.posY ?? 0, z: sm.posZ ?? 0 },
+        rot: { x: sm.rotX ?? 0, y: sm.rotY ?? 0, z: sm.rotZ ?? 0 },
+        scale: sm.scale ?? 1,
+        wallId: sm.wallId || null,
+        frameStyle: sm.frameStyle || null,
+        spotlightIntensity: sm.spotlightIntensity ?? 1,
+        metadata: sm.metadata || null,
+      })),
+      scene: {
+        lightingPreset: s.lightingPreset || null,
+        ambientIntensity: s.ambientIntensity ?? 0.8,
+        fog: s.fogColor
+          ? { color: s.fogColor, near: s.fogNear ?? 0, far: s.fogFar ?? 0 }
+          : null,
+        audioZones: s.audioZones || null,
+        navigationMeshId: s.navigationMeshId || null,
+        layoutVersion: s.layoutVersion ?? 1,
+      },
+    }));
     const stats = {
       total: salas.length,
       totalMurales: salas.reduce((acc, sala) => acc + sala._count.murales, 0),
@@ -91,19 +87,13 @@ export async function GET(req) {
       ),
       salasConMurales: salas.filter((sala) => sala._count.murales > 0).length,
     };
-
     return new Response(
       JSON.stringify({
         salas,
         estadisticas: stats,
-        filtros: {
-          creadorId: creadorId || null,
-        },
+        filtros: { creadorId: creadorId || null },
       }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
     console.error("Error al obtener salas:", error);
@@ -112,10 +102,7 @@ export async function GET(req) {
         error: "Error interno del servidor al obtener salas",
         details: error.message,
       }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }

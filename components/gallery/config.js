@@ -13,10 +13,13 @@ export const GALLERY_CONFIG = {
   WALL_MARGIN_INITIAL: 4, // Aumentado de 1 a 2 para más espacio inicial
   WALL_MARGIN_FINAL: 3, // Aumentado de 2 a 3 para más espacio final
 
-  // Texturas
+  // Texturas (actualizadas a rutas existentes)
   TEXTURES: {
-    FLOOR: "/assets/textures/floor.webp",
-    WALL: "/assets/textures/wall.webp",
+    FLOOR: "/assets/textures/WoodFloor003_1K-JPG/WoodFloor003_1K-JPG_Color.jpg",
+    WALL: "/assets/textures/Rock050_1K-JPG/Rock050_1K-JPG_Color.jpg",
+    FALLBACKS: [
+      "/assets/textures/DiamondPlate006C_1K-JPG/DiamondPlate006C_1K-JPG_Color.jpg",
+    ],
   },
 
   // Configuración de salas disponibles

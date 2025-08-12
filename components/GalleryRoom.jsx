@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { PointerLockControls, useTexture, Html } from "@react-three/drei";
@@ -26,7 +26,7 @@ const { WALL_HEIGHT } = GALLERY_CONFIG;
 
 const RoomSelectorModal = dynamic(() => import("./gallery/RoomSelectorModal").then((mod) => mod.RoomSelectorModal), { ssr: false });
 
-function Picture({ src, title, artist, year, description, technique, dimensions, position, rotation = [0, 0, 0], onClick, showPlaque, selected, selectedArtwork }) {
+function Picture({ src, title, artist, year, description, technique, dimensions, position, rotation = [0, 0, 0], onClick, showPlaque, selected, selectedArtwork, spotlightIntensity = 1, frameStyle }) {
   const texture = useTexture(src);
   const [hovered, setHovered] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({ width: 3, height: 2 });
@@ -63,29 +63,44 @@ function Picture({ src, title, artist, year, description, technique, dimensions,
   const h = imageDimensions.height;
   const thickness = 0.15;
   const depth = 0.07;
-  
+
+  // Frame style simple (placeholder)
+  const frameColor = frameStyle === "gold" ? "#d4af37" : frameStyle === "dark" ? "#111" : "#111";
+
   return (
     <motion.group position={position} rotation={rotation} initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: selected ? 1.15 : hovered ? 1.04 : 1, opacity: 1, z: selected ? 0.5 : 0 }} transition={{ type: "spring", stiffness: 120, damping: 18 }} onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
       <mesh position={[0, h / 2 + thickness / 2, depth]}>
         <boxGeometry args={[w + thickness * 2, thickness, thickness]} />
-        <meshStandardMaterial color={hovered ? "#d4af37" : "#111"} metalness={0.5} roughness={0.3} />
+        <meshStandardMaterial color={hovered ? frameColor : frameColor} metalness={0.5} roughness={0.3} />
       </mesh>
       <mesh position={[0, -h / 2 - thickness / 2, depth]}>
         <boxGeometry args={[w + thickness * 2, thickness, thickness]} />
-        <meshStandardMaterial color={hovered ? "#d4af37" : "#111"} metalness={0.5} roughness={0.3} />
+        <meshStandardMaterial color={hovered ? frameColor : frameColor} metalness={0.5} roughness={0.3} />
       </mesh>
       <mesh position={[-w / 2 - thickness / 2, 0, depth]}>
         <boxGeometry args={[thickness, h + thickness * 2, thickness]} />
-        <meshStandardMaterial color={hovered ? "#d4af37" : "#111"} metalness={0.5} roughness={0.3} />
+        <meshStandardMaterial color={hovered ? frameColor : frameColor} metalness={0.5} roughness={0.3} />
       </mesh>
       <mesh position={[w / 2 + thickness / 2, 0, depth]}>
         <boxGeometry args={[thickness, h + thickness * 2, thickness]} />
-        <meshStandardMaterial color={hovered ? "#d4af37" : "#111"} metalness={0.5} roughness={0.3} />
+        <meshStandardMaterial color={hovered ? frameColor : frameColor} metalness={0.5} roughness={0.3} />
       </mesh>
       <mesh position={[0, 0, 0]} onClick={(e) => { e.stopPropagation(); onClick({ src, title, artist, year, description, technique, dimensions }); }} scale={1}>
         <planeGeometry args={[w, h]} />
         <meshStandardMaterial map={texture} side={THREE.DoubleSide} />
       </mesh>
+      {/* Spotlight dedicada opcional */}
+      {spotlightIntensity > 0 && (
+        <spotLight
+          intensity={spotlightIntensity}
+          position={[0, h + 1.2, 0.5]}
+          angle={0.6}
+          penumbra={0.4}
+          distance={8}
+          decay={2}
+          color="#fff7e6"
+        />
+      )}
       {showPlaque && !selectedArtwork && (
         <Html position={[0, -h / 2 - 0.25, depth]} center style={{ pointerEvents: "none", textAlign: "left", background: "rgba(30,30,30,0.97)", color: "#fff", borderRadius: 12, padding: "18px 28px", fontSize: 15, minWidth: 340, maxWidth: 480, boxShadow: hovered ? "0 0 16px #d4af37" : "0 2px 16px #000a", border: hovered ? "2px solid #d4af37" : "none", transition: "all 0.2s", lineHeight: 1.5, }}>
           <div style={{ fontSize: "1.2em", fontWeight: "bold", marginBottom: 4 }}>{title}</div>
@@ -140,15 +155,61 @@ function PlayerControls({ onPassInitialWall, FIRST_X, LAST_X, WALL_MARGIN_INITIA
   return null;
 }
 
-function Room({ artworks, artworkPositions, galleryDimensions, passedInitialWall, setSelectedArtwork, selectedArtwork, showList, showCollection, showInstructions }) {
+// Componente de niebla condicional
+function SceneFog({ fog }) {
+  const { scene } = useThree();
+  useEffect(() => {
+    if (fog) {
+      scene.fog = new THREE.Fog(fog.color || "#ffffff", fog.near ?? 0, fog.far ?? 50);
+    } else {
+      scene.fog = null;
+    }
+    return () => { scene.fog = null; };
+  }, [fog, scene]);
+  return null;
+}
+
+function Room({ artworks, artworkPositions, galleryDimensions, passedInitialWall, setSelectedArtwork, selectedArtwork, showList, showCollection, showInstructions, layoutItems, scene, salaTextures }) {
   const { dynamicLength, dynamicCenterX, firstX, lastX, wallMarginInitial, wallMarginFinal } = galleryDimensions;
+
   return (
     <>
-      <GalleryLighting dynamicLength={dynamicLength} dynamicCenterX={dynamicCenterX} />
-      <GalleryEnvironment dynamicLength={dynamicLength} dynamicCenterX={dynamicCenterX} />
-      {artworks.map((art, i) => (
-        <Picture key={art.id || i} {...art} position={artworkPositions[i].position} rotation={artworkPositions[i].rotation} onClick={() => setSelectedArtwork(art)} showPlaque={passedInitialWall && !selectedArtwork && !showList && !showCollection && !showInstructions} selected={selectedArtwork && selectedArtwork.id === art.id} selectedArtwork={selectedArtwork} />
-      ))}
+      <GalleryLighting dynamicLength={dynamicLength} dynamicCenterX={dynamicCenterX} lightingPreset={scene?.lightingPreset} ambientIntensity={scene?.ambientIntensity} />
+      <GalleryEnvironment dynamicLength={dynamicLength} dynamicCenterX={dynamicCenterX} wallTextureUrl={salaTextures?.pared} floorTextureUrl={salaTextures?.piso} />
+      {/* Render según layoutItems si existen */}
+      {layoutItems && layoutItems.length > 0
+        ? layoutItems.map((li, i) => (
+            <Picture
+              key={li.mural?.id || li.muralId || i}
+              src={li.mural?.imagenUrlWebp || li.mural?.url_imagen}
+              title={li.mural?.titulo || "Sin título"}
+              artist={li.mural?.autor || "Desconocido"}
+              year={li.mural?.anio || "N/A"}
+              description={li.mural?.descripcion || "Sin descripción"}
+              technique={li.mural?.tecnica || "No especificada"}
+              dimensions={li.mural?.dimensiones || "Dimensiones no especificadas"}
+              position={[li.pos?.x ?? 0, (li.pos?.y ?? 0) + 1.5, li.pos?.z ?? 0]}
+              rotation={[li.rot?.x ?? 0, li.rot?.y ?? 0, li.rot?.z ?? 0]}
+              onClick={() => setSelectedArtwork(li.mural || null)}
+              showPlaque={passedInitialWall && !selectedArtwork && !showList && !showCollection && !showInstructions}
+              selected={selectedArtwork && selectedArtwork.id === li.mural?.id}
+              selectedArtwork={selectedArtwork}
+              spotlightIntensity={li.spotlightIntensity ?? 0}
+              frameStyle={li.frameStyle}
+            />
+          ))
+        : artworks.map((art, i) => (
+            <Picture
+              key={art.id || i}
+              {...art}
+              position={artworkPositions[i].position}
+              rotation={artworkPositions[i].rotation}
+              onClick={() => setSelectedArtwork(art)}
+              showPlaque={passedInitialWall && !selectedArtwork && !showList && !showCollection && !showInstructions}
+              selected={selectedArtwork && selectedArtwork.id === art.id}
+              selectedArtwork={selectedArtwork}
+            />
+          ))}
       <GalleryBenches dynamicLength={dynamicLength} />
       <GalleryWalls firstX={firstX} lastX={lastX} wallMarginInitial={wallMarginInitial} wallMarginFinal={wallMarginFinal} />
     </>
@@ -261,7 +322,8 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
   );
 }
 
-export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, availableRooms = [] }) {
+// Adaptar componente principal para aceptar sala con layout/scene
+export default function GalleryRoom({ salaId = 1, murales = [], layout = [], scene = null, texturaPared = null, texturaPiso = null, onRoomChange, availableRooms = [] }) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
   const [selectedArtwork, setSelectedArtwork] = useState(null);
@@ -278,25 +340,47 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
     }
   }, [userId]);
 
-  useEffect(() => {
-    fetchCollection();
-  }, [fetchCollection]);
+  useEffect(() => { fetchCollection(); }, [fetchCollection]);
 
-  const validArtworks = murales
-    .filter((art) => art && art.url_imagen)
+  const validArtworks = useMemo(() => murales
+    .filter((art) => art && (art.url_imagen || art.imagenUrlWebp))
     .map((art) => ({
       ...art,
-      src: art.url_imagen,
+      src: art.imagenUrlWebp || art.url_imagen,
       title: art.titulo || "Sin título",
       artist: art.autor || "Desconocido",
       year: art.anio || "N/A",
       description: art.descripcion || "Sin descripción",
       technique: art.tecnica || "No especificada",
-      dimensions: "Dimensiones no especificadas",
-    }));
+      dimensions: art.dimensiones || "Dimensiones no especificadas",
+    })), [murales]);
 
-  const galleryDimensions = calculateGalleryDimensions(validArtworks);
-  const artworkPositions = calculateArtworkPositions(validArtworks, galleryDimensions.firstX, GALLERY_CONFIG.PICTURE_SPACING, galleryDimensions.contentLength);
+  // Si hay layout usarlo para dimensiones: extender longitud mínima según distribución X
+  const galleryDimensions = useMemo(() => {
+    if (layout && layout.length > 0) {
+      const xs = layout.map(l => l.pos?.x ?? 0);
+      const minX = Math.min(...xs, 0);
+      const maxX = Math.max(...xs, 0);
+      const padding = 6;
+      const dynamicLength = Math.max(GALLERY_CONFIG.HALL_LENGTH, (maxX - minX) + padding * 2);
+      const center = (minX + maxX) / 2;
+      return {
+        dynamicLength,
+        dynamicCenterX: center,
+        firstX: minX - padding,
+        lastX: maxX + padding,
+        wallMarginInitial: 4,
+        wallMarginFinal: 3,
+      };
+    }
+    return calculateGalleryDimensions(validArtworks);
+  }, [layout, validArtworks]);
+
+  const artworkPositions = useMemo(() => (
+    layout && layout.length > 0
+      ? [] // No se usan posiciones autocalculadas cuando hay layout
+      : calculateArtworkPositions(validArtworks, galleryDimensions.firstX, GALLERY_CONFIG.PICTURE_SPACING, galleryDimensions.contentLength)
+  ), [layout, validArtworks, galleryDimensions]);
 
   const handleSelectArtwork = (art) => setSelectedArtwork(art);
   const handleCloseModal = () => setSelectedArtwork(null);
@@ -305,10 +389,25 @@ export default function GalleryRoom({ salaId = 1, murales = [], onRoomChange, av
     <>
       <div className="gallery-container absolute top-0 left-0 w-full h-full bg-black">
         <Canvas camera={{ position: [0, WALL_HEIGHT / 2, 5], fov: 75 }} shadows>
-          <Room passedInitialWall={passedInitialWall} setSelectedArtwork={handleSelectArtwork} selectedArtwork={selectedArtwork} showList={showRoomSelector} showCollection={false} showInstructions={showInstructions} artworks={validArtworks} artworkPositions={artworkPositions} galleryDimensions={galleryDimensions} />
+          {/* Fog y ambientIntensity ya manejados en Room via presets. Fog adicional */}
+          {scene?.fog && <SceneFog fog={scene.fog} />}
+          <Room
+            passedInitialWall={passedInitialWall}
+            setSelectedArtwork={handleSelectArtwork}
+            selectedArtwork={selectedArtwork}
+            showList={showRoomSelector}
+            showCollection={false}
+            showInstructions={showInstructions}
+            artworks={validArtworks}
+            artworkPositions={artworkPositions}
+            galleryDimensions={galleryDimensions}
+            layoutItems={layout}
+            scene={scene}
+            salaTextures={{ pared: texturaPared, piso: texturaPiso }}
+          />
           <PlayerControls onPassInitialWall={() => setPassedInitialWall(true)} FIRST_X={galleryDimensions.firstX} LAST_X={galleryDimensions.lastX} WALL_MARGIN_INITIAL={galleryDimensions.wallMarginInitial} WALL_MARGIN_FINAL={galleryDimensions.wallMarginFinal} />
           {!selectedArtwork && <PointerLockControls />}
-          {!isMuted && <BackGroundSound url="/assets/audio.mp3" />}
+          {!isMuted && <BackGroundSound url={scene?.audioZones?.[0]?.trackUrl || "/assets/audio.mp3"} />}
         </Canvas>
         <AnimatePresence>
           {selectedArtwork && (
