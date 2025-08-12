@@ -41,9 +41,14 @@ const MuralCard = ({ mural, view = "grid", onEdit, onDelete }) => {
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold text-lg text-foreground mb-1 truncate">
             {mural.titulo}
+            {!mural.isOwn && (
+              <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full">
+                de {mural.autor || 'Autor desconocido'}
+              </span>
+            )}
           </h3>
           <p className="text-sm text-muted-foreground mb-1">
-            {mural.tecnica} • {mural.year}
+            {mural.tecnica} • {mural.anio || mural.year}
           </p>
           {mural.descripcion && (
             <p className="text-sm text-muted-foreground line-clamp-1">
@@ -154,11 +159,18 @@ const MuralCard = ({ mural, view = "grid", onEdit, onDelete }) => {
         </div>
       </div>
       <div className="p-4 bg-white dark:bg-neutral-900 transition-colors duration-300 flex flex-col flex-1 justify-end">
-        <h3 className="font-semibold text-lg text-foreground mb-1 truncate">
-          {mural.titulo}
-        </h3>
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="font-semibold text-lg text-foreground truncate flex-1">
+            {mural.titulo}
+          </h3>
+          {!mural.isOwn && (
+            <span className="ml-2 text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded-full flex-shrink-0">
+              {mural.autor || 'Desconocido'}
+            </span>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground mb-2">
-          {mural.tecnica} • {mural.year}
+          {mural.tecnica} • {mural.anio || mural.year}
         </p>
         {mural.descripcion && (
           <p className="text-sm text-muted-foreground line-clamp-2">

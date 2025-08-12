@@ -241,6 +241,13 @@ export async function POST(req) {
         texturaPared: data.texturas?.paredes || null,
         texturaPiso: data.texturas?.piso || null,
         musica: data.audio?.selectedAudio?.url || null,
+        // Tema ahora en nivel principal
+        tema: data.tema || null,
+        // Configuración avanzada simplificada
+        color: data.configuracionAvanzada?.color || null,
+        imagenPortada: data.configuracionAvanzada?.imagenPortada || null, // ID del mural
+        maxColaboradores: 3, // Fijo en 3
+        notas: data.configuracionAvanzada?.notas || null,
         creador: { connect: { id: data.creadorId } },
         colaboradores: {
           create:

@@ -3,6 +3,7 @@ import { create } from "zustand";
 const initialState = {
   nombre: "",
   descripcion: "",
+  tema: null, // Mover tema al principio
   murales: [],
   step: 0,
   texturas: {
@@ -19,12 +20,19 @@ const initialState = {
     volume: 50,
     autoplay: true,
   },
+  configuracionAvanzada: {
+    color: "#6366f1", // Color por defecto (indigo)
+    imagenPortada: null, // Será un mural seleccionado
+    maxColaboradores: 3, // Fijo en 3
+    notas: "", // Notas adicionales
+  },
 };
 
 export const useCrearSalaStore = create((set, get) => ({
   ...initialState,
   setNombre: (nombre) => set({ nombre }),
   setDescripcion: (descripcion) => set({ descripcion }),
+  setTema: (tema) => set({ tema }), // Mover tema al nivel principal
   addMural: (id) => {
     const numId = Number(id);
     if (!get().murales.includes(numId)) {
@@ -46,5 +54,16 @@ export const useCrearSalaStore = create((set, get) => ({
     set({ audio: { ...get().audio, selectedAudio: audio } }),
   setAudioVolume: (volume) => set({ audio: { ...get().audio, volume } }),
   setAudioAutoplay: (autoplay) => set({ audio: { ...get().audio, autoplay } }),
+
+  // Configuración avanzada (simplificada)
+  setColor: (color) =>
+    set({ configuracionAvanzada: { ...get().configuracionAvanzada, color } }),
+  setImagenPortada: (imagenPortada) =>
+    set({
+      configuracionAvanzada: { ...get().configuracionAvanzada, imagenPortada },
+    }),
+  setNotas: (notas) =>
+    set({ configuracionAvanzada: { ...get().configuracionAvanzada, notas } }),
+
   reset: () => set({ ...initialState }),
 }));

@@ -108,19 +108,19 @@ export default function UserMenu({
                     e.target.src = "/assets/default-avatar.svg";
                   }}
                 />
-                <span className="hidden md:inline text-sm font-medium">
+                <span className="hidden md:inline text-sm font-medium truncate max-w-[120px]" title={userProfile?.name || user?.name || user?.email?.split("@")[0]}>
                   {userProfile?.name ||
                     user?.name ||
                     user?.email?.split("@")[0]}
                 </span>
               </NavigationMenuTrigger>
-              <NavigationMenuContent className="bg-card p-4 rounded-lg shadow-lg border min-w-[180px]">
+              <NavigationMenuContent className="bg-card p-4 rounded-lg shadow-lg border min-w-[200px] max-w-[280px]">
                 <div className="flex flex-col gap-2">
                   <div className="px-3 py-2 border-b border-border">
-                    <p className="text-sm font-medium text-foreground">
+                    <p className="text-sm font-medium text-foreground truncate" title={userProfile?.name || user?.name || "Usuario"}>
                       {userProfile?.name || user?.name || "Usuario"}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-muted-foreground truncate" title={user?.email}>
                       {user?.email}
                     </p>
                     {userProfile?.roles && (

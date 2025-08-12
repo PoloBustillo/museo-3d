@@ -17,6 +17,9 @@ export async function GET(request) {
     const offset = Math.max(parseInt(searchParams.get("offset") || "0"), 0);
     const includePublic = searchParams.get("includePublic") === "true";
 
+    // Verificar si el usuario es administrador
+    const isAdmin = session.user.role === "admin";
+
     // Construir condiciones de búsqueda
     const whereConditions = {
       AND: [
@@ -24,32 +27,36 @@ export async function GET(request) {
           // Excluir murales eliminados
           deletedAt: null,
         },
-        {
-          // Incluir obras del usuario actual O obras públicas de otros usuarios
-          OR: [
-            {
-              // Obras del usuario actual
-              userId: session.user.id,
-            },
-            ...(includePublic
-              ? [
+        ...(!isAdmin
+          ? [
+              {
+                // Incluir obras del usuario actual O obras públicas de otros usuarios
+                OR: [
                   {
-                    // Obras públicas de otros usuarios
-                    AND: [
-                      {
-                        publica: true,
-                      },
-                      {
-                        userId: {
-                          not: session.user.id,
-                        },
-                      },
-                    ],
+                    // Obras del usuario actual
+                    userId: session.user.id,
                   },
-                ]
-              : []),
-          ],
-        },
+                  ...(includePublic
+                    ? [
+                        {
+                          // Obras públicas de otros usuarios
+                          AND: [
+                            {
+                              publica: true,
+                            },
+                            {
+                              userId: {
+                                not: session.user.id,
+                              },
+                            },
+                          ],
+                        },
+                      ]
+                    : []),
+                ],
+              },
+            ]
+          : []),
         // Si hay query de búsqueda, buscar en título, descripción y técnica
         ...(query.length >= 2
           ? [

@@ -26,6 +26,10 @@ import {
   Eye,
   Plus,
   Minus,
+  Settings,
+  Palette,
+  Calendar,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,14 +51,17 @@ export default function CrearSalaStepper() {
   const {
     nombre,
     descripcion,
+    tema,
     murales,
     texturas,
     privacidad,
     colaboradores,
     audio,
+    configuracionAvanzada,
     step,
     setNombre,
     setDescripcion,
+    setTema,
     addMural,
     removeMural,
     setStep,
@@ -66,6 +73,9 @@ export default function CrearSalaStepper() {
     setSelectedAudio,
     setAudioVolume,
     setAudioAutoplay,
+    setColor,
+    setImagenPortada,
+    setNotas,
     reset,
   } = useCrearSalaStore();
 
@@ -105,8 +115,8 @@ export default function CrearSalaStepper() {
   // Steps configuration
   const STEPS_DYNAMIC = [
     {
-      label: "Datos básicos",
-      subtitle: "Información principal",
+      label: "Concepto",
+      subtitle: "Datos básicos y tema",
       icon: <Home />,
     },
     {
@@ -125,14 +135,19 @@ export default function CrearSalaStepper() {
       icon: <Users />,
     },
     {
-      label: "Configuración",
-      subtitle: "Audio y ambiente",
+      label: "Audio",
+      subtitle: "Ambiente sonoro",
       icon: <Music />,
     },
     {
       label: "Murales",
       subtitle: "Seleccionar obras",
       icon: <ListChecks />,
+    },
+    {
+      label: "Finalizar",
+      subtitle: "Detalles finales",
+      icon: <Settings />,
     },
     {
       label: "Confirmar",
@@ -473,6 +488,7 @@ export default function CrearSalaStepper() {
       const salaData = {
         nombre: nombre.trim(),
         descripcion: descripcion.trim(),
+        tema: tema, // Tema ahora en nivel principal
         murales: murales,
         texturas: {
           piso: texturas.piso?.name || null,
@@ -486,6 +502,12 @@ export default function CrearSalaStepper() {
         publica: privacidad.publica,
         esPrivada: privacidad.esPrivada,
         colaboradores: colaboradores.map((c) => c.id),
+        configuracionAvanzada: {
+          color: configuracionAvanzada.color,
+          imagenPortada: configuracionAvanzada.imagenPortada, // ID del mural seleccionado
+          maxColaboradores: 3, // Fijo en 3
+          notas: configuracionAvanzada.notas?.trim() || null,
+        },
         creadorId: session?.user?.id,
       };
 
@@ -585,48 +607,192 @@ export default function CrearSalaStepper() {
           </p>
         </div>
 
-        {/* Step 0: Datos básicos */}
+        {/* Step 0: Concepto (Datos básicos + Tema) */}
         {step === 0 && (
           <div className="flex flex-col gap-6">
-            <div>
-              <Label
-                htmlFor="nombre"
-                className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200"
-              >
-                Nombre de la sala *
-              </Label>
-              <Input
-                id="nombre"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                placeholder="Ej: Mi galería personal"
-                className={errors.nombre ? "border-red-500" : ""}
-              />
-              {errors.nombre && (
-                <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>
-              )}
+            {/* Información básica */}
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Información básica
+              </h3>
+
+              <div className="space-y-4">
+                <div>
+                  <Label
+                    htmlFor="nombre"
+                    className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200"
+                  >
+                    Nombre de la sala *
+                  </Label>
+                  <Input
+                    id="nombre"
+                    value={nombre}
+                    onChange={(e) => setNombre(e.target.value)}
+                    placeholder="Ej: Mi galería personal"
+                    className={errors.nombre ? "border-red-500" : ""}
+                  />
+                  {errors.nombre && (
+                    <p className="text-red-500 text-sm mt-1">{errors.nombre}</p>
+                  )}
+                </div>
+
+                <div>
+                  <Label
+                    htmlFor="descripcion"
+                    className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200"
+                  >
+                    Descripción *
+                  </Label>
+                  <Textarea
+                    id="descripcion"
+                    value={descripcion}
+                    onChange={(e) => setDescripcion(e.target.value)}
+                    placeholder="Describe tu sala..."
+                    rows={4}
+                    className={errors.descripcion ? "border-red-500" : ""}
+                  />
+                  {errors.descripcion && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.descripcion}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div>
-              <Label
-                htmlFor="descripcion"
-                className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200"
-              >
-                Descripción *
-              </Label>
-              <Textarea
-                id="descripcion"
-                value={descripcion}
-                onChange={(e) => setDescripcion(e.target.value)}
-                placeholder="Describe tu sala..."
-                rows={4}
-                className={errors.descripcion ? "border-red-500" : ""}
-              />
-              {errors.descripcion && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.descripcion}
-                </p>
-              )}
+            {/* Tema y concepto */}
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Concepto y tema
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4 text-sm">
+                El tema es opcional y ayudará a generar automáticamente texturas
+                y audio que complementen tu sala
+              </p>
+
+              <div>
+                <Label className="block mb-2 text-base font-medium text-gray-700 dark:text-gray-200">
+                  Tema de la sala (opcional)
+                </Label>
+
+                {/* Opciones predefinidas */}
+                <div className="mb-4">
+                  <select
+                    value={
+                      tema &&
+                      typeof tema === "string" &&
+                      [
+                        "clasico",
+                        "moderno",
+                        "contemporaneo",
+                        "vanguardia",
+                        "minimalista",
+                        "barroco",
+                        "industrial",
+                        "natural",
+                        "futurista",
+                        "vintage",
+                      ].includes(tema)
+                        ? tema
+                        : ""
+                    }
+                    onChange={(e) => setTema(e.target.value || null)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  >
+                    <option value="">Selecciona un tema predefinido...</option>
+                    <option value="clasico">
+                      🏛️ Clásico - Elegancia atemporal
+                    </option>
+                    <option value="moderno">
+                      🌟 Moderno - Líneas limpias y minimalismo
+                    </option>
+                    <option value="contemporaneo">
+                      🎨 Contemporáneo - Arte actual y experimental
+                    </option>
+                    <option value="vanguardia">
+                      🚀 Vanguardia - Innovación y ruptura
+                    </option>
+                    <option value="minimalista">
+                      ⚪ Minimalista - Menos es más
+                    </option>
+                    <option value="barroco">
+                      👑 Barroco - Opulencia y dramatismo
+                    </option>
+                    <option value="industrial">
+                      🏭 Industrial - Estética urbana y cruda
+                    </option>
+                    <option value="natural">
+                      🌿 Natural - Conexión con la naturaleza
+                    </option>
+                    <option value="futurista">
+                      🔮 Futurista - Visión del mañana
+                    </option>
+                    <option value="vintage">
+                      📻 Vintage - Nostalgia y tradición
+                    </option>
+                  </select>
+                </div>
+
+                {/* Separador */}
+                <div className="flex items-center my-4">
+                  <div className="flex-1 h-px bg-gray-200 dark:bg-gray-600"></div>
+                  <span className="px-3 text-sm text-gray-500 dark:text-gray-400">
+                    o define tu propio tema
+                  </span>
+                  <div className="flex-1 h-px bg-gray-200 dark:bg-gray-600"></div>
+                </div>
+
+                {/* Tema personalizado */}
+                <div>
+                  <textarea
+                    value={
+                      tema &&
+                      ![
+                        "clasico",
+                        "moderno",
+                        "contemporaneo",
+                        "vanguardia",
+                        "minimalista",
+                        "barroco",
+                        "industrial",
+                        "natural",
+                        "futurista",
+                        "vintage",
+                      ].includes(tema)
+                        ? tema
+                        : ""
+                    }
+                    onChange={(e) => setTema(e.target.value.trim() || null)}
+                    placeholder="Describe tu propio tema o concepto para la sala (ej: 'Surrealismo onírico', 'Arte urbano mexicano', 'Paisajes nórdicos')..."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none"
+                  />
+                </div>
+
+                {tema && (
+                  <div className="mt-3 p-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-md">
+                    <p className="text-sm text-indigo-700 dark:text-indigo-300 flex items-center gap-2">
+                      <span className="text-lg">✨</span>
+                      <span>
+                        {[
+                          "clasico",
+                          "moderno",
+                          "contemporaneo",
+                          "vanguardia",
+                          "minimalista",
+                          "barroco",
+                          "industrial",
+                          "natural",
+                          "futurista",
+                          "vintage",
+                        ].includes(tema)
+                          ? `Tema "${tema}" seleccionado - se generarán texturas y audio personalizados`
+                          : `Tema personalizado "${tema}" - se usará para generar contenido único`}
+                      </span>
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -1252,8 +1418,145 @@ export default function CrearSalaStepper() {
           </div>
         )}
 
-        {/* Step 6: Confirmación */}
+        {/* Step 6: Finalizar (Configuración simplificada) */}
         {step === 6 && (
+          <div className="flex flex-col gap-6">
+            <div className="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+                <Settings className="w-5 h-5" />
+                Detalles finales
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Últimos ajustes para personalizar tu sala
+              </p>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* Color de la sala */}
+                <div>
+                  <Label className="flex items-center gap-2 mb-2">
+                    <Palette className="w-4 h-4" />
+                    Color principal
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="color"
+                      value={configuracionAvanzada.color}
+                      onChange={(e) => setColor(e.target.value)}
+                      className="w-12 h-10 rounded border border-gray-300 dark:border-gray-600"
+                    />
+                    <Input
+                      value={configuracionAvanzada.color}
+                      onChange={(e) => setColor(e.target.value)}
+                      placeholder="#6366f1"
+                      className="flex-1"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Color principal para la interfaz de la sala
+                  </p>
+                </div>
+
+                {/* Máximo colaboradores (fijo en 3) */}
+                <div>
+                  <Label className="flex items-center gap-2 mb-2">
+                    <Users className="w-4 h-4" />
+                    Colaboradores
+                  </Label>
+                  <div className="flex items-center gap-3">
+                    <div className="bg-gray-100 dark:bg-gray-700 px-3 py-2 rounded-md flex-1">
+                      <span className="text-gray-900 dark:text-gray-100 font-medium">
+                        Máximo 3 colaboradores
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Número fijo de colaboradores permitidos
+                  </p>
+                </div>
+              </div>
+
+              {/* Imagen de portada (seleccionar de murales) */}
+              <div className="mt-6">
+                <Label className="flex items-center gap-2 mb-2">
+                  <Image className="w-4 h-4" />
+                  Imagen de portada
+                </Label>
+                {murales.length > 0 ? (
+                  <div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                      Selecciona una de tus obras como portada de la sala
+                    </p>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                      {getSelectedMuralesData().map((mural) => (
+                        <div
+                          key={mural.id}
+                          className={`relative aspect-square bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden cursor-pointer border-2 transition-all ${
+                            configuracionAvanzada.imagenPortada === mural.id
+                              ? "border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800"
+                              : "border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500"
+                          }`}
+                          onClick={() => setImagenPortada(mural.id)}
+                        >
+                          <img
+                            src={mural.imagen}
+                            alt={mural.titulo}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.src = "/placeholder-image.jpg";
+                            }}
+                          />
+                          {configuracionAvanzada.imagenPortada === mural.id && (
+                            <div className="absolute inset-0 bg-indigo-500 bg-opacity-20 flex items-center justify-center">
+                              <CheckCircle className="w-6 h-6 text-indigo-600" />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                    {configuracionAvanzada.imagenPortada && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setImagenPortada(null)}
+                        className="mt-3"
+                      >
+                        Quitar imagen de portada
+                      </Button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                    <Image className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      Primero selecciona murales para elegir una portada
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Notas */}
+              <div className="mt-6">
+                <Label className="flex items-center gap-2 mb-2">
+                  <FileText className="w-4 h-4" />
+                  Notas adicionales
+                </Label>
+                <Textarea
+                  value={configuracionAvanzada.notas}
+                  onChange={(e) => setNotas(e.target.value)}
+                  placeholder="Notas, instrucciones especiales, o información adicional sobre la sala..."
+                  rows={3}
+                  className="resize-none"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Información adicional visible para colaboradores
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 7: Confirmación */}
+        {step === 7 && (
           <div className="flex flex-col gap-6">
             {successMessage ? (
               <div className="text-center py-8">
@@ -1304,6 +1607,61 @@ export default function CrearSalaStepper() {
                       </p>
                       <p className="font-medium text-gray-900 dark:text-gray-100">
                         {descripcion || "—"}
+                      </p>
+                    </div>
+                    <div className="md:col-span-2">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Tema
+                      </p>
+                      <p className="font-medium text-gray-900 dark:text-gray-100">
+                        {tema ? (
+                          <span className="flex items-center gap-2">
+                            <span>
+                              {tema === "clasico" && "🏛️ Clásico"}
+                              {tema === "moderno" && "🌟 Moderno"}
+                              {tema === "contemporaneo" && "🎨 Contemporáneo"}
+                              {tema === "vanguardia" && "🚀 Vanguardia"}
+                              {tema === "minimalista" && "⚪ Minimalista"}
+                              {tema === "barroco" && "👑 Barroco"}
+                              {tema === "industrial" && "🏭 Industrial"}
+                              {tema === "natural" && "🌿 Natural"}
+                              {tema === "futurista" && "🔮 Futurista"}
+                              {tema === "vintage" && "📻 Vintage"}
+                              {![
+                                "clasico",
+                                "moderno",
+                                "contemporaneo",
+                                "vanguardia",
+                                "minimalista",
+                                "barroco",
+                                "industrial",
+                                "natural",
+                                "futurista",
+                                "vintage",
+                              ].includes(tema) && `🎭 ${tema}`}
+                            </span>
+                            <span className="text-xs px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 rounded-full">
+                              {[
+                                "clasico",
+                                "moderno",
+                                "contemporaneo",
+                                "vanguardia",
+                                "minimalista",
+                                "barroco",
+                                "industrial",
+                                "natural",
+                                "futurista",
+                                "vintage",
+                              ].includes(tema)
+                                ? "Tema predefinido"
+                                : "Tema personalizado"}
+                            </span>
+                          </span>
+                        ) : (
+                          <span className="text-gray-500 dark:text-gray-400 italic">
+                            Sin tema específico
+                          </span>
+                        )}
                       </p>
                     </div>
                   </div>
@@ -1449,10 +1807,63 @@ export default function CrearSalaStepper() {
                       </span>
                     )}
                   </div>
+
+                  {/* Configuración Avanzada */}
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                      Configuración avanzada
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Color personalizado
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-4 h-4 rounded border border-gray-300 dark:border-gray-600"
+                            style={{
+                              backgroundColor: configuracionAvanzada.color,
+                            }}
+                          />
+                          <span className="text-sm text-gray-900 dark:text-gray-100">
+                            {configuracionAvanzada.color}
+                          </span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Máximo colaboradores
+                        </p>
+                        <p className="text-sm text-gray-900 dark:text-gray-100">
+                          3 personas
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Imagen de portada
+                        </p>
+                        <p className="text-sm text-gray-900 dark:text-gray-100">
+                          {configuracionAvanzada.imagenPortada
+                            ? "Seleccionada desde murales"
+                            : "Primera obra seleccionada"}
+                        </p>
+                      </div>
+                    </div>
+                    {configuracionAvanzada.notas && (
+                      <div className="mt-3">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                          Notas adicionales
+                        </p>
+                        <p className="text-sm text-gray-900 dark:text-gray-100">
+                          {configuracionAvanzada.notas}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-end mt-4">
-                  <Button variant="secondary" onClick={() => setStep(5)}>
+                  <Button variant="secondary" onClick={() => setStep(6)}>
                     Volver
                   </Button>
                   <Button

@@ -21,7 +21,12 @@ export function useMurales() {
 
     try {
       setLoading(true);
-      const response = await fetch(`/api/murales?userId=${session.user.id}`);
+      // Los admins pueden ver todos los murales, los usuarios regulares solo los suyos
+      const endpoint = session.user.role === "ADMIN" 
+        ? "/api/murales" 
+        : `/api/murales?userId=${session.user.id}`;
+      
+      const response = await fetch(endpoint);
       if (response.ok) {
         const data = await response.json();
         setMurales(data.murales || []);
@@ -32,7 +37,7 @@ export function useMurales() {
     } finally {
       setLoading(false);
     }
-  }, [session?.user?.id]);
+  }, [session?.user?.id, session?.user?.role]);
 
   // Cargar murales cuando cambie la sesión
   useEffect(() => {
@@ -46,15 +51,19 @@ export function useMurales() {
     .filter((mural) => {
       // Excluir murales eliminados (soft delete)
       if (mural.deletedAt) return false;
-      // Solo mostrar obras del usuario actual
-      if (session?.user?.id && mural.userId && mural.userId !== session.user.id)
-        return false;
-      if (
-        session?.user?.name &&
-        mural.autor &&
-        mural.autor !== session.user.name
-      )
-        return false;
+      
+      // Los admins pueden ver todos los murales, los usuarios regulares solo los suyos
+      if (session?.user?.role !== "ADMIN") {
+        // Solo mostrar obras del usuario actual para usuarios regulares
+        if (session?.user?.id && mural.userId && mural.userId !== session.user.id)
+          return false;
+        if (
+          session?.user?.name &&
+          mural.autor &&
+          mural.autor !== session.user.name
+        )
+          return false;
+      }
 
       // Filtros de búsqueda
       if (
@@ -149,9 +158,16 @@ export function useMurales() {
     return { tecnicas, years };
   }, [murales]);
 
+  // Agregar información de edición a los murales filtrados
+  const muralesToShow = filteredMurales.map(mural => ({
+    ...mural,
+    editable: mural.userId === session?.user?.id, // Solo editable si es el propietario
+    isOwn: mural.userId === session?.user?.id // Para mostrar información adicional
+  }));
+
   return {
     murales,
-    filteredMurales,
+    filteredMurales: muralesToShow,
     loading,
     filters,
     setFilters,
