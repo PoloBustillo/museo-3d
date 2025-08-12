@@ -39,6 +39,12 @@ const RoomSelectorModal = dynamic(
   { ssr: false }
 );
 
+const FLOOR_TEXTURE_ALIAS = {
+  wood: "/assets/textures/WoodFloor003_1K-JPG/WoodFloor003_1K-JPG_Color.jpg",
+  marble: "/assets/textures/MarbleTiles099_1K-JPG/MarbleTiles099_1K-JPG_Color.jpg",
+  parquet: "/assets/textures/WoodFloor003_1K-JPG/WoodFloor003_1K-JPG_Color.jpg",
+};
+
 function Picture({
   src,
   title,
@@ -55,8 +61,19 @@ function Picture({
   selectedArtwork,
   spotlightIntensity = 1,
   frameStyle,
+  floorTextureUrl,
 }) {
   const texture = useTexture(src);
+  const resolvedFramePath =
+    floorTextureUrl && !floorTextureUrl.includes("/")
+      ? FLOOR_TEXTURE_ALIAS[floorTextureUrl]
+      : floorTextureUrl;
+  const frameTexture = resolvedFramePath ? useTexture(resolvedFramePath) : null;
+  if (frameTexture) {
+    frameTexture.wrapS = frameTexture.wrapT = THREE.RepeatWrapping;
+    frameTexture.repeat.set(1, 1);
+    frameTexture.anisotropy = 8;
+  }
   const [hovered, setHovered] = useState(false);
   const [imageDimensions, setImageDimensions] = useState({
     width: 3,
@@ -102,6 +119,9 @@ function Picture({
   // Escala animada simple sin framer-motion 3D (evitamos motion.group para no perder position)
   const scale = selected ? 1.15 : hovered ? 1.04 : 1;
 
+  // Intensidad dinámica para glow
+  const glowOpacity = selected ? 0.6 : hovered ? 0.42 : 0.0;
+
   return (
     <group
       position={position}
@@ -110,36 +130,64 @@ function Picture({
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
+      {/* Glow mejorado: dos capas al frente del cuadro para asegurar visibilidad */}
+      <group renderOrder={-1}> {/* Mantener detrás del marco pero delante de la pared */}
+        <mesh position={[0, 0, 0.006]} visible={glowOpacity > 0}>
+          <planeGeometry args={[w + thickness * 2.6, h + thickness * 2.6]} />
+          <meshBasicMaterial
+            color={selected ? '#ffddaa' : '#ffc766'}
+            transparent
+            opacity={glowOpacity * 0.7}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+        <mesh position={[0, 0, 0.004]} visible={glowOpacity > 0}>
+          <planeGeometry args={[w + thickness * 1.8, h + thickness * 1.8]} />
+          <meshBasicMaterial
+            color={selected ? '#ffe7c2' : '#ffd9a8'}
+            transparent
+            opacity={glowOpacity}
+            blending={THREE.AdditiveBlending}
+            depthWrite={false}
+          />
+        </mesh>
+      </group>
+      {/* Marco */}
       <mesh position={[0, h / 2 + thickness / 2, depth]}>
         <boxGeometry args={[w + thickness * 2, thickness, thickness]} />
         <meshStandardMaterial
-          color={frameColor}
-          metalness={0.5}
-          roughness={0.3}
+          map={frameTexture || null}
+          color={!frameTexture ? frameColor : undefined}
+          metalness={0.4}
+          roughness={0.5}
         />
       </mesh>
       <mesh position={[0, -h / 2 - thickness / 2, depth]}>
         <boxGeometry args={[w + thickness * 2, thickness, thickness]} />
         <meshStandardMaterial
-          color={frameColor}
-          metalness={0.5}
-          roughness={0.3}
+          map={frameTexture || null}
+          color={!frameTexture ? frameColor : undefined}
+          metalness={0.4}
+          roughness={0.5}
         />
       </mesh>
       <mesh position={[-w / 2 - thickness / 2, 0, depth]}>
         <boxGeometry args={[thickness, h + thickness * 2, thickness]} />
         <meshStandardMaterial
-          color={frameColor}
-          metalness={0.5}
-          roughness={0.3}
+          map={frameTexture || null}
+          color={!frameTexture ? frameColor : undefined}
+          metalness={0.4}
+          roughness={0.5}
         />
       </mesh>
       <mesh position={[w / 2 + thickness / 2, 0, depth]}>
         <boxGeometry args={[thickness, h + thickness * 2, thickness]} />
         <meshStandardMaterial
-          color={frameColor}
-          metalness={0.5}
-          roughness={0.3}
+          map={frameTexture || null}
+          color={!frameTexture ? frameColor : undefined}
+          metalness={0.4}
+          roughness={0.5}
         />
       </mesh>
       <mesh
@@ -172,6 +220,14 @@ function Picture({
           color="#fff7e6"
         />
       )}
+      {/* Luz de realce desde el piso */}
+      <pointLight
+        position={[0, -h / 2 + 0.3, 0.15]}
+        intensity={hovered || selected ? 1.55 : 1.05}
+        distance={4.4}
+        decay={2}
+        color={selected ? '#ffe1b0' : '#ffd5a1'}
+      />
       {showPlaque && !selectedArtwork && (
         <Html
           position={[0, -h / 2 - 0.25, depth]}
@@ -433,7 +489,7 @@ function Room({
         clone.rot = { ...r, y: side === 1 ? 0 : Math.PI };
       }
       if (!clone.pos) clone.pos = {};
-      if (!clone.pos.y || Math.abs(clone.pos.y) < 0.01) clone.pos.y = 1.5;
+      if (!clone.pos.y || Math.abs(clone.pos.y) < 0.01) clone.pos.y = 2.1; // subir altura default
       if (typeof clone.pos.x !== "number") clone.pos.x = 0;
       return clone;
     });
@@ -445,15 +501,14 @@ function Room({
     if (normalizedLayout.length > 0) return [];
     const pairs = Math.ceil(artworks.length / 2);
     if (pairs === 0) return [];
-    // Usar el rango calculado (firstX -> lastX) para garantizar que cámara pueda alcanzarlos
-    const span = Math.max(0.0001, lastX - firstX); // debería ser (pairs-1)*minSpacing
+    const span = Math.max(0.0001, lastX - firstX);
     const spacing = pairs > 1 ? span / (pairs - 1) : 0;
     const positions = [];
     for (let i = 0; i < artworks.length; i++) {
-      const side = i % 2 === 0 ? 1 : -1; // alternar paredes
+      const side = i % 2 === 0 ? 1 : -1;
       const pairIndex = Math.floor(i / 2);
       const x = firstX + pairIndex * spacing;
-      const y = 1.6;
+      const y = 2.1; // altura elevada
       const z = side * WALL_Z;
       const rotY = side === 1 ? 0 : Math.PI;
       positions.push({ position: [x, y, z], rotation: [0, rotY, 0] });
@@ -500,8 +555,9 @@ function Room({
               dimensions={
                 li.mural?.dimensiones || "Dimensiones no especificadas"
               }
-              position={[li.pos?.x ?? 0, li.pos?.y ?? 1.5, li.pos?.z ?? 0]}
+              position={[li.pos?.x ?? 0, li.pos?.y ?? 2.1, li.pos?.z ?? 0]}
               rotation={[li.rot?.x ?? 0, li.rot?.y ?? 0, li.rot?.z ?? 0]}
+              floorTextureUrl={salaTextures?.piso}
               onClick={() => setSelectedArtwork(li.mural || null)}
               showPlaque={
                 passedInitialWall &&
@@ -524,6 +580,7 @@ function Room({
                 {...art}
                 position={sp.position}
                 rotation={sp.rotation}
+                floorTextureUrl={salaTextures?.piso}
                 onClick={() => setSelectedArtwork(art)}
                 showPlaque={
                   passedInitialWall &&
@@ -553,6 +610,27 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
   const [isInCollection, setIsInCollection] = useState(false);
   const [collectionMessage, setCollectionMessage] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const imageContainerRef = useRef(null);
+  const clampZoom = (v) => Math.min(4, Math.max(0.5, v));
+
+  const handleWheel = useCallback((e) => {
+    if (!e.ctrlKey) return; // usar ctrl+scroll para zoom para no interferir con scroll normal
+    e.preventDefault();
+    setZoom((z) => clampZoom(z - e.deltaY * 0.0015));
+  }, []);
+
+  useEffect(() => {
+    const el = imageContainerRef.current;
+    if (!el) return;
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheel);
+  }, [handleWheel]);
+
+  const zoomIn = () => setZoom((z) => clampZoom(z * 1.2));
+  const zoomOut = () => setZoom((z) => clampZoom(z / 1.2));
+  const resetZoom = () => setZoom(1);
+  const handleSlider = (e) => setZoom(clampZoom(parseInt(e.target.value, 10) / 100));
 
   useEffect(() => {
     setIsInCollection(
@@ -620,58 +698,92 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
           exit={{ y: 50, opacity: 0 }}
           transition={{ type: "spring", stiffness: 300, damping: 30 }}
           onClick={(e) => e.stopPropagation()}
-          className="bg-[#1c1c1c] text-white rounded-2xl shadow-2xl overflow-hidden max-w-4xl w-full flex flex-col md:flex-row"
+          className="relative bg-gradient-to-br from-neutral-900/95 via-neutral-850/90 to-neutral-800/80 backdrop-blur-xl border border-neutral-700/60 text-white rounded-2xl shadow-2xl overflow-hidden max-w-5xl w-full flex flex-col md:flex-row"
         >
-          <div className="md:w-1/2 w-full p-6 flex flex-col justify-between">
-            <div>
-              <h2 className="text-3xl font-bold mb-2 text-amber-300">
+          {/* Botón cerrar flotante */}
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 px-3 py-2 rounded-lg bg-neutral-700/70 hover:bg-neutral-600/80 text-sm backdrop-blur-md shadow"
+            aria-label="Cerrar"
+          >✕</button>
+          <div className="md:w-5/12 w-full p-6 flex flex-col justify-between gap-4">
+            <div className="space-y-3">
+              <h2 className="text-3xl font-bold leading-tight bg-gradient-to-r from-amber-300 to-amber-500 text-transparent bg-clip-text drop-shadow">
                 {artwork.title}
               </h2>
-              <h3 className="text-xl font-semibold mb-4">
-                {artwork.artist} ({artwork.year})
-              </h3>
-              <p className="text-gray-300 mb-2">
-                <b>Técnica:</b> {artwork.technique}
-              </p>
-              <p className="text-gray-300 mb-4">
-                <b>Dimensiones:</b> {artwork.dimensions}
-              </p>
-              <p className="text-gray-200 leading-relaxed">
-                {artwork.description}
-              </p>
+              <h3 className="text-lg font-semibold text-amber-200/90">{artwork.artist} ({artwork.year})</h3>
+              <div className="flex flex-wrap gap-2 text-[11px] tracking-wide uppercase text-neutral-300">
+                <span className="px-2 py-1 rounded bg-neutral-700/50 border border-neutral-600/40">{artwork.technique}</span>
+                <span className="px-2 py-1 rounded bg-neutral-700/50 border border-neutral-600/40">{artwork.dimensions}</span>
+              </div>
+              <div className="h-px bg-gradient-to-r from-transparent via-neutral-600 to-transparent" />
+              <p className="text-gray-300 text-sm leading-relaxed max-h-48 overflow-y-auto pr-1 custom-scroll">{artwork.description}</p>
             </div>
-            <div className="mt-6">
-              {collectionMessage ? (
-                <p className="text-center font-semibold text-lg h-[52px] flex items-center justify-center">
-                  {collectionMessage}
-                </p>
-              ) : (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between text-xs text-gray-400">
+                <span>Zoom: {(zoom * 100).toFixed(0)}%</span>
+                {collectionMessage && <span className="text-amber-300 font-medium">{collectionMessage}</span>}
+              </div>
+              <input
+                type="range"
+                min={50}
+                max={400}
+                value={Math.round(zoom * 100)}
+                onChange={handleSlider}
+                className="w-full accent-amber-400 cursor-pointer"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={zoomOut}
+                  className="flex-1 py-2 rounded-lg bg-neutral-700/70 hover:bg-neutral-600/80 text-sm"
+                  aria-label="Alejar"
+                >−</button>
+                <button
+                  onClick={resetZoom}
+                  className="flex-1 py-2 rounded-lg bg-neutral-700/70 hover:bg-neutral-600/80 text-sm"
+                  aria-label="Reset Zoom"
+                >Reset</button>
+                <button
+                  onClick={zoomIn}
+                  className="flex-1 py-2 rounded-lg bg-neutral-700/70 hover:bg-neutral-600/80 text-sm"
+                  aria-label="Acercar"
+                >＋</button>
+              </div>
+              <div className="flex gap-2">
                 <button
                   onClick={handleCollectionAction}
                   disabled={isUpdating}
-                  className={`w-full py-3 px-4 rounded-lg font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 ${
+                  className={`flex-1 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 shadow-inner ${
                     isUpdating
-                      ? "bg-neutral-600 cursor-not-allowed"
+                      ? 'bg-neutral-600 cursor-not-allowed'
                       : isInCollection
-                        ? "bg-red-700 hover:bg-red-800 text-white"
-                        : "bg-amber-400 hover:bg-amber-500 text-black"
+                        ? 'bg-red-600/80 hover:bg-red-600 text-white'
+                        : 'bg-amber-400 hover:bg-amber-500 text-black'
                   }`}
                 >
-                  {isUpdating
-                    ? "Guardando..."
-                    : isInCollection
-                      ? "Eliminar de la colección"
-                      : "Añadir a mi colección"}
+                  {isUpdating ? 'Guardando...' : isInCollection ? 'Quitar de favoritos' : 'Añadir a favoritos'}
                 </button>
-              )}
+                <button
+                  onClick={() => navigator?.clipboard?.writeText(window.location.href).catch(()=>{})}
+                  className="px-4 rounded-lg bg-neutral-700/70 hover:bg-neutral-600/80 text-sm"
+                >Compartir</button>
+              </div>
             </div>
           </div>
-          <div className="md:w-1/2 w-full relative bg-black">
-            <img
-              src={artwork.src}
-              alt={artwork.title}
-              className="w-full h-full object-contain"
-            />
+          <div ref={imageContainerRef} className="md:w-7/12 w-full relative bg-black/70 overflow-hidden group rounded-l-2xl md:rounded-l-none md:rounded-r-2xl">
+            <div
+              style={{ transform: `scale(${zoom})`, transition: 'transform 0.25s ease', transformOrigin: 'center center' }}
+              className="w-full h-full flex items-center justify-center p-4"
+            >
+              <img
+                src={artwork.src}
+                alt={artwork.title}
+                className="object-contain max-h-[80vh] select-none pointer-events-none drop-shadow-[0_0_25px_rgba(255,200,120,0.25)]"
+                draggable={false}
+              />
+            </div>
+            {/* Overlay suave para borde */}
+            <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-neutral-700/40" />
           </div>
         </motion.div>
       </motion.div>
