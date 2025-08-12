@@ -14,6 +14,11 @@ const initialState = {
     esPrivada: false,
   },
   colaboradores: [],
+  audio: {
+    selectedAudio: null, // { name, url, isCustom }
+    volume: 50,
+    autoplay: true,
+  },
 };
 
 export const useCrearSalaStore = create((set, get) => ({
@@ -37,5 +42,11 @@ export const useCrearSalaStore = create((set, get) => ({
     set({ colaboradores: [...get().colaboradores, colaborador] }),
   removeColaborador: (id) =>
     set({ colaboradores: get().colaboradores.filter((c) => c.id !== id) }),
+  setSelectedAudio: (audio) =>
+    set({ audio: { ...get().audio, selectedAudio: audio } }),
+  setAudioVolume: (volume) =>
+    set({ audio: { ...get().audio, volume } }),
+  setAudioAutoplay: (autoplay) =>
+    set({ audio: { ...get().audio, autoplay } }),
   reset: () => set({ ...initialState }),
 }));

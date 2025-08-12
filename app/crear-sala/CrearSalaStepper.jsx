@@ -17,6 +17,10 @@ import {
   Lock,
   UserPlus,
   X,
+  Play,
+  Pause,
+  Volume2,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +46,7 @@ export default function CrearSalaStepper() {
     texturas,
     privacidad,
     colaboradores,
+    audio,
     step,
     setNombre,
     setDescripcion,
@@ -51,6 +56,9 @@ export default function CrearSalaStepper() {
     setPrivacidad,
     addColaborador,
     removeColaborador,
+    setSelectedAudio,
+    setAudioVolume,
+    setAudioAutoplay,
     reset,
   } = useCrearSalaStore();
 
@@ -67,6 +75,15 @@ export default function CrearSalaStepper() {
   const [userSearchQuery, setUserSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
+
+  // Audio states
+  const [availableAudios, setAvailableAudios] = useState([]);
+  const [loadingAudios, setLoadingAudios] = useState(false);
+  const [audioError, setAudioError] = useState(null);
+  const [currentPlayingAudio, setCurrentPlayingAudio] = useState(null);
+  const [audioRef, setAudioRef] = useState(null);
+  const [showAudioModal, setShowAudioModal] = useState(false);
+  const [uploadingCustomAudio, setUploadingCustomAudio] = useState(false);
 
   // Steps configuration
   const STEPS_DYNAMIC = [
@@ -128,6 +145,29 @@ export default function CrearSalaStepper() {
     };
 
     loadTextures();
+  }, []);
+
+  // Load audios
+  useEffect(() => {
+    const loadAudios = async () => {
+      setLoadingAudios(true);
+      setAudioError(null);
+      try {
+        const response = await fetch("/api/audios");
+        if (!response.ok) {
+          throw new Error("Error al cargar los audios");
+        }
+        const data = await response.json();
+        setAvailableAudios(data.audios || []);
+      } catch (error) {
+        console.error("Error loading audios:", error);
+        setAudioError(error.message);
+      } finally {
+        setLoadingAudios(false);
+      }
+    };
+
+    loadAudios();
   }, []);
 
   // Search users with debouncing
@@ -227,6 +267,93 @@ export default function CrearSalaStepper() {
     setShowUserSearch(false);
   };
 
+  // Audio functions
+  const playAudio = (audio) => {
+    if (currentPlayingAudio && audioRef) {
+      audioRef.pause();
+    }
+
+    const newAudio = new Audio(audio.url);
+    newAudio.volume = audio.volume || 0.5;
+    newAudio.play();
+    
+    setCurrentPlayingAudio(audio.id);
+    setAudioRef(newAudio);
+
+    newAudio.onended = () => {
+      setCurrentPlayingAudio(null);
+      setAudioRef(null);
+    };
+  };
+
+  const stopAudio = () => {
+    if (audioRef) {
+      audioRef.pause();
+      setCurrentPlayingAudio(null);
+      setAudioRef(null);
+    }
+  };
+
+  const selectAudio = (audio) => {
+    setSelectedAudio({
+      id: audio.id,
+      name: audio.name,
+      url: audio.url,
+      isCustom: false
+    });
+    setShowAudioModal(false);
+    stopAudio();
+  };
+
+  const handleCustomAudioUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validar que sea un archivo de audio
+    if (!file.type.startsWith('audio/')) {
+      alert('Por favor selecciona un archivo de audio válido');
+      return;
+    }
+
+    // Validar tamaño (máximo 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('El archivo es demasiado grande. Máximo 10MB permitido.');
+      return;
+    }
+
+    setUploadingCustomAudio(true);
+    
+    try {
+      // Crear URL temporal para el archivo
+      const audioUrl = URL.createObjectURL(file);
+      
+      // Agregar audio personalizado
+      setSelectedAudio({
+        id: 'custom-' + Date.now(),
+        name: file.name.replace(/\.[^/.]+$/, ""),
+        url: audioUrl,
+        isCustom: true,
+        file: file
+      });
+      
+      setShowAudioModal(false);
+    } catch (error) {
+      console.error('Error al subir audio:', error);
+      alert('Error al procesar el archivo de audio');
+    } finally {
+      setUploadingCustomAudio(false);
+    }
+  };
+
+  const getAudiosByCategory = (category) => {
+    return availableAudios.filter(audio => audio.category === category);
+  };
+
+  const formatAudioDuration = (audio) => {
+    // Esta función se podría expandir para mostrar duración real
+    return "Audio ambiente";
+  };
+
   // Create sala
   const handleCreateSala = async () => {
     if (!nombre.trim() || !descripcion.trim()) {
@@ -244,6 +371,11 @@ export default function CrearSalaStepper() {
         texturas: {
           piso: texturas.piso,
           paredes: texturas.paredes,
+        },
+        audio: {
+          selectedAudio: audio.selectedAudio,
+          volume: audio.volume,
+          autoplay: audio.autoplay,
         },
         publica: privacidad.publica,
         esPrivada: privacidad.esPrivada,
@@ -707,15 +839,121 @@ export default function CrearSalaStepper() {
         {/* Step 4: Configuración */}
         {step === 4 && (
           <div className="flex flex-col gap-6">
-            <div className="bg-blue-50/70 dark:bg-blue-900/20 p-4 rounded-xl border border-blue-200 dark:border-blue-800">
-              <h3 className="text-blue-700 dark:text-blue-300 font-semibold mb-2">
-                Configuraciones adicionales
-              </h3>
-              <p className="text-blue-600 dark:text-blue-400 text-sm">
-                Las configuraciones de audio y ambiente estarán disponibles
-                después de crear la sala.
-              </p>
-            </div>
+            {loadingAudios ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                <span className="ml-3 text-gray-600 dark:text-gray-400">Cargando audios...</span>
+              </div>
+            ) : audioError ? (
+              <div className="text-center py-8">
+                <p className="text-red-500">Error al cargar audios: {audioError}</p>
+              </div>
+            ) : (
+              <>
+                {/* Audio ambiente */}
+                <div className="space-y-4">
+                  <h3 className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <Music className="w-5 h-5 text-indigo-600" />
+                    Audio ambiente de la sala
+                  </h3>
+                  
+                  {/* Audio seleccionado */}
+                  <div className="bg-gray-50 dark:bg-neutral-800 p-4 rounded-lg border">
+                    {audio.selectedAudio ? (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center">
+                            <Music className="w-6 h-6 text-indigo-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-gray-100">
+                              {audio.selectedAudio.name}
+                            </p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {audio.selectedAudio.isCustom ? "Audio personalizado" : "Audio del catálogo"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (currentPlayingAudio === audio.selectedAudio.id) {
+                                stopAudio();
+                              } else {
+                                playAudio(audio.selectedAudio);
+                              }
+                            }}
+                          >
+                            {currentPlayingAudio === audio.selectedAudio.id ? (
+                              <Pause className="w-4 h-4" />
+                            ) : (
+                              <Play className="w-4 h-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowAudioModal(true)}
+                          >
+                            Cambiar
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setShowAudioModal(true)}
+                        className="w-full p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg hover:border-indigo-400 transition-colors text-center"
+                      >
+                        <Music className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                        <p className="text-gray-500 dark:text-gray-400 font-medium">Seleccionar audio ambiente</p>
+                        <p className="text-sm text-gray-400 dark:text-gray-500">Elige del catálogo o sube tu propio audio</p>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Configuraciones de audio */}
+                  {audio.selectedAudio && (
+                    <div className="space-y-4 bg-white dark:bg-neutral-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">Configuraciones de reproducción</h4>
+                      
+                      {/* Volumen */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                            <Volume2 className="w-4 h-4" />
+                            Volumen
+                          </label>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">{audio.volume}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={audio.volume}
+                          onChange={(e) => setAudioVolume(parseInt(e.target.value))}
+                          className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                        />
+                      </div>
+
+                      {/* Autoplay */}
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Reproducir automáticamente al entrar
+                        </label>
+                        <input
+                          type="checkbox"
+                          checked={audio.autoplay}
+                          onChange={(e) => setAudioAutoplay(e.target.checked)}
+                          className="w-4 h-4 text-indigo-600 bg-gray-100 border-gray-300 rounded focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         )}
 
@@ -852,6 +1090,39 @@ export default function CrearSalaStepper() {
                           </span>
                         )}
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Audio */}
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Audio ambiente</p>
+                    <div className="flex items-center gap-3">
+                      {audio.selectedAudio ? (
+                        <>
+                          <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900 rounded object-cover flex items-center justify-center">
+                            <Music className="w-5 h-5 text-indigo-600" />
+                          </div>
+                          <div>
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {audio.selectedAudio.name}
+                            </span>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                Volumen: {audio.volume}%
+                              </span>
+                              {audio.autoplay && (
+                                <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-full">
+                                  Autoplay
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          No seleccionado
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1023,6 +1294,138 @@ export default function CrearSalaStepper() {
                 Usar textura seleccionada
               </Button>
             )}
+          </div>
+        </div>
+      </SimpleModal>
+
+      {/* Audio selection modal */}
+      <SimpleModal
+        isOpen={showAudioModal}
+        onClose={() => {
+          setShowAudioModal(false);
+          stopAudio();
+        }}
+        title="Seleccionar audio ambiente"
+        size="large"
+      >
+        <div className="flex flex-col gap-6">
+          {/* Upload custom audio */}
+          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-4 rounded-lg border border-indigo-200 dark:border-indigo-800">
+            <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+              <Upload className="w-5 h-5 text-indigo-600" />
+              Subir audio personalizado
+            </h4>
+            <div className="space-y-3">
+              <input
+                type="file"
+                accept="audio/*"
+                onChange={handleCustomAudioUpload}
+                disabled={uploadingCustomAudio}
+                className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 dark:file:bg-indigo-900 dark:file:text-indigo-300"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Formatos soportados: MP3, WAV, OGG, M4A. Máximo 10MB.
+              </p>
+              {uploadingCustomAudio && (
+                <div className="flex items-center gap-2 text-sm text-indigo-600">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-indigo-600"></div>
+                  Procesando archivo...
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Audio catalog */}
+          <div>
+            <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-4">Catálogo de audios</h4>
+            
+            {availableAudios.length === 0 ? (
+              <div className="text-center py-8">
+                <Music className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500 dark:text-gray-400">No hay audios disponibles</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3 max-h-96 overflow-y-auto">
+                {availableAudios.map((audio) => (
+                  <div
+                    key={audio.id}
+                    className={`p-4 border rounded-lg transition-all cursor-pointer hover:border-indigo-400 ${
+                      audio.selectedAudio?.id === audio.id
+                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
+                        : "border-gray-200 dark:border-gray-700"
+                    }`}
+                    onClick={() => selectAudio(audio)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3 flex-1">
+                        <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Music className="w-5 h-5 text-indigo-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                            {audio.name}
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                            {audio.description}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded-full capitalize">
+                              {audio.category}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 ml-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (currentPlayingAudio === audio.id) {
+                              stopAudio();
+                            } else {
+                              playAudio(audio);
+                            }
+                          }}
+                        >
+                          {currentPlayingAudio === audio.id ? (
+                            <Pause className="w-4 h-4" />
+                          ) : (
+                            <Play className="w-4 h-4" />
+                          )}
+                        </Button>
+                        {audio.selectedAudio?.id === audio.id && (
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowAudioModal(false);
+                stopAudio();
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                setShowAudioModal(false);
+                stopAudio();
+              }}
+              disabled={!audio.selectedAudio}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              Confirmar selección
+            </Button>
           </div>
         </div>
       </SimpleModal>
