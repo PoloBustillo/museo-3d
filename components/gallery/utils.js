@@ -9,6 +9,8 @@ const {
   WALL_MARGIN_FINAL,
 } = GALLERY_CONFIG;
 
+const WALL_ART_OFFSET = 0.25; // separación desde la pared hacia adentro
+
 /**
  * Calcula las posiciones de las obras en el pasillo
  * @param {Array} images - Array de imágenes/murales
@@ -45,14 +47,10 @@ export function calculateArtworkPositions(
     const side = i % 2 === 0 ? 1 : -1;
     const index = Math.floor(i / 2);
     const x = startX + index * actualSpacing;
-    const cuadroProfundidad = 0.15;
-    const z =
-      side === 1
-        ? HALL_WIDTH / 2 - cuadroProfundidad / 2
-        : -(HALL_WIDTH / 2 - cuadroProfundidad / 2);
+    const z = side === 1 ? (HALL_WIDTH / 2 - WALL_ART_OFFSET) : -(HALL_WIDTH / 2 - WALL_ART_OFFSET);
     const rotation = [0, side === 1 ? 0 : Math.PI, 0];
     // Altura fija 1.5 para centrar mejor cuadros altos
-    positions.push({ ...images[i], position: [x, 1.5, z], rotation });
+    positions.push({ ...images[i], position: [x, 1.6, z], rotation });
   }
   return positions;
 }

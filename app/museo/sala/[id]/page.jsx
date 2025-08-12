@@ -42,12 +42,19 @@ export default function SalaDetallePage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-6 text-center">
         <p className="text-lg font-semibold">{error || "Sala no encontrada"}</p>
-        <button onClick={() => router.push('/museo')} className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition">Volver</button>
+        <button
+          onClick={() => router.push("/museo")}
+          className="px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 transition"
+        >
+          Volver
+        </button>
       </div>
     );
   }
 
-  const murales = (sala.murales || []).map(sm => sm.mural || sm).filter(Boolean);
+  const murales = (sala.murales || [])
+    .map((sm) => sm.mural || sm)
+    .filter(Boolean);
 
   return (
     <div className="fixed inset-0 z-[100]">

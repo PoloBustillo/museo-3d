@@ -1,122 +1,206 @@
-import React, { useMemo } from 'react';
-import { useTexture } from '@react-three/drei';
-import * as THREE from 'three';
-import { GALLERY_CONFIG } from './config.js';
+import React, { useMemo } from "react";
+import { useTexture } from "@react-three/drei";
+import * as THREE from "three";
+import { GALLERY_CONFIG } from "./config.js";
 
 const { HALL_WIDTH, CEILING_HEIGHT, FLOOR_EXTRA } = GALLERY_CONFIG;
 
 // Mapeo de alias de texturas a rutas reales
 const WALL_TEXTURE_MAP = {
-  brick: '/assets/textures/Rock050_1K-JPG/Rock050_1K-JPG_Color.jpg',
-  concrete: '/assets/textures/DiamondPlate006C_1K-JPG/DiamondPlate006C_1K-JPG_Color.jpg',
-  stone: '/assets/textures/Rock050_1K-JPG/Rock050_1K-JPG_Color.jpg',
+  brick: "/assets/textures/Rock050_1K-JPG/Rock050_1K-JPG_Color.jpg",
+  concrete:
+    "/assets/textures/DiamondPlate006C_1K-JPG/DiamondPlate006C_1K-JPG_Color.jpg",
+  stone: "/assets/textures/Rock050_1K-JPG/Rock050_1K-JPG_Color.jpg",
 };
 const FLOOR_TEXTURE_MAP = {
-  wood: '/assets/textures/WoodFloor003_1K-JPG/WoodFloor003_1K-JPG_Color.jpg',
-  marble: '/assets/textures/MarbleTiles099_1K-JPG/MarbleTiles099_1K-JPG_Color.jpg',
-  parquet: '/assets/textures/WoodFloor003_1K-JPG/WoodFloor003_1K-JPG_Color.jpg',
+  wood: "/assets/textures/WoodFloor003_1K-JPG/WoodFloor003_1K-JPG_Color.jpg",
+  marble:
+    "/assets/textures/MarbleTiles099_1K-JPG/MarbleTiles099_1K-JPG_Color.jpg",
+  parquet: "/assets/textures/WoodFloor003_1K-JPG/WoodFloor003_1K-JPG_Color.jpg",
 };
 
 /**
  * Entorno de galería con soporte para texturas personalizadas
  */
-export function GalleryEnvironment({ dynamicLength, dynamicCenterX, wallTextureUrl, floorTextureUrl, wallColor = '#ffffff', floorColor = '#e0e0e0' }) {
+export function GalleryEnvironment({
+  dynamicLength,
+  dynamicCenterX,
+  wallTextureUrl,
+  floorTextureUrl,
+  wallColor = "#ffffff",
+  floorColor = "#e0e0e0",
+}) {
   const fallbackWall = GALLERY_CONFIG.TEXTURES.WALL;
   const fallbackFloor = GALLERY_CONFIG.TEXTURES.FLOOR;
   const extraFallbacks = GALLERY_CONFIG.TEXTURES.FALLBACKS || [];
   // Resolver alias si sólo viene nombre lógico
-  const resolvedWall = wallTextureUrl && !wallTextureUrl.includes('/') ? WALL_TEXTURE_MAP[wallTextureUrl] : wallTextureUrl;
-  const resolvedFloor = floorTextureUrl && !floorTextureUrl.includes('/') ? FLOOR_TEXTURE_MAP[floorTextureUrl] : floorTextureUrl;
+  const resolvedWall =
+    wallTextureUrl && !wallTextureUrl.includes("/")
+      ? WALL_TEXTURE_MAP[wallTextureUrl]
+      : wallTextureUrl;
+  const resolvedFloor =
+    floorTextureUrl && !floorTextureUrl.includes("/")
+      ? FLOOR_TEXTURE_MAP[floorTextureUrl]
+      : floorTextureUrl;
   let wallPath = resolvedWall || fallbackWall;
   let floorPath = resolvedFloor || fallbackFloor;
-  const textures = useTexture.useLoader ? null : null; // placeholder
-  let loadedTextures;
-  try {
-    loadedTextures = useTexture(useMemo(() => [floorPath, wallPath], [floorPath, wallPath]));
-  } catch (e) {
-    // Intentar fallback alterno si existe
-    if (extraFallbacks.length) {
-      wallPath = extraFallbacks[0];
-      floorPath = extraFallbacks[0];
-      loadedTextures = useTexture(useMemo(() => [floorPath, wallPath], [floorPath, wallPath]));
+  if (!wallPath && extraFallbacks[0]) wallPath = extraFallbacks[0];
+  if (!floorPath && extraFallbacks[0]) floorPath = extraFallbacks[0];
+
+  const buildExistingPBRSet = (colorPath) => {
+    if (!colorPath) return [];
+    const dir = colorPath.substring(0, colorPath.lastIndexOf("/") + 1);
+    const file = colorPath.substring(colorPath.lastIndexOf("/") + 1); // e.g. WoodFloor003_1K-JPG_Color.jpg
+    const base = file.replace("_Color.jpg", "");
+    // Secuencia: Color, NormalGL, Roughness, Metalness?, AmbientOcclusion
+    // Metalness solo si es DiamondPlate006C (observado existente)
+    const paths = [
+      dir + base + "_Color.jpg",
+      dir + base + "_NormalGL.jpg",
+      dir + base + "_Roughness.jpg",
+    ];
+    if (base.startsWith("DiamondPlate006C"))
+      paths.push(dir + base + "_Metalness.jpg");
+    paths.push(dir + base + "_AmbientOcclusion.jpg");
+    return paths;
+  };
+  const wallSet = buildExistingPBRSet(wallPath);
+  const floorSet = buildExistingPBRSet(floorPath);
+  const allTexturesPaths = useMemo(
+    () => [...floorSet, ...wallSet],
+    [floorSet, wallSet]
+  );
+  const allTextures = useTexture(allTexturesPaths);
+
+  // Mapear dinámicamente según longitudes
+  const getMaps = (set, offset) => {
+    const maps = { color: allTextures[offset] };
+    maps.normal = allTextures[offset + 1];
+    maps.roughness = allTextures[offset + 2];
+    let idx = offset + 3;
+    if (set.length === 5) {
+      // tiene metalness
+      maps.metalness = allTextures[offset + 3];
+      maps.ao = allTextures[offset + 4];
     } else {
-      loadedTextures = [];
+      maps.ao = allTextures[offset + 3];
     }
-  }
-  const [floorTexture, wallTexture] = loadedTextures || [];
+    return maps;
+  };
+  const floorMaps = floorSet.length ? getMaps(floorSet, 0) : {};
+  const wallMaps = wallSet.length ? getMaps(wallSet, floorSet.length) : {};
 
-  // Intentar cargar normal y roughness si comparten prefijo
-  let normalMap, roughnessMap;
-  if (wallPath && wallPath.includes('_Color')) {
-    const base = wallPath.replace('_Color', '');
-    try { normalMap = useTexture(base + '_NormalGL.jpg'); } catch {}
-    try { roughnessMap = useTexture(base + '_Roughness.jpg'); } catch {}
+  if (wallMaps.color) {
+    wallMaps.color.wrapS = wallMaps.color.wrapT = THREE.RepeatWrapping;
+    wallMaps.color.repeat.set(Math.ceil(dynamicLength / 4), 2);
+    wallMaps.color.anisotropy = 16;
   }
-  if (floorPath && floorPath.includes('_Color')) {
-    const baseF = floorPath.replace('_Color', '');
-    try { if (!normalMap) normalMap = useTexture(baseF + '_NormalGL.jpg'); } catch {}
-    try { if (!roughnessMap) roughnessMap = useTexture(baseF + '_Roughness.jpg'); } catch {}
-  }
-
-  if (wallTexture) {
-    wallTexture.wrapS = wallTexture.wrapT = THREE.RepeatWrapping;
-    wallTexture.repeat.set(Math.ceil(dynamicLength / 4), 2);
-    wallTexture.anisotropy = 16;
-  }
-  if (floorTexture) {
-    floorTexture.wrapS = floorTexture.wrapT = THREE.RepeatWrapping;
-    floorTexture.repeat.set(Math.ceil(dynamicLength / 4), Math.ceil(HALL_WIDTH / 2));
-    floorTexture.anisotropy = 16;
+  if (floorMaps.color) {
+    floorMaps.color.wrapS = floorMaps.color.wrapT = THREE.RepeatWrapping;
+    floorMaps.color.repeat.set(
+      Math.ceil(dynamicLength / 4),
+      Math.ceil(HALL_WIDTH / 2)
+    );
+    floorMaps.color.anisotropy = 16;
   }
 
   return (
     <>
-      {/* Piso principal (texturizado) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[dynamicCenterX, 0, 0]}>
+      {/* Piso principal */}
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        receiveShadow
+        position={[dynamicCenterX, 0, 0]}
+      >
         <planeGeometry args={[dynamicLength, HALL_WIDTH]} />
-        {floorTexture ? (
-          <meshStandardMaterial map={floorTexture} />
+        {floorMaps.color ? (
+          <meshStandardMaterial
+            map={floorMaps.color}
+            normalMap={floorMaps.normal || null}
+            roughnessMap={floorMaps.roughness || null}
+            metalnessMap={floorMaps.metalness || null}
+            aoMap={floorMaps.ao || null}
+            metalness={floorMaps.metalness ? 0.4 : 0.1}
+            roughness={floorMaps.roughness ? 0.8 : 0.9}
+          />
         ) : (
           <meshStandardMaterial color={floorColor} />
         )}
       </mesh>
 
-      {/* Piso extendido de borde */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow position={[dynamicCenterX, -0.01, 0]}>
+      {/* Piso extendido */}
+      <mesh
+        rotation={[-Math.PI / 2, 0, 0]}
+        receiveShadow
+        position={[dynamicCenterX, -0.01, 0]}
+      >
         <planeGeometry args={[dynamicLength, HALL_WIDTH + FLOOR_EXTRA]} />
         <meshStandardMaterial color={floorColor} />
       </mesh>
 
       {/* Techo */}
-      <mesh position={[dynamicCenterX, CEILING_HEIGHT, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh
+        position={[dynamicCenterX, CEILING_HEIGHT, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+      >
         <planeGeometry args={[dynamicLength, HALL_WIDTH + FLOOR_EXTRA]} />
         <meshStandardMaterial color="#f5f5f5" side={THREE.DoubleSide} />
       </mesh>
 
-      {/* Paredes laterales */}
-      <mesh position={[dynamicCenterX, 2.5, HALL_WIDTH/2]}>
+      {/* Paredes */}
+      <mesh position={[dynamicCenterX, 2.5, HALL_WIDTH / 2]}>
         <boxGeometry args={[dynamicLength, 5, 0.1]} />
-        {wallTexture ? (
-          <meshStandardMaterial map={wallTexture} normalMap={normalMap} roughnessMap={roughnessMap} color={wallColor} />
+        {wallMaps.color ? (
+          <meshStandardMaterial
+            map={wallMaps.color}
+            normalMap={wallMaps.normal || null}
+            roughnessMap={wallMaps.roughness || null}
+            metalnessMap={wallMaps.metalness || null}
+            aoMap={wallMaps.ao || null}
+            color={wallColor}
+            metalness={wallMaps.metalness ? 0.3 : 0.1}
+            roughness={wallMaps.roughness ? 0.85 : 0.9}
+          />
         ) : (
           <meshStandardMaterial color={wallColor} />
         )}
       </mesh>
-      <mesh position={[dynamicCenterX, 2.5, -HALL_WIDTH/2]}>
+      <mesh position={[dynamicCenterX, 2.5, -HALL_WIDTH / 2]}>
         <boxGeometry args={[dynamicLength, 5, 0.1]} />
-        {wallTexture ? (
-          <meshStandardMaterial map={wallTexture} normalMap={normalMap} roughnessMap={roughnessMap} color={wallColor} />
+        {wallMaps.color ? (
+          <meshStandardMaterial
+            map={wallMaps.color}
+            normalMap={wallMaps.normal || null}
+            roughnessMap={wallMaps.roughness || null}
+            metalnessMap={wallMaps.metalness || null}
+            aoMap={wallMaps.ao || null}
+            color={wallColor}
+            metalness={wallMaps.metalness ? 0.3 : 0.1}
+            roughness={wallMaps.roughness ? 0.85 : 0.9}
+          />
         ) : (
           <meshStandardMaterial color={wallColor} />
         )}
       </mesh>
 
       {/* Molduras */}
-      <mesh position={[dynamicCenterX, CEILING_HEIGHT-0.02, HALL_WIDTH/2 - 0.13]}>
+      <mesh
+        position={[
+          dynamicCenterX,
+          CEILING_HEIGHT - 0.02,
+          HALL_WIDTH / 2 - 0.13,
+        ]}
+      >
         <boxGeometry args={[dynamicLength, 0.09, 0.09]} />
         <meshStandardMaterial color="#FFF" />
       </mesh>
-      <mesh position={[dynamicCenterX, CEILING_HEIGHT-0.02, -HALL_WIDTH/2 + 0.13]}>
+      <mesh
+        position={[
+          dynamicCenterX,
+          CEILING_HEIGHT - 0.02,
+          -HALL_WIDTH / 2 + 0.13,
+        ]}
+      >
         <boxGeometry args={[dynamicLength, 0.09, 0.09]} />
         <meshStandardMaterial color="#FFF" />
       </mesh>

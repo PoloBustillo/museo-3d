@@ -77,7 +77,9 @@ export async function GET(req, context) {
       scene: {
         lightingPreset: s.lightingPreset || null,
         ambientIntensity: s.ambientIntensity ?? 0.8,
-        fog: s.fogColor ? { color: s.fogColor, near: s.fogNear ?? 0, far: s.fogFar ?? 0 } : null,
+        fog: s.fogColor
+          ? { color: s.fogColor, near: s.fogNear ?? 0, far: s.fogFar ?? 0 }
+          : null,
         audioZones: s.audioZones || null,
         navigationMeshId: s.navigationMeshId || null,
         layoutVersion: s.layoutVersion ?? 1,
@@ -141,7 +143,16 @@ export async function PUT(req, context) {
         },
         murales: {
           include: {
-            mural: { select: { id: true, titulo: true, autor: true, tecnica: true, anio: true, url_imagen: true } },
+            mural: {
+              select: {
+                id: true,
+                titulo: true,
+                autor: true,
+                tecnica: true,
+                anio: true,
+                url_imagen: true,
+              },
+            },
           },
         },
         _count: { select: { murales: true, colaboradores: true } },

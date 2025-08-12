@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  useMemo,
+} from "react";
 import { useSession } from "next-auth/react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { PointerLockControls, useTexture, Html } from "@react-three/drei";
@@ -8,7 +14,10 @@ import * as THREE from "three";
 import { motion, AnimatePresence } from "framer-motion";
 import BackGroundSound from "./BackGroundSound.jsx";
 import { GALLERY_CONFIG } from "./gallery/config.js";
-import { calculateArtworkPositions, calculateGalleryDimensions } from "./gallery/utils.js";
+import {
+  calculateArtworkPositions,
+  calculateGalleryDimensions,
+} from "./gallery/utils.js";
 import { GalleryLighting } from "./gallery/GalleryLighting.jsx";
 import { GalleryEnvironment } from "./gallery/GalleryEnvironment.jsx";
 import { GalleryBenches } from "./gallery/GalleryBenches.jsx";
@@ -24,12 +33,35 @@ import {
 
 const { WALL_HEIGHT } = GALLERY_CONFIG;
 
-const RoomSelectorModal = dynamic(() => import("./gallery/RoomSelectorModal").then((mod) => mod.RoomSelectorModal), { ssr: false });
+const RoomSelectorModal = dynamic(
+  () =>
+    import("./gallery/RoomSelectorModal").then((mod) => mod.RoomSelectorModal),
+  { ssr: false }
+);
 
-function Picture({ src, title, artist, year, description, technique, dimensions, position, rotation = [0, 0, 0], onClick, showPlaque, selected, selectedArtwork, spotlightIntensity = 1, frameStyle }) {
+function Picture({
+  src,
+  title,
+  artist,
+  year,
+  description,
+  technique,
+  dimensions,
+  position,
+  rotation = [0, 0, 0],
+  onClick,
+  showPlaque,
+  selected,
+  selectedArtwork,
+  spotlightIntensity = 1,
+  frameStyle,
+}) {
   const texture = useTexture(src);
   const [hovered, setHovered] = useState(false);
-  const [imageDimensions, setImageDimensions] = useState({ width: 3, height: 2 });
+  const [imageDimensions, setImageDimensions] = useState({
+    width: 3,
+    height: 2,
+  });
   const [imageLoaded, setImageLoaded] = useState(false);
 
   useEffect(() => {
@@ -65,27 +97,71 @@ function Picture({ src, title, artist, year, description, technique, dimensions,
   const depth = 0.07;
 
   // Frame style simple (placeholder)
-  const frameColor = frameStyle === "gold" ? "#d4af37" : frameStyle === "dark" ? "#111" : "#111";
+  const frameColor =
+    frameStyle === "gold" ? "#d4af37" : frameStyle === "dark" ? "#111" : "#111";
 
   return (
-    <motion.group position={position} rotation={rotation} initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: selected ? 1.15 : hovered ? 1.04 : 1, opacity: 1, z: selected ? 0.5 : 0 }} transition={{ type: "spring", stiffness: 120, damping: 18 }} onPointerOver={() => setHovered(true)} onPointerOut={() => setHovered(false)}>
+    <motion.group
+      position={position}
+      rotation={rotation}
+      initial={{ scale: 0.85, opacity: 0 }}
+      animate={{
+        scale: selected ? 1.15 : hovered ? 1.04 : 1,
+        opacity: 1,
+        z: selected ? 0.5 : 0,
+      }}
+      transition={{ type: "spring", stiffness: 120, damping: 18 }}
+      onPointerOver={() => setHovered(true)}
+      onPointerOut={() => setHovered(false)}
+    >
       <mesh position={[0, h / 2 + thickness / 2, depth]}>
         <boxGeometry args={[w + thickness * 2, thickness, thickness]} />
-        <meshStandardMaterial color={hovered ? frameColor : frameColor} metalness={0.5} roughness={0.3} />
+        <meshStandardMaterial
+          color={hovered ? frameColor : frameColor}
+          metalness={0.5}
+          roughness={0.3}
+        />
       </mesh>
       <mesh position={[0, -h / 2 - thickness / 2, depth]}>
         <boxGeometry args={[w + thickness * 2, thickness, thickness]} />
-        <meshStandardMaterial color={hovered ? frameColor : frameColor} metalness={0.5} roughness={0.3} />
+        <meshStandardMaterial
+          color={hovered ? frameColor : frameColor}
+          metalness={0.5}
+          roughness={0.3}
+        />
       </mesh>
       <mesh position={[-w / 2 - thickness / 2, 0, depth]}>
         <boxGeometry args={[thickness, h + thickness * 2, thickness]} />
-        <meshStandardMaterial color={hovered ? frameColor : frameColor} metalness={0.5} roughness={0.3} />
+        <meshStandardMaterial
+          color={hovered ? frameColor : frameColor}
+          metalness={0.5}
+          roughness={0.3}
+        />
       </mesh>
       <mesh position={[w / 2 + thickness / 2, 0, depth]}>
         <boxGeometry args={[thickness, h + thickness * 2, thickness]} />
-        <meshStandardMaterial color={hovered ? frameColor : frameColor} metalness={0.5} roughness={0.3} />
+        <meshStandardMaterial
+          color={hovered ? frameColor : frameColor}
+          metalness={0.5}
+          roughness={0.3}
+        />
       </mesh>
-      <mesh position={[0, 0, 0]} onClick={(e) => { e.stopPropagation(); onClick({ src, title, artist, year, description, technique, dimensions }); }} scale={1}>
+      <mesh
+        position={[0, 0, 0]}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClick({
+            src,
+            title,
+            artist,
+            year,
+            description,
+            technique,
+            dimensions,
+          });
+        }}
+        scale={1}
+      >
         <planeGeometry args={[w, h]} />
         <meshStandardMaterial map={texture} side={THREE.DoubleSide} />
       </mesh>
@@ -102,19 +178,61 @@ function Picture({ src, title, artist, year, description, technique, dimensions,
         />
       )}
       {showPlaque && !selectedArtwork && (
-        <Html position={[0, -h / 2 - 0.25, depth]} center style={{ pointerEvents: "none", textAlign: "left", background: "rgba(30,30,30,0.97)", color: "#fff", borderRadius: 12, padding: "18px 28px", fontSize: 15, minWidth: 340, maxWidth: 480, boxShadow: hovered ? "0 0 16px #d4af37" : "0 2px 16px #000a", border: hovered ? "2px solid #d4af37" : "none", transition: "all 0.2s", lineHeight: 1.5, }}>
-          <div style={{ fontSize: "1.2em", fontWeight: "bold", marginBottom: 4 }}>{title}</div>
-          <div style={{ fontWeight: "bold", color: "#ffe082", marginBottom: 2 }}>{artist} ({year})</div>
-          <div style={{ fontSize: "0.98em", color: "#bdbdbd", marginBottom: 2 }}><b>Técnica:</b> {technique}</div>
-          <div style={{ fontSize: "0.98em", color: "#bdbdbd", marginBottom: 2 }}><b>Dimensiones:</b> {dimensions}</div>
-          <div style={{ fontSize: "0.97em", color: "#e0e0e0", marginTop: 6 }}>{description}</div>
+        <Html
+          position={[0, -h / 2 - 0.25, depth]}
+          center
+          style={{
+            pointerEvents: "none",
+            textAlign: "left",
+            background: "rgba(30,30,30,0.97)",
+            color: "#fff",
+            borderRadius: 12,
+            padding: "18px 28px",
+            fontSize: 15,
+            minWidth: 340,
+            maxWidth: 480,
+            boxShadow: hovered ? "0 0 16px #d4af37" : "0 2px 16px #000a",
+            border: hovered ? "2px solid #d4af37" : "none",
+            transition: "all 0.2s",
+            lineHeight: 1.5,
+          }}
+        >
+          <div
+            style={{ fontSize: "1.2em", fontWeight: "bold", marginBottom: 4 }}
+          >
+            {title}
+          </div>
+          <div
+            style={{ fontWeight: "bold", color: "#ffe082", marginBottom: 2 }}
+          >
+            {artist} ({year})
+          </div>
+          <div
+            style={{ fontSize: "0.98em", color: "#bdbdbd", marginBottom: 2 }}
+          >
+            <b>Técnica:</b> {technique}
+          </div>
+          <div
+            style={{ fontSize: "0.98em", color: "#bdbdbd", marginBottom: 2 }}
+          >
+            <b>Dimensiones:</b> {dimensions}
+          </div>
+          <div style={{ fontSize: "0.97em", color: "#e0e0e0", marginTop: 6 }}>
+            {description}
+          </div>
         </Html>
       )}
     </motion.group>
   );
 }
 
-function PlayerControls({ onPassInitialWall, FIRST_X, LAST_X, WALL_MARGIN_INITIAL, WALL_MARGIN_FINAL }) {
+function PlayerControls({
+  onPassInitialWall,
+  FIRST_X,
+  LAST_X,
+  WALL_MARGIN_INITIAL,
+  WALL_MARGIN_FINAL,
+}) {
   const passedWallRef = useRef(false);
   const { camera } = useThree();
   const velocity = useRef(new THREE.Vector3());
@@ -122,8 +240,12 @@ function PlayerControls({ onPassInitialWall, FIRST_X, LAST_X, WALL_MARGIN_INITIA
   const keys = useRef({ w: false, a: false, s: false, d: false });
 
   useEffect(() => {
-    const onKeyDown = (e) => { keys.current[e.key.toLowerCase()] = true; };
-    const onKeyUp = (e) => { keys.current[e.key.toLowerCase()] = false; };
+    const onKeyDown = (e) => {
+      keys.current[e.key.toLowerCase()] = true;
+    };
+    const onKeyUp = (e) => {
+      keys.current[e.key.toLowerCase()] = false;
+    };
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);
     return () => {
@@ -147,7 +269,11 @@ function PlayerControls({ onPassInitialWall, FIRST_X, LAST_X, WALL_MARGIN_INITIA
     const minX = FIRST_X - WALL_MARGIN_INITIAL * 0.8 + 0.3;
     const maxX = LAST_X + WALL_MARGIN_FINAL - 0.8;
     camera.position.x = Math.max(minX, Math.min(maxX, camera.position.x));
-    if (!passedWallRef.current && onPassInitialWall && camera.position.x > FIRST_X - WALL_MARGIN_INITIAL * 0.8 + 0.2) {
+    if (
+      !passedWallRef.current &&
+      onPassInitialWall &&
+      camera.position.x > FIRST_X - WALL_MARGIN_INITIAL * 0.8 + 0.2
+    ) {
       onPassInitialWall();
       passedWallRef.current = true;
     }
@@ -160,11 +286,17 @@ function SceneFog({ fog }) {
   const { scene } = useThree();
   useEffect(() => {
     if (fog) {
-      scene.fog = new THREE.Fog(fog.color || "#ffffff", fog.near ?? 0, fog.far ?? 50);
+      scene.fog = new THREE.Fog(
+        fog.color || "#ffffff",
+        fog.near ?? 0,
+        fog.far ?? 50
+      );
     } else {
       scene.fog = null;
     }
-    return () => { scene.fog = null; };
+    return () => {
+      scene.fog = null;
+    };
   }, [fog, scene]);
   return null;
 }
@@ -185,49 +317,95 @@ function ManualLookControls() {
     const onUp = (e) => {
       if (e.button === 2) {
         looking.current = false;
-        if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+        if (document.pointerLockElement && document.exitPointerLock)
+          document.exitPointerLock();
       }
     };
     const onMove = (e) => {
       if (!looking.current) return;
-      const dx = e.movementX || 0; const dy = e.movementY || 0;
-      camera.rotation.order = 'YXZ';
+      const dx = e.movementX || 0;
+      const dy = e.movementY || 0;
+      camera.rotation.order = "YXZ";
       camera.rotation.y -= dx * sensitivity;
       camera.rotation.x -= dy * sensitivity;
       const maxPitch = Math.PI / 2 - 0.05;
-      camera.rotation.x = Math.max(-maxPitch, Math.min(maxPitch, camera.rotation.x));
+      camera.rotation.x = Math.max(
+        -maxPitch,
+        Math.min(maxPitch, camera.rotation.x)
+      );
     };
-    el.addEventListener('contextmenu', onContext);
-    el.addEventListener('mousedown', onDown);
-    window.addEventListener('mouseup', onUp);
-    window.addEventListener('mousemove', onMove);
+    el.addEventListener("contextmenu", onContext);
+    el.addEventListener("mousedown", onDown);
+    window.addEventListener("mouseup", onUp);
+    window.addEventListener("mousemove", onMove);
     return () => {
-      el.removeEventListener('contextmenu', onContext);
-      el.removeEventListener('mousedown', onDown);
-      window.removeEventListener('mouseup', onUp);
-      window.removeEventListener('mousemove', onMove);
-      if (document.pointerLockElement && document.exitPointerLock) document.exitPointerLock();
+      el.removeEventListener("contextmenu", onContext);
+      el.removeEventListener("mousedown", onDown);
+      window.removeEventListener("mouseup", onUp);
+      window.removeEventListener("mousemove", onMove);
+      if (document.pointerLockElement && document.exitPointerLock)
+        document.exitPointerLock();
     };
   }, [camera, gl]);
   return null;
 }
 
-function Room({ artworks, artworkPositions, galleryDimensions, passedInitialWall, setSelectedArtwork, selectedArtwork, showList, showCollection, showInstructions, layoutItems, scene, salaTextures }) {
-  const { dynamicLength, dynamicCenterX, firstX, lastX, wallMarginInitial, wallMarginFinal } = galleryDimensions;
+function Room({
+  artworks,
+  artworkPositions,
+  galleryDimensions,
+  passedInitialWall,
+  setSelectedArtwork,
+  selectedArtwork,
+  showList,
+  showCollection,
+  showInstructions,
+  layoutItems,
+  scene,
+  salaTextures,
+}) {
+  const {
+    dynamicLength,
+    dynamicCenterX,
+    firstX,
+    lastX,
+    wallMarginInitial,
+    wallMarginFinal,
+  } = galleryDimensions;
   const WALL_Z = GALLERY_CONFIG.HALL_WIDTH / 2 - 0.12; // un poco más pegado a la pared
 
   // Detectar si layout está "colapsado" en X
-  const layoutAllCenteredX = useMemo(() => layoutItems && layoutItems.length > 0 && layoutItems.every(li => Math.abs(li?.pos?.x ?? 0) < 0.5), [layoutItems]);
+  const layoutAllCenteredX = useMemo(
+    () =>
+      layoutItems &&
+      layoutItems.length > 0 &&
+      layoutItems.every((li) => Math.abs(li?.pos?.x ?? 0) < 0.5),
+    [layoutItems]
+  );
 
   // Generar posiciones auto si layout colapsado (usa orden de layout original)
   const autoFromLayout = useMemo(() => {
     if (!layoutItems || layoutItems.length === 0) return [];
     if (!layoutAllCenteredX) return [];
-    const dummyArtworks = layoutItems.map((li, i) => ({ id: li.mural?.id || li.muralId || i, titulo: li.mural?.titulo || 'Obra', url_imagen: li.mural?.url_imagen || li.mural?.imagenUrlWebp }));
+    const dummyArtworks = layoutItems.map((li, i) => ({
+      id: li.mural?.id || li.muralId || i,
+      titulo: li.mural?.titulo || "Obra",
+      url_imagen: li.mural?.url_imagen || li.mural?.imagenUrlWebp,
+    }));
     const dims = calculateGalleryDimensions(dummyArtworks);
-    return calculateArtworkPositions(dummyArtworks, dims.firstX, GALLERY_CONFIG.PICTURE_SPACING, dims.contentLength).map((p, i) => ({
+    return calculateArtworkPositions(
+      dummyArtworks,
+      dims.firstX,
+      GALLERY_CONFIG.PICTURE_SPACING,
+      dims.contentLength
+    ).map((p, i) => ({
       ...layoutItems[i],
-      pos: { ...(layoutItems[i].pos || {}), x: p.position[0], y: (layoutItems[i].pos?.y ?? 1.5), z: p.position[2] > 0 ? WALL_Z : -WALL_Z },
+      pos: {
+        ...(layoutItems[i].pos || {}),
+        x: p.position[0],
+        y: layoutItems[i].pos?.y ?? 1.5,
+        z: p.position[2] > 0 ? WALL_Z : -WALL_Z,
+      },
       rot: { ...(layoutItems[i].rot || {}), y: p.rotation[1] },
     }));
   }, [layoutItems, layoutAllCenteredX]);
@@ -236,17 +414,22 @@ function Room({ artworks, artworkPositions, galleryDimensions, passedInitialWall
     if (!layoutItems || layoutItems.length === 0) return [];
     if (autoFromLayout.length) return autoFromLayout;
     const centralThreshold = 0.6;
-    const centralCount = layoutItems.reduce((acc, li) => acc + ((Math.abs(li?.pos?.z ?? 0) < 0.5) ? 1 : 0), 0);
+    const centralCount = layoutItems.reduce(
+      (acc, li) => acc + (Math.abs(li?.pos?.z ?? 0) < 0.5 ? 1 : 0),
+      0
+    );
     if (centralCount / layoutItems.length > centralThreshold) return [];
     let altCounter = 0;
-    return layoutItems.map(li => {
-      const p = li.pos || {}; const r = li.rot || {}; const clone = { ...li };
+    return layoutItems.map((li) => {
+      const p = li.pos || {};
+      const r = li.rot || {};
+      const clone = { ...li };
       const isCentralZ = Math.abs(p.z ?? 0) < 0.5;
       if (isCentralZ) {
-        const side = (altCounter++ % 2 === 0) ? 1 : -1;
+        const side = altCounter++ % 2 === 0 ? 1 : -1;
         clone.pos = { ...p, z: side * WALL_Z };
         clone.rot = { ...r, y: side === 1 ? 0 : Math.PI };
-      } else if (Math.abs((p.z ?? 0)) < WALL_Z * 0.6) {
+      } else if (Math.abs(p.z ?? 0) < WALL_Z * 0.6) {
         const side = (p.z ?? 0) >= 0 ? 1 : -1;
         clone.pos = { ...p, z: side * WALL_Z };
         clone.rot = { ...r, y: side === 1 ? 0 : Math.PI };
@@ -255,49 +438,80 @@ function Room({ artworks, artworkPositions, galleryDimensions, passedInitialWall
         clone.rot = { ...r, y: side === 1 ? 0 : Math.PI };
       }
       if (!clone.pos) clone.pos = {};
-      if (!(clone.pos.y) || Math.abs(clone.pos.y) < 0.01) clone.pos.y = 1.5;
-      if (typeof clone.pos.x !== 'number') clone.pos.x = 0;
+      if (!clone.pos.y || Math.abs(clone.pos.y) < 0.01) clone.pos.y = 1.5;
+      if (typeof clone.pos.x !== "number") clone.pos.x = 0;
       return clone;
     });
   }, [layoutItems, autoFromLayout]);
 
   return (
     <>
-      <GalleryLighting dynamicLength={dynamicLength} dynamicCenterX={dynamicCenterX} lightingPreset={scene?.lightingPreset} ambientIntensity={scene?.ambientIntensity} />
-      <GalleryEnvironment dynamicLength={dynamicLength} dynamicCenterX={dynamicCenterX} wallTextureUrl={salaTextures?.pared} floorTextureUrl={salaTextures?.piso} />
-      {normalizedLayout && normalizedLayout.length > 0 ? normalizedLayout.map((li, i) => (
-        <Picture
-          key={li.mural?.id || li.muralId || i}
-          src={li.mural?.imagenUrlWebp || li.mural?.url_imagen}
-          title={li.mural?.titulo || 'Sin título'}
-          artist={li.mural?.autor || 'Desconocido'}
-          year={li.mural?.anio || 'N/A'}
-          description={li.mural?.descripcion || 'Sin descripción'}
-          technique={li.mural?.tecnica || 'No especificada'}
-          dimensions={li.mural?.dimensiones || 'Dimensiones no especificadas'}
-          position={[li.pos?.x ?? 0, (li.pos?.y ?? 1.5), li.pos?.z ?? 0]}
-          rotation={[li.rot?.x ?? 0, li.rot?.y ?? 0, li.rot?.z ?? 0]}
-          onClick={() => setSelectedArtwork(li.mural || null)}
-          showPlaque={passedInitialWall && !selectedArtwork && !showList && !showCollection && !showInstructions}
-          selected={selectedArtwork && selectedArtwork.id === li.mural?.id}
-          selectedArtwork={selectedArtwork}
-          spotlightIntensity={li.spotlightIntensity ?? 0}
-          frameStyle={li.frameStyle}
-        />
-      )) : artworks.map((art, i) => (
-        <Picture
-          key={art.id || i}
-          {...art}
-          position={artworkPositions[i].position}
-          rotation={artworkPositions[i].rotation}
-          onClick={() => setSelectedArtwork(art)}
-          showPlaque={passedInitialWall && !selectedArtwork && !showList && !showCollection && !showInstructions}
-          selected={selectedArtwork && selectedArtwork.id === art.id}
-          selectedArtwork={selectedArtwork}
-        />
-      ))}
+      <GalleryLighting
+        dynamicLength={dynamicLength}
+        dynamicCenterX={dynamicCenterX}
+        lightingPreset={scene?.lightingPreset}
+        ambientIntensity={scene?.ambientIntensity}
+      />
+      <GalleryEnvironment
+        dynamicLength={dynamicLength}
+        dynamicCenterX={dynamicCenterX}
+        wallTextureUrl={salaTextures?.pared}
+        floorTextureUrl={salaTextures?.piso}
+      />
+      {normalizedLayout && normalizedLayout.length > 0
+        ? normalizedLayout.map((li, i) => (
+            <Picture
+              key={li.mural?.id || li.muralId || i}
+              src={li.mural?.imagenUrlWebp || li.mural?.url_imagen}
+              title={li.mural?.titulo || "Sin título"}
+              artist={li.mural?.autor || "Desconocido"}
+              year={li.mural?.anio || "N/A"}
+              description={li.mural?.descripcion || "Sin descripción"}
+              technique={li.mural?.tecnica || "No especificada"}
+              dimensions={
+                li.mural?.dimensiones || "Dimensiones no especificadas"
+              }
+              position={[li.pos?.x ?? 0, li.pos?.y ?? 1.5, li.pos?.z ?? 0]}
+              rotation={[li.rot?.x ?? 0, li.rot?.y ?? 0, li.rot?.z ?? 0]}
+              onClick={() => setSelectedArtwork(li.mural || null)}
+              showPlaque={
+                passedInitialWall &&
+                !selectedArtwork &&
+                !showList &&
+                !showCollection &&
+                !showInstructions
+              }
+              selected={selectedArtwork && selectedArtwork.id === li.mural?.id}
+              selectedArtwork={selectedArtwork}
+              spotlightIntensity={li.spotlightIntensity ?? 0}
+              frameStyle={li.frameStyle}
+            />
+          ))
+        : artworks.map((art, i) => (
+            <Picture
+              key={art.id || i}
+              {...art}
+              position={artworkPositions[i].position}
+              rotation={artworkPositions[i].rotation}
+              onClick={() => setSelectedArtwork(art)}
+              showPlaque={
+                passedInitialWall &&
+                !selectedArtwork &&
+                !showList &&
+                !showCollection &&
+                !showInstructions
+              }
+              selected={selectedArtwork && selectedArtwork.id === art.id}
+              selectedArtwork={selectedArtwork}
+            />
+          ))}
       <GalleryBenches dynamicLength={dynamicLength} />
-      <GalleryWalls firstX={firstX} lastX={lastX} wallMarginInitial={wallMarginInitial} wallMarginFinal={wallMarginFinal} />
+      <GalleryWalls
+        firstX={firstX}
+        lastX={lastX}
+        wallMarginInitial={wallMarginInitial}
+        wallMarginFinal={wallMarginFinal}
+      />
     </>
   );
 }
@@ -309,47 +523,52 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
-    setIsInCollection(isInPersonalCollection(artwork, onCollectionUpdate.collection));
+    setIsInCollection(
+      isInPersonalCollection(artwork, onCollectionUpdate.collection)
+    );
   }, [artwork, onCollectionUpdate.collection]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         onClose();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
-  const handleCollectionAction = useCallback(async (e) => {
-    e.stopPropagation();
-    if (!userId) {
-      setCollectionMessage("⚠️ Inicia sesión para guardar");
-      setTimeout(() => setCollectionMessage(""), 3000);
-      return;
-    }
+  const handleCollectionAction = useCallback(
+    async (e) => {
+      e.stopPropagation();
+      if (!userId) {
+        setCollectionMessage("⚠️ Inicia sesión para guardar");
+        setTimeout(() => setCollectionMessage(""), 3000);
+        return;
+      }
 
-    setIsUpdating(true);
-    try {
-      if (isInCollection) {
-        await removeFromPersonalCollection(artwork);
-        setCollectionMessage("🗑️ Removido de tu colección");
-      } else {
-        await addToPersonalCollection(artwork);
-        setCollectionMessage("✅ ¡Añadido a tu colección!");
+      setIsUpdating(true);
+      try {
+        if (isInCollection) {
+          await removeFromPersonalCollection(artwork);
+          setCollectionMessage("🗑️ Removido de tu colección");
+        } else {
+          await addToPersonalCollection(artwork);
+          setCollectionMessage("✅ ¡Añadido a tu colección!");
+        }
+        if (onCollectionUpdate?.update) {
+          onCollectionUpdate.update();
+        }
+      } catch (error) {
+        console.error("Error updating collection:", error);
+        setCollectionMessage("❌ Error al actualizar");
+      } finally {
+        setIsUpdating(false);
+        setTimeout(() => setCollectionMessage(""), 3000);
       }
-      if (onCollectionUpdate?.update) {
-        onCollectionUpdate.update();
-      }
-    } catch (error) {
-      console.error("Error updating collection:", error);
-      setCollectionMessage("❌ Error al actualizar");
-    } finally {
-      setIsUpdating(false);
-      setTimeout(() => setCollectionMessage(""), 3000);
-    }
-  }, [artwork, isInCollection, onCollectionUpdate, userId]);
+    },
+    [artwork, isInCollection, onCollectionUpdate, userId]
+  );
 
   if (!artwork) return null;
 
@@ -373,15 +592,27 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
         >
           <div className="md:w-1/2 w-full p-6 flex flex-col justify-between">
             <div>
-              <h2 className="text-3xl font-bold mb-2 text-amber-300">{artwork.title}</h2>
-              <h3 className="text-xl font-semibold mb-4">{artwork.artist} ({artwork.year})</h3>
-              <p className="text-gray-300 mb-2"><b>Técnica:</b> {artwork.technique}</p>
-              <p className="text-gray-300 mb-4"><b>Dimensiones:</b> {artwork.dimensions}</p>
-              <p className="text-gray-200 leading-relaxed">{artwork.description}</p>
+              <h2 className="text-3xl font-bold mb-2 text-amber-300">
+                {artwork.title}
+              </h2>
+              <h3 className="text-xl font-semibold mb-4">
+                {artwork.artist} ({artwork.year})
+              </h3>
+              <p className="text-gray-300 mb-2">
+                <b>Técnica:</b> {artwork.technique}
+              </p>
+              <p className="text-gray-300 mb-4">
+                <b>Dimensiones:</b> {artwork.dimensions}
+              </p>
+              <p className="text-gray-200 leading-relaxed">
+                {artwork.description}
+              </p>
             </div>
             <div className="mt-6">
               {collectionMessage ? (
-                <p className="text-center font-semibold text-lg h-[52px] flex items-center justify-center">{collectionMessage}</p>
+                <p className="text-center font-semibold text-lg h-[52px] flex items-center justify-center">
+                  {collectionMessage}
+                </p>
               ) : (
                 <button
                   onClick={handleCollectionAction}
@@ -390,17 +621,25 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
                     isUpdating
                       ? "bg-neutral-600 cursor-not-allowed"
                       : isInCollection
-                      ? "bg-red-700 hover:bg-red-800 text-white"
-                      : "bg-amber-400 hover:bg-amber-500 text-black"
+                        ? "bg-red-700 hover:bg-red-800 text-white"
+                        : "bg-amber-400 hover:bg-amber-500 text-black"
                   }`}
                 >
-                  {isUpdating ? "Guardando..." : isInCollection ? "Eliminar de la colección" : "Añadir a mi colección"}
+                  {isUpdating
+                    ? "Guardando..."
+                    : isInCollection
+                      ? "Eliminar de la colección"
+                      : "Añadir a mi colección"}
                 </button>
               )}
             </div>
           </div>
           <div className="md:w-1/2 w-full relative bg-black">
-            <img src={artwork.src} alt={artwork.title} className="w-full h-full object-contain" />
+            <img
+              src={artwork.src}
+              alt={artwork.title}
+              className="w-full h-full object-contain"
+            />
           </div>
         </motion.div>
       </motion.div>
@@ -409,7 +648,16 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
 }
 
 // Adaptar componente principal para aceptar sala con layout/scene
-export default function GalleryRoom({ salaId = 1, murales = [], layout = [], scene = null, texturaPared = null, texturaPiso = null, onRoomChange, availableRooms = [] }) {
+export default function GalleryRoom({
+  salaId = 1,
+  murales = [],
+  layout = [],
+  scene = null,
+  texturaPared = null,
+  texturaPiso = null,
+  onRoomChange,
+  availableRooms = [],
+}) {
   const { data: session } = useSession();
   const userId = session?.user?.id;
   const [selectedArtwork, setSelectedArtwork] = useState(null);
@@ -426,48 +674,64 @@ export default function GalleryRoom({ salaId = 1, murales = [], layout = [], sce
     }
   }, [userId]);
 
-  useEffect(() => { fetchCollection(); }, [fetchCollection]);
+  useEffect(() => {
+    fetchCollection();
+  }, [fetchCollection]);
 
   // Determinar si el layout es realmente utilizable (no todo en 0,0,0)
   const hasUsableLayout = useMemo(() => {
     if (!layout || layout.length === 0) return false;
     // Al menos una obra con posición distinta de origen o con rot/scale personalizada
-    return layout.some(l => {
-      const p = l.pos || {}; const r = l.rot || {};
-      return (p.x && Math.abs(p.x) > 0.01) || (p.z && Math.abs(p.z) > 0.01) || (p.y && Math.abs(p.y) > 0.01) || (r.y && Math.abs(r.y) > 0.01) || (l.scale && l.scale !== 1);
+    return layout.some((l) => {
+      const p = l.pos || {};
+      const r = l.rot || {};
+      return (
+        (p.x && Math.abs(p.x) > 0.01) ||
+        (p.z && Math.abs(p.z) > 0.01) ||
+        (p.y && Math.abs(p.y) > 0.01) ||
+        (r.y && Math.abs(r.y) > 0.01) ||
+        (l.scale && l.scale !== 1)
+      );
     });
   }, [layout]);
 
   // Filtrar layout efectivo
   const effectiveLayout = hasUsableLayout ? layout : [];
 
-  const validArtworks = useMemo(() => murales
-    .filter((art) => art && (art.url_imagen || art.imagenUrlWebp))
-    .map((art) => ({
-      ...art,
-      src: art.imagenUrlWebp || art.url_imagen,
-      title: art.titulo || "Sin título",
-      artist: art.autor || "Desconocido",
-      year: art.anio || "N/A",
-      description: art.descripcion || "Sin descripción",
-      technique: art.tecnica || "No especificada",
-      dimensions: art.dimensiones || "Dimensiones no especificadas",
-    })), [murales]);
+  const validArtworks = useMemo(
+    () =>
+      murales
+        .filter((art) => art && (art.url_imagen || art.imagenUrlWebp))
+        .map((art) => ({
+          ...art,
+          src: art.imagenUrlWebp || art.url_imagen,
+          title: art.titulo || "Sin título",
+          artist: art.autor || "Desconocido",
+          year: art.anio || "N/A",
+          description: art.descripcion || "Sin descripción",
+          technique: art.tecnica || "No especificada",
+          dimensions: art.dimensiones || "Dimensiones no especificadas",
+        })),
+    [murales]
+  );
 
   const galleryDimensions = useMemo(() => {
     if (effectiveLayout.length > 0) {
-      const xs = effectiveLayout.map(l => l.pos?.x ?? 0);
+      const xs = effectiveLayout.map((l) => l.pos?.x ?? 0);
       const minX = Math.min(...xs, 0);
       const maxX = Math.max(...xs, 0);
       const padding = 6;
-      const dynamicLength = Math.max(GALLERY_CONFIG.HALL_LENGTH, (maxX - minX) + padding * 2);
+      const dynamicLength = Math.max(
+        GALLERY_CONFIG.HALL_LENGTH,
+        maxX - minX + padding * 2
+      );
       const center = (minX + maxX) / 2;
       return {
         dynamicLength,
         dynamicCenterX: center,
         firstX: minX - padding,
         lastX: maxX + padding,
-        contentLength: (maxX - minX) + padding * 2,
+        contentLength: maxX - minX + padding * 2,
         wallMarginInitial: 4,
         wallMarginFinal: 3,
       };
@@ -475,32 +739,59 @@ export default function GalleryRoom({ salaId = 1, murales = [], layout = [], sce
     return calculateGalleryDimensions(validArtworks);
   }, [effectiveLayout, validArtworks]);
 
-  const artworkPositions = useMemo(() => (
-    effectiveLayout.length > 0
-      ? []
-      : calculateArtworkPositions(validArtworks, galleryDimensions.firstX, GALLERY_CONFIG.PICTURE_SPACING, galleryDimensions.contentLength)
-  ), [effectiveLayout, validArtworks, galleryDimensions]);
+  const artworkPositions = useMemo(
+    () =>
+      effectiveLayout.length > 0
+        ? []
+        : calculateArtworkPositions(
+            validArtworks,
+            galleryDimensions.firstX,
+            GALLERY_CONFIG.PICTURE_SPACING,
+            galleryDimensions.contentLength
+          ),
+    [effectiveLayout, validArtworks, galleryDimensions]
+  );
 
   const handleSelectArtwork = (art) => setSelectedArtwork(art);
   const handleCloseModal = () => setSelectedArtwork(null);
 
   const plRef = useRef(null);
   useEffect(() => {
-    const handleContextMenu = (e) => { e.preventDefault(); if (plRef.current) plRef.current.lock(); };
-    const handleMouseDown = (e) => { if (e.button === 2 && plRef.current) { plRef.current.lock(); } };
-    const handleKeyDown = (e) => {
-      const k = e.key.toLowerCase();
-      if (["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright"].includes(k) && plRef.current && !document.pointerLockElement) {
+    const handleContextMenu = (e) => {
+      e.preventDefault();
+      if (plRef.current) plRef.current.lock();
+    };
+    const handleMouseDown = (e) => {
+      if (e.button === 2 && plRef.current) {
         plRef.current.lock();
       }
     };
-    document.addEventListener('contextmenu', handleContextMenu);
-    document.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('keydown', handleKeyDown);
+    const handleKeyDown = (e) => {
+      const k = e.key.toLowerCase();
+      if (
+        [
+          "w",
+          "a",
+          "s",
+          "d",
+          "arrowup",
+          "arrowdown",
+          "arrowleft",
+          "arrowright",
+        ].includes(k) &&
+        plRef.current &&
+        !document.pointerLockElement
+      ) {
+        plRef.current.lock();
+      }
+    };
+    document.addEventListener("contextmenu", handleContextMenu);
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener('contextmenu', handleContextMenu);
-      document.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener("contextmenu", handleContextMenu);
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
 
@@ -523,9 +814,19 @@ export default function GalleryRoom({ salaId = 1, murales = [], layout = [], sce
             scene={scene}
             salaTextures={{ pared: texturaPared, piso: texturaPiso }}
           />
-          <PlayerControls onPassInitialWall={() => setPassedInitialWall(true)} FIRST_X={galleryDimensions.firstX} LAST_X={galleryDimensions.lastX} WALL_MARGIN_INITIAL={galleryDimensions.wallMarginInitial} WALL_MARGIN_FINAL={galleryDimensions.wallMarginFinal} />
+          <PlayerControls
+            onPassInitialWall={() => setPassedInitialWall(true)}
+            FIRST_X={galleryDimensions.firstX}
+            LAST_X={galleryDimensions.lastX}
+            WALL_MARGIN_INITIAL={galleryDimensions.wallMarginInitial}
+            WALL_MARGIN_FINAL={galleryDimensions.wallMarginFinal}
+          />
           <ManualLookControls />
-          {!isMuted && <BackGroundSound url={scene?.audioZones?.[0]?.trackUrl || '/assets/audio.mp3'} />}
+          {!isMuted && (
+            <BackGroundSound
+              url={scene?.audioZones?.[0]?.trackUrl || "/assets/audio.mp3"}
+            />
+          )}
         </Canvas>
         <AnimatePresence>
           {selectedArtwork && (
@@ -535,7 +836,7 @@ export default function GalleryRoom({ salaId = 1, murales = [], layout = [], sce
               userId={userId}
               onCollectionUpdate={{
                 collection: personalCollection,
-                update: fetchCollection
+                update: fetchCollection,
               }}
             />
           )}
@@ -544,5 +845,3 @@ export default function GalleryRoom({ salaId = 1, murales = [], layout = [], sce
     </>
   );
 }
-
-

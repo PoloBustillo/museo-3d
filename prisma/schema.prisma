@@ -107,7 +107,7 @@ model Mural {
     favoritedBy         UserMuralFavorite[]
     createdAt           DateTime            @default(now())
     updatedAt           DateTime            @updatedAt
-    SalaMural           SalaMural[]        // relación inversa restaurada
+    SalaMural           SalaMural[] // relación inversa restaurada
 }
 
 model Sala {
@@ -130,36 +130,36 @@ model Sala {
     murales          SalaMural[]
     colaboradores    SalaColaborador[]
     // Nuevos campos de layout / escena
-    lightingPreset   String?           // Nombre de preset de iluminación
+    lightingPreset   String? // Nombre de preset de iluminación
     ambientIntensity Float?            @default(0.8) // Intensidad de luz ambiental
-    fogColor         String?           // Color de niebla (hex)
-    fogNear          Float?            // Inicio de niebla
-    fogFar           Float?            // Fin de niebla
-    audioZones       Json?             // Zonas de audio { zones: [{position:[x,y,z], radius, trackUrl}] }
-    navigationMeshId String?           // Referencia a recurso de navmesh
-    layoutVersion    Int?              @default(1)   // Versionado del layout
+    fogColor         String? // Color de niebla (hex)
+    fogNear          Float? // Inicio de niebla
+    fogFar           Float? // Fin de niebla
+    audioZones       Json? // Zonas de audio { zones: [{position:[x,y,z], radius, trackUrl}] }
+    navigationMeshId String? // Referencia a recurso de navmesh
+    layoutVersion    Int?              @default(1) // Versionado del layout
     createdAt        DateTime          @default(now())
     updatedAt        DateTime          @updatedAt
 }
 
 model SalaMural {
-    id        Int    @id @default(autoincrement())
-    sala      Sala   @relation(fields: [salaId], references: [id])
-    salaId    Int
-    mural     Mural  @relation(fields: [muralId], references: [id], onDelete: Cascade)
-    muralId   Int
+    id                 Int     @id @default(autoincrement())
+    sala               Sala    @relation(fields: [salaId], references: [id])
+    salaId             Int
+    mural              Mural   @relation(fields: [muralId], references: [id], onDelete: Cascade)
+    muralId            Int
     // Nuevos campos de transform / presentación
-    posX      Float? // Position X en sala
-    posY      Float? // Position Y en sala (altura)
-    posZ      Float? // Position Z en sala
-    rotY      Float? // Rotación Y (yaw) en radianes/grados (definir convención en frontend)
-    rotX      Float? // Opcional para cuadros inclinados
-    rotZ      Float? // Roll
-    scale     Float? @default(1.0) // Escala uniforme
-    wallId    String? // Identificador lógico de pared/segmento
-    frameStyle String? // Estilo de marco aplicado
-    spotlightIntensity Float? @default(1.0) // Intensidad de luz dedicada
-    metadata  Json?  // Extra (ej: nota curatorial local)
+    posX               Float? // Position X en sala
+    posY               Float? // Position Y en sala (altura)
+    posZ               Float? // Position Z en sala
+    rotY               Float? // Rotación Y (yaw) en radianes/grados (definir convención en frontend)
+    rotX               Float? // Opcional para cuadros inclinados
+    rotZ               Float? // Roll
+    scale              Float?  @default(1.0) // Escala uniforme
+    wallId             String? // Identificador lógico de pared/segmento
+    frameStyle         String? // Estilo de marco aplicado
+    spotlightIntensity Float?  @default(1.0) // Intensidad de luz dedicada
+    metadata           Json? // Extra (ej: nota curatorial local)
 
     @@unique([salaId, muralId])
 }

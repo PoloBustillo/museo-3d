@@ -56,9 +56,8 @@ export default function useSalas() {
         if (!response.ok) throw new Error(`Error HTTP: ${response.status}`);
         const data = await response.json();
         const getColorBySalaId = (id) =>
-          ({ 1: "#e3f2fd", 2: "#f3e5f5", 3: "#e8f5e8", 4: "#fff3e0" })[
-            id
-          ] || "#f5f5f5";
+          ({ 1: "#e3f2fd", 2: "#f3e5f5", 3: "#e8f5e8", 4: "#fff3e0" })[id] ||
+          "#f5f5f5";
 
         const salasFormateadas = (data.salas || []).map((sala) => {
           // Murales planos (para compatibilidad existente)
