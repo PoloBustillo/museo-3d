@@ -322,6 +322,7 @@ export default function CrearSalaStepper() {
           steps={stepStates}
           activeStep={step}
           color="indigo"
+          maxVisible={5}
           className="mb-4 sm:mb-8"
           onStepClick={(i) => {
             if (i < step) setStep(i);

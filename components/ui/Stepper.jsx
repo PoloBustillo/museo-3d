@@ -54,26 +54,26 @@ export default function Stepper({
   // Filtrar steps basado en maxVisible o para móviles
   const getVisibleSteps = () => {
     // Si maxVisible está definido, usar esa lógica independientemente del tamaño de pantalla
-    if (maxVisible && typeof maxVisible === 'number' && maxVisible > 0) {
+    if (maxVisible && typeof maxVisible === "number" && maxVisible > 0) {
       const visibleSteps = [];
       const halfMax = Math.floor(maxVisible / 2);
-      
+
       // Calcular el rango de pasos a mostrar centrado en el paso activo
       let startIndex = Math.max(0, activeStep - halfMax);
       let endIndex = Math.min(steps.length - 1, startIndex + maxVisible - 1);
-      
+
       // Ajustar si no tenemos suficientes pasos al final
       if (endIndex - startIndex + 1 < maxVisible) {
         startIndex = Math.max(0, endIndex - maxVisible + 1);
       }
-      
+
       for (let i = startIndex; i <= endIndex; i++) {
         visibleSteps.push({ ...steps[i], originalIndex: i });
       }
-      
+
       return visibleSteps;
     }
-    
+
     // Lógica original para móviles si no hay maxVisible
     if (!isMobile) return steps;
 
@@ -91,7 +91,8 @@ export default function Stepper({
   return (
     <div className="flex flex-col items-center mx-0 w-full max-w-full overflow-visible">
       {/* Contador de progreso cuando hay límite de pasos visibles */}
-      {(maxVisible && steps.length > maxVisible) || (isMobile && !maxVisible) ? (
+      {(maxVisible && steps.length > maxVisible) ||
+      (isMobile && !maxVisible) ? (
         <div className="mb-2 text-xs text-gray-500 dark:text-gray-400">
           Paso {activeStep + 1} de {steps.length}
         </div>
@@ -102,7 +103,8 @@ export default function Stepper({
         aria-label="Progreso"
       >
         {/* Indicador de steps anteriores cuando hay límite */}
-        {((maxVisible && activeStep > Math.floor(maxVisible / 2)) || (isMobile && !maxVisible && activeStep > 0)) && (
+        {((maxVisible && activeStep > Math.floor(maxVisible / 2)) ||
+          (isMobile && !maxVisible && activeStep > 0)) && (
           <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 px-2">
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600"></div>
@@ -182,8 +184,10 @@ export default function Stepper({
             </div>
           );
         })}
-        {/* Indicador de steps posteriores en móviles */}
-        {isMobile && activeStep < steps.length - 1 && (
+        {/* Indicador de steps posteriores cuando hay límite */}
+        {((maxVisible &&
+          activeStep < steps.length - Math.ceil(maxVisible / 2)) ||
+          (isMobile && !maxVisible && activeStep < steps.length - 1)) && (
           <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 px-2">
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600"></div>
