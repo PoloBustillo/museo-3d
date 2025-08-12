@@ -21,6 +21,11 @@ import {
   Pause,
   Volume2,
   Upload,
+  Image,
+  Search,
+  Eye,
+  Plus,
+  Minus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,6 +55,8 @@ export default function CrearSalaStepper() {
     step,
     setNombre,
     setDescripcion,
+    addMural,
+    removeMural,
     setStep,
     setTextureFloor,
     setTextureWalls,
@@ -84,6 +91,16 @@ export default function CrearSalaStepper() {
   const [audioRef, setAudioRef] = useState(null);
   const [showAudioModal, setShowAudioModal] = useState(false);
   const [uploadingCustomAudio, setUploadingCustomAudio] = useState(false);
+
+  // Murales states
+  const [availableMurales, setAvailableMurales] = useState([]);
+  const [loadingMurales, setLoadingMurales] = useState(false);
+  const [muralesError, setMuralesError] = useState(null);
+  const [muralesQuery, setMuralesQuery] = useState("");
+  const [showMuralesModal, setShowMuralesModal] = useState(false);
+  const [selectedMuralForPreview, setSelectedMuralForPreview] = useState(null);
+  const [includePublicMurales, setIncludePublicMurales] = useState(true);
+  const [muralesFilter, setMuralesFilter] = useState("all"); // all, own, public
 
   // Steps configuration
   const STEPS_DYNAMIC = [
@@ -169,6 +186,64 @@ export default function CrearSalaStepper() {
 
     loadAudios();
   }, []);
+
+  // Load available murales (own + public)
+  useEffect(() => {
+    const loadMurales = async () => {
+      setLoadingMurales(true);
+      setMuralesError(null);
+      try {
+        const response = await fetch(`/api/murales/available?includePublic=${includePublicMurales}&limit=100`);
+        if (!response.ok) {
+          throw new Error("Error al cargar las obras");
+        }
+        const data = await response.json();
+        setAvailableMurales(data.murales || []);
+      } catch (error) {
+        console.error("Error loading murales:", error);
+        setMuralesError(error.message);
+      } finally {
+        setLoadingMurales(false);
+      }
+    };
+
+    loadMurales();
+  }, [includePublicMurales]);
+
+  // Search murales with debouncing
+  useEffect(() => {
+    const searchMurales = async () => {
+      if (muralesQuery.trim().length < 2) {
+        // Reload all murales
+        try {
+          const response = await fetch(`/api/murales/available?includePublic=${includePublicMurales}&limit=100`);
+          if (response.ok) {
+            const data = await response.json();
+            setAvailableMurales(data.murales || []);
+          }
+        } catch (error) {
+          console.error("Error reloading murales:", error);
+        }
+        return;
+      }
+
+      setLoadingMurales(true);
+      try {
+        const response = await fetch(`/api/murales/available?q=${encodeURIComponent(muralesQuery)}&includePublic=${includePublicMurales}&limit=100`);
+        if (response.ok) {
+          const data = await response.json();
+          setAvailableMurales(data.murales || []);
+        }
+      } catch (error) {
+        console.error("Error searching murales:", error);
+      } finally {
+        setLoadingMurales(false);
+      }
+    };
+
+    const debounceTimer = setTimeout(searchMurales, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [muralesQuery, includePublicMurales]);
 
   // Search users with debouncing
   useEffect(() => {
@@ -352,6 +427,31 @@ export default function CrearSalaStepper() {
   const formatAudioDuration = (audio) => {
     // Esta función se podría expandir para mostrar duración real
     return "Audio ambiente";
+  };
+
+  // Murales functions
+  const toggleMural = (mural) => {
+    if (murales.includes(mural.id)) {
+      removeMural(mural.id);
+    } else {
+      addMural(mural.id);
+    }
+  };
+
+  const isMuralSelected = (muralId) => {
+    return murales.includes(muralId);
+  };
+
+  const getSelectedMuralesData = () => {
+    return availableMurales.filter(mural => murales.includes(mural.id));
+  };
+
+  const openMuralPreview = (mural) => {
+    setSelectedMuralForPreview(mural);
+  };
+
+  const closeMuralPreview = () => {
+    setSelectedMuralForPreview(null);
   };
 
   // Create sala
@@ -960,21 +1060,151 @@ export default function CrearSalaStepper() {
         {/* Step 5: Murales */}
         {step === 5 && (
           <div className="flex flex-col gap-6">
-            <div className="bg-purple-50/70 dark:bg-purple-900/20 p-4 rounded-xl border border-purple-200 dark:border-purple-800">
-              <h3 className="text-purple-700 dark:text-purple-300 font-semibold mb-2">
-                Seleccionar obras
-              </h3>
-              <p className="text-purple-600 dark:text-purple-400 text-sm">
-                Después de crear la sala, podrás agregar tus obras desde la
-                sección "Mis Salas".
-              </p>
-            </div>
-            {murales.length > 0 && (
-              <div className="mt-4">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Obras seleccionadas: {murales.length}
-                </p>
+            {loadingMurales ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                <span className="ml-3 text-gray-600 dark:text-gray-400">Cargando obras...</span>
               </div>
+            ) : muralesError ? (
+              <div className="text-center py-8">
+                <p className="text-red-500">Error al cargar obras: {muralesError}</p>
+              </div>
+            ) : (
+              <>
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                      <ListChecks className="w-5 h-5 text-indigo-600" />
+                      Seleccionar obras para la sala
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      Elige las obras que quieres mostrar en tu sala
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowMuralesModal(true)}
+                  >
+                    <Search className="w-4 h-4 mr-2" />
+                    Explorar obras
+                  </Button>
+                </div>
+
+                {/* Selected murales */}
+                {murales.length > 0 ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">
+                        Obras seleccionadas ({murales.length})
+                      </h4>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          murales.forEach(id => removeMural(id));
+                        }}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Limpiar selección
+                      </Button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {getSelectedMuralesData().map((mural) => (
+                        <div
+                          key={mural.id}
+                          className="bg-white dark:bg-neutral-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                        >
+                          <div className="relative aspect-video bg-gray-100 dark:bg-gray-800">
+                            <img
+                              src={mural.imagen}
+                              alt={mural.titulo}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.src = "/placeholder-image.jpg";
+                              }}
+                            />
+                            <div className="absolute top-2 right-2 flex gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openMuralPreview(mural)}
+                                className="bg-white/90 hover:bg-white"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => removeMural(mural.id)}
+                                className="bg-white/90 hover:bg-white text-red-600 hover:text-red-700"
+                              >
+                                <Minus className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="p-3">
+                            <h5 className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                              {mural.titulo}
+                            </h5>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                              {mural.tecnica} {mural.anio && `(${mural.anio})`}
+                            </p>
+                            {mural.enSala && (
+                              <span className="inline-block mt-1 text-xs px-2 py-1 bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300 rounded-full">
+                                En otra sala
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-12 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                    <ListChecks className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-500 dark:text-gray-400 font-medium">No hay obras seleccionadas</p>
+                    <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">
+                      Haz clic en "Explorar obras" para seleccionar las obras de tu sala
+                    </p>
+                    <Button onClick={() => setShowMuralesModal(true)}>
+                      <Search className="w-4 h-4 mr-2" />
+                      Explorar obras
+                    </Button>
+                  </div>
+                )}
+
+                {/* Quick stats */}
+                {availableMurales.length > 0 && (
+                  <div className="bg-gray-50 dark:bg-neutral-800 p-4 rounded-lg">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                      <div>
+                        <p className="text-2xl font-bold text-indigo-600">{availableMurales.length}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Obras disponibles</p>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-green-600">{murales.length}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Seleccionadas</p>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-orange-600">
+                          {availableMurales.filter(m => m.enSala).length}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">En otras salas</p>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-purple-600">
+                          {availableMurales.filter(m => m.destacada).length}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Destacadas</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -1124,6 +1354,46 @@ export default function CrearSalaStepper() {
                         </span>
                       )}
                     </div>
+                  </div>
+
+                  {/* Murales */}
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Obras seleccionadas</p>
+                    {murales.length > 0 ? (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <ListChecks className="w-4 h-4 text-indigo-600" />
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {murales.length} obra{murales.length !== 1 ? 's' : ''} seleccionada{murales.length !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                          {getSelectedMuralesData().slice(0, 6).map((mural) => (
+                            <div key={mural.id} className="aspect-square bg-gray-100 dark:bg-gray-800 rounded overflow-hidden">
+                              <img
+                                src={mural.imagen}
+                                alt={mural.titulo}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.src = "/placeholder-image.jpg";
+                                }}
+                              />
+                            </div>
+                          ))}
+                          {murales.length > 6 && (
+                            <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
+                              <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                                +{murales.length - 6}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        No hay obras seleccionadas
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -1296,6 +1566,285 @@ export default function CrearSalaStepper() {
             )}
           </div>
         </div>
+      </SimpleModal>
+
+      {/* Murales selection modal */}
+      <SimpleModal
+        isOpen={showMuralesModal}
+        onClose={() => setShowMuralesModal(false)}
+        title="Explorar y seleccionar obras"
+        size="large"
+      >
+        <div className="flex flex-col gap-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <Input
+              placeholder="Buscar por título, técnica o descripción..."
+              value={muralesQuery}
+              onChange={(e) => setMuralesQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+
+          {/* Filter controls */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Mostrar:</span>
+            <div className="flex gap-2">
+              <Button
+                variant={!includePublicMurales ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIncludePublicMurales(false)}
+                className="text-xs"
+              >
+                Mis obras
+              </Button>
+              <Button
+                variant={includePublicMurales ? "default" : "outline"}
+                size="sm"
+                onClick={() => setIncludePublicMurales(true)}
+                className="text-xs"
+              >
+                Todas las obras
+              </Button>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+            <span>{availableMurales.length} obras encontradas</span>
+            <span>{murales.length} seleccionadas</span>
+          </div>
+
+          {/* Murales grid */}
+          <div className="max-h-96 overflow-y-auto">
+            {loadingMurales ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600"></div>
+                <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">Buscando obras...</span>
+              </div>
+            ) : availableMurales.length === 0 ? (
+              <div className="text-center py-8">
+                <Image className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-500 dark:text-gray-400 font-medium">
+                  {muralesQuery.length >= 2 
+                    ? `No se encontraron obras con "${muralesQuery}"` 
+                    : !includePublicMurales 
+                      ? "No tienes obras disponibles" 
+                      : "No hay obras disponibles"
+                  }
+                </p>
+                <p className="text-sm text-gray-400 dark:text-gray-500">
+                  {muralesQuery.length >= 2 
+                    ? "Intenta con otros términos de búsqueda" 
+                    : !includePublicMurales 
+                      ? "Crea tu primera obra para agregarla a la sala" 
+                      : "Aún no hay obras públicas disponibles"
+                  }
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {availableMurales.map((mural) => (
+                  <div
+                    key={mural.id}
+                    className={`border rounded-lg overflow-hidden transition-all cursor-pointer ${
+                      isMuralSelected(mural.id)
+                        ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 ring-2 ring-indigo-500 ring-opacity-50"
+                        : "border-gray-200 dark:border-gray-700 hover:border-indigo-300 dark:hover:border-indigo-600"
+                    }`}
+                    onClick={() => toggleMural(mural)}
+                  >
+                    <div className="relative aspect-video bg-gray-100 dark:bg-gray-800">
+                      <img
+                        src={mural.imagen}
+                        alt={mural.titulo}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = "/placeholder-image.jpg";
+                        }}
+                      />
+                      <div className="absolute top-2 right-2 flex gap-2">
+                        {isMuralSelected(mural.id) && (
+                          <div className="bg-indigo-500 text-white rounded-full p-1">
+                            <CheckCircle className="w-4 h-4" />
+                          </div>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openMuralPreview(mural);
+                          }}
+                          className="bg-white/90 hover:bg-white"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      {mural.enSala && (
+                        <div className="absolute bottom-2 left-2">
+                          <span className="text-xs px-2 py-1 bg-orange-500 text-white rounded-full">
+                            En sala
+                          </span>
+                        </div>
+                      )}
+                      {mural.destacada && (
+                        <div className="absolute bottom-2 right-2">
+                          <span className="text-xs px-2 py-1 bg-yellow-500 text-white rounded-full">
+                            ⭐ Destacada
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <h5 className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                        {mural.titulo}
+                      </h5>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                        {mural.tecnica} {mural.anio && `(${mural.anio})`}
+                      </p>
+                      {mural.author && (
+                        <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 truncate">
+                          Por {mural.author.name}
+                        </p>
+                      )}
+                      {mural.dimensiones && (
+                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                          {mural.dimensiones}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-gray-400 dark:text-gray-500">
+                          {mural.visitas} visitas
+                        </span>
+                        <Button
+                          variant={isMuralSelected(mural.id) ? "default" : "outline"}
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleMural(mural);
+                          }}
+                        >
+                          {isMuralSelected(mural.id) ? (
+                            <>
+                              <Minus className="w-4 h-4 mr-1" />
+                              Quitar
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="w-4 h-4 mr-1" />
+                              Agregar
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              {murales.length} obras seleccionadas
+            </span>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowMuralesModal(false)}
+              >
+                Cerrar
+              </Button>
+              <Button
+                onClick={() => setShowMuralesModal(false)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
+                Continuar con selección
+              </Button>
+            </div>
+          </div>
+        </div>
+      </SimpleModal>
+
+      {/* Mural preview modal */}
+      <SimpleModal
+        isOpen={!!selectedMuralForPreview}
+        onClose={closeMuralPreview}
+        title={selectedMuralForPreview?.titulo || "Vista previa"}
+        size="large"
+      >
+        {selectedMuralForPreview && (
+          <div className="flex flex-col gap-4">
+            <div className="aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
+              <img
+                src={selectedMuralForPreview.imagen}
+                alt={selectedMuralForPreview.titulo}
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  e.target.src = "/placeholder-image.jpg";
+                }}
+              />
+            </div>
+            <div className="space-y-3">
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+                  {selectedMuralForPreview.titulo}
+                </h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {selectedMuralForPreview.tecnica} {selectedMuralForPreview.anio && `(${selectedMuralForPreview.anio})`}
+                </p>
+              </div>
+              {selectedMuralForPreview.descripcion && (
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1">Descripción</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {selectedMuralForPreview.descripcion}
+                  </p>
+                </div>
+              )}
+              {selectedMuralForPreview.dimensiones && (
+                <div>
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-1">Dimensiones</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {selectedMuralForPreview.dimensiones}
+                  </p>
+                </div>
+              )}
+              <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                <span>👁️ {selectedMuralForPreview.visitas} visitas</span>
+                {selectedMuralForPreview.destacada && <span>⭐ Destacada</span>}
+                {selectedMuralForPreview.enSala && <span>🏛️ En sala</span>}
+              </div>
+            </div>
+            <div className="flex justify-between items-center pt-4 border-t border-gray-200 dark:border-gray-700">
+              <Button variant="outline" onClick={closeMuralPreview}>
+                Cerrar
+              </Button>
+              <Button
+                onClick={() => {
+                  toggleMural(selectedMuralForPreview);
+                  closeMuralPreview();
+                }}
+                variant={isMuralSelected(selectedMuralForPreview.id) ? "destructive" : "default"}
+              >
+                {isMuralSelected(selectedMuralForPreview.id) ? (
+                  <>
+                    <Minus className="w-4 h-4 mr-2" />
+                    Quitar de la sala
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Agregar a la sala
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
       </SimpleModal>
 
       {/* Audio selection modal */}
