@@ -649,55 +649,75 @@ function VolumetricFog({ config }) {
   return null;
 }
 
-function CameraFocusControls({
-  selectedArtwork,
-  layoutItems,
-  artworks,
-  focusTrigger,
-}) {
+function CameraFocusControls({ focusArtwork, layoutItems, artworks, focusTrigger }) {
   const { camera } = useThree();
   const animRef = useRef(null);
   const startRef = useRef(null);
-  const targetRef = useRef(null);
-  const duration = 0.8;
+  const targetPosRef = useRef(null);
+  const startQuatRef = useRef(null);
+  const targetQuatRef = useRef(null);
+  const duration = 0.9;
   const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
-  const findArtworkWorld = useCallback(
-    (art) => {
-      if (!art) return null;
-      // Buscar en layoutItems
-      if (layoutItems && layoutItems.length) {
-        const li = layoutItems.find((l) => l.mural?.id === art.id);
-        if (li)
-          return { x: li.pos?.x ?? 0, y: li.pos?.y ?? 2.1, z: li.pos?.z ?? 0 };
-      }
-      // Fallback: index en artworks para slot horizontal
-      const idx = artworks.findIndex((a) => a.id === art.id);
-      if (idx >= 0) return { x: (idx - artworks.length / 2) * 4, y: 2, z: 0 };
-      return null;
-    },
-    [layoutItems, artworks]
-  );
+  const findLayoutItem = useCallback((art) => {
+    if (!art || !layoutItems) return null;
+    return layoutItems.find(l => l.mural?.id === art.id || l.muralId === art.id) || null;
+  }, [layoutItems]);
+  const findArtworkWorld = useCallback((art) => {
+    if (!art) return null;
+    const li = findLayoutItem(art);
+    if (li) return { x: li.pos?.x ?? 0, y: li.pos?.y ?? 2.1, z: li.pos?.z ?? 0, rotY: li.rot?.y ?? 0 };
+    const idx = artworks.findIndex(a => a.id === art.id);
+    if (idx >= 0) {
+      const spacing = 4;
+      // Distribución fallback en corredor central (z = +/- según paridad para simular paredes)
+      const side = idx % 2 === 0 ? 1 : -1;
+      const WALL_Z = GALLERY_CONFIG.HALL_WIDTH / 2 - 0.12;
+      return { x: (idx - artworks.length/2) * spacing, y: 2.1, z: side * WALL_Z, rotY: side === 1 ? Math.PI : 0 };
+    }
+    return null;
+  }, [findLayoutItem, artworks]);
   useEffect(() => {
-    if (!selectedArtwork || focusTrigger === 0) return;
-    const pos = findArtworkWorld(selectedArtwork);
-    if (!pos) return;
+    if (!focusArtwork || focusTrigger === 0) return;
+    const info = findArtworkWorld(focusArtwork);
+    if (!info) return;
     startRef.current = camera.position.clone();
-    targetRef.current = new THREE.Vector3(
-      pos.x,
-      camera.position.y,
-      camera.position.z * 0.6
-    ); // acercar un poco
+    startQuatRef.current = camera.quaternion.clone();
+    // Determinar normal/frente de la obra (partiendo del vector (0,0,1) rotado por rotY)
+    const normal = new THREE.Vector3(0,0,1).applyAxisAngle(new THREE.Vector3(0,1,0), info.rotY || 0);
+    // Si la obra está en una pared y su normal apunta hacia fuera del pasillo, invertir para mirar hacia el centro
+    // Heurística: si abs(info.z) grande y normal.z tiene mismo signo que info.z -> invertimos
+    if (Math.abs(info.z) > 0.5 && Math.sign(normal.z) === Math.sign(info.z)) {
+      normal.multiplyScalar(-1);
+    }
+    normal.normalize();
+    const desiredDistance = 3.2; // distancia frente a la obra
+    const targetPos = new THREE.Vector3(info.x, camera.position.y, info.z).addScaledVector(normal, desiredDistance);
+    // Limitar Z para no salir del corredor
+    const maxZ = (GALLERY_CONFIG.HALL_WIDTH / 2) - 1.2;
+    targetPos.z = THREE.MathUtils.clamp(targetPos.z, -maxZ, maxZ);
+    targetPosRef.current = targetPos;
+    // Calcular orientación final mirando al centro de la obra
+    const lookAt = new THREE.Vector3(info.x, info.y, info.z);
+    camera.lookAt(lookAt);
+    targetQuatRef.current = camera.quaternion.clone();
+    camera.quaternion.copy(startQuatRef.current);
     animRef.current = { t: 0 };
-  }, [selectedArtwork, focusTrigger, findArtworkWorld, camera]);
+  }, [focusArtwork, focusTrigger, findArtworkWorld, camera]);
   useFrame((_, delta) => {
-    if (!animRef.current || !targetRef.current || !startRef.current) return;
+    if (!animRef.current || !targetPosRef.current) return;
     animRef.current.t += delta / duration;
     const t = Math.min(1, animRef.current.t);
     const k = easeOutCubic(t);
-    camera.position.lerpVectors(startRef.current, targetRef.current, k);
-    if (t >= 1) {
-      animRef.current = null;
+    camera.position.lerpVectors(startRef.current, targetPosRef.current, k);
+    if (startQuatRef.current && targetQuatRef.current) {
+      if (camera.quaternion.slerpQuaternions) {
+        camera.quaternion.slerpQuaternions(startQuatRef.current, targetQuatRef.current, k);
+      } else {
+        camera.quaternion.copy(startQuatRef.current);
+        if (camera.quaternion.slerp) camera.quaternion.slerp(targetQuatRef.current, k);
+      }
     }
+    if (t >= 1) animRef.current = null;
   });
   return null;
 }
@@ -1131,6 +1151,7 @@ export default function GalleryRoom({
   const { isMuted } = useSound();
   const [personalCollection, setPersonalCollection] = useState([]);
   const focusTriggerRef = useRef(0);
+  const [focusArtwork, setFocusArtwork] = useState(null);
   const [focusTrigger, setFocusTrigger] = useState(0);
   const [showQuickList, setShowQuickList] = useState(false);
 
@@ -1222,6 +1243,13 @@ export default function GalleryRoom({
 
   const handleSelectArtwork = (art) => setSelectedArtwork(art);
   const handleCloseModal = () => setSelectedArtwork(null);
+  // Auto-enfocar al seleccionar (click / apertura modal)
+  useEffect(() => {
+    if (selectedArtwork) {
+      setFocusArtwork(selectedArtwork);
+      setFocusTrigger(v => v + 1);
+    }
+  }, [selectedArtwork]);
   const handleSelectRoom = (room) => {
     if (onRoomChange) onRoomChange(room);
     setShowEndModal(false); // al elegir sala se cierra; re-aparecerá cuando llegue al final de la nueva sala (nuevo mount o hysteresis)
@@ -1280,7 +1308,8 @@ export default function GalleryRoom({
     const onKey = (e) => {
       if (e.key.toLowerCase() === "f") {
         if (selectedArtwork) {
-          focusTriggerRef.current++;
+          setFocusArtwork(selectedArtwork);
+          setFocusTrigger((v) => v + 1);
         }
       } else if (e.key.toLowerCase() === "m") {
         setShowRoomSelector((s) => !s);
@@ -1317,12 +1346,7 @@ export default function GalleryRoom({
             salaTextures={{ pared: texturaPared, piso: texturaPiso }}
           />
           <CameraZoomControls />
-          <CameraFocusControls
-            selectedArtwork={selectedArtwork}
-            layoutItems={effectiveLayout}
-            artworks={validArtworks}
-            focusTrigger={focusTrigger}
-          />
+          <CameraFocusControls focusArtwork={focusArtwork} layoutItems={effectiveLayout} artworks={validArtworks} focusTrigger={focusTrigger} />
           <PlayerControls
             onPassInitialWall={() => setPassedInitialWall(true)}
             FIRST_X={galleryDimensions.firstX}
@@ -1369,20 +1393,11 @@ export default function GalleryRoom({
                 Cerrar
               </button>
             </div>
-            {validArtworks.map((a) => (
-              <button
-                key={a.id}
-                onClick={() => {
-                  setSelectedArtwork(a);
-                  setFocusTrigger((v) => v + 1);
-                }}
-                className={`block w-full text-left px-2 py-1 rounded hover:bg-slate-800/60 ${selectedArtwork?.id === a.id ? "bg-slate-800/80 text-amber-300" : ""}`}
-              >
-                {a.title}
-              </button>
+            {validArtworks.map(a => (
+              <button key={a.id} onClick={()=>{ setFocusArtwork(a); setFocusTrigger(v=>v+1); }} className={`block w-full text-left px-2 py-1 rounded hover:bg-slate-800/60 ${focusArtwork?.id===a.id?'bg-slate-800/80 text-amber-300':''}`}>{a.title}</button>
             ))}
             <div className="text-[10px] text-slate-500 pt-1">
-              Atajos: F centrar, M salas, L lista
+              Atajos: F centrar seleccionado, M salas, L lista
             </div>
           </div>
         )}
