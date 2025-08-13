@@ -39,11 +39,11 @@ function Picture({ src, title, artist, year, description, technique, dimensions,
   const w=imageDimensions.width; const h=imageDimensions.height; const thickness=0.15; const depth=0.07;
   const frameColor = frameStyle==="gold"?"#d4af37": frameStyle==="dark"?"#111":"#111";
   const scale = selected?1.15: hovered?1.04:1;
-  const glowOpacity = selected?0.6: hovered?0.42:0;
+  const glowOpacity = selected?0.35: hovered?0.25:0;
   return (<group position={position} rotation={rotation} scale={scale} onPointerOver={()=>setHovered(true)} onPointerOut={()=>setHovered(false)}>
     <group renderOrder={-1}>
-      <mesh position={[0,0,0.006]} visible={glowOpacity>0}><planeGeometry args={[w+thickness*2.6,h+thickness*2.6]}/><meshBasicMaterial color={selected?"#ffddaa":"#ffc766"} transparent opacity={glowOpacity*0.7} blending={THREE.AdditiveBlending} depthWrite={false}/></mesh>
-      <mesh position={[0,0,0.004]} visible={glowOpacity>0}><planeGeometry args={[w+thickness*1.8,h+thickness*1.8]}/><meshBasicMaterial color={selected?"#ffe7c2":"#ffd9a8"} transparent opacity={glowOpacity} blending={THREE.AdditiveBlending} depthWrite={false}/></mesh>
+      <mesh position={[0,0,0.006]} visible={glowOpacity>0}><planeGeometry args={[w+thickness*2.6,h+thickness*2.6]}/><meshBasicMaterial color={selected?"#ffddaa":"#ffc766"} transparent opacity={glowOpacity*0.5} blending={THREE.AdditiveBlending} depthWrite={false}/></mesh>
+      <mesh position={[0,0,0.004]} visible={glowOpacity>0}><planeGeometry args={[w+thickness*1.8,h+thickness*1.8]}/><meshBasicMaterial color={selected?"#ffe7c2":"#ffd9a8"} transparent opacity={glowOpacity*0.7} blending={THREE.AdditiveBlending} depthWrite={false}/></mesh>
     </group>
     <mesh position={[0,h/2+thickness/2,depth]}><boxGeometry args={[w+thickness*2,thickness,thickness]}/><meshStandardMaterial map={frameTexture||null} color={!frameTexture?frameColor:undefined} metalness={0.4} roughness={0.5}/></mesh>
     <mesh position={[0,-h/2-thickness/2,depth]}><boxGeometry args={[w+thickness*2,thickness,thickness]}/><meshStandardMaterial map={frameTexture||null} color={!frameTexture?frameColor:undefined} metalness={0.4} roughness={0.5}/></mesh>
@@ -53,7 +53,14 @@ function Picture({ src, title, artist, year, description, technique, dimensions,
       <planeGeometry args={[w,h]}/><meshStandardMaterial map={texture} side={THREE.DoubleSide}/>
     </mesh>
     {spotlightIntensity>0 && <spotLight intensity={spotlightIntensity} position={[0,h+1.2,0.5]} angle={0.6} penumbra={0.4} distance={8} decay={2} color="#fff7e6" />}
-    <pointLight position={[0,-h/2+0.3,0.15]} intensity={hovered||selected?1.55:1.05} distance={4.4} decay={2} color={selected?"#ffe1b0":"#ffd5a1"} />
+    
+    {/* Iluminación múltiple más tenue y difusa */}
+    <pointLight position={[0,-h/2+0.2,0.12]} intensity={hovered||selected?0.4:0.25} distance={5.5} decay={2.8} color={selected?"#ffe1b0":"#ffd5a1"} />
+    <pointLight position={[-0.3,-h/2+0.4,0.18]} intensity={hovered||selected?0.35:0.2} distance={4.8} decay={3} color="#fff2d9" />
+    <pointLight position={[0.3,-h/2+0.4,0.18]} intensity={hovered||selected?0.35:0.2} distance={4.8} decay={3} color="#fff2d9" />
+    
+    {/* Luz ambiental superior sutil */}
+    <pointLight position={[0,h/2+0.8,0.3]} intensity={hovered||selected?0.25:0.15} distance={6} decay={2.5} color="#fff8e8" />
     {showPlaque && !selectedArtwork && <Html position={[0,-h/2-0.25,depth]} center style={{pointerEvents:"none",textAlign:"left",background:"rgba(30,30,30,0.97)",color:"#fff",borderRadius:12,padding:"18px 28px",fontSize:15,minWidth:340,maxWidth:480,boxShadow:hovered?"0 0 16px #d4af37":"0 2px 16px #000a",border:hovered?"2px solid #d4af37":"none",transition:"all 0.2s",lineHeight:1.5}}>
       <div style={{fontSize:"1.2em",fontWeight:"bold",marginBottom:4}}>{title}</div>
       <div style={{fontWeight:"bold",color:"#ffe082",marginBottom:2}}>{artist} ({year})</div>
@@ -103,7 +110,9 @@ function CameraFocusControls({ focusArtwork, layoutItems, artworks, focusTrigger
   const WALL_Z = GALLERY_CONFIG.HALL_WIDTH/2 - 0.12;
   const findLayoutItem = useCallback((art)=>{ if(!art||!layoutItems) return null; return layoutItems.find(l=> l.mural?.id===art.id || l.muralId===art.id) || null; },[layoutItems]);
   const findArtworkWorld = useCallback((art)=>{ if(!art) return null; const li=findLayoutItem(art); if(li){ const pos={ x: li.pos?.x??0, y: li.pos?.y??2.1, z: li.pos?.z??0 }; if(Math.abs(pos.z) < WALL_Z*0.4){ const idx = artworks.findIndex(a=>a.id===art.id); const side = idx %2 ===0 ? 1 : -1; pos.z = side * WALL_Z; } else if (Math.abs(pos.z) < WALL_Z*0.6){ pos.z = (pos.z>=0?1:-1)*WALL_Z; } return pos; } const idx=artworks.findIndex(a=>a.id===art.id); if(idx>=0){ const spacing=4; const side=idx%2===0?1:-1; return { x:(idx - artworks.length/2)*spacing, y:2.1, z: side*WALL_Z }; } return null; },[findLayoutItem,artworks,WALL_Z]);
-  useEffect(()=>{ if(!focusArtwork || focusTrigger===0) return; const info=findArtworkWorld(focusArtwork); if(!info) return; startRef.current=camera.position.clone(); startQuatRef.current=camera.quaternion.clone(); const DESIRED_DISTANCE=2.8; let targetZ = info.z>0? info.z - DESIRED_DISTANCE : info.z + DESIRED_DISTANCE; const corridorLimit = (GALLERY_CONFIG.HALL_WIDTH/2) - 0.8; targetZ = THREE.MathUtils.clamp(targetZ,-corridorLimit,corridorLimit); const observerHeight=1.6; const targetPos=new THREE.Vector3(info.x,observerHeight,targetZ); targetPosRef.current=targetPos; const temp=new THREE.Object3D(); temp.position.copy(targetPos); temp.lookAt(new THREE.Vector3(info.x, info.y, info.z)); // Corrección: asegurar que forward (-Z) apunte al cuadro
+  useEffect(()=>{ if(!focusArtwork || focusTrigger===0) return; const info=findArtworkWorld(focusArtwork); if(!info) return; startRef.current=camera.position.clone(); startQuatRef.current=camera.quaternion.clone(); const DESIRED_DISTANCE=2.8; let targetZ = info.z>0? info.z - DESIRED_DISTANCE : info.z + DESIRED_DISTANCE; const corridorLimit = (GALLERY_CONFIG.HALL_WIDTH/2) - 0.8; targetZ = THREE.MathUtils.clamp(targetZ,-corridorLimit,corridorLimit); const observerHeight=1.6; 
+    // Centrar mejor la posición X para estar directamente frente a la obra
+    const targetPos=new THREE.Vector3(info.x, observerHeight, targetZ); targetPosRef.current=targetPos; const temp=new THREE.Object3D(); temp.position.copy(targetPos); temp.lookAt(new THREE.Vector3(info.x, info.y, info.z)); // Corrección: asegurar que forward (-Z) apunte al cuadro
     const forward = new THREE.Vector3(0,0,-1).applyQuaternion(temp.quaternion).normalize();
     const toArtwork = new THREE.Vector3().subVectors(new THREE.Vector3(info.x,info.y,info.z), targetPos).normalize();
     if (forward.dot(toArtwork) < 0.0) { // invertido -> rotar 180° Y
@@ -149,7 +158,49 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) { const mod
     </motion.div></motion.div></AnimatePresence>;
 }
 
-function EndOfHallModal({ open, onClose, rooms=[], onSelectRoom, onExit }) { if(!open) return null; return <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"> <div className="w-full max-w-lg bg-slate-900/95 border border-slate-700 rounded-xl shadow-xl p-6 flex flex-col gap-5"> <div className="flex items-start justify-between"><h2 className="text-xl font-semibold text-amber-300">Fin de la sala</h2><button onClick={onClose} className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-sm">✕</button></div><p className="text-slate-300 text-sm">Has llegado al final. ¿A dónde quieres ir?</p><div className="flex flex-col gap-3 max-h-60 overflow-y-auto pr-1">{rooms.length? rooms.map(r=> <button key={r.id} onClick={()=>onSelectRoom&&onSelectRoom(r)} className="text-left px-4 py-3 rounded-lg bg-slate-800/70 hover:bg-slate-700/80 flex justify-between items-center"><span className="font-medium text-slate-200">{r.nombre||r.name||`Sala ${r.id}`}</span><span className="text-xs text-amber-300">Ingresar →</span></button>) : <div className="text-slate-500 text-sm">No hay otras salas disponibles.</div>}</div><div className="flex gap-3 pt-2"><button onClick={onExit} className="flex-1 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 font-semibold text-black text-sm">Salir</button><button onClick={onClose} className="flex-1 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm">Cerrar</button></div></div></div>; }
+function EndOfHallModal({ open, onClose, rooms=[], onSelectRoom, onExit }) { 
+  console.log('[EndOfHallModal] Rendering with rooms:', rooms);
+  if(!open) return null; 
+  
+  return <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"> 
+    <div className="w-full max-w-lg bg-slate-900/95 border border-slate-700 rounded-xl shadow-xl p-6 flex flex-col gap-5"> 
+      <div className="flex items-start justify-between">
+        <h2 className="text-xl font-semibold text-amber-300">Fin de la sala</h2>
+        <button onClick={onClose} className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-sm">✕</button>
+      </div>
+      <p className="text-slate-300 text-sm">Has llegado al final. ¿A dónde quieres ir?</p>
+      
+      <div className="flex flex-col gap-3 max-h-60 overflow-y-auto pr-1">
+        {rooms.length > 0 ? (
+          rooms.map(r=> (
+            <button 
+              key={r.id} 
+              onClick={()=>onSelectRoom&&onSelectRoom(r)} 
+              className="text-left px-4 py-3 rounded-lg bg-slate-800/70 hover:bg-slate-700/80 flex justify-between items-center"
+            >
+              <div className="flex flex-col">
+                <span className="font-medium text-slate-200">{r.nombre||r.name||`Sala ${r.id}`}</span>
+                {r.descripcion && <span className="text-xs text-slate-400">{r.descripcion.substring(0, 60)}...</span>}
+                {r._count?.murales > 0 && <span className="text-xs text-amber-400">{r._count.murales} obras</span>}
+              </div>
+              <span className="text-xs text-amber-300">Ingresar →</span>
+            </button>
+          ))
+        ) : (
+          <div className="text-slate-500 text-sm">
+            <p>No hay otras salas disponibles.</p>
+            <p className="text-xs mt-1">Total de salas encontradas: {rooms.length}</p>
+          </div>
+        )}
+      </div>
+      
+      <div className="flex gap-3 pt-2">
+        <button onClick={onExit} className="flex-1 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 font-semibold text-black text-sm">Salir</button>
+        <button onClick={onClose} className="flex-1 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm">Cerrar</button>
+      </div>
+    </div>
+  </div>; 
+}
 
 function CameraZoomControls({ minFov=45, maxFov=90, zoomSpeed=0.08, smooth=0.15 }) { const { camera, gl } = useThree(); const targetFovRef=useRef(camera.fov); useEffect(()=>{ const onWheel=e=>{ if(e.ctrlKey) return; e.preventDefault(); const delta=e.deltaY; const next = targetFovRef.current + (delta>0?1:-1)*(Math.abs(delta)*zoomSpeed); targetFovRef.current = THREE.MathUtils.clamp(next,minFov,maxFov); }; const el=gl.domElement; el.addEventListener("wheel",onWheel,{passive:false}); return ()=> el.removeEventListener("wheel",onWheel); },[gl,minFov,maxFov,zoomSpeed]); useFrame(()=>{ if(Math.abs(camera.fov - targetFovRef.current) > 0.01){ camera.fov += (targetFovRef.current - camera.fov)*smooth; camera.updateProjectionMatrix(); } }); return null; }
 
@@ -171,7 +222,58 @@ export default function GalleryRoom({ salaId=1, murales=[], layout=[], scene=nul
   const handleExit=()=>{ setShowEndModal(false); if(typeof window!=='undefined') window.location.href='/museo'; };
   const handleReachEnd=useCallback(()=>{ setShowEndModal(open=> open? open: true); },[]);
   const handleCloseEndModal=()=> setShowEndModal(false);
-  useEffect(()=>{ if(roomsFetchedRef.current) return; roomsFetchedRef.current=true; let cancelled=false; (async()=>{ try{ const res= await fetch('/api/salas',{ cache:'no-store' }); if(!res.ok) throw new Error('fetch salas'); const data = await res.json(); if(cancelled) return; const fetched = Array.isArray(data)? data : Array.isArray(data?.salas)? data.salas : []; const merged=[...availableRooms,...fetched]; const unique=[]; const seen=new Set(); for(const r of merged){ if(!r || r.id==null || seen.has(r.id)) continue; seen.add(r.id); unique.push(r); } const finalRooms = unique.filter(r=> String(r.id)!==String(salaId)); setOtherRooms(finalRooms); } catch(e){ console.warn('[EndOfHallModal] Error obteniendo salas',e); } })(); return ()=>{ cancelled=true; }; },[availableRooms,salaId]);
+  useEffect(()=>{ 
+    if(roomsFetchedRef.current) return; 
+    roomsFetchedRef.current=true; 
+    let cancelled=false; 
+    (async()=>{ 
+      try{ 
+        console.log('[EndOfHallModal] Fetching salas from API...');
+        const res= await fetch('/api/salas',{ cache:'no-store' }); 
+        if(!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`); 
+        const data = await res.json(); 
+        console.log('[EndOfHallModal] API response:', data);
+        if(cancelled) return; 
+        
+        // Extraer salas correctamente de la respuesta
+        let fetchedRooms = [];
+        if (Array.isArray(data)) {
+          fetchedRooms = data;
+        } else if (data && Array.isArray(data.salas)) {
+          fetchedRooms = data.salas;
+        } else {
+          console.warn('[EndOfHallModal] Formato de respuesta inesperado:', data);
+          fetchedRooms = [];
+        }
+        
+        console.log('[EndOfHallModal] Salas extraídas:', fetchedRooms);
+        console.log('[EndOfHallModal] Current salaId:', salaId, 'Type:', typeof salaId);
+        const merged=[...availableRooms,...fetchedRooms]; 
+        const unique=[]; 
+        const seen=new Set(); 
+        for(const r of merged){ 
+          if(!r || r.id==null || seen.has(r.id)) continue; 
+          seen.add(r.id); 
+          unique.push(r); 
+        } 
+        console.log('[EndOfHallModal] Salas únicas antes del filtro:', unique);
+        // Temporal: mostrar todas las salas para debug
+        const finalRooms = unique.length > 0 ? unique : fetchedRooms;
+        /* const finalRooms = unique.filter(r=> {
+          const roomId = String(r.id);
+          const currentSalaId = String(salaId);
+          const shouldInclude = roomId !== currentSalaId;
+          console.log(`[EndOfHallModal] Sala ${roomId} vs current ${currentSalaId} -> include: ${shouldInclude}`);
+          return shouldInclude;
+        }); */
+        console.log('[EndOfHallModal] Salas finales para mostrar:', finalRooms);
+        setOtherRooms(finalRooms); 
+      } catch(e){ 
+        console.error('[EndOfHallModal] Error obteniendo salas:',e); 
+      } 
+    })(); 
+    return ()=>{ cancelled=true; }; 
+  },[availableRooms,salaId]);
   useEffect(()=>{ setOtherRooms(prev=> prev.filter(r=> r.id !== salaId)); },[salaId]);
   useEffect(()=>{ const onKey=e=>{ if(e.key.toLowerCase()==='l') setShowQuickList(s=>!s); }; window.addEventListener('keydown',onKey,{capture:true}); return ()=> window.removeEventListener('keydown',onKey,{capture:true}); },[]);
   return (<><div className="gallery-container absolute top-0 left-0 w-full h-full bg-black">
