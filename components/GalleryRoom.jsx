@@ -54,13 +54,40 @@ function Picture({ src, title, artist, year, description, technique, dimensions,
     </mesh>
     {spotlightIntensity>0 && <spotLight intensity={spotlightIntensity} position={[0,h+1.2,0.5]} angle={0.6} penumbra={0.4} distance={8} decay={2} color="#fff7e6" />}
     
-    {/* Iluminación múltiple más tenue y difusa */}
-    <pointLight position={[0,-h/2+0.2,0.12]} intensity={hovered||selected?0.4:0.25} distance={5.5} decay={2.8} color={selected?"#ffe1b0":"#ffd5a1"} />
-    <pointLight position={[-0.3,-h/2+0.4,0.18]} intensity={hovered||selected?0.35:0.2} distance={4.8} decay={3} color="#fff2d9" />
-    <pointLight position={[0.3,-h/2+0.4,0.18]} intensity={hovered||selected?0.35:0.2} distance={4.8} decay={3} color="#fff2d9" />
+    {/* Iluminación múltiple más tenue y difusa con ángulos específicos */}
+    <spotLight 
+      position={[0,-h/2+0.6,0.4]} 
+      target-position={[0,0,0]}
+      intensity={hovered||selected?0.3:0.18} 
+      angle={0.8} 
+      penumbra={0.6} 
+      distance={4.5} 
+      decay={2.2} 
+      color={selected?"#ffe1b0":"#ffd5a1"} 
+    />
+    <spotLight 
+      position={[-0.4,-h/2+0.5,0.35]} 
+      target-position={[0.1,0,0]}
+      intensity={hovered||selected?0.25:0.15} 
+      angle={0.7} 
+      penumbra={0.7} 
+      distance={4} 
+      decay={2.8} 
+      color="#fff2d9" 
+    />
+    <spotLight 
+      position={[0.4,-h/2+0.5,0.35]} 
+      target-position={[-0.1,0,0]}
+      intensity={hovered||selected?0.25:0.15} 
+      angle={0.7} 
+      penumbra={0.7} 
+      distance={4} 
+      decay={2.8} 
+      color="#fff2d9" 
+    />
     
     {/* Luz ambiental superior sutil */}
-    <pointLight position={[0,h/2+0.8,0.3]} intensity={hovered||selected?0.25:0.15} distance={6} decay={2.5} color="#fff8e8" />
+    <pointLight position={[0,h/2+0.8,0.3]} intensity={hovered||selected?0.2:0.12} distance={5.5} decay={2.8} color="#fff8e8" />
     {showPlaque && !selectedArtwork && <Html position={[0,-h/2-0.25,depth]} center style={{pointerEvents:"none",textAlign:"left",background:"rgba(30,30,30,0.97)",color:"#fff",borderRadius:12,padding:"18px 28px",fontSize:15,minWidth:340,maxWidth:480,boxShadow:hovered?"0 0 16px #d4af37":"0 2px 16px #000a",border:hovered?"2px solid #d4af37":"none",transition:"all 0.2s",lineHeight:1.5}}>
       <div style={{fontSize:"1.2em",fontWeight:"bold",marginBottom:4}}>{title}</div>
       <div style={{fontWeight:"bold",color:"#ffe082",marginBottom:2}}>{artist} ({year})</div>
@@ -76,7 +103,39 @@ function PlayerControls({ onPassInitialWall, FIRST_X, LAST_X, WALL_MARGIN_INITIA
   const velocity = useRef(new THREE.Vector3()); const direction = useRef(new THREE.Vector3());
   const keys = useRef({ w:false,a:false,s:false,d:false }); const inEndZoneRef = useRef(false);
   useEffect(()=>{ const kd=e=>{ keys.current[e.key.toLowerCase()]=true; }; const ku=e=>{ keys.current[e.key.toLowerCase()]=false; }; window.addEventListener("keydown",kd); window.addEventListener("keyup",ku); return ()=>{ window.removeEventListener("keydown",kd); window.removeEventListener("keyup",ku); }; },[]);
-  useFrame((_,delta)=>{ const minZ = -GALLERY_CONFIG.HALL_WIDTH/2 + 0.7; const maxZ = GALLERY_CONFIG.HALL_WIDTH/2 - 0.7; direction.current.set(0,0,0); if(keys.current.w) direction.current.z-=1; if(keys.current.s) direction.current.z+=1; if(keys.current.a) direction.current.x-=1; if(keys.current.d) direction.current.x+=1; direction.current.normalize().applyEuler(camera.rotation).y=0; velocity.current.copy(direction.current).multiplyScalar(5*delta); camera.position.add(velocity.current); camera.position.z=Math.max(minZ,Math.min(maxZ,camera.position.z)); const minX=FIRST_X - WALL_MARGIN_INITIAL*0.8 + 0.3; const maxX=LAST_X + WALL_MARGIN_FINAL - 0.8; camera.position.x=Math.max(minX,Math.min(maxX,camera.position.x)); if(!passedWallRef.current && onPassInitialWall && camera.position.x> FIRST_X - WALL_MARGIN_INITIAL*0.8 + 0.2){ onPassInitialWall(); passedWallRef.current=true;} if(onReachEnd){ const endThreshold = LAST_X + WALL_MARGIN_FINAL - 1.2; const hysteresisBack = endThreshold - 0.6; if(camera.position.x> endThreshold && !inEndZoneRef.current){ inEndZoneRef.current=true; onReachEnd(); } else if (camera.position.x < hysteresisBack && inEndZoneRef.current){ inEndZoneRef.current=false; } } });
+  useFrame((_,delta)=>{ 
+    const minZ = -GALLERY_CONFIG.HALL_WIDTH/2 + 0.7; 
+    const maxZ = GALLERY_CONFIG.HALL_WIDTH/2 - 0.7; 
+    direction.current.set(0,0,0); 
+    if(keys.current.w) direction.current.z-=1; 
+    if(keys.current.s) direction.current.z+=1; 
+    if(keys.current.a) direction.current.x-=1; 
+    if(keys.current.d) direction.current.x+=1; 
+    direction.current.normalize().applyEuler(camera.rotation).y=0; 
+    velocity.current.copy(direction.current).multiplyScalar(5*delta); 
+    camera.position.add(velocity.current); 
+    camera.position.z=Math.max(minZ,Math.min(maxZ,camera.position.z)); 
+    
+    // Límites X más precisos y consistentes
+    const minX=FIRST_X - WALL_MARGIN_INITIAL*0.8 + 0.5; 
+    const maxX=LAST_X + WALL_MARGIN_FINAL - 1; 
+    camera.position.x=Math.max(minX,Math.min(maxX,camera.position.x)); 
+    
+    if(!passedWallRef.current && onPassInitialWall && camera.position.x> FIRST_X - WALL_MARGIN_INITIAL*0.8 + 0.2){ 
+      onPassInitialWall(); 
+      passedWallRef.current=true;
+    } 
+    if(onReachEnd){ 
+      const endThreshold = LAST_X + WALL_MARGIN_FINAL - 1.2; 
+      const hysteresisBack = endThreshold - 0.6; 
+      if(camera.position.x> endThreshold && !inEndZoneRef.current){ 
+        inEndZoneRef.current=true; 
+        onReachEnd(); 
+      } else if (camera.position.x < hysteresisBack && inEndZoneRef.current){ 
+        inEndZoneRef.current=false; 
+      } 
+    } 
+  });
   return null;
 }
 
@@ -103,24 +162,105 @@ function Room({ artworks, galleryDimensions, passedInitialWall, setSelectedArtwo
 
 function VolumetricFog({ config }) { const { scene, camera } = useThree(); const color=config?.color||config?.fogColor||"#ffffff"; const density=config?.density||config?.fogDensity||0.018; const height=config?.height||6; const enabled=config?.enabled; useEffect(()=>{ if(!enabled){ scene.fog=null; return;} scene.fog=new THREE.FogExp2(color,density); return ()=>{ if(scene.fog && scene.fog.isFogExp2) scene.fog=null; }; },[enabled,color,density,scene]); useFrame(()=>{ if(!enabled||!scene.fog) return; const base=density; const hFactor=THREE.MathUtils.clamp(camera.position.y/height,0,1); scene.fog.density= base*(0.6 + hFactor*0.7); }); return null; }
 
-function CameraFocusControls({ focusArtwork, layoutItems, artworks, focusTrigger }) {
+function CameraFocusControls({ focusArtwork, layoutItems, artworks, focusTrigger, galleryDimensions }) {
   const { camera } = useThree();
   const animRef=useRef(null); const startRef=useRef(null); const targetPosRef=useRef(null); const startQuatRef=useRef(null); const targetQuatRef=useRef(null);
   const duration=0.9; const easeOutCubic=t=>1-Math.pow(1-t,3);
   const WALL_Z = GALLERY_CONFIG.HALL_WIDTH/2 - 0.12;
   const findLayoutItem = useCallback((art)=>{ if(!art||!layoutItems) return null; return layoutItems.find(l=> l.mural?.id===art.id || l.muralId===art.id) || null; },[layoutItems]);
-  const findArtworkWorld = useCallback((art)=>{ if(!art) return null; const li=findLayoutItem(art); if(li){ const pos={ x: li.pos?.x??0, y: li.pos?.y??2.1, z: li.pos?.z??0 }; if(Math.abs(pos.z) < WALL_Z*0.4){ const idx = artworks.findIndex(a=>a.id===art.id); const side = idx %2 ===0 ? 1 : -1; pos.z = side * WALL_Z; } else if (Math.abs(pos.z) < WALL_Z*0.6){ pos.z = (pos.z>=0?1:-1)*WALL_Z; } return pos; } const idx=artworks.findIndex(a=>a.id===art.id); if(idx>=0){ const spacing=4; const side=idx%2===0?1:-1; return { x:(idx - artworks.length/2)*spacing, y:2.1, z: side*WALL_Z }; } return null; },[findLayoutItem,artworks,WALL_Z]);
-  useEffect(()=>{ if(!focusArtwork || focusTrigger===0) return; const info=findArtworkWorld(focusArtwork); if(!info) return; startRef.current=camera.position.clone(); startQuatRef.current=camera.quaternion.clone(); const DESIRED_DISTANCE=2.8; let targetZ = info.z>0? info.z - DESIRED_DISTANCE : info.z + DESIRED_DISTANCE; const corridorLimit = (GALLERY_CONFIG.HALL_WIDTH/2) - 0.8; targetZ = THREE.MathUtils.clamp(targetZ,-corridorLimit,corridorLimit); const observerHeight=1.6; 
-    // Centrar mejor la posición X para estar directamente frente a la obra
-    const targetPos=new THREE.Vector3(info.x, observerHeight, targetZ); targetPosRef.current=targetPos; const temp=new THREE.Object3D(); temp.position.copy(targetPos); temp.lookAt(new THREE.Vector3(info.x, info.y, info.z)); // Corrección: asegurar que forward (-Z) apunte al cuadro
+  const findArtworkWorld = useCallback((art)=>{ 
+    if(!art) return null; 
+    const li=findLayoutItem(art); 
+    if(li){ 
+      const pos={ x: li.pos?.x??0, y: li.pos?.y??2.1, z: li.pos?.z??0 }; 
+      // Normalizar posición Z si está muy cerca del centro
+      if(Math.abs(pos.z) < WALL_Z*0.4){ 
+        const idx = artworks.findIndex(a=>a.id===art.id); 
+        const side = idx %2 ===0 ? 1 : -1; 
+        pos.z = side * WALL_Z; 
+      } else if (Math.abs(pos.z) < WALL_Z*0.6){ 
+        pos.z = (pos.z>=0?1:-1)*WALL_Z; 
+      } 
+      return pos; 
+    } 
+    
+    // Fallback para obras sin layout específico
+    const idx=artworks.findIndex(a=>a.id===art.id); 
+    if(idx>=0){ 
+      const pairs=Math.ceil(artworks.length/2); 
+      const side=idx%2===0?1:-1; 
+      const pairIndex=Math.floor(idx/2); 
+      
+      // Usar las dimensiones reales de la galería para distribución
+      const { firstX, lastX } = galleryDimensions || { firstX: -10, lastX: 10 };
+      const span = Math.max(0.1, lastX - firstX);
+      const spacing = pairs > 1 ? span / (pairs - 1) : 0;
+      const x = firstX + pairIndex * spacing;
+      
+      return { x, y: 2.1, z: side * WALL_Z }; 
+    } 
+    return null; 
+  },[findLayoutItem,artworks,WALL_Z,galleryDimensions]);
+  useEffect(()=>{ 
+    if(!focusArtwork || focusTrigger===0) return; 
+    const info=findArtworkWorld(focusArtwork); 
+    if(!info) return; 
+    
+    startRef.current=camera.position.clone(); 
+    startQuatRef.current=camera.quaternion.clone(); 
+    
+    const DESIRED_DISTANCE=2.6;
+    let targetZ = info.z>0? info.z - DESIRED_DISTANCE : info.z + DESIRED_DISTANCE; 
+    
+    // Límites del corredor más estrictos
+    const corridorLimit = (GALLERY_CONFIG.HALL_WIDTH/2) - 0.8; 
+    targetZ = THREE.MathUtils.clamp(targetZ, -corridorLimit, corridorLimit); 
+    
+    // Calcular límites X dinámicos basados en las dimensiones de la galería
+    const { firstX, lastX, wallMarginInitial, wallMarginFinal } = galleryDimensions || {};
+    const minXLimit = (firstX || -10) - (wallMarginInitial || 4) * 0.8 + 0.5;
+    const maxXLimit = (lastX || 10) + (wallMarginFinal || 3) - 1;
+    
+    const observerHeight=1.65;
+    
+    // Posición inicial centrada en X
+    let targetX = info.x;
+    
+    // Ajustar X si está muy cerca de los límites
+    if (targetX < minXLimit + 1) {
+      targetX = minXLimit + 1; // Alejar del límite izquierdo
+    } else if (targetX > maxXLimit - 1) {
+      targetX = maxXLimit - 1; // Alejar del límite derecho
+    }
+    
+    const targetPos=new THREE.Vector3(targetX, observerHeight, targetZ); 
+    targetPosRef.current=targetPos; 
+    
+    // Crear orientación directa hacia la obra (usar posición original, no ajustada)
+    const temp=new THREE.Object3D(); 
+    temp.position.copy(targetPos); 
+    
+    // Punto exacto hacia donde mirar (posición original de la obra)
+    const lookAtPoint = new THREE.Vector3(info.x, info.y, info.z);
+    temp.lookAt(lookAtPoint); 
+    
+    // Verificar orientación y corregir si es necesario
     const forward = new THREE.Vector3(0,0,-1).applyQuaternion(temp.quaternion).normalize();
-    const toArtwork = new THREE.Vector3().subVectors(new THREE.Vector3(info.x,info.y,info.z), targetPos).normalize();
-    if (forward.dot(toArtwork) < 0.0) { // invertido -> rotar 180° Y
+    const toArtwork = new THREE.Vector3().subVectors(lookAtPoint, targetPos).normalize();
+    if (forward.dot(toArtwork) < 0.0) { 
       const rotY180 = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), Math.PI);
       temp.quaternion.multiply(rotY180);
     }
+    
     targetQuatRef.current=temp.quaternion.clone();
-    camera.quaternion.copy(startQuatRef.current); animRef.current={ t:0 }; },[focusArtwork,focusTrigger,findArtworkWorld,camera]);
+    camera.quaternion.copy(startQuatRef.current); 
+    animRef.current={ t:0 }; 
+    
+    console.log('[CameraFocus] Artwork:', focusArtwork.title);
+    console.log('[CameraFocus] Artwork pos:', info);
+    console.log('[CameraFocus] Camera target:', targetPos);
+    console.log('[CameraFocus] Gallery limits:', { minXLimit, maxXLimit });
+  },[focusArtwork,focusTrigger,findArtworkWorld,camera,galleryDimensions]);
   useFrame((_,delta)=>{ if(!animRef.current || !targetPosRef.current) return; animRef.current.t += delta/duration; const t=Math.min(1,animRef.current.t); const k=easeOutCubic(t); camera.position.lerpVectors(startRef.current,targetPosRef.current,k); if(startQuatRef.current && targetQuatRef.current){ if(camera.quaternion.slerpQuaternions) camera.quaternion.slerpQuaternions(startQuatRef.current,targetQuatRef.current,k); else { camera.quaternion.copy(startQuatRef.current); camera.quaternion.slerp && camera.quaternion.slerp(targetQuatRef.current,k); } } if(t>=1) animRef.current=null; });
   return null;
 }
@@ -257,15 +397,14 @@ export default function GalleryRoom({ salaId=1, murales=[], layout=[], scene=nul
           unique.push(r); 
         } 
         console.log('[EndOfHallModal] Salas únicas antes del filtro:', unique);
-        // Temporal: mostrar todas las salas para debug
-        const finalRooms = unique.length > 0 ? unique : fetchedRooms;
-        /* const finalRooms = unique.filter(r=> {
+        // Filtrar la sala actual correctamente
+        const finalRooms = unique.filter(r=> {
           const roomId = String(r.id);
           const currentSalaId = String(salaId);
           const shouldInclude = roomId !== currentSalaId;
           console.log(`[EndOfHallModal] Sala ${roomId} vs current ${currentSalaId} -> include: ${shouldInclude}`);
           return shouldInclude;
-        }); */
+        });
         console.log('[EndOfHallModal] Salas finales para mostrar:', finalRooms);
         setOtherRooms(finalRooms); 
       } catch(e){ 
@@ -274,7 +413,6 @@ export default function GalleryRoom({ salaId=1, murales=[], layout=[], scene=nul
     })(); 
     return ()=>{ cancelled=true; }; 
   },[availableRooms,salaId]);
-  useEffect(()=>{ setOtherRooms(prev=> prev.filter(r=> r.id !== salaId)); },[salaId]);
   useEffect(()=>{ const onKey=e=>{ if(e.key.toLowerCase()==='l') setShowQuickList(s=>!s); }; window.addEventListener('keydown',onKey,{capture:true}); return ()=> window.removeEventListener('keydown',onKey,{capture:true}); },[]);
   return (<><div className="gallery-container absolute top-0 left-0 w-full h-full bg-black">
     <Canvas camera={{ position:[0, WALL_HEIGHT/2, 5], fov:75 }} shadows>
@@ -282,7 +420,7 @@ export default function GalleryRoom({ salaId=1, murales=[], layout=[], scene=nul
       {scene?.volumetricFog?.enabled && <VolumetricFog config={scene.volumetricFog} />}
       <Room passedInitialWall={passedInitialWall} setSelectedArtwork={handleSelectArtwork} selectedArtwork={selectedArtwork} showList={false} showCollection={false} showInstructions={showInstructions} artworks={validArtworks} artworkPositions={artworkPositions} galleryDimensions={galleryDimensions} layoutItems={effectiveLayout} scene={scene} salaTextures={{ pared:texturaPared, piso:texturaPiso }} />
       <CameraZoomControls />
-      <CameraFocusControls focusArtwork={focusArtwork} layoutItems={effectiveLayout} artworks={validArtworks} focusTrigger={focusTrigger} />
+      <CameraFocusControls focusArtwork={focusArtwork} layoutItems={effectiveLayout} artworks={validArtworks} focusTrigger={focusTrigger} galleryDimensions={galleryDimensions} />
       <PlayerControls onPassInitialWall={()=> setPassedInitialWall(true)} FIRST_X={galleryDimensions.firstX} LAST_X={galleryDimensions.lastX} WALL_MARGIN_INITIAL={galleryDimensions.wallMarginInitial} WALL_MARGIN_FINAL={galleryDimensions.wallMarginFinal} onReachEnd={handleReachEnd} />
       <ManualLookControls />
       {!isMuted && <BackGroundSound url={scene?.audioZones?.[0]?.trackUrl || "/assets/audio.mp3"} />}
