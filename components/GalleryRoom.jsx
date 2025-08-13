@@ -41,7 +41,8 @@ const RoomSelectorModal = dynamic(
 
 const FLOOR_TEXTURE_ALIAS = {
   wood: "/assets/textures/WoodFloor003_1K-JPG/WoodFloor003_1K-JPG_Color.jpg",
-  marble: "/assets/textures/MarbleTiles099_1K-JPG/MarbleTiles099_1K-JPG_Color.jpg",
+  marble:
+    "/assets/textures/MarbleTiles099_1K-JPG/MarbleTiles099_1K-JPG_Color.jpg",
   parquet: "/assets/textures/WoodFloor003_1K-JPG/WoodFloor003_1K-JPG_Color.jpg",
 };
 
@@ -131,11 +132,13 @@ function Picture({
       onPointerOut={() => setHovered(false)}
     >
       {/* Glow mejorado: dos capas al frente del cuadro para asegurar visibilidad */}
-      <group renderOrder={-1}> {/* Mantener detrás del marco pero delante de la pared */}
+      <group renderOrder={-1}>
+        {" "}
+        {/* Mantener detrás del marco pero delante de la pared */}
         <mesh position={[0, 0, 0.006]} visible={glowOpacity > 0}>
           <planeGeometry args={[w + thickness * 2.6, h + thickness * 2.6]} />
           <meshBasicMaterial
-            color={selected ? '#ffddaa' : '#ffc766'}
+            color={selected ? "#ffddaa" : "#ffc766"}
             transparent
             opacity={glowOpacity * 0.7}
             blending={THREE.AdditiveBlending}
@@ -145,7 +148,7 @@ function Picture({
         <mesh position={[0, 0, 0.004]} visible={glowOpacity > 0}>
           <planeGeometry args={[w + thickness * 1.8, h + thickness * 1.8]} />
           <meshBasicMaterial
-            color={selected ? '#ffe7c2' : '#ffd9a8'}
+            color={selected ? "#ffe7c2" : "#ffd9a8"}
             transparent
             opacity={glowOpacity}
             blending={THREE.AdditiveBlending}
@@ -226,7 +229,7 @@ function Picture({
         intensity={hovered || selected ? 1.55 : 1.05}
         distance={4.4}
         decay={2}
-        color={selected ? '#ffe1b0' : '#ffd5a1'}
+        color={selected ? "#ffe1b0" : "#ffd5a1"}
       />
       {showPlaque && !selectedArtwork && (
         <Html
@@ -585,7 +588,10 @@ function Room({
             />
           ))
         : artworks.map((art, i) => {
-            const sp = slotPositions[i] || { position: [0, 1.5, 0], rotation: [0, 0, 0] };
+            const sp = slotPositions[i] || {
+              position: [0, 1.5, 0],
+              rotation: [0, 0, 0],
+            };
             return (
               <Picture
                 key={art.id || i}
@@ -617,6 +623,85 @@ function Room({
   );
 }
 
+function VolumetricFog({ config }) {
+  const { scene, camera } = useThree();
+  const color = config?.color || config?.fogColor || "#ffffff";
+  const density = config?.density || config?.fogDensity || 0.018;
+  const height = config?.height || 6;
+  const enabled = config?.enabled;
+  useEffect(() => {
+    if (!enabled) {
+      scene.fog = null;
+      return;
+    }
+    scene.fog = new THREE.FogExp2(color, density);
+    return () => {
+      if (scene.fog && scene.fog.isFogExp2) scene.fog = null;
+    };
+  }, [enabled, color, density, scene]);
+  useFrame(() => {
+    if (!enabled || !scene.fog) return;
+    // Ajustar densidad según altura cámara para sensación volumétrica simple
+    const base = density;
+    const hFactor = THREE.MathUtils.clamp(camera.position.y / height, 0, 1);
+    scene.fog.density = base * (0.6 + hFactor * 0.7); // más denso arriba ligeramente
+  });
+  return null;
+}
+
+function CameraFocusControls({
+  selectedArtwork,
+  layoutItems,
+  artworks,
+  focusTrigger,
+}) {
+  const { camera } = useThree();
+  const animRef = useRef(null);
+  const startRef = useRef(null);
+  const targetRef = useRef(null);
+  const duration = 0.8;
+  const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+  const findArtworkWorld = useCallback(
+    (art) => {
+      if (!art) return null;
+      // Buscar en layoutItems
+      if (layoutItems && layoutItems.length) {
+        const li = layoutItems.find((l) => l.mural?.id === art.id);
+        if (li)
+          return { x: li.pos?.x ?? 0, y: li.pos?.y ?? 2.1, z: li.pos?.z ?? 0 };
+      }
+      // Fallback: index en artworks para slot horizontal
+      const idx = artworks.findIndex((a) => a.id === art.id);
+      if (idx >= 0) return { x: (idx - artworks.length / 2) * 4, y: 2, z: 0 };
+      return null;
+    },
+    [layoutItems, artworks]
+  );
+  useEffect(() => {
+    if (!selectedArtwork || focusTrigger === 0) return;
+    const pos = findArtworkWorld(selectedArtwork);
+    if (!pos) return;
+    startRef.current = camera.position.clone();
+    targetRef.current = new THREE.Vector3(
+      pos.x,
+      camera.position.y,
+      camera.position.z * 0.6
+    ); // acercar un poco
+    animRef.current = { t: 0 };
+  }, [selectedArtwork, focusTrigger, findArtworkWorld, camera]);
+  useFrame((_, delta) => {
+    if (!animRef.current || !targetRef.current || !startRef.current) return;
+    animRef.current.t += delta / duration;
+    const t = Math.min(1, animRef.current.t);
+    const k = easeOutCubic(t);
+    camera.position.lerpVectors(startRef.current, targetRef.current, k);
+    if (t >= 1) {
+      animRef.current = null;
+    }
+  });
+  return null;
+}
+
 function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
   const modalRef = useRef(null);
   const [isInCollection, setIsInCollection] = useState(false);
@@ -625,7 +710,13 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const imageContainerRef = useRef(null);
-  const dragState = useRef({ active: false, startX: 0, startY: 0, baseX: 0, baseY: 0 });
+  const dragState = useRef({
+    active: false,
+    startX: 0,
+    startY: 0,
+    baseX: 0,
+    baseY: 0,
+  });
   const containerSize = useRef({ w: 0, h: 0 });
   const clampZoom = (v) => Math.min(4, Math.max(0.5, v));
 
@@ -639,14 +730,15 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
   useEffect(() => {
     const el = imageContainerRef.current;
     if (!el) return;
-    el.addEventListener('wheel', handleWheel, { passive: false });
-    return () => el.removeEventListener('wheel', handleWheel);
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
   }, [handleWheel]);
 
   const zoomIn = () => setZoom((z) => clampZoom(z * 1.2));
   const zoomOut = () => setZoom((z) => clampZoom(z / 1.2));
   const resetZoom = () => setZoom(1);
-  const handleSlider = (e) => setZoom(clampZoom(parseInt(e.target.value, 10) / 100));
+  const handleSlider = (e) =>
+    setZoom(clampZoom(parseInt(e.target.value, 10) / 100));
 
   useEffect(() => {
     setIsInCollection(
@@ -672,19 +764,26 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
         setTimeout(() => setCollectionMessage(""), 3000);
         return;
       }
-
       setIsUpdating(true);
       try {
+        const muralId = artwork.id;
+        if (!muralId) throw new Error("Sin muralId");
         if (isInCollection) {
-          await removeFromPersonalCollection(artwork);
+          await fetch(`/api/usuarios/${userId}/collection`, {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ muralId }),
+          });
           setCollectionMessage("🗑️ Removido de tu colección");
         } else {
-          await addToPersonalCollection(artwork);
+          await fetch(`/api/usuarios/${userId}/collection`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ muralId }),
+          });
           setCollectionMessage("✅ ¡Añadido a tu colección!");
         }
-        if (onCollectionUpdate?.update) {
-          onCollectionUpdate.update();
-        }
+        if (onCollectionUpdate?.update) onCollectionUpdate.update();
       } catch (error) {
         console.error("Error updating collection:", error);
         setCollectionMessage("❌ Error al actualizar");
@@ -703,17 +802,23 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
   }, []);
   useEffect(() => {
     updateBounds();
-    window.addEventListener('resize', updateBounds);
-    return () => window.removeEventListener('resize', updateBounds);
+    window.addEventListener("resize", updateBounds);
+    return () => window.removeEventListener("resize", updateBounds);
   }, [updateBounds]);
 
-  const clampPan = useCallback((x, y) => {
-    if (zoom <= 1) return { x: 0, y: 0 };
-    const { w, h } = containerSize.current;
-    const maxX = (w * (zoom - 1)) / 2;
-    const maxY = (h * (zoom - 1)) / 2;
-    return { x: Math.max(-maxX, Math.min(maxX, x)), y: Math.max(-maxY, Math.min(maxY, y)) };
-  }, [zoom]);
+  const clampPan = useCallback(
+    (x, y) => {
+      if (zoom <= 1) return { x: 0, y: 0 };
+      const { w, h } = containerSize.current;
+      const maxX = (w * (zoom - 1)) / 2;
+      const maxY = (h * (zoom - 1)) / 2;
+      return {
+        x: Math.max(-maxX, Math.min(maxX, x)),
+        y: Math.max(-maxY, Math.min(maxY, y)),
+      };
+    },
+    [zoom]
+  );
 
   const onPointerDown = (e) => {
     if (zoom <= 1) return;
@@ -729,22 +834,29 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
     if (!dragState.current.active) return;
     const dx = e.clientX - dragState.current.startX;
     const dy = e.clientY - dragState.current.startY;
-    const next = clampPan(dragState.current.baseX + dx, dragState.current.baseY + dy);
+    const next = clampPan(
+      dragState.current.baseX + dx,
+      dragState.current.baseY + dy
+    );
     setPan(next);
   };
-  const endDrag = () => { dragState.current.active = false; };
+  const endDrag = () => {
+    dragState.current.active = false;
+  };
   useEffect(() => {
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', endDrag);
-    window.addEventListener('pointerleave', endDrag);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", endDrag);
+    window.addEventListener("pointerleave", endDrag);
     return () => {
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', endDrag);
-      window.removeEventListener('pointerleave', endDrag);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", endDrag);
+      window.removeEventListener("pointerleave", endDrag);
     };
   }, [onPointerMove]);
 
-  useEffect(() => { if (zoom <= 1) setPan({ x: 0, y: 0 }); }, [zoom]);
+  useEffect(() => {
+    if (zoom <= 1) setPan({ x: 0, y: 0 });
+  }, [zoom]);
 
   if (!artwork) return null;
 
@@ -771,24 +883,41 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
             onClick={onClose}
             className="absolute top-3 right-3 px-3 py-2 rounded-lg bg-slate-700/70 hover:bg-slate-600/80 text-sm backdrop-blur-md shadow"
             aria-label="Cerrar"
-          >✕</button>
+          >
+            ✕
+          </button>
           <div className="md:w-5/12 w-full p-6 flex flex-col justify-between gap-5">
             <div className="space-y-4">
               <h2 className="text-3xl font-bold leading-tight bg-gradient-to-r from-amber-300 via-amber-200 to-amber-400 text-transparent bg-clip-text drop-shadow-sm">
                 {artwork.title}
               </h2>
-              <h3 className="text-lg font-semibold text-amber-200/90">{artwork.artist} ({artwork.year})</h3>
+              <h3 className="text-lg font-semibold text-amber-200/90">
+                {artwork.artist} ({artwork.year})
+              </h3>
               <div className="flex flex-wrap gap-2 text-[11px] tracking-wide uppercase text-slate-300">
-                <span className="px-2 py-1 rounded bg-slate-800/60 border border-slate-600/40">{artwork.technique}</span>
-                <span className="px-2 py-1 rounded bg-slate-800/60 border border-slate-600/40">{artwork.dimensions}</span>
+                <span className="px-2 py-1 rounded bg-slate-800/60 border border-slate-600/40">
+                  {artwork.technique}
+                </span>
+                <span className="px-2 py-1 rounded bg-slate-800/60 border border-slate-600/40">
+                  {artwork.dimensions}
+                </span>
               </div>
               <div className="h-px bg-gradient-to-r from-transparent via-slate-600 to-transparent" />
-              <p className="text-slate-300/90 text-sm leading-relaxed max-h-48 overflow-y-auto pr-1 custom-scroll">{artwork.description}</p>
+              <p className="text-slate-300/90 text-sm leading-relaxed max-h-48 overflow-y-auto pr-1 custom-scroll">
+                {artwork.description}
+              </p>
             </div>
             <div className="space-y-4">
               <div className="flex items-center justify-between text-xs text-slate-400">
-                <span>Zoom: {(zoom * 100).toFixed(0)}% {zoom > 1 && '(Rueda y arrastra)'}</span>
-                {collectionMessage && <span className="text-amber-300 font-medium">{collectionMessage}</span>}
+                <span>
+                  Zoom: {(zoom * 100).toFixed(0)}%{" "}
+                  {zoom > 1 && "(Rueda y arrastra)"}
+                </span>
+                {collectionMessage && (
+                  <span className="text-amber-300 font-medium">
+                    {collectionMessage}
+                  </span>
+                )}
               </div>
               <input
                 type="range"
@@ -803,17 +932,23 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
                   onClick={zoomOut}
                   className="flex-1 py-2 rounded-lg bg-slate-800/70 hover:bg-slate-700/80 text-sm"
                   aria-label="Alejar"
-                >−</button>
+                >
+                  −
+                </button>
                 <button
                   onClick={resetZoom}
                   className="flex-1 py-2 rounded-lg bg-slate-800/70 hover:bg-slate-700/80 text-sm"
                   aria-label="Reset Zoom"
-                >Reset</button>
+                >
+                  Reset
+                </button>
                 <button
                   onClick={zoomIn}
                   className="flex-1 py-2 rounded-lg bg-slate-800/70 hover:bg-slate-700/80 text-sm"
                   aria-label="Acercar"
-                >＋</button>
+                >
+                  ＋
+                </button>
               </div>
               <div className="flex gap-2">
                 <button
@@ -821,28 +956,44 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
                   disabled={isUpdating}
                   className={`flex-1 py-3 px-4 rounded-lg font-semibold text-sm transition-all duration-300 flex items-center justify-center gap-2 shadow-inner ${
                     isUpdating
-                      ? 'bg-slate-600 cursor-not-allowed'
+                      ? "bg-slate-600 cursor-not-allowed"
                       : isInCollection
-                        ? 'bg-red-600/80 hover:bg-red-600 text-white'
-                        : 'bg-amber-400 hover:bg-amber-500 text-black'
+                        ? "bg-red-600/80 hover:bg-red-600 text-white"
+                        : "bg-amber-400 hover:bg-amber-500 text-black"
                   }`}
                 >
-                  {isUpdating ? 'Guardando...' : isInCollection ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+                  {isUpdating
+                    ? "Guardando..."
+                    : isInCollection
+                      ? "Quitar de favoritos"
+                      : "Añadir a favoritos"}
                 </button>
                 <button
-                  onClick={() => navigator?.clipboard?.writeText(window.location.href).catch(()=>{})}
+                  onClick={() =>
+                    navigator?.clipboard
+                      ?.writeText(window.location.href)
+                      .catch(() => {})
+                  }
                   className="px-4 rounded-lg bg-slate-800/70 hover:bg-slate-700/80 text-sm"
-                >Compartir</button>
+                >
+                  Compartir
+                </button>
               </div>
             </div>
           </div>
           <div
             ref={imageContainerRef}
-            className={`md:w-7/12 w-full relative bg-slate-950/70 overflow-hidden group rounded-l-2xl md:rounded-l-none md:rounded-r-2xl select-none ${zoom>1 ? 'cursor-grab' : 'cursor-zoom-in'}`}
+            className={`md:w-7/12 w-full relative bg-slate-950/70 overflow-hidden group rounded-l-2xl md:rounded-l-none md:rounded-r-2xl select-none ${zoom > 1 ? "cursor-grab" : "cursor-zoom-in"}`}
             onPointerDown={onPointerDown}
           >
             <div
-              style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`, transition: dragState.current.active ? 'none' : 'transform 0.25s ease', transformOrigin: 'center center' }}
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transition: dragState.current.active
+                  ? "none"
+                  : "transform 0.25s ease",
+                transformOrigin: "center center",
+              }}
               className="w-full h-full flex items-center justify-center p-4"
             >
               <img
@@ -852,7 +1003,9 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) {
                 draggable={false}
               />
             </div>
-            {dragState.current.active && <div className="absolute inset-0 cursor-grabbing" />}
+            {dragState.current.active && (
+              <div className="absolute inset-0 cursor-grabbing" />
+            )}
             <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-slate-700/40" />
           </div>
         </motion.div>
@@ -867,32 +1020,64 @@ function EndOfHallModal({ open, onClose, rooms = [], onSelectRoom, onExit }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
       <div className="w-full max-w-lg bg-slate-900/95 border border-slate-700 rounded-xl shadow-xl p-6 flex flex-col gap-5">
         <div className="flex items-start justify-between">
-          <h2 className="text-xl font-semibold text-amber-300">Fin de la sala</h2>
-          <button onClick={onClose} className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-sm">✕</button>
+          <h2 className="text-xl font-semibold text-amber-300">
+            Fin de la sala
+          </h2>
+          <button
+            onClick={onClose}
+            className="px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 text-sm"
+          >
+            ✕
+          </button>
         </div>
-        <p className="text-slate-300 text-sm">Has llegado al final. ¿A dónde quieres ir?</p>
+        <p className="text-slate-300 text-sm">
+          Has llegado al final. ¿A dónde quieres ir?
+        </p>
         <div className="flex flex-col gap-3 max-h-60 overflow-y-auto pr-1">
-          {rooms && rooms.length > 0 ? rooms.map((r) => (
-            <button
-              key={r.id}
-              onClick={() => onSelectRoom && onSelectRoom(r)}
-              className="text-left px-4 py-3 rounded-lg bg-slate-800/70 hover:bg-slate-700/80 transition flex justify-between items-center"
-            >
-              <span className="font-medium text-slate-200">{r.nombre || r.name || `Sala ${r.id}`}</span>
-              <span className="text-xs text-amber-300">Ingresar →</span>
-            </button>
-          )) : <div className="text-slate-500 text-sm">No hay otras salas disponibles.</div>}
+          {rooms && rooms.length > 0 ? (
+            rooms.map((r) => (
+              <button
+                key={r.id}
+                onClick={() => onSelectRoom && onSelectRoom(r)}
+                className="text-left px-4 py-3 rounded-lg bg-slate-800/70 hover:bg-slate-700/80 transition flex justify-between items-center"
+              >
+                <span className="font-medium text-slate-200">
+                  {r.nombre || r.name || `Sala ${r.id}`}
+                </span>
+                <span className="text-xs text-amber-300">Ingresar →</span>
+              </button>
+            ))
+          ) : (
+            <div className="text-slate-500 text-sm">
+              No hay otras salas disponibles.
+            </div>
+          )}
         </div>
         <div className="flex gap-3 pt-2">
-          <button onClick={onExit} className="flex-1 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 font-semibold text-black text-sm">Salir</button>
-          <button onClick={onClose} className="flex-1 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm">Cerrar</button>
+          <button
+            onClick={onExit}
+            className="flex-1 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 font-semibold text-black text-sm"
+          >
+            Salir
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm"
+          >
+            Cerrar
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function CameraZoomControls({ minFov = 45, maxFov = 90, zoomSpeed = 0.08, smooth = 0.15 }) {
+function CameraZoomControls({
+  minFov = 45,
+  maxFov = 90,
+  zoomSpeed = 0.08,
+  smooth = 0.15,
+}) {
   const { camera, gl } = useThree();
   const targetFovRef = useRef(camera.fov);
   useEffect(() => {
@@ -902,12 +1087,14 @@ function CameraZoomControls({ minFov = 45, maxFov = 90, zoomSpeed = 0.08, smooth
       // Evitar que el scroll accidental haga scroll de la página externa
       e.preventDefault();
       const delta = e.deltaY; // positivo alejando, negativo acercando
-      const next = targetFovRef.current + (delta > 0 ? 1 : -1) * (Math.abs(delta) * zoomSpeed);
+      const next =
+        targetFovRef.current +
+        (delta > 0 ? 1 : -1) * (Math.abs(delta) * zoomSpeed);
       targetFovRef.current = THREE.MathUtils.clamp(next, minFov, maxFov);
     };
     const el = gl.domElement;
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
   }, [gl, minFov, maxFov, zoomSpeed]);
   useFrame(() => {
     if (Math.abs(camera.fov - targetFovRef.current) > 0.01) {
@@ -936,15 +1123,21 @@ export default function GalleryRoom({
   const [passedInitialWall, setPassedInitialWall] = useState(false);
   const [showRoomSelector, setShowRoomSelector] = useState(false);
   const [showEndModal, setShowEndModal] = useState(false);
-  const [otherRooms, setOtherRooms] = useState(() => availableRooms.filter(r => r.id !== salaId));
+  const [otherRooms, setOtherRooms] = useState(() =>
+    availableRooms.filter((r) => r.id !== salaId)
+  );
   const roomsFetchedRef = useRef(false); // fetch único
 
   const { isMuted } = useSound();
   const [personalCollection, setPersonalCollection] = useState([]);
+  const focusTriggerRef = useRef(0);
+  const [focusTrigger, setFocusTrigger] = useState(0);
+  const [showQuickList, setShowQuickList] = useState(false);
 
+  // Actualizar colección usando userId real
   const fetchCollection = useCallback(async () => {
     if (userId) {
-      const collection = await getPersonalCollection();
+      const collection = await getPersonalCollection(userId);
       setPersonalCollection(collection);
     }
   }, [userId]);
@@ -1035,11 +1228,11 @@ export default function GalleryRoom({
   };
   const handleExit = () => {
     setShowEndModal(false);
-    if (typeof window !== 'undefined') window.location.href = '/museo';
+    if (typeof window !== "undefined") window.location.href = "/museo";
   };
   const handleReachEnd = useCallback(() => {
     // Mostrar siempre que llegue al final y no esté ya visible
-    setShowEndModal((open) => open ? open : true);
+    setShowEndModal((open) => (open ? open : true));
   }, []);
   const handleCloseEndModal = () => {
     setShowEndModal(false); // permitir que vuelva a salir al regresar y avanzar de nuevo
@@ -1052,11 +1245,15 @@ export default function GalleryRoom({
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/salas');
+        const res = await fetch("/api/salas");
         if (!res.ok) return;
         const data = await res.json();
         if (cancelled) return;
-        const fetched = Array.isArray(data) ? data : (Array.isArray(data?.salas) ? data.salas : []);
+        const fetched = Array.isArray(data)
+          ? data
+          : Array.isArray(data?.salas)
+            ? data.salas
+            : [];
         const merged = [...availableRooms, ...fetched];
         const unique = [];
         const seen = new Set();
@@ -1065,23 +1262,46 @@ export default function GalleryRoom({
           seen.add(r.id);
           unique.push(r);
         }
-        setOtherRooms(unique.filter(r => r.id !== salaId));
+        setOtherRooms(unique.filter((r) => r.id !== salaId));
       } catch (e) {
         // silencioso
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []); // solo en mount
   // Re-filtrar si cambia salaId para excluir sala actual sin refetch
   useEffect(() => {
-    setOtherRooms(prev => prev.filter(r => r.id !== salaId));
+    setOtherRooms((prev) => prev.filter((r) => r.id !== salaId));
   }, [salaId]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key.toLowerCase() === "f") {
+        if (selectedArtwork) {
+          focusTriggerRef.current++;
+        }
+      } else if (e.key.toLowerCase() === "m") {
+        setShowRoomSelector((s) => !s);
+      } else if (e.key.toLowerCase() === "l") {
+        // lista rápida de obras
+        setShowQuickList((s) => !s);
+      }
+    };
+    window.addEventListener("keydown", onKey, { capture: true });
+    return () =>
+      window.removeEventListener("keydown", onKey, { capture: true });
+  }, [selectedArtwork]);
 
   return (
     <>
       <div className="gallery-container absolute top-0 left-0 w-full h-full bg-black">
         <Canvas camera={{ position: [0, WALL_HEIGHT / 2, 5], fov: 75 }} shadows>
           {scene?.fog && <SceneFog fog={scene.fog} />}
+          {scene?.volumetricFog?.enabled && (
+            <VolumetricFog config={scene.volumetricFog} />
+          )}
           <Room
             passedInitialWall={passedInitialWall}
             setSelectedArtwork={handleSelectArtwork}
@@ -1097,6 +1317,12 @@ export default function GalleryRoom({
             salaTextures={{ pared: texturaPared, piso: texturaPiso }}
           />
           <CameraZoomControls />
+          <CameraFocusControls
+            selectedArtwork={selectedArtwork}
+            layoutItems={effectiveLayout}
+            artworks={validArtworks}
+            focusTrigger={focusTrigger}
+          />
           <PlayerControls
             onPassInitialWall={() => setPassedInitialWall(true)}
             FIRST_X={galleryDimensions.firstX}
@@ -1132,6 +1358,34 @@ export default function GalleryRoom({
           onSelectRoom={handleSelectRoom}
           onExit={handleExit}
         />
+        {showQuickList && (
+          <div className="absolute top-4 left-4 z-50 bg-slate-900/85 backdrop-blur border border-slate-700 rounded-xl p-4 max-h-[70vh] overflow-y-auto w-64 text-sm space-y-2">
+            <div className="flex justify-between items-center mb-2">
+              <span className="font-semibold text-amber-300">Obras</span>
+              <button
+                className="text-xs text-slate-400 hover:text-amber-300"
+                onClick={() => setShowQuickList(false)}
+              >
+                Cerrar
+              </button>
+            </div>
+            {validArtworks.map((a) => (
+              <button
+                key={a.id}
+                onClick={() => {
+                  setSelectedArtwork(a);
+                  setFocusTrigger((v) => v + 1);
+                }}
+                className={`block w-full text-left px-2 py-1 rounded hover:bg-slate-800/60 ${selectedArtwork?.id === a.id ? "bg-slate-800/80 text-amber-300" : ""}`}
+              >
+                {a.title}
+              </button>
+            ))}
+            <div className="text-[10px] text-slate-500 pt-1">
+              Atajos: F centrar, M salas, L lista
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
