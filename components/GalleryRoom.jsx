@@ -299,7 +299,8 @@ function ZoomModal({ artwork, onClose, onCollectionUpdate, userId }) { const mod
 }
 
 function EndOfHallModal({ open, onClose, rooms=[], onSelectRoom, onExit }) { 
-  console.log('[EndOfHallModal] Rendering with rooms:', rooms);
+  console.log('[EndOfHallModal] Rendering with rooms:', rooms?.length || 0, rooms);
+  
   if(!open) return null; 
   
   return <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"> 
@@ -310,33 +311,52 @@ function EndOfHallModal({ open, onClose, rooms=[], onSelectRoom, onExit }) {
       </div>
       <p className="text-slate-300 text-sm">Has llegado al final. ¿A dónde quieres ir?</p>
       
+      {/* Debug info - remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="text-xs text-gray-500 bg-gray-800 p-2 rounded">
+          Debug: {rooms?.length || 0} salas disponibles
+        </div>
+      )}
+      
       <div className="flex flex-col gap-3 max-h-60 overflow-y-auto pr-1">
-        {rooms.length > 0 ? (
+        {rooms && rooms.length > 0 ? (
           rooms.map(r=> (
             <button 
               key={r.id} 
               onClick={()=>onSelectRoom&&onSelectRoom(r)} 
-              className="text-left px-4 py-3 rounded-lg bg-slate-800/70 hover:bg-slate-700/80 flex justify-between items-center"
+              className="text-left px-4 py-3 rounded-lg bg-slate-800/70 hover:bg-slate-700/80 flex justify-between items-center transition-colors"
             >
               <div className="flex flex-col">
                 <span className="font-medium text-slate-200">{r.nombre||r.name||`Sala ${r.id}`}</span>
-                {r.descripcion && <span className="text-xs text-slate-400">{r.descripcion.substring(0, 60)}...</span>}
-                {r._count?.murales > 0 && <span className="text-xs text-amber-400">{r._count.murales} obras</span>}
+                {r.descripcion && <span className="text-xs text-slate-400 mt-1">{r.descripcion.substring(0, 60)}{r.descripcion.length > 60 ? '...' : ''}</span>}
+                {r._count?.murales > 0 && <span className="text-xs text-amber-400 mt-1">{r._count.murales} obras</span>}
               </div>
               <span className="text-xs text-amber-300">Ingresar →</span>
             </button>
           ))
         ) : (
-          <div className="text-slate-500 text-sm">
-            <p>No hay otras salas disponibles.</p>
-            <p className="text-xs mt-1">Total de salas encontradas: {rooms.length}</p>
+          <div className="text-slate-500 text-sm text-center py-4">
+            <p className="mb-2">🏛️ No hay otras salas disponibles en este momento.</p>
+            <p className="text-xs text-slate-600">
+              {rooms === null ? 'Cargando salas...' : `Salas encontradas: ${rooms?.length || 0}`}
+            </p>
           </div>
         )}
       </div>
       
       <div className="flex gap-3 pt-2">
-        <button onClick={onExit} className="flex-1 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 font-semibold text-black text-sm">Salir</button>
-        <button onClick={onClose} className="flex-1 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm">Cerrar</button>
+        <button 
+          onClick={onExit} 
+          className="flex-1 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 font-semibold text-black text-sm transition-colors"
+        >
+          🏠 Volver al inicio
+        </button>
+        <button 
+          onClick={onClose} 
+          className="flex-1 py-3 rounded-lg bg-slate-700 hover:bg-slate-600 text-sm transition-colors"
+        >
+          Continuar aquí
+        </button>
       </div>
     </div>
   </div>; 
@@ -347,6 +367,11 @@ function CameraZoomControls({ minFov=45, maxFov=90, zoomSpeed=0.08, smooth=0.15 
 export default function GalleryRoom({ salaId=1, murales=[], layout=[], scene=null, texturaPared=null, texturaPiso=null, onRoomChange, availableRooms=[] }) {
   const { data: session } = useSession(); const userId = session?.user?.id;
   const [selectedArtwork,setSelectedArtwork]=useState(null); const [showInstructions,setShowInstructions]=useState(true); const [passedInitialWall,setPassedInitialWall]=useState(false); const [showEndModal,setShowEndModal]=useState(false); const [otherRooms,setOtherRooms]=useState(()=> availableRooms.filter(r=> r.id !== salaId)); const roomsFetchedRef=useRef(false);
+  
+  // Debug para ver cambios en otherRooms
+  useEffect(() => {
+    console.log('[EndOfHallModal] otherRooms state changed:', otherRooms?.length || 0, otherRooms);
+  }, [otherRooms]);
   const { isMuted } = useSound(); const [personalCollection,setPersonalCollection]=useState([]);
   const [focusArtwork,setFocusArtwork]=useState(null); const [focusTrigger,setFocusTrigger]=useState(0); const [showQuickList,setShowQuickList]=useState(false);
   const fetchCollection=useCallback(async()=>{ if(userId){ const collection=await getPersonalCollection(userId); setPersonalCollection(collection); } },[userId]);
@@ -365,54 +390,95 @@ export default function GalleryRoom({ salaId=1, murales=[], layout=[], scene=nul
   useEffect(()=>{ 
     if(roomsFetchedRef.current) return; 
     roomsFetchedRef.current=true; 
-    let cancelled=false; 
-    (async()=>{ 
+    
+    const fetchRooms = async()=>{ 
       try{ 
         console.log('[EndOfHallModal] Fetching salas from API...');
-        const res= await fetch('/api/salas',{ cache:'no-store' }); 
-        if(!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`); 
-        const data = await res.json(); 
-        console.log('[EndOfHallModal] API response:', data);
-        if(cancelled) return; 
+        const res = await fetch('/api/salas', { 
+          cache: 'no-store',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }); 
         
-        // Extraer salas correctamente de la respuesta
+        if(!res.ok) {
+          console.error(`[EndOfHallModal] API Error: ${res.status} ${res.statusText}`);
+          return;
+        }
+        
+        const data = await res.json(); 
+        console.log('[EndOfHallModal] Raw API response:', data);
+        console.log('[EndOfHallModal] data.salas exists?', data && data.salas);
+        console.log('[EndOfHallModal] data.salas is array?', Array.isArray(data?.salas));
+        
+        console.log('[EndOfHallModal] About to extract rooms...');
+        
+        // Extraer salas de la respuesta de la API
         let fetchedRooms = [];
-        if (Array.isArray(data)) {
-          fetchedRooms = data;
-        } else if (data && Array.isArray(data.salas)) {
+        if (data && Array.isArray(data.salas)) {
+          console.log('[EndOfHallModal] Using data.salas path');
           fetchedRooms = data.salas;
+        } else if (Array.isArray(data)) {
+          console.log('[EndOfHallModal] Using direct array path');
+          fetchedRooms = data;
         } else {
-          console.warn('[EndOfHallModal] Formato de respuesta inesperado:', data);
+          console.warn('[EndOfHallModal] Formato de respuesta inesperado:', typeof data, data);
           fetchedRooms = [];
         }
         
-        console.log('[EndOfHallModal] Salas extraídas:', fetchedRooms);
+        console.log('[EndOfHallModal] fetchedRooms after extraction:', fetchedRooms?.length || 0);
+        console.log('[EndOfHallModal] Salas extraídas:', fetchedRooms.length, fetchedRooms);
         console.log('[EndOfHallModal] Current salaId:', salaId, 'Type:', typeof salaId);
-        const merged=[...availableRooms,...fetchedRooms]; 
-        const unique=[]; 
-        const seen=new Set(); 
-        for(const r of merged){ 
-          if(!r || r.id==null || seen.has(r.id)) continue; 
-          seen.add(r.id); 
-          unique.push(r); 
-        } 
-        console.log('[EndOfHallModal] Salas únicas antes del filtro:', unique);
-        // Filtrar la sala actual correctamente
-        const finalRooms = unique.filter(r=> {
-          const roomId = String(r.id);
-          const currentSalaId = String(salaId);
-          const shouldInclude = roomId !== currentSalaId;
-          console.log(`[EndOfHallModal] Sala ${roomId} vs current ${currentSalaId} -> include: ${shouldInclude}`);
+        
+        // Combinar con availableRooms y eliminar duplicados
+        const allRooms = [...(availableRooms || []), ...fetchedRooms]; 
+        console.log('[EndOfHallModal] All rooms before dedup:', allRooms.length);
+        
+        const uniqueRooms = allRooms.reduce((acc, room) => {
+          if (!room || room.id == null) {
+            console.log('[EndOfHallModal] Skipping invalid room:', room);
+            return acc;
+          }
+          
+          const existingIndex = acc.findIndex(r => r.id === room.id);
+          if (existingIndex === -1) {
+            acc.push(room);
+            console.log('[EndOfHallModal] Added unique room:', room.id, room.nombre);
+          } else {
+            console.log('[EndOfHallModal] Skipping duplicate room:', room.id);
+          }
+          return acc;
+        }, []);
+        
+        console.log('[EndOfHallModal] Unique rooms:', uniqueRooms.length, uniqueRooms.map(r => ({id: r.id, nombre: r.nombre})));
+        
+        // Filtrar la sala actual
+        const currentSalaIdNum = Number(salaId);
+        const filteredRooms = uniqueRooms.filter(room => {
+          const roomIdNum = Number(room.id);
+          const shouldInclude = roomIdNum !== currentSalaIdNum;
+          console.log(`[EndOfHallModal] Room ${room.id} (${roomIdNum}) vs current ${salaId} (${currentSalaIdNum}) -> include: ${shouldInclude}`);
           return shouldInclude;
         });
-        console.log('[EndOfHallModal] Salas finales para mostrar:', finalRooms);
-        setOtherRooms(finalRooms); 
-      } catch(e){ 
-        console.error('[EndOfHallModal] Error obteniendo salas:',e); 
+        
+        console.log('[EndOfHallModal] Final filtered rooms:', filteredRooms.length, filteredRooms.map(r => ({id: r.id, nombre: r.nombre})));
+        console.log('[EndOfHallModal] About to call setOtherRooms with:', filteredRooms);
+        
+        console.log('[EndOfHallModal] Executing setOtherRooms...');
+        setOtherRooms(filteredRooms); 
+        
+      } catch(error){ 
+        console.error('[EndOfHallModal] Error fetching salas:', error); 
+        // En caso de error, usar solo availableRooms
+        if (availableRooms && availableRooms.length > 0) {
+          const filtered = availableRooms.filter(r => Number(r.id) !== Number(salaId));
+          setOtherRooms(filtered);
+        }
       } 
-    })(); 
-    return ()=>{ cancelled=true; }; 
-  },[availableRooms,salaId]);
+    };
+    
+    fetchRooms();
+  },[salaId]); // Removed availableRooms dependency to prevent re-execution
   useEffect(()=>{ const onKey=e=>{ if(e.key.toLowerCase()==='l') setShowQuickList(s=>!s); }; window.addEventListener('keydown',onKey,{capture:true}); return ()=> window.removeEventListener('keydown',onKey,{capture:true}); },[]);
   return (<><div className="gallery-container absolute top-0 left-0 w-full h-full bg-black">
     <Canvas camera={{ position:[0, WALL_HEIGHT/2, 5], fov:75 }} shadows>
