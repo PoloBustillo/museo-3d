@@ -1,6 +1,5 @@
 import React from "react";
-import { useTexture } from "@react-three/drei";
-import * as THREE from "three";
+import { PBRMaterial } from "../core/PBRMaterial.jsx";
 
 /**
  * Componente especializado para renderizar una pared lateral
@@ -14,20 +13,12 @@ export function WallMesh({
   return (
     <mesh position={position}>
       <boxGeometry args={[dynamicLength, 5, 0.1]} />
-      {wallMaps.color ? (
-        <meshStandardMaterial
-          map={wallMaps.color}
-          normalMap={wallMaps.normal || null}
-          roughnessMap={wallMaps.roughness || null}
-          metalnessMap={wallMaps.metalness || null}
-          aoMap={wallMaps.ao || null}
-          color={wallColor}
-          metalness={wallMaps.metalness ? 0.3 : 0.1}
-          roughness={wallMaps.roughness ? 0.85 : 0.9}
-        />
-      ) : (
-        <meshStandardMaterial color={wallColor} />
-      )}
+      <PBRMaterial 
+        maps={wallMaps} 
+        color={wallColor}
+        metalness={0.3}
+        roughness={0.85}
+      />
     </mesh>
   );
 }

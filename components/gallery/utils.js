@@ -1,4 +1,4 @@
-import { GALLERY_CONFIG } from "./config.js";
+import { GALLERY_CONFIG } from "./core/config.js";
 
 const {
   HALL_WIDTH,

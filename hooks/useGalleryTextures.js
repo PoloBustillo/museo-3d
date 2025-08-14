@@ -1,6 +1,6 @@
 import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
-import { GALLERY_CONFIG } from "../components/gallery/config.js";
+import { GALLERY_CONFIG } from "../components/gallery/core/config.js";
 
 // Mapeo centralizado de texturas
 const TEXTURE_MAP = {
@@ -29,7 +29,7 @@ const configureTexture = (texture, repeat = [2, 2]) => {
 };
 
 // Hook para cargar texturas PBR de manera optimizada
-export function useGalleryTextures(textureUrl, fallbackType = "WALL") {
+export function useGalleryTextures(textureUrl, fallbackType = "WALL", repeat = [2, 2]) {
   // Resolver URL de textura
   const fallback = GALLERY_CONFIG.TEXTURES[fallbackType];
   const extraFallbacks = GALLERY_CONFIG.TEXTURES.FALLBACKS || [];
@@ -44,36 +44,37 @@ export function useGalleryTextures(textureUrl, fallbackType = "WALL") {
   // Intentar cargar mapas PBR
   const maps = {};
   const mapTypes = [
-    "Color",
-    "Normal",
-    "Roughness",
-    "Metalness",
-    "AmbientOcclusion",
+    { key: "color", file: "Color" },
+    { key: "normal", file: "NormalGL" }, // Usar NormalGL en lugar de Normal
+    { key: "roughness", file: "Roughness" },
+    { key: "ao", file: "AmbientOcclusion" },
   ];
 
-  mapTypes.forEach((type) => {
-    const key =
-      type.toLowerCase() === "ambientocclusion" ? "ao" : type.toLowerCase();
+  mapTypes.forEach(({ key, file }) => {
     try {
       if (finalPath) {
-        maps[key] = useTexture(`${finalPath}_${type}.jpg`);
+        maps[key] = useTexture(`${finalPath}_${file}.jpg`);
       }
     } catch (e) {
       // Mapa no disponible - silencioso
+      console.warn(`Texture not found: ${finalPath}_${file}.jpg`);
     }
   });
 
   // Cargar textura de fallback
   let fallbackTexture;
   try {
-    fallbackTexture = useTexture(fallback);
+    if (fallback) {
+      fallbackTexture = useTexture(`${fallback}_Color.jpg`);
+    }
   } catch (e) {
     // Fallback no disponible
+    console.warn(`Fallback texture not found: ${fallback}_Color.jpg`);
   }
 
   // Configurar todas las texturas
-  Object.values(maps).forEach((texture) => configureTexture(texture));
-  configureTexture(fallbackTexture);
+  Object.values(maps).forEach((texture) => configureTexture(texture, repeat));
+  configureTexture(fallbackTexture, repeat);
 
   return {
     maps,

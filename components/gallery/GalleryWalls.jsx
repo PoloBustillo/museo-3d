@@ -1,7 +1,8 @@
 import React from "react";
 import * as THREE from "three";
-import { GALLERY_CONFIG } from "./config.js";
+import { GALLERY_CONFIG } from "./core/config.js";
 import { useGalleryTextures } from "../../hooks/useGalleryTextures.js";
+import { PBRMaterial } from "./core/PBRMaterial.jsx";
 
 const { HALL_WIDTH, CEILING_HEIGHT } = GALLERY_CONFIG;
 
@@ -34,31 +35,19 @@ export function GalleryWalls({
       {/* Pared inicial (entrada) - Con textura seleccionada */}
       <mesh position={[firstX - wallMarginInitial * 0.8, wallHeight / 2, 0]}>
         <boxGeometry args={[0.2, wallHeight, wallWidth]} />
-        {hasTexture ? (
-          <meshStandardMaterial
-            map={maps.color}
-            normalMap={maps.normal || null}
-            roughnessMap={maps.roughness || null}
-            metalnessMap={maps.metalness || null}
-            aoMap={maps.ao || null}
-            color={wallColor}
-            metalness={maps.metalness ? 0.3 : 0.1}
-            roughness={maps.roughness ? 0.85 : 0.9}
-            side={THREE.DoubleSide}
-          />
-        ) : (
-          <meshStandardMaterial
-            map={fallbackTexture}
-            color={wallColor}
-            side={THREE.DoubleSide}
-          />
-        )}
+        <PBRMaterial
+          maps={hasTexture ? maps : { color: fallbackTexture }}
+          color={wallColor}
+          metalness={hasTexture && maps.metalness ? 0.3 : 0.1}
+          roughness={hasTexture && maps.roughness ? 0.85 : 0.9}
+          side={THREE.DoubleSide}
+        />
       </mesh>
 
       {/* Pared final (salida) - Lisa y semi-transparente */}
       <mesh position={[lastX + wallMarginFinal, wallHeight / 2, 0]}>
         <boxGeometry args={[0.2, wallHeight, wallWidth]} />
-        <meshStandardMaterial
+        <PBRMaterial
           color="#f0f0f0"
           side={THREE.DoubleSide}
           transparent={true}

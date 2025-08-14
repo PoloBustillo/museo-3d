@@ -13,14 +13,14 @@ import { useTexture, Html } from "@react-three/drei";
 import * as THREE from "three";
 import { motion, AnimatePresence } from "framer-motion";
 import BackGroundSound from "./BackGroundSound.jsx";
-import { GALLERY_CONFIG } from "./gallery/config.js";
+import { GALLERY_CONFIG } from "./gallery/core/config.js";
 import {
   calculateArtworkPositions,
   calculateGalleryDimensions,
 } from "./gallery/utils.js";
-import { GalleryLighting } from "./gallery/GalleryLighting.jsx";
+import { GalleryLighting } from "./gallery/lighting/GalleryLighting.jsx";
 import { GalleryEnvironment } from "./gallery/GalleryEnvironment.jsx";
-import { GalleryBenches } from "./gallery/GalleryBenches.jsx";
+import { GalleryBenches } from "./gallery/furniture/GalleryBenches.jsx";
 import { GalleryWalls } from "./gallery/GalleryWalls.jsx";
 import { useSound } from "../providers/SoundProvider";
 import dynamic from "next/dynamic";

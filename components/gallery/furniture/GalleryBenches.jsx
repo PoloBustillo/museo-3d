@@ -1,5 +1,6 @@
 import React from 'react';
-import { GALLERY_CONFIG } from './config.js';
+import { GALLERY_CONFIG } from '../core/config.js';
+import { PBRMaterial } from '../core/PBRMaterial.jsx';
 
 const { HALL_WIDTH, HALL_LENGTH } = GALLERY_CONFIG;
 
@@ -14,17 +15,17 @@ function Bench({ position }) {
       {/* Asiento del banco */}
       <mesh position={[0, 0.4, 0]} castShadow receiveShadow>
         <boxGeometry args={[2, 0.1, 0.4]} />
-        <meshStandardMaterial color="#8d6e63" />
+        <PBRMaterial color="#8d6e63" />
       </mesh>
       {/* Pata izquierda */}
       <mesh position={[-0.8, 0.15, 0]} castShadow>
         <boxGeometry args={[0.1, 0.4, 0.1]} />
-        <meshStandardMaterial color="#5d4037" />
+        <PBRMaterial color="#5d4037" />
       </mesh>
       {/* Pata derecha */}
       <mesh position={[0.8, 0.15, 0]} castShadow>
         <boxGeometry args={[0.1, 0.4, 0.1]} />
-        <meshStandardMaterial color="#5d4037" />
+        <PBRMaterial color="#5d4037" />
       </mesh>
     </group>
   );

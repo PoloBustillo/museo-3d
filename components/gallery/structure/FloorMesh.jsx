@@ -1,6 +1,5 @@
 import React from "react";
-import { useTexture } from "@react-three/drei";
-import * as THREE from "three";
+import { PBRMaterial } from "../core/PBRMaterial.jsx";
 
 /**
  * Componente especializado para renderizar el piso de la galería
@@ -19,19 +18,12 @@ export function FloorMesh({
       position={[dynamicCenterX, 0, 0]}
     >
       <planeGeometry args={[dynamicLength, hallWidth]} />
-      {floorMaps.color ? (
-        <meshStandardMaterial
-          map={floorMaps.color}
-          normalMap={floorMaps.normal || null}
-          roughnessMap={floorMaps.roughness || null}
-          metalnessMap={floorMaps.metalness || null}
-          aoMap={floorMaps.ao || null}
-          metalness={floorMaps.metalness ? 0.4 : 0.1}
-          roughness={floorMaps.roughness ? 0.8 : 0.9}
-        />
-      ) : (
-        <meshStandardMaterial color={floorColor} />
-      )}
+      <PBRMaterial 
+        maps={floorMaps} 
+        color={floorColor}
+        metalness={0.2}
+        roughness={0.8}
+      />
     </mesh>
   );
 }

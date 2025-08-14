@@ -1,5 +1,6 @@
 import React from "react";
-import { GALLERY_CONFIG } from "./config.js";
+import { GALLERY_CONFIG } from "../core/config.js";
+import { PBRMaterial } from "../core/PBRMaterial.jsx";
 
 const { CEILING_HEIGHT } = GALLERY_CONFIG;
 
@@ -92,7 +93,7 @@ export function GalleryLighting({
             ]}
           >
             <cylinderGeometry args={[0.25, 0.25, 0.1, 24]} />
-            <meshStandardMaterial color="#FFF" />
+            <PBRMaterial color="#FFF" />
           </mesh>
 
           <pointLight
@@ -115,7 +116,7 @@ export function GalleryLighting({
             rotation={[-Math.PI / 2, 0, 0]}
           >
             <torusGeometry args={[0.45, 0.035, 16, 32]} />
-            <meshStandardMaterial
+            <PBRMaterial
               color={lightingPreset === "dramatic" ? "#444" : "#f8bbd0"}
             />
           </mesh>
