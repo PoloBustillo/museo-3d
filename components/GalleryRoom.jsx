@@ -21,7 +21,7 @@ const { WALL_HEIGHT } = GALLERY_CONFIG;
 
 const FLOOR_TEXTURE_ALIAS = {
   wood: "/assets/textures/WoodFloor003_1K-JPG/WoodFloor003_1K-JPG_Color.jpg",
-  marble: "/assets/textures/MarbleTiles099_1K-JPG/MarbleTiles099_1K-JPG_Color.jpg",
+  marble: "/assets/textures/Tiles002_1K-JPG/Tiles002_1K-JPG_Color.jpg",
   parquet: "/assets/textures/WoodFloor003_1K-JPG/WoodFloor003_1K-JPG_Color.jpg",
 };
 
