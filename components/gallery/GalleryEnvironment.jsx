@@ -51,26 +51,30 @@ export function GalleryEnvironment({
     const dir = colorPath.substring(0, colorPath.lastIndexOf("/") + 1);
     const file = colorPath.substring(colorPath.lastIndexOf("/") + 1); // e.g. WoodFloor003_1K-JPG_Color.jpg
     const base = file.replace("_Color.jpg", "");
-    
+
     // Secuencia básica: Color, NormalGL, Roughness
     const paths = [
       dir + base + "_Color.jpg",
       dir + base + "_NormalGL.jpg",
       dir + base + "_Roughness.jpg",
     ];
-    
+
     // Metalness solo para materiales metálicos
-    if (base.startsWith("DiamondPlate006C") || base.startsWith("DiamondPlate008C") || 
-        base.startsWith("MetalPlates006") || base.startsWith("MetalPlates014")) {
+    if (
+      base.startsWith("DiamondPlate006C") ||
+      base.startsWith("DiamondPlate008C") ||
+      base.startsWith("MetalPlates006") ||
+      base.startsWith("MetalPlates014")
+    ) {
       paths.push(dir + base + "_Metalness.jpg");
     }
-    
+
     // AmbientOcclusion solo para materiales que lo tienen
     // Tiles002 NO tiene AO, pero WoodFloor003, Rock050, DiamondPlate006C, etc. sí
     if (!base.startsWith("Tiles002") && !base.startsWith("MetalPlates006")) {
       paths.push(dir + base + "_AmbientOcclusion.jpg");
     }
-    
+
     return paths;
   };
   const wallSet = buildExistingPBRSet(wallPath);
@@ -84,31 +88,34 @@ export function GalleryEnvironment({
   // Mapear dinámicamente según longitudes
   const getMaps = (set, offset) => {
     if (!set.length) return {};
-    
-    const maps = { 
-      color: allTextures[offset],     // 0: siempre presente
-      normal: allTextures[offset + 1], // 1: siempre presente  
-      roughness: allTextures[offset + 2] // 2: siempre presente
+
+    const maps = {
+      color: allTextures[offset], // 0: siempre presente
+      normal: allTextures[offset + 1], // 1: siempre presente
+      roughness: allTextures[offset + 2], // 2: siempre presente
     };
-    
+
     let currentIndex = offset + 3;
-    
+
     // Detectar si tiene metalness (conjuntos de 5 o 6 elementos con metalness)
     // Si el conjunto tiene más de 4 elementos, puede tener metalness
     if (set.length >= 5) {
       // Verificar si es un material metálico por el path
       const firstPath = set[0] || "";
-      if (firstPath.includes("DiamondPlate") || firstPath.includes("MetalPlates")) {
+      if (
+        firstPath.includes("DiamondPlate") ||
+        firstPath.includes("MetalPlates")
+      ) {
         maps.metalness = allTextures[currentIndex];
         currentIndex++;
       }
     }
-    
+
     // AO es el último elemento si existe (solo si el conjunto lo incluye)
     if (currentIndex < offset + set.length) {
       maps.ao = allTextures[currentIndex];
     }
-    
+
     return maps;
   };
   const floorMaps = floorSet.length ? getMaps(floorSet, 0) : {};
@@ -119,7 +126,7 @@ export function GalleryEnvironment({
     wallMaps.color.repeat.set(Math.ceil(dynamicLength / 4), 2);
     wallMaps.color.anisotropy = 16;
   }
-  
+
   // Configurar textura Normal de pared si existe
   if (wallMaps.normal) {
     wallMaps.normal.wrapS = wallMaps.normal.wrapT = THREE.RepeatWrapping;
@@ -134,7 +141,7 @@ export function GalleryEnvironment({
     );
     floorMaps.color.anisotropy = 16;
   }
-  
+
   // Configurar textura Normal del piso si existe
   if (floorMaps.normal) {
     floorMaps.normal.wrapS = floorMaps.normal.wrapT = THREE.RepeatWrapping;
