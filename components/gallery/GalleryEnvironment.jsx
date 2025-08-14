@@ -2,6 +2,10 @@ import React, { useMemo } from "react";
 import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { GALLERY_CONFIG } from "./config.js";
+import { FloorMesh, ExtendedFloorMesh } from "./FloorMesh.jsx";
+import { SideWalls } from "./WallMesh.jsx";
+import { CeilingMesh } from "./CeilingMesh.jsx";
+import { GalleryMoldings } from "./MoldingMesh.jsx";
 
 const { HALL_WIDTH, CEILING_HEIGHT, FLOOR_EXTRA } = GALLERY_CONFIG;
 
@@ -154,104 +158,49 @@ export function GalleryEnvironment({
 
   return (
     <>
-      {/* Piso principal */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        receiveShadow
-        position={[dynamicCenterX, 0, 0]}
-      >
-        <planeGeometry args={[dynamicLength, HALL_WIDTH]} />
-        {floorMaps.color ? (
-          <meshStandardMaterial
-            map={floorMaps.color}
-            normalMap={floorMaps.normal || null}
-            roughnessMap={floorMaps.roughness || null}
-            metalnessMap={floorMaps.metalness || null}
-            aoMap={floorMaps.ao || null}
-            metalness={floorMaps.metalness ? 0.4 : 0.1}
-            roughness={floorMaps.roughness ? 0.8 : 0.9}
-          />
-        ) : (
-          <meshStandardMaterial color={floorColor} />
-        )}
-      </mesh>
+      {/* Piso principal con texturas */}
+      <FloorMesh
+        dynamicLength={dynamicLength}
+        dynamicCenterX={dynamicCenterX}
+        floorMaps={floorMaps}
+        floorColor={floorColor}
+        hallWidth={HALL_WIDTH}
+      />
 
-      {/* Piso extendido */}
-      <mesh
-        rotation={[-Math.PI / 2, 0, 0]}
-        receiveShadow
-        position={[dynamicCenterX, -0.01, 0]}
-      >
-        <planeGeometry args={[dynamicLength, HALL_WIDTH + FLOOR_EXTRA]} />
-        <meshStandardMaterial color={floorColor} />
-      </mesh>
+      {/* Piso extendido sin texturas */}
+      <ExtendedFloorMesh
+        dynamicLength={dynamicLength}
+        dynamicCenterX={dynamicCenterX}
+        floorColor={floorColor}
+        hallWidth={HALL_WIDTH}
+        floorExtra={FLOOR_EXTRA}
+      />
 
       {/* Techo */}
-      <mesh
-        position={[dynamicCenterX, CEILING_HEIGHT, 0]}
-        rotation={[-Math.PI / 2, 0, 0]}
-      >
-        <planeGeometry args={[dynamicLength, HALL_WIDTH + FLOOR_EXTRA]} />
-        <meshStandardMaterial color="#f5f5f5" side={THREE.DoubleSide} />
-      </mesh>
+      <CeilingMesh
+        dynamicLength={dynamicLength}
+        dynamicCenterX={dynamicCenterX}
+        ceilingHeight={CEILING_HEIGHT}
+        hallWidth={HALL_WIDTH}
+        floorExtra={FLOOR_EXTRA}
+      />
 
-      {/* Paredes */}
-      <mesh position={[dynamicCenterX, 2.5, HALL_WIDTH / 2]}>
-        <boxGeometry args={[dynamicLength, 5, 0.1]} />
-        {wallMaps.color ? (
-          <meshStandardMaterial
-            map={wallMaps.color}
-            normalMap={wallMaps.normal || null}
-            roughnessMap={wallMaps.roughness || null}
-            metalnessMap={wallMaps.metalness || null}
-            aoMap={wallMaps.ao || null}
-            color={wallColor}
-            metalness={wallMaps.metalness ? 0.3 : 0.1}
-            roughness={wallMaps.roughness ? 0.85 : 0.9}
-          />
-        ) : (
-          <meshStandardMaterial color={wallColor} />
-        )}
-      </mesh>
-      <mesh position={[dynamicCenterX, 2.5, -HALL_WIDTH / 2]}>
-        <boxGeometry args={[dynamicLength, 5, 0.1]} />
-        {wallMaps.color ? (
-          <meshStandardMaterial
-            map={wallMaps.color}
-            normalMap={wallMaps.normal || null}
-            roughnessMap={wallMaps.roughness || null}
-            metalnessMap={wallMaps.metalness || null}
-            aoMap={wallMaps.ao || null}
-            color={wallColor}
-            metalness={wallMaps.metalness ? 0.3 : 0.1}
-            roughness={wallMaps.roughness ? 0.85 : 0.9}
-          />
-        ) : (
-          <meshStandardMaterial color={wallColor} />
-        )}
-      </mesh>
+      {/* Paredes laterales con texturas */}
+      <SideWalls
+        dynamicLength={dynamicLength}
+        dynamicCenterX={dynamicCenterX}
+        wallMaps={wallMaps}
+        wallColor={wallColor}
+        hallWidth={HALL_WIDTH}
+      />
 
-      {/* Molduras */}
-      <mesh
-        position={[
-          dynamicCenterX,
-          CEILING_HEIGHT - 0.02,
-          HALL_WIDTH / 2 - 0.13,
-        ]}
-      >
-        <boxGeometry args={[dynamicLength, 0.09, 0.09]} />
-        <meshStandardMaterial color="#FFF" />
-      </mesh>
-      <mesh
-        position={[
-          dynamicCenterX,
-          CEILING_HEIGHT - 0.02,
-          -HALL_WIDTH / 2 + 0.13,
-        ]}
-      >
-        <boxGeometry args={[dynamicLength, 0.09, 0.09]} />
-        <meshStandardMaterial color="#FFF" />
-      </mesh>
+      {/* Molduras decorativas */}
+      <GalleryMoldings
+        dynamicLength={dynamicLength}
+        dynamicCenterX={dynamicCenterX}
+        ceilingHeight={CEILING_HEIGHT}
+        hallWidth={HALL_WIDTH}
+      />
     </>
   );
 }

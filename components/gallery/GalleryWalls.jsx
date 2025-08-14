@@ -23,8 +23,9 @@ export function GalleryWalls({
   wallTextureUrl,
   wallColor = "#ffffff",
 }) {
-  const { maps, fallbackTexture, hasTexture } = useGalleryTextures(wallTextureUrl);
-  
+  const { maps, fallbackTexture, hasTexture } =
+    useGalleryTextures(wallTextureUrl);
+
   const wallHeight = CEILING_HEIGHT;
   const wallWidth = HALL_WIDTH + 2;
 
