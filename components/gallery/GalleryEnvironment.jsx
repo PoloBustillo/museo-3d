@@ -7,12 +7,6 @@ import { SideWalls } from "./structure/WallMesh.jsx";
 import { CeilingMesh } from "./structure/CeilingMesh.jsx";
 import { GalleryMoldings } from "./structure/MoldingMesh.jsx";
 import { CinematicLighting } from "./lighting/CinematicLighting.jsx";
-import {
-  PremiumMuseumBench,
-  ElegantPedestal,
-  PremiumShowcase,
-  SecurityBarrier,
-} from "./furniture/PremiumFurniture.jsx";
 import { IndustrialCoffeeTable } from "./furniture/IndustrialCoffeeTable.jsx";
 
 const { HALL_WIDTH, CEILING_HEIGHT, FLOOR_EXTRA } = GALLERY_CONFIG;
@@ -112,51 +106,13 @@ export function GalleryEnvironment({
         premiumMode={premiumMode}
       />
 
-      {/* Muebles premium de museo */}
-      {showFurniture && premiumMode && (
+      {/* Mobiliario simplificado: solo mesa de café industrial del modelo GLB */}
+      {showFurniture && (
         <>
-          {/* Bancos distribuidos por la sala */}
-          <PremiumMuseumBench
-            position={[dynamicCenterX - dynamicLength / 4, 0, 0]}
-          />
-          <PremiumMuseumBench
-            position={[dynamicCenterX + dynamicLength / 4, 0, 0]}
-          />
-
-          {/* Pedestales en los extremos */}
-          <ElegantPedestal
-            position={[
-              dynamicCenterX - dynamicLength / 2 + 2,
-              0,
-              HALL_WIDTH / 4,
-            ]}
-          />
-          <ElegantPedestal
-            position={[
-              dynamicCenterX + dynamicLength / 2 - 2,
-              0,
-              HALL_WIDTH / 4,
-            ]}
-          />
-
-          {/* Vitrinas laterales */}
-          <PremiumShowcase
-            position={[dynamicCenterX - dynamicLength / 3, 0, -HALL_WIDTH / 3]}
-          />
-          <PremiumShowcase
-            position={[dynamicCenterX + dynamicLength / 3, 0, -HALL_WIDTH / 3]}
-          />
-
           {/* Mesa de café industrial en el centro de la sala */}
           <IndustrialCoffeeTable
             position={[dynamicCenterX, 0, 0]}
             scale={1.2}
-          />
-
-          {/* Barreras de seguridad */}
-          <SecurityBarrier
-            position={[dynamicCenterX, 0, HALL_WIDTH / 2 - 1]}
-            length={dynamicLength * 0.6}
           />
         </>
       )}

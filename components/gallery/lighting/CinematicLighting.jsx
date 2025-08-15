@@ -69,7 +69,7 @@ export function CinematicLighting({
         intensity={0.3}
       />
 
-      {/* Key lights - Iluminación principal */}
+      {/* Key lights - Iluminación principal simplificada */}
       {lightPositions.map((x, i) => (
         <React.Fragment key={`key-${i}`}>
           <directionalLight
@@ -88,25 +88,7 @@ export function CinematicLighting({
             shadow-bias={-0.0001}
           />
 
-          {/* Fill lights - Iluminación de relleno */}
-          <pointLight
-            position={[x - 2, CEILING_HEIGHT - 1, -1]}
-            intensity={preset.fill.intensity}
-            distance={preset.fill.distance}
-            color={preset.fill.color}
-            decay={2}
-          />
-
-          {/* Rim lights - Iluminación de contorno */}
-          <pointLight
-            position={[x + 2, CEILING_HEIGHT - 1.5, 1]}
-            intensity={preset.rim.intensity}
-            distance={preset.rim.distance}
-            color={preset.rim.color}
-            decay={2}
-          />
-
-          {/* Accent lights - Luces de acento para obras */}
+          {/* Spot lights para obras - mantenidos */}
           <spotLight
             position={[x, CEILING_HEIGHT - 0.3, 0]}
             target-position={[x, 1.8, -6.5]}
@@ -122,10 +104,10 @@ export function CinematicLighting({
         </React.Fragment>
       ))}
 
-      {/* Luces de ambiente para paredes laterales */}
+      {/* Luces de ambiente para paredes laterales - simplificadas */}
       <pointLight
         position={[dynamicCenterX, CEILING_HEIGHT - 2, 6]}
-        intensity={1.5}
+        intensity={1.2}
         distance={12}
         color="#f8f8ff"
         decay={2}
@@ -133,42 +115,11 @@ export function CinematicLighting({
 
       <pointLight
         position={[dynamicCenterX, CEILING_HEIGHT - 2, -6]}
-        intensity={1.5}
+        intensity={1.2}
         distance={12}
         color="#f8f8ff"
         decay={2}
       />
-
-      {/* Luces decorativas para el techo */}
-      {lightPositions.map((x, i) => (
-        <React.Fragment key={`ceiling-${i}`}>
-          {/* Fixture visual */}
-          <mesh position={[x, CEILING_HEIGHT - 0.2, 0]}>
-            <cylinderGeometry args={[0.3, 0.3, 0.1, 16]} />
-            <meshPhysicalMaterial
-              color="#2c2c2c"
-              roughness={0.2}
-              metalness={0.8}
-              clearcoat={0.9}
-              clearcoatRoughness={0.1}
-            />
-          </mesh>
-
-          {/* Ring decorativo */}
-          <mesh
-            position={[x, CEILING_HEIGHT - 0.19, 0]}
-            rotation={[-Math.PI / 2, 0, 0]}
-          >
-            <torusGeometry args={[0.45, 0.035, 12, 24]} />
-            <meshPhysicalMaterial
-              color={lightingPreset === "dramatic" ? "#b8860b" : "#daa520"}
-              roughness={0.3}
-              metalness={0.7}
-              clearcoat={0.8}
-            />
-          </mesh>
-        </React.Fragment>
-      ))}
     </>
   );
 }
