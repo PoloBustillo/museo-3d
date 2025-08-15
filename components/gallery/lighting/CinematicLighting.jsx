@@ -12,31 +12,22 @@ export function CinematicLighting({
   lightingPreset = "museum",
   ambientOverride = null,
 }) {
-  // Configuraciones de iluminación más sofisticadas
+  // Configuraciones de iluminación optimizadas - Más tenues pero con obras destacadas
   const LIGHTING_PRESETS = {
     museum: {
-      ambient: { intensity: 0.3, color: "#f5f5dc" },
-      key: { intensity: 2.5, color: "#fff8e1", distance: 12 },
-      fill: { intensity: 1.2, color: "#e3f2fd", distance: 8 },
-      rim: { intensity: 1.8, color: "#fff3e0", distance: 6 },
-      accent: { intensity: 3.0, color: "#ffffff", distance: 4 },
-      spots: { intensity: 4.0, angle: 0.3, penumbra: 0.5 },
+      ambient: { intensity: 0.15, color: "#f0f0f0" }, // Más tenue
+      key: { intensity: 1.8, color: "#fff8e1", distance: 12 }, // Reducido
+      spots: { intensity: 5.5, angle: 0.25, penumbra: 0.6 }, // Más intensos para obras
     },
     dramatic: {
-      ambient: { intensity: 0.1, color: "#1a1a1a" },
-      key: { intensity: 4.0, color: "#ffebee", distance: 10 },
-      fill: { intensity: 0.8, color: "#e8eaf6", distance: 6 },
-      rim: { intensity: 2.5, color: "#fff9c4", distance: 5 },
-      accent: { intensity: 5.0, color: "#ffffff", distance: 3 },
-      spots: { intensity: 6.0, angle: 0.2, penumbra: 0.7 },
+      ambient: { intensity: 0.05, color: "#1a1a1a" }, // Muy tenue
+      key: { intensity: 2.2, color: "#ffebee", distance: 10 }, // Reducido
+      spots: { intensity: 7.0, angle: 0.2, penumbra: 0.8 }, // Muy intensos para contraste
     },
     golden: {
-      ambient: { intensity: 0.4, color: "#ffd54f" },
-      key: { intensity: 2.8, color: "#fff8e1", distance: 11 },
-      fill: { intensity: 1.5, color: "#ffecb3", distance: 9 },
-      rim: { intensity: 2.0, color: "#ffe082", distance: 7 },
-      accent: { intensity: 3.5, color: "#ffff8d", distance: 5 },
-      spots: { intensity: 4.5, angle: 0.25, penumbra: 0.4 },
+      ambient: { intensity: 0.2, color: "#ffd54f" }, // Más suave
+      key: { intensity: 2.0, color: "#fff8e1", distance: 11 }, // Reducido
+      spots: { intensity: 6.0, angle: 0.22, penumbra: 0.5 }, // Intensos pero cálidos
     },
   };
 
@@ -56,17 +47,17 @@ export function CinematicLighting({
 
   return (
     <>
-      {/* Iluminación ambiental base */}
+      {/* Iluminación ambiental base - MÁS TENUE */}
       <ambientLight
         intensity={ambientOverride ?? preset.ambient.intensity}
         color={preset.ambient.color}
       />
 
-      {/* Hemisphere light para simular luz del cielo */}
+      {/* Hemisphere light más suave */}
       <hemisphereLight
         skyColor="#87ceeb"
         groundColor="#8b7355"
-        intensity={0.3}
+        intensity={0.15} // Reducido de 0.3 a 0.15
       />
 
       {/* Key lights - Iluminación principal simplificada */}
@@ -104,10 +95,10 @@ export function CinematicLighting({
         </React.Fragment>
       ))}
 
-      {/* Luces de ambiente para paredes laterales - simplificadas */}
+      {/* Luces de ambiente laterales - MÁS TENUES */}
       <pointLight
         position={[dynamicCenterX, CEILING_HEIGHT - 2, 6]}
-        intensity={1.2}
+        intensity={0.8} // Reducido de 1.2 a 0.8
         distance={12}
         color="#f8f8ff"
         decay={2}
@@ -115,7 +106,7 @@ export function CinematicLighting({
 
       <pointLight
         position={[dynamicCenterX, CEILING_HEIGHT - 2, -6]}
-        intensity={1.2}
+        intensity={0.8} // Reducido de 1.2 a 0.8
         distance={12}
         color="#f8f8ff"
         decay={2}

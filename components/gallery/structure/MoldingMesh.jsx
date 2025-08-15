@@ -11,27 +11,27 @@ import {
 export function MoldingMesh({
   position,
   dynamicLength,
-  color = "#FFF",
+  color = "#f8f8f8", // Color más claro por defecto
   premiumMode = false,
 }) {
-  // Material premium para molduras elegantes
+  // Material simplificado pero elegante
   const moldingMaterial = premiumMode ? (
-    <BrushedMetalMaterial type="gold" baseColor={color} />
+    <BrushedMetalMaterial type="gold" color={color} />
   ) : (
     <PBRMaterial
       color={color}
-      metalness={premiumMode ? 0.8 : 0.1}
-      roughness={premiumMode ? 0.2 : 0.7}
-      physical={premiumMode}
-      clearcoat={premiumMode ? 0.6 : 0}
-      clearcoatRoughness={premiumMode ? 0.1 : 0}
-      reflectivity={premiumMode ? 0.9 : 0.5}
+      metalness={0.1} // Menos metálico para simplicidad
+      roughness={0.3} // Menos rugoso para mejor brillo
+      clearcoat={0.4} // Clearcoat moderado
+      clearcoatRoughness={0.1}
+      envMapIntensity={1.2} // Mejor reflejo ambiental
+      textureOptimization="none" // Sin texturas para optimización
     />
   );
 
   return (
     <mesh position={position} castShadow>
-      <boxGeometry args={[dynamicLength, 0.09, 0.09]} />
+      <boxGeometry args={[dynamicLength, 0.06, 0.06]} /> {/* Molduras más finas */}
       {moldingMaterial}
     </mesh>
   );

@@ -63,21 +63,21 @@ export function IndustrialCoffeeTable({ position = [0, 0, 0], scale = 1 }) {
         />
       </mesh>
 
-      {/* Patas industriales anguladas */}
-      {[0, 1, 2, 3].map((i) => {
-        const angle = (i * Math.PI) / 2;
+      {/* Patas industriales SIMPLIFICADAS (solo 3 en lugar de 4) */}
+      {[0, 1, 2].map((i) => {
+        const angle = (i * Math.PI * 2) / 3; // 3 patas en lugar de 4
         const x = Math.cos(angle) * 0.75;
         const z = Math.sin(angle) * 0.75;
 
         return (
           <group key={i}>
-            {/* Pata principal con ligera inclinación */}
+            {/* Pata principal simplificada */}
             <mesh
               position={[x, 0.25, z]}
-              rotation={[0, angle, Math.PI * 0.04]}
+              rotation={[0, angle, Math.PI * 0.03]}
               castShadow
             >
-              <cylinderGeometry args={[0.03, 0.04, 0.5, 8]} />
+              <cylinderGeometry args={[0.03, 0.04, 0.5, 6]} /> {/* Menos segmentos */}
               <meshPhysicalMaterial
                 color="#404040"
                 metalness={0.85}

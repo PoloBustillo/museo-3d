@@ -12,12 +12,12 @@ export function WallMesh({
   position,
   dynamicLength,
   wallMaps,
-  wallColor = "#ffffff",
+  wallColor = "#fafafa", // Color más cálido y claro para mejor visibilidad
   premiumMode = false,
   quality = "high",
-  textureOptimization = "auto", // Nueva prop para optimización
+  textureOptimization = "auto",
 }) {
-  // Material premium para paredes de lujo - sin texturas para optimización
+  // Material optimizado para iluminación tenue
   const wallMaterial =
     premiumMode && quality === "ultra" ? (
       <LuxuryFabricMaterial
@@ -29,16 +29,17 @@ export function WallMesh({
       <PBRMaterial
         maps={wallMaps}
         color={wallColor}
-        metalness={premiumMode ? 0.1 : 0.3}
-        roughness={premiumMode ? 0.7 : 0.85}
+        metalness={premiumMode ? 0.02 : 0.05} // Muy poco metálico
+        roughness={premiumMode ? 0.8 : 0.9} // Más rugoso para difundir luz
         physical={premiumMode}
-        clearcoat={premiumMode ? 0.1 : 0}
-        clearcoatRoughness={premiumMode ? 0.3 : 0}
-        sheen={premiumMode ? 0.2 : 0}
-        sheenRoughness={premiumMode ? 0.8 : 0}
+        clearcoat={premiumMode ? 0.05 : 0}
+        clearcoatRoughness={premiumMode ? 0.4 : 0}
+        sheen={premiumMode ? 0.1 : 0}
+        sheenRoughness={premiumMode ? 0.9 : 0}
         sheenColor={premiumMode ? wallColor : undefined}
-        reflectivity={premiumMode ? 0.6 : 0.5}
-        textureOptimization={textureOptimization} // Pasar optimización
+        reflectivity={premiumMode ? 0.4 : 0.3} // Menos reflectivo para no competir con obras
+        envMapIntensity={0.8} // Reducido para mejor contraste
+        textureOptimization={textureOptimization}
       />
     );
 

@@ -134,38 +134,51 @@ function Picture({
       </group>
       <mesh position={[0, h / 2 + thickness / 2, depth]}>
         <boxGeometry args={[w + thickness * 2, thickness, thickness]} />
-        <meshStandardMaterial
+        <meshPhysicalMaterial
           map={frameTexture || null}
           color={!frameTexture ? frameColor : undefined}
-          metalness={0.4}
-          roughness={0.5}
+          // MARCO OPTIMIZADO PARA LUZ TENUE
+          metalness={frameStyle === "gold" ? 0.8 : 0.2} // Más metálico si es dorado
+          roughness={frameStyle === "gold" ? 0.1 : 0.4} // Más pulido si es dorado
+          clearcoat={0.6} // Barniz protector
+          clearcoatRoughness={0.1}
+          envMapIntensity={1.4} // Mejor reflejo ambiental
         />
       </mesh>
       <mesh position={[0, -h / 2 - thickness / 2, depth]}>
         <boxGeometry args={[w + thickness * 2, thickness, thickness]} />
-        <meshStandardMaterial
+        <meshPhysicalMaterial
           map={frameTexture || null}
           color={!frameTexture ? frameColor : undefined}
-          metalness={0.4}
-          roughness={0.5}
+          metalness={frameStyle === "gold" ? 0.8 : 0.2}
+          roughness={frameStyle === "gold" ? 0.1 : 0.4}
+          clearcoat={0.6}
+          clearcoatRoughness={0.1}
+          envMapIntensity={1.4}
         />
       </mesh>
       <mesh position={[-w / 2 - thickness / 2, 0, depth]}>
         <boxGeometry args={[thickness, h + thickness * 2, thickness]} />
-        <meshStandardMaterial
+        <meshPhysicalMaterial
           map={frameTexture || null}
           color={!frameTexture ? frameColor : undefined}
-          metalness={0.4}
-          roughness={0.5}
+          metalness={frameStyle === "gold" ? 0.8 : 0.2}
+          roughness={frameStyle === "gold" ? 0.1 : 0.4}
+          clearcoat={0.6}
+          clearcoatRoughness={0.1}
+          envMapIntensity={1.4}
         />
       </mesh>
       <mesh position={[w / 2 + thickness / 2, 0, depth]}>
         <boxGeometry args={[thickness, h + thickness * 2, thickness]} />
-        <meshStandardMaterial
+        <meshPhysicalMaterial
           map={frameTexture || null}
           color={!frameTexture ? frameColor : undefined}
-          metalness={0.4}
-          roughness={0.5}
+          metalness={frameStyle === "gold" ? 0.8 : 0.2}
+          roughness={frameStyle === "gold" ? 0.1 : 0.4}
+          clearcoat={0.6}
+          clearcoatRoughness={0.1}
+          envMapIntensity={1.4}
         />
       </mesh>
       <mesh
@@ -184,17 +197,29 @@ function Picture({
         }}
       >
         <planeGeometry args={[w, h]} />
-        <meshStandardMaterial map={texture} side={THREE.DoubleSide} />
+        <meshPhysicalMaterial 
+          map={texture} 
+          side={THREE.DoubleSide}
+          // OPTIMIZACIÓN PARA OBRAS DE ARTE
+          roughness={0.1} // Menos rugoso para mejor reflectancia 
+          metalness={0.0} // Sin metálico para preservar colores
+          clearcoat={0.2} // Sutil barniz/cristal protector
+          clearcoatRoughness={0.0} // Muy pulido
+          reflectivity={0.9} // Alta reflectividad para colores vibrantes
+          envMapIntensity={1.3} // Mejor interacción con iluminación ambiental
+          // Sin transmission para evitar transparencia no deseada
+        />
       </mesh>
       {spotlightIntensity > 0 && (
         <spotLight
-          intensity={spotlightIntensity}
+          intensity={spotlightIntensity * 1.5} // Más intenso para mejor contraste
           position={[0, h + 1.2, 0.5]}
-          angle={0.6}
-          penumbra={0.4}
-          distance={8}
-          decay={2}
-          color="#fff7e6"
+          angle={0.5} // Ángulo más enfocado
+          penumbra={0.3} // Transición más suave
+          distance={6} // Distancia más corta para mejor intensidad
+          decay={1.5} // Menor decay para mantener intensidad
+          color="#fff9f0" // Color más cálido y natural
+          castShadow={false} // Sin sombras para mejor rendimiento
         />
       )}
 

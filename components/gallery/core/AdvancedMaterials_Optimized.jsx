@@ -6,7 +6,7 @@ import * as THREE from "three";
  * OPTIMIZADO: Reducido uso de texturas para mejorar rendimiento
  */
 
-// Material de mármol premium con efectos procedimentales (SIN TEXTURAS)
+// Material de mármol premium con efectos procedimentales OPTIMIZADO PARA LUZ TENUE
 export function MarbleMaterial({
   color = "#f8f8f8",
   opacity = 1,
@@ -15,20 +15,21 @@ export function MarbleMaterial({
   type = "carrara", // "carrara", "nero"
 }) {
   const marbleColors = {
-    carrara: "#f8f8f8",
-    nero: "#2c2c2c",
+    carrara: "#fafafa", // Más claro para mejor visibilidad
+    nero: "#3a3a3a", // Menos oscuro
   };
 
   return (
     <meshPhysicalMaterial
       color={marbleColors[type] || color}
-      // OPTIMIZACIÓN: Sin texturas, solo efectos procedimentales
-      roughness={0.15}
-      metalness={0.02}
-      clearcoat={0.3}
-      clearcoatRoughness={0.1}
-      transmission={0.08}
-      thickness={0.5}
+      // OPTIMIZACIÓN: Sin texturas, efectos procedimentales mejorados para poca luz
+      roughness={0.1} // Menos rugoso para mejor reflectancia
+      metalness={0.01} // Mínimo para preservar apariencia mármol
+      clearcoat={0.4} // Más clearcoat para brillo
+      clearcoatRoughness={0.05} // Más pulido
+      transmission={0.05} // Sutil transparencia
+      thickness={0.3}
+      envMapIntensity={1.5} // Mejor reflejo ambiental
       opacity={opacity}
       side={side}
       transparent={opacity < 1}
