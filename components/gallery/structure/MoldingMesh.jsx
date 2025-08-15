@@ -31,7 +31,8 @@ export function MoldingMesh({
 
   return (
     <mesh position={position} castShadow>
-      <boxGeometry args={[dynamicLength, 0.06, 0.06]} /> {/* Molduras más finas */}
+      <boxGeometry args={[dynamicLength, 0.06, 0.06]} />{" "}
+      {/* Molduras más finas */}
       {moldingMaterial}
     </mesh>
   );

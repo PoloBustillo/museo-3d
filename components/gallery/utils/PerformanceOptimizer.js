@@ -17,17 +17,20 @@ export class PerformanceOptimizer {
    */
   detectDeviceTier() {
     // Detectar GPU y memoria
-    const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-    
+    const canvas = document.createElement("canvas");
+    const gl =
+      canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+
     if (!gl) return "low";
 
-    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-    const renderer = debugInfo ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : '';
-    
+    const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
+    const renderer = debugInfo
+      ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)
+      : "";
+
     // Memoria aproximada del dispositivo
     const memory = navigator.deviceMemory || 4; // Default 4GB si no está disponible
-    
+
     // Núcleos de CPU
     const cores = navigator.hardwareConcurrency || 4;
 
@@ -54,7 +57,9 @@ export class PerformanceOptimizer {
 
     // Calcular FPS promedio cada segundo
     if (this.frameTimeSamples.length >= this.maxSamples) {
-      const avgFrameTime = this.frameTimeSamples.reduce((a, b) => a + b) / this.frameTimeSamples.length;
+      const avgFrameTime =
+        this.frameTimeSamples.reduce((a, b) => a + b) /
+        this.frameTimeSamples.length;
       const avgFPS = 1000 / avgFrameTime;
 
       this.adjustQuality(avgFPS);
@@ -68,7 +73,11 @@ export class PerformanceOptimizer {
     if (currentFPS < 30 && this.currentQuality !== "low") {
       this.currentQuality = "low";
       console.log("🔧 Optimización: Calidad reducida a LOW por bajo FPS");
-    } else if (currentFPS > 45 && currentFPS < 55 && this.currentQuality !== "medium") {
+    } else if (
+      currentFPS > 45 &&
+      currentFPS < 55 &&
+      this.currentQuality !== "medium"
+    ) {
       this.currentQuality = "medium";
       console.log("🔧 Optimización: Calidad ajustada a MEDIUM");
     } else if (currentFPS > 55 && this.currentQuality !== "high") {
@@ -108,7 +117,7 @@ export class PerformanceOptimizer {
         spotIntensity: 6.0,
         enablePostProcessing: true,
         maxLights: 8,
-      }
+      },
     };
 
     const deviceSettings = baseSettings[this.deviceTier];
@@ -128,7 +137,7 @@ export class PerformanceOptimizer {
    */
   getMaterialOptimization() {
     const settings = this.getOptimizedSettings();
-    
+
     return {
       textureOptimization: settings.textureOptimization,
       useSimplifiedShaders: settings.currentQuality === "low",
@@ -143,7 +152,9 @@ export const performanceOptimizer = new PerformanceOptimizer();
 
 // Hook para usar en componentes React
 export function usePerformanceOptimization() {
-  const [settings, setSettings] = React.useState(performanceOptimizer.getOptimizedSettings());
+  const [settings, setSettings] = React.useState(
+    performanceOptimizer.getOptimizedSettings()
+  );
 
   React.useEffect(() => {
     const interval = setInterval(() => {

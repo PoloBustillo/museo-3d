@@ -77,7 +77,8 @@ export function IndustrialCoffeeTable({ position = [0, 0, 0], scale = 1 }) {
               rotation={[0, angle, Math.PI * 0.03]}
               castShadow
             >
-              <cylinderGeometry args={[0.03, 0.04, 0.5, 6]} /> {/* Menos segmentos */}
+              <cylinderGeometry args={[0.03, 0.04, 0.5, 6]} />{" "}
+              {/* Menos segmentos */}
               <meshPhysicalMaterial
                 color="#404040"
                 metalness={0.85}

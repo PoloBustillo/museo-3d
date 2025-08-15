@@ -197,11 +197,11 @@ function Picture({
         }}
       >
         <planeGeometry args={[w, h]} />
-        <meshPhysicalMaterial 
-          map={texture} 
+        <meshPhysicalMaterial
+          map={texture}
           side={THREE.DoubleSide}
           // OPTIMIZACIÓN PARA OBRAS DE ARTE
-          roughness={0.1} // Menos rugoso para mejor reflectancia 
+          roughness={0.1} // Menos rugoso para mejor reflectancia
           metalness={0.0} // Sin metálico para preservar colores
           clearcoat={0.2} // Sutil barniz/cristal protector
           clearcoatRoughness={0.0} // Muy pulido
