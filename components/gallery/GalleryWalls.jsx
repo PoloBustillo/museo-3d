@@ -46,37 +46,81 @@ export function GalleryWalls({
         />
       </mesh>
 
-      {/* Pared final (salida) - Con texturas PBR y color más oscuro */}
+      {/* Pared final (salida) - Más clara para mejor visibilidad */}
       <mesh position={[lastX + wallMarginFinal, CEILING_HEIGHT / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[0.15, CEILING_HEIGHT, wallWidth]} />
         <PBRMaterial
           maps={hasTexture ? maps : {}}
-          color="#b8b8b8"
+          color="#e8e8e8"
           metalness={0.1}
           roughness={0.8}
           side={THREE.DoubleSide}
         />
       </mesh>
       
-      {/* Marco dorado alrededor de la salida - más visible */}
-      <mesh position={[lastX + wallMarginFinal + 0.08, CEILING_HEIGHT / 2, 0]} receiveShadow>
-        <boxGeometry args={[0.02, CEILING_HEIGHT - 0.5, wallWidth - 1]} />
+      {/* Marco dorado alrededor de la salida - más prominente */}
+      <mesh position={[lastX + wallMarginFinal + 0.08, CEILING_HEIGHT / 2, 0]} receiveShadow castShadow>
+        <boxGeometry args={[0.03, CEILING_HEIGHT - 0.3, wallWidth - 0.8]} />
         <meshStandardMaterial 
           color="#d4af37" 
           roughness={0.2} 
           metalness={0.8}
+          emissive="#332200"
+          emissiveIntensity={0.1}
         />
       </mesh>
       
-      {/* Indicador superior "SALIDA" - más prominente */}
-      <mesh position={[lastX + wallMarginFinal + 0.1, CEILING_HEIGHT - 0.4, 0]} receiveShadow>
-        <boxGeometry args={[0.01, 0.4, 3]} />
+      {/* Letrero "EXIT" más visible y prominente */}
+      <mesh position={[lastX + wallMarginFinal + 0.12, CEILING_HEIGHT - 0.8, 0]} receiveShadow castShadow>
+        <boxGeometry args={[0.02, 0.6, 4]} />
         <meshStandardMaterial 
-          color="#ff2222" 
-          roughness={0.3} 
-          metalness={0.7} 
-          emissive="#660000"
-          emissiveIntensity={0.5}
+          color="#ff1111" 
+          roughness={0.2} 
+          metalness={0.3} 
+          emissive="#ff0000"
+          emissiveIntensity={0.8}
+        />
+      </mesh>
+      
+      {/* Texto "EXIT" en blanco luminoso */}
+      <mesh position={[lastX + wallMarginFinal + 0.13, CEILING_HEIGHT - 0.8, -1.2]} receiveShadow>
+        <boxGeometry args={[0.005, 0.3, 0.6]} />
+        <meshStandardMaterial 
+          color="#ffffff" 
+          roughness={0.1} 
+          metalness={0.9}
+          emissive="#ffffff"
+          emissiveIntensity={1.0}
+        />
+      </mesh>
+      <mesh position={[lastX + wallMarginFinal + 0.13, CEILING_HEIGHT - 0.8, -0.4]} receiveShadow>
+        <boxGeometry args={[0.005, 0.3, 0.6]} />
+        <meshStandardMaterial 
+          color="#ffffff" 
+          roughness={0.1} 
+          metalness={0.9}
+          emissive="#ffffff"
+          emissiveIntensity={1.0}
+        />
+      </mesh>
+      <mesh position={[lastX + wallMarginFinal + 0.13, CEILING_HEIGHT - 0.8, 0.4]} receiveShadow>
+        <boxGeometry args={[0.005, 0.3, 0.6]} />
+        <meshStandardMaterial 
+          color="#ffffff" 
+          roughness={0.1} 
+          metalness={0.9}
+          emissive="#ffffff"
+          emissiveIntensity={1.0}
+        />
+      </mesh>
+      <mesh position={[lastX + wallMarginFinal + 0.13, CEILING_HEIGHT - 0.8, 1.2]} receiveShadow>
+        <boxGeometry args={[0.005, 0.3, 0.6]} />
+        <meshStandardMaterial 
+          color="#ffffff" 
+          roughness={0.1} 
+          metalness={0.9}
+          emissive="#ffffff"
+          emissiveIntensity={1.0}
         />
       </mesh>
     </>
