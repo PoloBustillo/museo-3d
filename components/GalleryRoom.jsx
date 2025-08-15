@@ -19,9 +19,10 @@ import {
   calculateGalleryDimensions,
 } from "./gallery/utils.js";
 import { GalleryLighting } from "./gallery/lighting/GalleryLighting.jsx";
-import { GalleryEnvironment } from "./gallery/GalleryEnvironment.jsx";
-import { GalleryBenches } from "./gallery/furniture/GalleryBenches.jsx";
-import { GalleryWalls } from "./gallery/GalleryWalls.jsx";
+import {
+  EnhancedGalleryEnvironment,
+  GameModals,
+} from "./gallery/EnhancedGalleryEnvironment.jsx";
 import { useSound } from "../providers/SoundProvider";
 import dynamic from "next/dynamic";
 import {
@@ -440,7 +441,10 @@ function Room({
   layoutItems,
   scene,
   salaTextures,
+  onGameModalOpen,
+  onGameSelect,
 }) {
+  const { camera, controls } = useThree();
   const {
     dynamicLength,
     dynamicCenterX,
@@ -542,56 +546,33 @@ function Room({
         lightingPreset={scene?.lightingPreset}
         ambientIntensity={scene?.ambientIntensity}
       />
-      <GalleryEnvironment
+      <EnhancedGalleryEnvironment
         dynamicLength={dynamicLength}
         dynamicCenterX={dynamicCenterX}
         wallTextureUrl={salaTextures?.pared}
         floorTextureUrl={salaTextures?.piso}
-        textureOptimization="minimal" // Optimización crítica para GPU
-      />
-      {normalizedLayout && normalizedLayout.length > 0
-        ? normalizedLayout.map((li, i) => (
-            <Picture
-              key={li.mural?.id || li.muralId || i}
-              src={li.mural?.imagenUrlWebp || li.mural?.url_imagen}
-              title={li.mural?.titulo || "Sin título"}
-              artist={li.mural?.autor || "Desconocido"}
-              year={li.mural?.anio || "N/A"}
-              description={li.mural?.descripcion || "Sin descripción"}
-              technique={li.mural?.tecnica || "No especificada"}
-              dimensions={
-                li.mural?.dimensiones || "Dimensiones no especificadas"
-              }
-              position={[li.pos?.x ?? 0, li.pos?.y ?? 2.1, li.pos?.z ?? 0]}
-              rotation={[li.rot?.x ?? 0, li.rot?.y ?? 0, li.rot?.z ?? 0]}
-              floorTextureUrl={salaTextures?.piso}
-              onClick={() => setSelectedArtwork(li.mural || null)}
-              showPlaque={
-                passedInitialWall &&
-                !selectedArtwork &&
-                !showList &&
-                !showCollection &&
-                !showInstructions
-              }
-              selected={selectedArtwork && selectedArtwork.id === li.mural?.id}
-              selectedArtwork={selectedArtwork}
-              spotlightIntensity={li.spotlightIntensity ?? 0}
-              frameStyle={li.frameStyle}
-            />
-          ))
-        : artworks.map((art, i) => {
-            const sp = slotPositions[i] || {
-              position: [0, 1.5, 0],
-              rotation: [0, 0, 0],
-            };
-            return (
+        camera={camera}
+        controls={controls}
+        onGameModalOpen={onGameModalOpen}
+        onGameSelect={onGameSelect}
+      >
+        {normalizedLayout && normalizedLayout.length > 0
+          ? normalizedLayout.map((li, i) => (
               <Picture
-                key={art.id || i}
-                {...art}
-                position={sp.position}
-                rotation={sp.rotation}
+                key={li.mural?.id || li.muralId || i}
+                src={li.mural?.imagenUrlWebp || li.mural?.url_imagen}
+                title={li.mural?.titulo || "Sin título"}
+                artist={li.mural?.autor || "Desconocido"}
+                year={li.mural?.anio || "N/A"}
+                description={li.mural?.descripcion || "Sin descripción"}
+                technique={li.mural?.tecnica || "No especificada"}
+                dimensions={
+                  li.mural?.dimensiones || "Dimensiones no especificadas"
+                }
+                position={[li.pos?.x ?? 0, li.pos?.y ?? 2.1, li.pos?.z ?? 0]}
+                rotation={[li.rot?.x ?? 0, li.rot?.y ?? 0, li.rot?.z ?? 0]}
                 floorTextureUrl={salaTextures?.piso}
-                onClick={() => setSelectedArtwork(art)}
+                onClick={() => setSelectedArtwork(li.mural || null)}
                 showPlaque={
                   passedInitialWall &&
                   !selectedArtwork &&
@@ -599,19 +580,40 @@ function Room({
                   !showCollection &&
                   !showInstructions
                 }
-                selected={selectedArtwork && selectedArtwork.id === art.id}
+                selected={
+                  selectedArtwork && selectedArtwork.id === li.mural?.id
+                }
                 selectedArtwork={selectedArtwork}
+                spotlightIntensity={li.spotlightIntensity ?? 0}
+                frameStyle={li.frameStyle}
               />
-            );
-          })}
-      <GalleryBenches dynamicLength={dynamicLength} />
-      <GalleryWalls
-        firstX={firstX}
-        lastX={lastX}
-        wallMarginInitial={wallMarginInitial}
-        wallMarginFinal={wallMarginFinal}
-        wallTextureUrl={salaTextures?.pared}
-      />
+            ))
+          : artworks.map((art, i) => {
+              const sp = slotPositions[i] || {
+                position: [0, 1.5, 0],
+                rotation: [0, 0, 0],
+              };
+              return (
+                <Picture
+                  key={art.id || i}
+                  {...art}
+                  position={sp.position}
+                  rotation={sp.rotation}
+                  floorTextureUrl={salaTextures?.piso}
+                  onClick={() => setSelectedArtwork(art)}
+                  showPlaque={
+                    passedInitialWall &&
+                    !selectedArtwork &&
+                    !showList &&
+                    !showCollection &&
+                    !showInstructions
+                  }
+                  selected={selectedArtwork && selectedArtwork.id === art.id}
+                  selectedArtwork={selectedArtwork}
+                />
+              );
+            })}
+      </EnhancedGalleryEnvironment>
     </>
   );
 }
@@ -1247,6 +1249,11 @@ export default function GalleryRoom({
   const [focusArtwork, setFocusArtwork] = useState(null);
   const [focusTrigger, setFocusTrigger] = useState(0);
   const [showQuickList, setShowQuickList] = useState(false);
+
+  // Estado para el sistema de juegos
+  const [showGameModal, setShowGameModal] = useState(false);
+  const [activeGame, setActiveGame] = useState(null);
+
   const fetchCollection = useCallback(async () => {
     if (userId) {
       const collection = await getPersonalCollection(userId);
@@ -1256,6 +1263,25 @@ export default function GalleryRoom({
   useEffect(() => {
     fetchCollection();
   }, [fetchCollection]);
+
+  // Manejadores para el sistema de juegos
+  const handleGameModalOpen = (open) => {
+    setShowGameModal(open);
+  };
+
+  const handleGameSelect = (gameId) => {
+    setActiveGame(gameId);
+    setShowGameModal(false);
+  };
+
+  const handleGameClose = () => {
+    setActiveGame(null);
+  };
+
+  const handleGameModalClose = () => {
+    setShowGameModal(false);
+  };
+
   const hasUsableLayout = useMemo(() => {
     if (!layout || !layout.length) return false;
     return layout.some((l) => {
@@ -1509,6 +1535,8 @@ export default function GalleryRoom({
             layoutItems={effectiveLayout}
             scene={scene}
             salaTextures={{ pared: texturaPared, piso: texturaPiso }}
+            onGameModalOpen={handleGameModalOpen}
+            onGameSelect={handleGameSelect}
           />
           <CameraZoomControls />
           <CameraFocusControls
@@ -1533,6 +1561,16 @@ export default function GalleryRoom({
             />
           )}
         </Canvas>
+
+        {/* Modales de juegos fuera del Canvas */}
+        <GameModals
+          showGameModal={showGameModal}
+          onGameModalClose={handleGameModalClose}
+          onGameSelect={handleGameSelect}
+          activeGame={activeGame}
+          onGameClose={handleGameClose}
+        />
+
         <AnimatePresence>
           {selectedArtwork && (
             <ZoomModal

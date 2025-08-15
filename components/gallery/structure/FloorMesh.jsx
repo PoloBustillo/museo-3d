@@ -15,34 +15,36 @@ export function FloorMesh({
   quality = "high",
   textureOptimization = "auto",
 }) {
-  // Material optimizado para iluminación tenue
-  const floorMaterial =
-    premiumMode && quality === "ultra" ? (
-      <MarbleMaterial
-        type="carrara"
-        color={floorColor}
-        // Sin maps para optimización
-      />
-    ) : (
-      <PBRMaterial
-        maps={floorMaps}
-        color={floorColor}
-        metalness={premiumMode ? 0.05 : 0.1} // Menos metálico para mejor reflectancia
-        roughness={premiumMode ? 0.4 : 0.6} // Menos rugoso para mejor luz
-        physical={premiumMode}
-        clearcoat={premiumMode ? 0.2 : 0}
-        clearcoatRoughness={premiumMode ? 0.05 : 0}
-        reflectivity={premiumMode ? 0.9 : 0.7} // Más reflectivo
-        envMapIntensity={1.2} // Mejor reflejo del ambiente
-        textureOptimization={textureOptimization}
-      />
-    );
+  // Material optimizado para estabilidad y rendimiento
+  const floorMaterial = floorMaps?.color ? (
+    <PBRMaterial
+      maps={floorMaps}
+      color={floorColor}
+      metalness={0.02} // Muy poco metálico para estabilidad
+      roughness={0.8} // Más rugoso para menos reflejos dinámicos
+      physical={false} // Desactivar física avanzada para estabilidad
+      clearcoat={0}
+      clearcoatRoughness={0}
+      reflectivity={0.1} // Muy baja reflectividad
+      envMapIntensity={0.3} // Reducir intensidad de environment map
+      textureOptimization="auto" // Usar modo auto para texturas
+    />
+  ) : (
+    // Fallback a material básico si no hay texturas
+    <meshStandardMaterial
+      color={floorColor}
+      metalness={0.02}
+      roughness={0.8}
+      envMapIntensity={0.3}
+    />
+  );
 
   return (
     <mesh
       rotation={[-Math.PI / 2, 0, 0]}
       receiveShadow
       position={[dynamicCenterX, 0, 0]}
+      frustumCulled={false} // Evitar culling que puede causar parpadeos
     >
       <planeGeometry args={[dynamicLength, hallWidth]} />
       {floorMaterial}

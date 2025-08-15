@@ -26,6 +26,12 @@ const configureTexture = (texture, repeat = [2, 2]) => {
   texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
   texture.repeat.set(...repeat);
   texture.anisotropy = 16;
+  // Fijar configuración de filtros para evitar cambios dinámicos
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.generateMipmaps = true;
+  // Evitar actualizaciones innecesarias
+  texture.matrixAutoUpdate = false;
 };
 
 // Hook para cargar texturas PBR de manera optimizada
@@ -57,7 +63,8 @@ export function useGalleryTextures(
   mapTypes.forEach(({ key, file }) => {
     try {
       if (finalPath) {
-        maps[key] = useTexture(`${finalPath}_${file}.jpg`);
+        const textureUrl = `${finalPath}_${file}.jpg`;
+        maps[key] = useTexture(textureUrl);
       }
     } catch (e) {
       // Mapa no disponible - silencioso

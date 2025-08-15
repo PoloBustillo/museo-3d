@@ -28,13 +28,10 @@ export function CinematicLighting({
   return (
     <>
       {/* LUCES DEL TECHO - SISTEMA PROFESIONAL QUE ILUMINA TODA LA SALA */}
-      
+
       {/* Iluminación ambiental suficiente para ver toda la sala */}
 
-      <ambientLight
-        intensity={0.45}
-        color="#f7f7f7"
-      />
+      <ambientLight intensity={0.45} color="#f7f7f7" />
 
       {/* Luz hemisférica para iluminación aún más suave y difusa */}
       <hemisphereLight
@@ -112,8 +109,8 @@ export function CinematicLighting({
       {/* Focos laterales del techo para iluminar esquinas */}
 
       <spotLight
-        position={[dynamicCenterX - dynamicLength/3, CEILING_HEIGHT - 0.1, 0]}
-        target-position={[dynamicCenterX - dynamicLength/3, 0, 0]}
+        position={[dynamicCenterX - dynamicLength / 3, CEILING_HEIGHT - 0.1, 0]}
+        target-position={[dynamicCenterX - dynamicLength / 3, 0, 0]}
         intensity={4.2}
         angle={0.8}
         penumbra={0.7}
@@ -123,8 +120,8 @@ export function CinematicLighting({
       />
 
       <spotLight
-        position={[dynamicCenterX + dynamicLength/3, CEILING_HEIGHT - 0.1, 0]}
-        target-position={[dynamicCenterX + dynamicLength/3, 0, 0]}
+        position={[dynamicCenterX + dynamicLength / 3, CEILING_HEIGHT - 0.1, 0]}
+        target-position={[dynamicCenterX + dynamicLength / 3, 0, 0]}
         intensity={4.2}
         angle={0.8}
         penumbra={0.7}

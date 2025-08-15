@@ -35,7 +35,11 @@ export function GalleryWalls({
   return (
     <>
       {/* Pared inicial (entrada) - Con mismas texturas PBR que paredes laterales */}
-      <mesh position={[firstX - wallMarginInitial, CEILING_HEIGHT / 2, 0]} castShadow receiveShadow>
+      <mesh
+        position={[firstX - wallMarginInitial, CEILING_HEIGHT / 2, 0]}
+        castShadow
+        receiveShadow
+      >
         <boxGeometry args={[0.15, CEILING_HEIGHT, wallWidth]} />
         <PBRMaterial
           maps={hasTexture ? maps : {}}
@@ -47,7 +51,11 @@ export function GalleryWalls({
       </mesh>
 
       {/* Pared final (salida) - Más clara para mejor visibilidad */}
-      <mesh position={[lastX + wallMarginFinal, CEILING_HEIGHT / 2, 0]} castShadow receiveShadow>
+      <mesh
+        position={[lastX + wallMarginFinal, CEILING_HEIGHT / 2, 0]}
+        castShadow
+        receiveShadow
+      >
         <boxGeometry args={[0.15, CEILING_HEIGHT, wallWidth]} />
         <PBRMaterial
           maps={hasTexture ? maps : {}}
@@ -57,67 +65,87 @@ export function GalleryWalls({
           side={THREE.DoubleSide}
         />
       </mesh>
-      
+
       {/* Marco dorado alrededor de la salida - más prominente */}
-      <mesh position={[lastX + wallMarginFinal + 0.08, CEILING_HEIGHT / 2, 0]} receiveShadow castShadow>
+      <mesh
+        position={[lastX + wallMarginFinal + 0.08, CEILING_HEIGHT / 2, 0]}
+        receiveShadow
+        castShadow
+      >
         <boxGeometry args={[0.03, CEILING_HEIGHT - 0.3, wallWidth - 0.8]} />
-        <meshStandardMaterial 
-          color="#d4af37" 
-          roughness={0.2} 
+        <meshStandardMaterial
+          color="#d4af37"
+          roughness={0.2}
           metalness={0.8}
           emissive="#332200"
           emissiveIntensity={0.1}
         />
       </mesh>
-      
+
       {/* Letrero "EXIT" más visible y prominente */}
-      <mesh position={[lastX + wallMarginFinal + 0.12, CEILING_HEIGHT - 0.8, 0]} receiveShadow castShadow>
+      <mesh
+        position={[lastX + wallMarginFinal + 0.12, CEILING_HEIGHT - 0.8, 0]}
+        receiveShadow
+        castShadow
+      >
         <boxGeometry args={[0.02, 0.6, 4]} />
-        <meshStandardMaterial 
-          color="#ff1111" 
-          roughness={0.2} 
-          metalness={0.3} 
+        <meshStandardMaterial
+          color="#ff1111"
+          roughness={0.2}
+          metalness={0.3}
           emissive="#ff0000"
           emissiveIntensity={0.8}
         />
       </mesh>
-      
+
       {/* Texto "EXIT" en blanco luminoso */}
-      <mesh position={[lastX + wallMarginFinal + 0.13, CEILING_HEIGHT - 0.8, -1.2]} receiveShadow>
+      <mesh
+        position={[lastX + wallMarginFinal + 0.13, CEILING_HEIGHT - 0.8, -1.2]}
+        receiveShadow
+      >
         <boxGeometry args={[0.005, 0.3, 0.6]} />
-        <meshStandardMaterial 
-          color="#ffffff" 
-          roughness={0.1} 
+        <meshStandardMaterial
+          color="#ffffff"
+          roughness={0.1}
           metalness={0.9}
           emissive="#ffffff"
           emissiveIntensity={1.0}
         />
       </mesh>
-      <mesh position={[lastX + wallMarginFinal + 0.13, CEILING_HEIGHT - 0.8, -0.4]} receiveShadow>
+      <mesh
+        position={[lastX + wallMarginFinal + 0.13, CEILING_HEIGHT - 0.8, -0.4]}
+        receiveShadow
+      >
         <boxGeometry args={[0.005, 0.3, 0.6]} />
-        <meshStandardMaterial 
-          color="#ffffff" 
-          roughness={0.1} 
+        <meshStandardMaterial
+          color="#ffffff"
+          roughness={0.1}
           metalness={0.9}
           emissive="#ffffff"
           emissiveIntensity={1.0}
         />
       </mesh>
-      <mesh position={[lastX + wallMarginFinal + 0.13, CEILING_HEIGHT - 0.8, 0.4]} receiveShadow>
+      <mesh
+        position={[lastX + wallMarginFinal + 0.13, CEILING_HEIGHT - 0.8, 0.4]}
+        receiveShadow
+      >
         <boxGeometry args={[0.005, 0.3, 0.6]} />
-        <meshStandardMaterial 
-          color="#ffffff" 
-          roughness={0.1} 
+        <meshStandardMaterial
+          color="#ffffff"
+          roughness={0.1}
           metalness={0.9}
           emissive="#ffffff"
           emissiveIntensity={1.0}
         />
       </mesh>
-      <mesh position={[lastX + wallMarginFinal + 0.13, CEILING_HEIGHT - 0.8, 1.2]} receiveShadow>
+      <mesh
+        position={[lastX + wallMarginFinal + 0.13, CEILING_HEIGHT - 0.8, 1.2]}
+        receiveShadow
+      >
         <boxGeometry args={[0.005, 0.3, 0.6]} />
-        <meshStandardMaterial 
-          color="#ffffff" 
-          roughness={0.1} 
+        <meshStandardMaterial
+          color="#ffffff"
+          roughness={0.1}
           metalness={0.9}
           emissive="#ffffff"
           emissiveIntensity={1.0}

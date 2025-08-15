@@ -24,7 +24,7 @@ export function GalleryLighting({
   return (
     <>
       {/* LUCES DEL TECHO PROFESIONALES - ILUMINAN TODA LA SALA */}
-      
+
       {/* Iluminación ambiental para ver toda la sala */}
       <ambientLight intensity={ambientIntensity + 0.5} color="#f8f8f8" />
 
@@ -40,12 +40,18 @@ export function GalleryLighting({
         <spotLight
           key={`ceiling-spot-${i}`}
           position={[
-            dynamicCenterX - dynamicLength / 2 + 2 + i * (dynamicLength / (numCeilingLights - 1)),
+            dynamicCenterX -
+              dynamicLength / 2 +
+              2 +
+              i * (dynamicLength / (numCeilingLights - 1)),
             CEILING_HEIGHT - 0.1,
             0,
           ]}
           target-position={[
-            dynamicCenterX - dynamicLength / 2 + 2 + i * (dynamicLength / (numCeilingLights - 1)),
+            dynamicCenterX -
+              dynamicLength / 2 +
+              2 +
+              i * (dynamicLength / (numCeilingLights - 1)),
             0,
             0,
           ]}
@@ -89,8 +95,8 @@ export function GalleryLighting({
 
       {/* Focos de cobertura lateral para esquinas */}
       <spotLight
-        position={[dynamicCenterX - dynamicLength/4, CEILING_HEIGHT - 0.1, 0]}
-        target-position={[dynamicCenterX - dynamicLength/4, 0, 0]}
+        position={[dynamicCenterX - dynamicLength / 4, CEILING_HEIGHT - 0.1, 0]}
+        target-position={[dynamicCenterX - dynamicLength / 4, 0, 0]}
         intensity={8.0}
         angle={0.6}
         penumbra={0.4}
@@ -100,8 +106,8 @@ export function GalleryLighting({
       />
 
       <spotLight
-        position={[dynamicCenterX + dynamicLength/4, CEILING_HEIGHT - 0.1, 0]}
-        target-position={[dynamicCenterX + dynamicLength/4, 0, 0]}
+        position={[dynamicCenterX + dynamicLength / 4, CEILING_HEIGHT - 0.1, 0]}
+        target-position={[dynamicCenterX + dynamicLength / 4, 0, 0]}
         intensity={8.0}
         angle={0.6}
         penumbra={0.4}
