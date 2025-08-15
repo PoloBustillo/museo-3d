@@ -43,9 +43,10 @@ export function WallMesh({
       />
     );
 
+  // Renderizar solo la caja de la pared y su material, sin adornos ni geometría extra
   return (
     <mesh position={position} castShadow receiveShadow>
-      <boxGeometry args={[dynamicLength, 5, 0.1]} />
+      <boxGeometry args={[dynamicLength, 5.5, 0.15]} />
       {wallMaterial}
     </mesh>
   );

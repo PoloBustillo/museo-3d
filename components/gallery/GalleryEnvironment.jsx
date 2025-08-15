@@ -7,9 +7,7 @@ import { SideWalls } from "./structure/WallMesh.jsx";
 import { GalleryWalls } from "./GalleryWalls.jsx";
 import { CeilingLamps } from "./CeilingLamps.jsx";
 import { CeilingMesh } from "./structure/CeilingMesh.jsx";
-import { GalleryMoldings } from "./structure/MoldingMesh.jsx";
 import { CinematicLighting } from "./lighting/CinematicLighting.jsx";
-import { IndustrialCoffeeTable } from "./furniture/IndustrialCoffeeTable.jsx";
 
 const { HALL_WIDTH, CEILING_HEIGHT, FLOOR_EXTRA } = GALLERY_CONFIG;
 
@@ -34,7 +32,6 @@ export function GalleryEnvironment({
     Math.ceil(dynamicLength / 4),
     2,
   ]);
-
   const floorTextures = useGalleryTextures(floorTextureUrl, "FLOOR", [
     Math.ceil(dynamicLength / 4),
     Math.ceil(HALL_WIDTH / 2),
@@ -42,7 +39,7 @@ export function GalleryEnvironment({
 
   return (
     <>
-      {/* Sistema de iluminación cinematográfica */}
+      {/* Iluminación */}
       <CinematicLighting
         preset={lightingPreset}
         dynamicLength={dynamicLength}
@@ -52,7 +49,7 @@ export function GalleryEnvironment({
         quality={environmentQuality}
       />
 
-      {/* Piso principal con texturas */}
+      {/* Piso principal */}
       <FloorMesh
         dynamicLength={dynamicLength}
         dynamicCenterX={dynamicCenterX}
@@ -61,20 +58,8 @@ export function GalleryEnvironment({
         hallWidth={HALL_WIDTH}
         premiumMode={premiumMode}
         quality={environmentQuality}
-        textureOptimization="minimal" // OPTIMIZACIÓN: Reducir texturas
+        textureOptimization="minimal"
       />
-
-      {/* Piso extendido sin texturas */}
-      <ExtendedFloorMesh
-        dynamicLength={dynamicLength}
-        dynamicCenterX={dynamicCenterX}
-        floorColor={floorColor}
-        hallWidth={HALL_WIDTH}
-        floorExtra={FLOOR_EXTRA}
-        premiumMode={premiumMode}
-        textureOptimization="none" // Sin texturas para mejor rendimiento
-      />
-
 
       {/* Techo */}
       <CeilingMesh
@@ -85,9 +70,10 @@ export function GalleryEnvironment({
         floorExtra={FLOOR_EXTRA}
         premiumMode={premiumMode}
         quality={environmentQuality}
-        textureOptimization="none" // Sin texturas en techo
+        textureOptimization="none"
       />
-      {/* Lámparas de techo alineadas con los focos */}
+
+      {/* Lámparas de techo */}
       <CeilingLamps
         dynamicLength={dynamicLength}
         dynamicCenterX={dynamicCenterX}
@@ -96,8 +82,7 @@ export function GalleryEnvironment({
         lampCount={4}
       />
 
-
-      {/* Paredes laterales (2) y paredes de límite (2) con alturas uniformes */}
+      {/* Paredes laterales */}
       <SideWalls
         dynamicLength={dynamicLength}
         dynamicCenterX={dynamicCenterX}
@@ -106,9 +91,10 @@ export function GalleryEnvironment({
         hallWidth={HALL_WIDTH}
         premiumMode={premiumMode}
         quality={environmentQuality}
-        textureOptimization="minimal" // Solo textura principal
+        textureOptimization="minimal"
       />
-      {/* Paredes de límite: una al inicio (entrada), otra al final (salida) */}
+
+      {/* Paredes de límite */}
       <GalleryWalls
         firstX={dynamicCenterX - dynamicLength / 2}
         lastX={dynamicCenterX + dynamicLength / 2}
@@ -117,26 +103,6 @@ export function GalleryEnvironment({
         wallTextureUrl={wallTextureUrl}
         wallColor={wallColor}
       />
-
-      {/* Molduras decorativas */}
-      <GalleryMoldings
-        dynamicLength={dynamicLength}
-        dynamicCenterX={dynamicCenterX}
-        ceilingHeight={CEILING_HEIGHT}
-        hallWidth={HALL_WIDTH}
-        premiumMode={premiumMode}
-      />
-
-      {/* Mobiliario simplificado: solo mesa de café industrial del modelo GLB */}
-      {showFurniture && (
-        <>
-          {/* Mesa de café industrial en el centro de la sala */}
-          <IndustrialCoffeeTable
-            position={[dynamicCenterX, 0, 0]}
-            scale={1.2}
-          />
-        </>
-      )}
     </>
   );
 }
