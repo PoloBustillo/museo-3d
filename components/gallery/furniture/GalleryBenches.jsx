@@ -1,7 +1,5 @@
 import React from "react";
 import { GALLERY_CONFIG } from "../core/config.js";
-import { PBRMaterial } from "../core/PBRMaterial.jsx";
-import { PremiumWoodMaterial } from "../core/AdvancedMaterials.jsx";
 
 const { HALL_WIDTH, HALL_LENGTH } = GALLERY_CONFIG;
 
@@ -13,73 +11,33 @@ const { HALL_WIDTH, HALL_LENGTH } = GALLERY_CONFIG;
 function Bench({ position }) {
   return (
     <group position={position}>
-      {/* Asiento del banco - madera premium walnut */}
+      {/* Asiento del banco - madera simple pero profesional */}
       <mesh position={[0, 0.4, 0]} castShadow receiveShadow>
-        <boxGeometry args={[2, 0.12, 0.45]} />
-        <PremiumWoodMaterial 
-          type="walnut"
-          color="#6d4c41"
+        <boxGeometry args={[2, 0.1, 0.4]} />
+        <meshStandardMaterial 
+          color="#8d6e63"
+          roughness={0.7}
+          metalness={0.1}
         />
       </mesh>
       
-      {/* Respaldo del banco */}
-      <mesh position={[0, 0.7, -0.15]} castShadow receiveShadow>
-        <boxGeometry args={[2, 0.5, 0.08]} />
-        <PremiumWoodMaterial 
-          type="walnut"
+      {/* Pata izquierda */}
+      <mesh position={[-0.8, 0.15, 0]} castShadow>
+        <boxGeometry args={[0.1, 0.4, 0.1]} />
+        <meshStandardMaterial 
           color="#5d4037"
-        />
-      </mesh>
-      
-      {/* Pata izquierda - madera oscura */}
-      <mesh position={[-0.8, 0.18, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.12, 0.45, 0.12]} />
-        <PBRMaterial 
-          color="#3e2723"
-          metalness={0.1}
           roughness={0.8}
-          clearcoat={0.3}
-          clearcoatRoughness={0.4}
+          metalness={0.05}
         />
       </mesh>
       
-      {/* Pata derecha - madera oscura */}
-      <mesh position={[0.8, 0.18, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.12, 0.45, 0.12]} />
-        <PBRMaterial 
-          color="#3e2723"
-          metalness={0.1}
-          roughness={0.8}
-          clearcoat={0.3}
-          clearcoatRoughness={0.4}
-        />
-      </mesh>
-      
-      {/* Soporte central para estabilidad */}
-      <mesh position={[0, 0.18, 0]} castShadow receiveShadow>
-        <boxGeometry args={[1.4, 0.08, 0.08]} />
-        <PBRMaterial 
-          color="#3e2723"
-          metalness={0.1}
-          roughness={0.8}
-        />
-      </mesh>
-      
-      {/* Detalles metálicos en las esquinas */}
-      <mesh position={[-0.9, 0.4, 0.2]} receiveShadow>
-        <boxGeometry args={[0.04, 0.04, 0.04]} />
+      {/* Pata derecha */}
+      <mesh position={[0.8, 0.15, 0]} castShadow>
+        <boxGeometry args={[0.1, 0.4, 0.1]} />
         <meshStandardMaterial 
-          color="#8d6e63"
-          metalness={0.9}
-          roughness={0.2}
-        />
-      </mesh>
-      <mesh position={[0.9, 0.4, 0.2]} receiveShadow>
-        <boxGeometry args={[0.04, 0.04, 0.04]} />
-        <meshStandardMaterial 
-          color="#8d6e63"
-          metalness={0.9}
-          roughness={0.2}
+          color="#5d4037"
+          roughness={0.8}
+          metalness={0.05}
         />
       </mesh>
     </group>
