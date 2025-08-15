@@ -100,8 +100,8 @@ function Picture({
   const depth = 0.07;
   const frameColor =
     frameStyle === "gold" ? "#d4af37" : frameStyle === "dark" ? "#111" : "#111";
-  const scale = selected ? 1.15 : hovered ? 1.04 : 1;
-  const glowOpacity = selected ? 0.35 : hovered ? 0.25 : 0;
+  const scale = selected ? 1.15 : 1; // No hover scale
+  const glowOpacity = selected ? 0.35 : 0; // No hover glow
   return (
     <group
       position={position}
@@ -110,6 +110,7 @@ function Picture({
       onPointerOver={() => setHovered(true)}
       onPointerOut={() => setHovered(false)}
     >
+      {/* Glow solo si está seleccionada, nunca en hover */}
       <group renderOrder={-1}>
         <mesh position={[0, 0, 0.006]} visible={glowOpacity > 0}>
           <planeGeometry args={[w + thickness * 2.6, h + thickness * 2.6]} />
@@ -132,19 +133,22 @@ function Picture({
           />
         </mesh>
       </group>
+      {/* Marco superior */}
       <mesh position={[0, h / 2 + thickness / 2, depth]}>
         <boxGeometry args={[w + thickness * 2, thickness, thickness]} />
         <meshPhysicalMaterial
           map={frameTexture || null}
           color={!frameTexture ? frameColor : undefined}
-          // MARCO OPTIMIZADO PARA LUZ TENUE
-          metalness={frameStyle === "gold" ? 0.8 : 0.2} // Más metálico si es dorado
-          roughness={frameStyle === "gold" ? 0.1 : 0.4} // Más pulido si es dorado
-          clearcoat={0.6} // Barniz protector
+          metalness={frameStyle === "gold" ? 0.8 : 0.2}
+          roughness={frameStyle === "gold" ? 0.1 : 0.4}
+          clearcoat={0.6}
           clearcoatRoughness={0.1}
-          envMapIntensity={1.4} // Mejor reflejo ambiental
+          envMapIntensity={1.4}
+          emissive={hovered ? "#ffe082" : undefined}
+          emissiveIntensity={hovered ? 0.7 : 0}
         />
       </mesh>
+      {/* Marco inferior */}
       <mesh position={[0, -h / 2 - thickness / 2, depth]}>
         <boxGeometry args={[w + thickness * 2, thickness, thickness]} />
         <meshPhysicalMaterial
@@ -155,8 +159,11 @@ function Picture({
           clearcoat={0.6}
           clearcoatRoughness={0.1}
           envMapIntensity={1.4}
+          emissive={hovered ? "#ffe082" : undefined}
+          emissiveIntensity={hovered ? 0.7 : 0}
         />
       </mesh>
+      {/* Marco izquierdo */}
       <mesh position={[-w / 2 - thickness / 2, 0, depth]}>
         <boxGeometry args={[thickness, h + thickness * 2, thickness]} />
         <meshPhysicalMaterial
@@ -167,8 +174,11 @@ function Picture({
           clearcoat={0.6}
           clearcoatRoughness={0.1}
           envMapIntensity={1.4}
+          emissive={hovered ? "#ffe082" : undefined}
+          emissiveIntensity={hovered ? 0.7 : 0}
         />
       </mesh>
+      {/* Marco derecho */}
       <mesh position={[w / 2 + thickness / 2, 0, depth]}>
         <boxGeometry args={[thickness, h + thickness * 2, thickness]} />
         <meshPhysicalMaterial
@@ -179,6 +189,8 @@ function Picture({
           clearcoat={0.6}
           clearcoatRoughness={0.1}
           envMapIntensity={1.4}
+          emissive={hovered ? "#ffe082" : undefined}
+          emissiveIntensity={hovered ? 0.7 : 0}
         />
       </mesh>
       <mesh
@@ -223,37 +235,7 @@ function Picture({
         />
       )}
 
-      {/* Iluminación múltiple más tenue y difusa con ángulos específicos */}
-      <spotLight
-        position={[0, -h / 2 + 0.6, 0.4]}
-        target-position={[0, 0, 0]}
-        intensity={hovered || selected ? 0.3 : 0.18}
-        angle={0.8}
-        penumbra={0.6}
-        distance={4.5}
-        decay={2.2}
-        color={selected ? "#ffe1b0" : "#ffd5a1"}
-      />
-      <spotLight
-        position={[-0.4, -h / 2 + 0.5, 0.35]}
-        target-position={[0.1, 0, 0]}
-        intensity={hovered || selected ? 0.25 : 0.15}
-        angle={0.7}
-        penumbra={0.7}
-        distance={4}
-        decay={2.8}
-        color="#fff2d9"
-      />
-      <spotLight
-        position={[0.4, -h / 2 + 0.5, 0.35]}
-        target-position={[-0.1, 0, 0]}
-        intensity={hovered || selected ? 0.25 : 0.15}
-        angle={0.7}
-        penumbra={0.7}
-        distance={4}
-        decay={2.8}
-        color="#fff2d9"
-      />
+      {/* Iluminación solo en el marco: nada sobre la obra al hacer hover */}
 
       {/* Luz ambiental superior sutil */}
       <pointLight

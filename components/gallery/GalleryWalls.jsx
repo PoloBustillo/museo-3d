@@ -27,14 +27,15 @@ export function GalleryWalls({
   const { maps, fallbackTexture, hasTexture } =
     useGalleryTextures(wallTextureUrl);
 
+  // Usar altura de techo para todas las paredes
   const wallHeight = CEILING_HEIGHT;
   const wallWidth = HALL_WIDTH + 2;
 
   return (
     <>
       {/* Pared inicial (entrada) - Con textura seleccionada */}
-      <mesh position={[firstX - wallMarginInitial * 0.8, wallHeight / 2, 0]}>
-        <boxGeometry args={[0.2, wallHeight, wallWidth]} />
+      <mesh position={[firstX - wallMarginInitial * 0.8, CEILING_HEIGHT / 2, 0]}>
+        <boxGeometry args={[0.2, CEILING_HEIGHT, wallWidth]} />
         <PBRMaterial
           maps={hasTexture ? maps : { color: fallbackTexture }}
           color={wallColor}
@@ -45,8 +46,8 @@ export function GalleryWalls({
       </mesh>
 
       {/* Pared final (salida) - Lisa y semi-transparente */}
-      <mesh position={[lastX + wallMarginFinal, wallHeight / 2, 0]}>
-        <boxGeometry args={[0.2, wallHeight, wallWidth]} />
+      <mesh position={[lastX + wallMarginFinal, CEILING_HEIGHT / 2, 0]}>
+        <boxGeometry args={[0.2, CEILING_HEIGHT, wallWidth]} />
         <PBRMaterial
           color="#f0f0f0"
           side={THREE.DoubleSide}

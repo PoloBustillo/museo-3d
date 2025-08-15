@@ -4,6 +4,8 @@ import { GALLERY_CONFIG } from "./core/config.js";
 import { useGalleryTextures } from "../../hooks/useGalleryTextures.js";
 import { FloorMesh, ExtendedFloorMesh } from "./structure/FloorMesh.jsx";
 import { SideWalls } from "./structure/WallMesh.jsx";
+import { GalleryWalls } from "./GalleryWalls.jsx";
+import { CeilingLamps } from "./CeilingLamps.jsx";
 import { CeilingMesh } from "./structure/CeilingMesh.jsx";
 import { GalleryMoldings } from "./structure/MoldingMesh.jsx";
 import { CinematicLighting } from "./lighting/CinematicLighting.jsx";
@@ -73,6 +75,7 @@ export function GalleryEnvironment({
         textureOptimization="none" // Sin texturas para mejor rendimiento
       />
 
+
       {/* Techo */}
       <CeilingMesh
         dynamicLength={dynamicLength}
@@ -84,8 +87,17 @@ export function GalleryEnvironment({
         quality={environmentQuality}
         textureOptimization="none" // Sin texturas en techo
       />
+      {/* Lámparas de techo alineadas con los focos */}
+      <CeilingLamps
+        dynamicLength={dynamicLength}
+        dynamicCenterX={dynamicCenterX}
+        ceilingHeight={CEILING_HEIGHT}
+        hallWidth={HALL_WIDTH}
+        lampCount={4}
+      />
 
-      {/* Paredes laterales con texturas limitadas */}
+
+      {/* Paredes laterales (2) y paredes de límite (2) con alturas uniformes */}
       <SideWalls
         dynamicLength={dynamicLength}
         dynamicCenterX={dynamicCenterX}
@@ -95,6 +107,15 @@ export function GalleryEnvironment({
         premiumMode={premiumMode}
         quality={environmentQuality}
         textureOptimization="minimal" // Solo textura principal
+      />
+      {/* Paredes de límite: una al inicio (entrada), otra al final (salida) */}
+      <GalleryWalls
+        firstX={dynamicCenterX - dynamicLength / 2}
+        lastX={dynamicCenterX + dynamicLength / 2}
+        wallMarginInitial={0.1}
+        wallMarginFinal={0.1}
+        wallTextureUrl={wallTextureUrl}
+        wallColor={wallColor}
       />
 
       {/* Molduras decorativas */}
