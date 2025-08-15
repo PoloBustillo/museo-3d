@@ -40,13 +40,13 @@ export function CeilingLamps({
               clearcoatRoughness={0.08}
             />
           </mesh>
-          {/* Difusor de luz: panel LED cuadrado */}
+          {/* Difusor de luz: panel LED con emisión reducida */}
           <mesh position={[0, -0.032, 0]}>
             <boxGeometry args={[0.56, 0.012, 0.56]} />
             <meshPhysicalMaterial
               color="#fffbe6"
               emissive="#fffbe6"
-              emissiveIntensity={0.7}
+              emissiveIntensity={0.2} // Reducido de 0.7 a 0.2
               roughness={0.08}
               transmission={0.98}
               opacity={0.93}

@@ -27,31 +27,30 @@ export function CinematicLighting({
 
   return (
     <>
-      {/* LUCES DEL TECHO - SISTEMA PROFESIONAL QUE ILUMINA TODA LA SALA */}
+      {/* LUCES DEL TECHO - SISTEMA PROFESIONAL CON DECAY REALISTA */}
 
-      {/* Iluminación ambiental suficiente para ver toda la sala */}
+      {/* Iluminación ambiental MUY REDUCIDA para permitir contraste */}
+      <ambientLight intensity={0.15} color="#f0f0f0" />
 
-      <ambientLight intensity={0.45} color="#f7f7f7" />
-
-      {/* Luz hemisférica para iluminación aún más suave y difusa */}
+      {/* Luz hemisférica mínima */}
       <hemisphereLight
-        skyColor="#f9f9f9"
-        groundColor="#ededed"
-        intensity={0.38}
+        skyColor="#f5f5f5"
+        groundColor="#e0e0e0"
+        intensity={0.12}
       />
 
       {/* Sistema de focos profesionales del techo */}
       {lightPositions.map((x, i) => (
         <React.Fragment key={`ceiling-light-${i}`}>
-          {/* Foco principal del techo - iluminación profesional */}
-
+          {/* Foco principal del techo - con decay realista */}
           <spotLight
             position={[x, CEILING_HEIGHT - 0.1, 0]}
             target-position={[x, 0, 0]}
-            intensity={6.5}
-            angle={0.7}
-            penumbra={0.55}
-            distance={CEILING_HEIGHT + 3}
+            intensity={8.0} // Aumentado para compensar decay
+            angle={0.5} // Ángulo más cerrado
+            penumbra={0.7} // Mayor penumbra
+            distance={CEILING_HEIGHT + 1} // Distancia más corta
+            decay={2} // Decay físicamente correcto
             color="#f8f8f8"
             castShadow={i < 2}
             shadow-mapSize-width={1024}
@@ -61,15 +60,15 @@ export function CinematicLighting({
             shadow-bias={-0.0001}
           />
 
-          {/* Foco adicional para obras de arte */}
-
+          {/* Foco adicional para obras de arte - más direccional */}
           <spotLight
             position={[x, CEILING_HEIGHT - 0.05, -2]}
             target-position={[x, 1.8, -6.8]}
-            intensity={4.2}
-            angle={0.32}
-            penumbra={0.6}
-            distance={12}
+            intensity={6.0} // Aumentado para compensar decay
+            angle={0.25} // Ángulo más cerrado
+            penumbra={0.5}
+            distance={10} // Distancia más corta
+            decay={2}
             color="#fffbe6"
             castShadow={i === 0}
             shadow-mapSize-width={512}
@@ -78,43 +77,45 @@ export function CinematicLighting({
 
           {/* Foco para iluminar el piso y paredes */}
 
+          {/* Foco para piso con decay */}
           <spotLight
             position={[x, CEILING_HEIGHT - 0.1, 2]}
             target-position={[x, 0, 3]}
-            intensity={3.2}
-            angle={0.6}
-            penumbra={0.7}
-            distance={CEILING_HEIGHT + 2}
+            intensity={4.0} // Reducido
+            angle={0.4} // Más cerrado
+            penumbra={0.8}
+            distance={CEILING_HEIGHT} // Distancia más corta
+            decay={2}
             color="#f8f8f8"
             castShadow={false}
           />
         </React.Fragment>
       ))}
 
-      {/* Focos centrales del techo para cobertura completa */}
-
+      {/* Foco central con menos intensidad */}
       <spotLight
         position={[dynamicCenterX, CEILING_HEIGHT - 0.1, 0]}
         target-position={[dynamicCenterX, 0, 0]}
-        intensity={5.5}
-        angle={0.9}
-        penumbra={0.7}
-        distance={CEILING_HEIGHT + 3}
+        intensity={7.0} // Reducido pero compensado por decay
+        angle={0.6} // Más cerrado
+        penumbra={0.8}
+        distance={CEILING_HEIGHT + 1} // Distancia más corta
+        decay={2}
         color="#f8f8f8"
         castShadow={true}
         shadow-mapSize-width={512}
         shadow-mapSize-height={512}
       />
 
-      {/* Focos laterales del techo para iluminar esquinas */}
-
+      {/* Focos laterales REDUCIDOS para crear zonas más oscuras */}
       <spotLight
         position={[dynamicCenterX - dynamicLength / 3, CEILING_HEIGHT - 0.1, 0]}
         target-position={[dynamicCenterX - dynamicLength / 3, 0, 0]}
-        intensity={4.2}
-        angle={0.8}
-        penumbra={0.7}
-        distance={CEILING_HEIGHT + 2}
+        intensity={3.0} // Muy reducido
+        angle={0.5} // Más cerrado
+        penumbra={0.9} // Máxima penumbra
+        distance={CEILING_HEIGHT - 1} // Distancia muy corta
+        decay={2}
         color="#f8f8f8"
         castShadow={false}
       />
@@ -122,10 +123,11 @@ export function CinematicLighting({
       <spotLight
         position={[dynamicCenterX + dynamicLength / 3, CEILING_HEIGHT - 0.1, 0]}
         target-position={[dynamicCenterX + dynamicLength / 3, 0, 0]}
-        intensity={4.2}
-        angle={0.8}
-        penumbra={0.7}
-        distance={CEILING_HEIGHT + 2}
+        intensity={3.0} // Muy reducido
+        angle={0.5}
+        penumbra={0.9}
+        distance={CEILING_HEIGHT - 1}
+        decay={2}
         color="#f8f8f8"
         castShadow={false}
       />

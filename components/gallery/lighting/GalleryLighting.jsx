@@ -23,19 +23,19 @@ export function GalleryLighting({
 
   return (
     <>
-      {/* LUCES DEL TECHO PROFESIONALES - ILUMINAN TODA LA SALA */}
+      {/* LUCES DEL TECHO PROFESIONALES - CON FALLOFF REALISTA */}
 
-      {/* Iluminación ambiental para ver toda la sala */}
-      <ambientLight intensity={ambientIntensity + 0.5} color="#f8f8f8" />
+      {/* Iluminación ambiental MUY REDUCIDA para crear contraste */}
+      <ambientLight intensity={ambientIntensity * 0.3} color="#f0f0f0" />
 
-      {/* Luz hemisférica para distribución uniforme */}
+      {/* Luz hemisférica mínima solo para evitar negro total */}
       <hemisphereLight
         skyColor="#ffffff"
-        groundColor="#e8e8e8"
-        intensity={0.4}
+        groundColor="#cccccc"
+        intensity={0.15}
       />
 
-      {/* Focos principales del techo distribuidos uniformemente */}
+      {/* Focos principales del techo con falloff realista */}
       {Array.from({ length: numCeilingLights }).map((_, i) => (
         <spotLight
           key={`ceiling-spot-${i}`}
@@ -55,10 +55,11 @@ export function GalleryLighting({
             0,
             0,
           ]}
-          intensity={10.0}
-          angle={0.7}
-          penumbra={0.3}
-          distance={CEILING_HEIGHT + 3}
+          intensity={15.0}
+          angle={0.5} // Ángulo más cerrado para focos concentrados
+          penumbra={0.6} // Mayor penumbra para transición suave
+          distance={CEILING_HEIGHT + 1} // Distancia más corta para decay
+          decay={2} // Decay físicamente correcto
           color="#ffffff"
           castShadow={i < 2} // Solo primeros 2 focos con sombras
           shadow-mapSize-width={512}
@@ -66,14 +67,15 @@ export function GalleryLighting({
         />
       ))}
 
-      {/* Focos específicos para iluminar las paredes de obras */}
+      {/* Focos específicos para obras - más intensos y direccionales */}
       <spotLight
         position={[dynamicCenterX, CEILING_HEIGHT - 0.1, -1]}
         target-position={[dynamicCenterX, 2, -6.5]}
-        intensity={12.0}
-        angle={0.4}
-        penumbra={0.3}
-        distance={12}
+        intensity={18.0}
+        angle={0.3} // Ángulo muy cerrado para iluminar solo las obras
+        penumbra={0.5}
+        distance={10} // Distancia más corta para mayor contraste
+        decay={2}
         color="#fff9f0"
         castShadow={true}
         shadow-mapSize-width={1024}
@@ -83,24 +85,26 @@ export function GalleryLighting({
       <spotLight
         position={[dynamicCenterX, CEILING_HEIGHT - 0.1, 1]}
         target-position={[dynamicCenterX, 2, 6.5]}
-        intensity={12.0}
-        angle={0.4}
-        penumbra={0.3}
-        distance={12}
+        intensity={18.0}
+        angle={0.3}
+        penumbra={0.5}
+        distance={10}
+        decay={2}
         color="#fff9f0"
         castShadow={false} // Solo uno con sombras para optimizar
         shadow-mapSize-width={1024}
         shadow-mapSize-height={1024}
       />
 
-      {/* Focos de cobertura lateral para esquinas */}
+      {/* Focos laterales con menor intensidad para crear gradiente */}
       <spotLight
         position={[dynamicCenterX - dynamicLength / 4, CEILING_HEIGHT - 0.1, 0]}
         target-position={[dynamicCenterX - dynamicLength / 4, 0, 0]}
-        intensity={8.0}
-        angle={0.6}
-        penumbra={0.4}
-        distance={CEILING_HEIGHT + 2}
+        intensity={6.0} // Reducida para crear zonas más oscuras
+        angle={0.4} // Ángulo más cerrado
+        penumbra={0.7} // Mayor penumbra para transición suave
+        distance={CEILING_HEIGHT} // Distancia más corta
+        decay={2}
         color="#ffffff"
         castShadow={false}
       />
@@ -108,12 +112,30 @@ export function GalleryLighting({
       <spotLight
         position={[dynamicCenterX + dynamicLength / 4, CEILING_HEIGHT - 0.1, 0]}
         target-position={[dynamicCenterX + dynamicLength / 4, 0, 0]}
-        intensity={8.0}
-        angle={0.6}
-        penumbra={0.4}
-        distance={CEILING_HEIGHT + 2}
+        intensity={6.0}
+        angle={0.4}
+        penumbra={0.7}
+        distance={CEILING_HEIGHT}
+        decay={2}
         color="#ffffff"
         castShadow={false}
+      />
+
+      {/* Luces adicionales para esquinas - muy tenues */}
+      <pointLight
+        position={[dynamicCenterX - dynamicLength / 2 + 1, CEILING_HEIGHT - 1, -3]}
+        intensity={2.0}
+        distance={4}
+        decay={2}
+        color="#f0f0f0"
+      />
+
+      <pointLight
+        position={[dynamicCenterX + dynamicLength / 2 - 1, CEILING_HEIGHT - 1, 3]}
+        intensity={2.0}
+        distance={4}
+        decay={2}
+        color="#f0f0f0"
       />
     </>
   );
