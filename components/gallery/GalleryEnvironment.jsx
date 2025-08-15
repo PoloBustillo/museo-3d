@@ -24,7 +24,7 @@ export function GalleryEnvironment({
   // Nuevas propiedades para mejoras visuales
   lightingPreset = "museum", // "museum", "dramatic", "golden"
   premiumMode = true, // Activar materiales y muebles premium
-  showFurniture = true, // Mostrar muebles de museo
+  showFurniture = false, // Mesa quitada
   environmentQuality = "high", // "basic", "high", "ultra"
 }) {
   // Usar hook optimizado para texturas de pared y piso
