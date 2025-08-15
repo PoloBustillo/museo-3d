@@ -3,7 +3,7 @@ import { useTextureRecommendations } from "../hooks/useTextureRecommendations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// Tabs eliminados
 import { Loader2, Palette, Sparkles, Eye, Download } from "lucide-react";
 
 /**
@@ -258,57 +258,53 @@ export function TextureRecommendations({ salaId }) {
         </CardContent>
       </Card>
 
-      {/* Pestañas de recomendaciones */}
+      {/* Recomendaciones de paredes */}
       <Card>
+        <CardHeader>
+          <CardTitle>Paredes ({wallRecommendations.length})</CardTitle>
+        </CardHeader>
         <CardContent className="p-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="paredes">
-                Paredes ({wallRecommendations.length})
-              </TabsTrigger>
-              <TabsTrigger value="pisos">
-                Pisos ({floorRecommendations.length})
-              </TabsTrigger>
-            </TabsList>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {wallRecommendations.map((texture, index) => (
+              <TextureCard
+                key={`wall-${index}`}
+                texture={texture}
+                type="wall"
+                onApply={handleApplyTexture}
+                isApplying={applyingTexture}
+              />
+            ))}
+          </div>
+          {wallRecommendations.length === 0 && (
+            <p className="text-center text-gray-500 py-8">
+              No se encontraron recomendaciones para paredes
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
-            <TabsContent value="paredes" className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {wallRecommendations.map((texture, index) => (
-                  <TextureCard
-                    key={`wall-${index}`}
-                    texture={texture}
-                    type="wall"
-                    onApply={handleApplyTexture}
-                    isApplying={applyingTexture}
-                  />
-                ))}
-              </div>
-              {wallRecommendations.length === 0 && (
-                <p className="text-center text-gray-500 py-8">
-                  No se encontraron recomendaciones para paredes
-                </p>
-              )}
-            </TabsContent>
-
-            <TabsContent value="pisos" className="mt-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {floorRecommendations.map((texture, index) => (
-                  <TextureCard
-                    key={`floor-${index}`}
-                    texture={texture}
-                    type="floor"
-                    onApply={handleApplyTexture}
-                    isApplying={applyingTexture}
-                  />
-                ))}
-              </div>
-              {floorRecommendations.length === 0 && (
-                <p className="text-center text-gray-500 py-8">
-                  No se encontraron recomendaciones para pisos
-                </p>
-              )}
-            </TabsContent>
-          </Tabs>
+      {/* Recomendaciones de pisos */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Pisos ({floorRecommendations.length})</CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {floorRecommendations.map((texture, index) => (
+              <TextureCard
+                key={`floor-${index}`}
+                texture={texture}
+                type="floor"
+                onApply={handleApplyTexture}
+                isApplying={applyingTexture}
+              />
+            ))}
+          </div>
+          {floorRecommendations.length === 0 && (
+            <p className="text-center text-gray-500 py-8">
+              No se encontraron recomendaciones para pisos
+            </p>
+          )}
         </CardContent>
       </Card>
 
