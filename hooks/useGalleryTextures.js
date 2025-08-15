@@ -29,7 +29,11 @@ const configureTexture = (texture, repeat = [2, 2]) => {
 };
 
 // Hook para cargar texturas PBR de manera optimizada
-export function useGalleryTextures(textureUrl, fallbackType = "WALL", repeat = [2, 2]) {
+export function useGalleryTextures(
+  textureUrl,
+  fallbackType = "WALL",
+  repeat = [2, 2]
+) {
   // Resolver URL de textura
   const fallback = GALLERY_CONFIG.TEXTURES[fallbackType];
   const extraFallbacks = GALLERY_CONFIG.TEXTURES.FALLBACKS || [];

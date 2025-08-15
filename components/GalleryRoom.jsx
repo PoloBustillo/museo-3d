@@ -540,6 +540,7 @@ function Room({
         dynamicCenterX={dynamicCenterX}
         wallTextureUrl={salaTextures?.pared}
         floorTextureUrl={salaTextures?.piso}
+        textureOptimization="minimal" // Optimización crítica para GPU
       />
       {normalizedLayout && normalizedLayout.length > 0
         ? normalizedLayout.map((li, i) => (

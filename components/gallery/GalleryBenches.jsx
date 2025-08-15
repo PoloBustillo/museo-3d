@@ -1,6 +1,6 @@
 import React from "react";
-import { GALLERY_CONFIG } from "../core/config.js";
-import { PBRMaterial } from "../core/PBRMaterial.jsx";
+import { GALLERY_CONFIG } from "./config.js";
+import { PBRMaterial } from "./PBRMaterial.jsx";
 
 const { HALL_WIDTH, HALL_LENGTH } = GALLERY_CONFIG;
 

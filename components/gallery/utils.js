@@ -47,7 +47,10 @@ export function calculateArtworkPositions(
     const side = i % 2 === 0 ? 1 : -1;
     const index = Math.floor(i / 2);
     const x = startX + index * actualSpacing;
-    const z = side === 1 ? (HALL_WIDTH / 2 - WALL_ART_OFFSET) : -(HALL_WIDTH / 2 - WALL_ART_OFFSET);
+    const z =
+      side === 1
+        ? HALL_WIDTH / 2 - WALL_ART_OFFSET
+        : -(HALL_WIDTH / 2 - WALL_ART_OFFSET);
     const rotation = [0, side === 1 ? 0 : Math.PI, 0];
     // Altura fija 1.5 para centrar mejor cuadros altos
     positions.push({ ...images[i], position: [x, 1.6, z], rotation });
@@ -110,8 +113,8 @@ export function calculateGalleryDimensions(artworks) {
     wallMarginFinal: WALL_MARGIN_FINAL,
     spacing, // nuevo: spacing real utilizado
   };
-  if (typeof window !== 'undefined' && !window.__GALLERY_DIM_LOGGED__) {
-    console.log('[GalleryDimensions] debug', result);
+  if (typeof window !== "undefined" && !window.__GALLERY_DIM_LOGGED__) {
+    console.log("[GalleryDimensions] debug", result);
     window.__GALLERY_DIM_LOGGED__ = true;
   }
   return result;
