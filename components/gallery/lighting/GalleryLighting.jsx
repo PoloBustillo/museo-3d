@@ -1,39 +1,11 @@
 import React from "react";
 import { GALLERY_CONFIG } from "../core/config.js";
-import { PBRMaterial } from "../core/PBRMaterial.jsx";
 
 const { CEILING_HEIGHT } = GALLERY_CONFIG;
 
-// Nuevos presets de iluminación
-const LIGHTING_PRESETS = {
-  neutral: (ambientOverride) => ({
-    ambient: ambientOverride ?? 0.8,
-    directional: { intensity: 1.1, color: "#ffffff", position: [10, 12, 10] },
-    point: { intensity: 1.3, color: "#ffe6b2" },
-    lamp: { intensity: 1.0, color: "#fffbe6" },
-  }),
-  warm: (ambientOverride) => ({
-    ambient: ambientOverride ?? 0.9,
-    directional: { intensity: 1.3, color: "#ffd7a0", position: [8, 11, 6] },
-    point: { intensity: 1.4, color: "#ffdeb4" },
-    lamp: { intensity: 1.1, color: "#ffe9cc" },
-  }),
-  dramatic: (ambientOverride) => ({
-    ambient: ambientOverride ?? 0.45,
-    directional: { intensity: 1.9, color: "#ffffff", position: [14, 14, 4] },
-    point: { intensity: 1.6, color: "#fff7d1" },
-    lamp: { intensity: 1.2, color: "#ffe9c4" },
-  }),
-  cool: (ambientOverride) => ({
-    ambient: ambientOverride ?? 0.75,
-    directional: { intensity: 1.2, color: "#cfe8ff", position: [9, 13, 9] },
-    point: { intensity: 1.25, color: "#d6f0ff" },
-    lamp: { intensity: 1.05, color: "#e3f6ff" },
-  }),
-};
-
 /**
- * Componente de iluminación para la galería con soporte de presets
+ * Sistema de iluminación profesional del techo para galería
+ * SOLO LUCES DEL TECHO - Sistema de museo profesional
  * @param {Object} props
  * @param {number} props.dynamicLength
  * @param {number} props.dynamicCenterX
@@ -43,85 +15,100 @@ const LIGHTING_PRESETS = {
 export function GalleryLighting({
   dynamicLength,
   dynamicCenterX,
-  lightingPreset,
-  ambientIntensity,
+  lightingPreset = "neutral",
+  ambientIntensity = 0.3,
 }) {
-  const numPointLights = Math.max(2, Math.floor(dynamicLength / 6));
-  const numLamps = Math.floor(dynamicLength / 8);
-
-  const presetFactory =
-    LIGHTING_PRESETS[lightingPreset] || LIGHTING_PRESETS.neutral;
-  const preset = presetFactory(ambientIntensity);
+  // Calcular número de focos del techo basado en la longitud
+  const numCeilingLights = Math.max(4, Math.floor(dynamicLength / 4));
 
   return (
     <>
-      {/* Iluminación ambiental y direccional según preset */}
-      <ambientLight intensity={preset.ambient} />
-      <directionalLight
-        position={preset.directional.position}
-        intensity={preset.directional.intensity}
-        color={preset.directional.color}
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
+      {/* LUCES DEL TECHO PROFESIONALES - ILUMINAN TODA LA SALA */}
+      
+      {/* Iluminación ambiental para ver toda la sala */}
+      <ambientLight intensity={ambientIntensity + 0.5} color="#f8f8f8" />
+
+      {/* Luz hemisférica para distribución uniforme */}
+      <hemisphereLight
+        skyColor="#ffffff"
+        groundColor="#e8e8e8"
+        intensity={0.4}
       />
 
-      {/* Luces puntuales distribuidas */}
-      {Array.from({ length: numPointLights }).map((_, i) => (
-        <pointLight
-          key={`point-light-${i}`}
+      {/* Focos principales del techo distribuidos uniformemente */}
+      {Array.from({ length: numCeilingLights }).map((_, i) => (
+        <spotLight
+          key={`ceiling-spot-${i}`}
           position={[
-            dynamicCenterX - dynamicLength / 2 + 3 + i * 6,
-            CEILING_HEIGHT - 0.7,
+            dynamicCenterX - dynamicLength / 2 + 2 + i * (dynamicLength / (numCeilingLights - 1)),
+            CEILING_HEIGHT - 0.1,
             0,
           ]}
-          intensity={preset.point.intensity}
-          distance={8}
-          color={preset.point.color}
-          castShadow
+          target-position={[
+            dynamicCenterX - dynamicLength / 2 + 2 + i * (dynamicLength / (numCeilingLights - 1)),
+            0,
+            0,
+          ]}
+          intensity={10.0}
+          angle={0.7}
+          penumbra={0.3}
+          distance={CEILING_HEIGHT + 3}
+          color="#ffffff"
+          castShadow={i < 2} // Solo primeros 2 focos con sombras
+          shadow-mapSize-width={512}
+          shadow-mapSize-height={512}
         />
       ))}
 
-      {/* Lámparas decorativas */}
-      {Array.from({ length: numLamps }).map((_, i) => (
-        <React.Fragment key={`lamp-group-${i}`}>
-          <mesh
-            position={[
-              dynamicCenterX - dynamicLength / 2 + 4 + i * 8,
-              CEILING_HEIGHT - 0.2,
-              0,
-            ]}
-          >
-            <cylinderGeometry args={[0.25, 0.25, 0.1, 24]} />
-            <PBRMaterial color="#FFF" />
-          </mesh>
+      {/* Focos específicos para iluminar las paredes de obras */}
+      <spotLight
+        position={[dynamicCenterX, CEILING_HEIGHT - 0.1, -1]}
+        target-position={[dynamicCenterX, 2, -6.5]}
+        intensity={12.0}
+        angle={0.4}
+        penumbra={0.3}
+        distance={12}
+        color="#fff9f0"
+        castShadow={true}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+      />
 
-          <pointLight
-            position={[
-              dynamicCenterX - dynamicLength / 2 + 4 + i * 8,
-              CEILING_HEIGHT - 0.5,
-              0,
-            ]}
-            intensity={preset.lamp.intensity}
-            distance={6}
-            color={preset.lamp.color}
-          />
+      <spotLight
+        position={[dynamicCenterX, CEILING_HEIGHT - 0.1, 1]}
+        target-position={[dynamicCenterX, 2, 6.5]}
+        intensity={12.0}
+        angle={0.4}
+        penumbra={0.3}
+        distance={12}
+        color="#fff9f0"
+        castShadow={false} // Solo uno con sombras para optimizar
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+      />
 
-          <mesh
-            position={[
-              dynamicCenterX - dynamicLength / 2 + 4 + i * 8,
-              CEILING_HEIGHT - 0.19,
-              0,
-            ]}
-            rotation={[-Math.PI / 2, 0, 0]}
-          >
-            <torusGeometry args={[0.45, 0.035, 16, 32]} />
-            <PBRMaterial
-              color={lightingPreset === "dramatic" ? "#444" : "#f8bbd0"}
-            />
-          </mesh>
-        </React.Fragment>
-      ))}
+      {/* Focos de cobertura lateral para esquinas */}
+      <spotLight
+        position={[dynamicCenterX - dynamicLength/4, CEILING_HEIGHT - 0.1, 0]}
+        target-position={[dynamicCenterX - dynamicLength/4, 0, 0]}
+        intensity={8.0}
+        angle={0.6}
+        penumbra={0.4}
+        distance={CEILING_HEIGHT + 2}
+        color="#ffffff"
+        castShadow={false}
+      />
+
+      <spotLight
+        position={[dynamicCenterX + dynamicLength/4, CEILING_HEIGHT - 0.1, 0]}
+        target-position={[dynamicCenterX + dynamicLength/4, 0, 0]}
+        intensity={8.0}
+        angle={0.6}
+        penumbra={0.4}
+        distance={CEILING_HEIGHT + 2}
+        color="#ffffff"
+        castShadow={false}
+      />
     </>
   );
 }

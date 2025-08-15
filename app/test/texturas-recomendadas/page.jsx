@@ -5,7 +5,7 @@
 "use client";
 
 import { useState } from "react";
-import { TextureRecommendations } from "../../components/TextureRecommendations";
+import { TextureRecommendations } from "@/components/TextureRecommendations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";

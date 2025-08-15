@@ -10,7 +10,7 @@ import React, {
  * Gestor global de texturas GPU - Evita exceder el límite de 16 texturas
  */
 
-const MAX_GPU_TEXTURES = 14; // Límite seguro (deja 2 para sistema)
+const MAX_GPU_TEXTURES = 12; // Límite más seguro (deja 4 para sistema y sombras)
 
 // Prioridades de texturas (mayor número = mayor prioridad)
 const TEXTURE_PRIORITIES = {

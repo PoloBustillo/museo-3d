@@ -4,7 +4,8 @@ import { GALLERY_CONFIG } from "../core/config.js";
 const { CEILING_HEIGHT } = GALLERY_CONFIG;
 
 /**
- * Sistema de iluminación cinematográfica avanzada
+ * Sistema de iluminación profesional del techo para museo
+ * SOLO LUCES DEL TECHO - Sistema profesional optimizado
  */
 export function CinematicLighting({
   dynamicLength,
@@ -12,28 +13,7 @@ export function CinematicLighting({
   lightingPreset = "museum",
   ambientOverride = null,
 }) {
-  // Configuraciones de iluminación optimizadas - Más tenues pero con obras destacadas
-  const LIGHTING_PRESETS = {
-    museum: {
-      ambient: { intensity: 0.15, color: "#f0f0f0" }, // Más tenue
-      key: { intensity: 1.8, color: "#fff8e1", distance: 12 }, // Reducido
-      spots: { intensity: 5.5, angle: 0.25, penumbra: 0.6 }, // Más intensos para obras
-    },
-    dramatic: {
-      ambient: { intensity: 0.05, color: "#1a1a1a" }, // Muy tenue
-      key: { intensity: 2.2, color: "#ffebee", distance: 10 }, // Reducido
-      spots: { intensity: 7.0, angle: 0.2, penumbra: 0.8 }, // Muy intensos para contraste
-    },
-    golden: {
-      ambient: { intensity: 0.2, color: "#ffd54f" }, // Más suave
-      key: { intensity: 2.0, color: "#fff8e1", distance: 11 }, // Reducido
-      spots: { intensity: 6.0, angle: 0.22, penumbra: 0.5 }, // Intensos pero cálidos
-    },
-  };
-
-  const preset = LIGHTING_PRESETS[lightingPreset] || LIGHTING_PRESETS.museum;
-
-  // Calcular posiciones dinámicas
+  // Calcular posiciones dinámicas de focos del techo
   const lightPositions = [];
   const spotCount = Math.max(3, Math.floor(dynamicLength / 6));
 
@@ -47,69 +27,104 @@ export function CinematicLighting({
 
   return (
     <>
-      {/* Iluminación ambiental base - MÁS TENUE */}
+      {/* LUCES DEL TECHO - SISTEMA PROFESIONAL QUE ILUMINA TODA LA SALA */}
+      
+      {/* Iluminación ambiental suficiente para ver toda la sala */}
       <ambientLight
-        intensity={ambientOverride ?? preset.ambient.intensity}
-        color={preset.ambient.color}
+        intensity={0.8}
+        color="#f8f8f8"
       />
 
-      {/* Hemisphere light más suave */}
+      {/* Luz hemisférica para iluminación suave general */}
       <hemisphereLight
-        skyColor="#87ceeb"
-        groundColor="#8b7355"
-        intensity={0.15} // Reducido de 0.3 a 0.15
+        skyColor="#ffffff"
+        groundColor="#f0f0f0"
+        intensity={0.6}
       />
 
-      {/* Key lights - Iluminación principal simplificada */}
+      {/* Sistema de focos profesionales del techo */}
       {lightPositions.map((x, i) => (
-        <React.Fragment key={`key-${i}`}>
-          <directionalLight
-            position={[x, CEILING_HEIGHT - 0.5, 2]}
-            intensity={preset.key.intensity}
-            color={preset.key.color}
-            castShadow
-            shadow-mapSize-width={2048}
-            shadow-mapSize-height={2048}
-            shadow-camera-far={20}
+        <React.Fragment key={`ceiling-light-${i}`}>
+          {/* Foco principal del techo - iluminación profesional */}
+          <spotLight
+            position={[x, CEILING_HEIGHT - 0.1, 0]}
+            target-position={[x, 0, 0]}
+            intensity={12.0}
+            angle={0.6}
+            penumbra={0.3}
+            distance={CEILING_HEIGHT + 3}
+            color="#ffffff"
+            castShadow={i < 2} // Solo primeros 2 focos con sombras
+            shadow-mapSize-width={1024}
+            shadow-mapSize-height={1024}
             shadow-camera-near={0.1}
-            shadow-camera-left={-8}
-            shadow-camera-right={8}
-            shadow-camera-top={8}
-            shadow-camera-bottom={-8}
+            shadow-camera-far={CEILING_HEIGHT + 5}
             shadow-bias={-0.0001}
           />
 
-          {/* Spot lights para obras - mantenidos */}
+          {/* Foco adicional para obras de arte */}
           <spotLight
-            position={[x, CEILING_HEIGHT - 0.3, 0]}
-            target-position={[x, 1.8, -6.5]}
-            intensity={preset.spots.intensity}
-            angle={preset.spots.angle}
-            penumbra={preset.spots.penumbra}
-            distance={8}
+            position={[x, CEILING_HEIGHT - 0.05, -2]}
+            target-position={[x, 1.8, -6.8]}
+            intensity={8.0}
+            angle={0.25}
+            penumbra={0.4}
+            distance={12}
+            color="#fff8f0"
+            castShadow={i === 0} // Solo primer foco con sombras
+            shadow-mapSize-width={512}
+            shadow-mapSize-height={512}
+          />
+
+          {/* Foco para iluminar el piso y paredes */}
+          <spotLight
+            position={[x, CEILING_HEIGHT - 0.1, 2]}
+            target-position={[x, 0, 3]}
+            intensity={6.0}
+            angle={0.5}
+            penumbra={0.4}
+            distance={CEILING_HEIGHT + 2}
             color="#ffffff"
-            castShadow
-            shadow-mapSize-width={1024}
-            shadow-mapSize-height={1024}
+            castShadow={false} // Sin sombras para optimizar
           />
         </React.Fragment>
       ))}
 
-      {/* Luces de ambiente laterales - MÁS TENUES */}
-      <pointLight
-        position={[dynamicCenterX, CEILING_HEIGHT - 2, 6]}
-        intensity={0.8} // Reducido de 1.2 a 0.8
-        distance={12}
-        color="#f8f8ff"
-        decay={2}
+      {/* Focos centrales del techo para cobertura completa */}
+      <spotLight
+        position={[dynamicCenterX, CEILING_HEIGHT - 0.1, 0]}
+        target-position={[dynamicCenterX, 0, 0]}
+        intensity={10.0}
+        angle={0.8}
+        penumbra={0.5}
+        distance={CEILING_HEIGHT + 3}
+        color="#ffffff"
+        castShadow={true} // Solo foco principal con sombras
+        shadow-mapSize-width={512}
+        shadow-mapSize-height={512}
       />
 
-      <pointLight
-        position={[dynamicCenterX, CEILING_HEIGHT - 2, -6]}
-        intensity={0.8} // Reducido de 1.2 a 0.8
-        distance={12}
-        color="#f8f8ff"
-        decay={2}
+      {/* Focos laterales del techo para iluminar esquinas */}
+      <spotLight
+        position={[dynamicCenterX - dynamicLength/3, CEILING_HEIGHT - 0.1, 0]}
+        target-position={[dynamicCenterX - dynamicLength/3, 0, 0]}
+        intensity={8.0}
+        angle={0.7}
+        penumbra={0.4}
+        distance={CEILING_HEIGHT + 2}
+        color="#ffffff"
+        castShadow={false} // Sin sombras para optimizar
+      />
+
+      <spotLight
+        position={[dynamicCenterX + dynamicLength/3, CEILING_HEIGHT - 0.1, 0]}
+        target-position={[dynamicCenterX + dynamicLength/3, 0, 0]}
+        intensity={8.0}
+        angle={0.7}
+        penumbra={0.4}
+        distance={CEILING_HEIGHT + 2}
+        color="#ffffff"
+        castShadow={false} // Sin sombras para optimizar
       />
     </>
   );
