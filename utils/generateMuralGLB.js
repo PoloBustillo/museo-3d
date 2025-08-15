@@ -116,23 +116,22 @@ export async function generateMuralGLB(imageUrl) {
             const outerWidth = width + frameWidth * 2;
             const outerHeight = height + frameWidth * 2;
 
-            // Crear textura de madera premium optimizada
+            // PERFORMANCE FIX: Textura simple en lugar de procedural
             const createOptimizedWoodTexture = () => {
+              // EMERGENCIA: Canvas pequeño, color sólido
               const canvas = document.createElement("canvas");
-              canvas.width = 1024; // Reducido de 2048
-              canvas.height = 1024; // Reducido de 2048
+              canvas.width = 64; // REDUCIDO 16X (era 1024)
+              canvas.height = 64; // REDUCIDO 16X
               const ctx = canvas.getContext("2d");
 
-              // Base de madera premium con gradiente complejo
-              const gradient = ctx.createLinearGradient(0, 0, 1024, 1024);
-              gradient.addColorStop(0, "#8B4513");
-              gradient.addColorStop(0.2, "#A0522D");
-              gradient.addColorStop(0.4, "#CD853F");
-              gradient.addColorStop(0.6, "#DEB887");
-              gradient.addColorStop(0.8, "#CD853F");
-              gradient.addColorStop(1, "#8B4513");
-              ctx.fillStyle = gradient;
-              ctx.fillRect(0, 0, 1024, 1024);
+              // Solo color base - SIN PROCEDURAL
+              ctx.fillStyle = "#8B4513";
+              ctx.fillRect(0, 0, 64, 64);
+
+              return new THREE.CanvasTexture(canvas);
+            };
+
+            const woodTexture = createOptimizedWoodTexture();
 
               // Vetas de madera optimizadas
               for (let i = 0; i < 40; i++) {

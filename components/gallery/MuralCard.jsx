@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { PlusCircle, UploadCloud } from "lucide-react";
 import ReactDOM from "react-dom";
-import { generateMuralGLB } from "../../utils/generateMuralGLB";
+// BYPASS: Import Fast version for performance
+import { generateMuralGLB } from "../../utils/generateMuralGLBFast";
 import { uploadModelToCloudinary } from "../../utils/uploadToCloudinary";
 
 const MuralCard = forwardRef(function MuralCard({

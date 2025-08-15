@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState, useCallback, Suspense } from "react
 import { useSession } from "next-auth/react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { PointerLockControls, useTexture, Html, useGLTF } from "@react-three/drei";
+import { IntelligentPBRMaterial as FastPBRMaterial } from "./gallery/core/SmartMigrationMaterial.jsx";
 import * as THREE from "three";
 import { motion, AnimatePresence } from "framer-motion";
 import BackGroundSound from "./BackGroundSound.jsx";
@@ -80,7 +81,7 @@ function Artwork({ artwork, slot, onClick, showPlaque, selected }) {
         receiveShadow
       >
         <boxGeometry args={[w, h, 0.1]} />
-        <meshStandardMaterial 
+        <FastPBRMaterial 
           color={selected ? "#ffd700" : "#8b4513"} 
           metalness={0.3} 
           roughness={0.7}
@@ -90,7 +91,7 @@ function Artwork({ artwork, slot, onClick, showPlaque, selected }) {
       {/* Imagen de la obra */}
       <mesh position={[0, 0, 0.06]} castShadow receiveShadow>
         <planeGeometry args={[w - 0.1, h - 0.1]} />
-        <meshStandardMaterial map={texture} />
+        <FastPBRMaterial map={texture} />
       </mesh>
       
       {/* Placa informativa */}
@@ -128,7 +129,9 @@ const BaseRoom = ({ roomConfig, materials, lighting }) => {
         castShadow
       >
         <boxGeometry args={[roomConfig.wallThickness, roomConfig.height, roomConfig.length]} />
-        <meshStandardMaterial 
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="wall"
           color="#e8e8e8" 
           roughness={0.7}
           metalness={0.05}
@@ -142,7 +145,9 @@ const BaseRoom = ({ roomConfig, materials, lighting }) => {
         castShadow
       >
         <boxGeometry args={[roomConfig.wallThickness, roomConfig.height, roomConfig.length]} />
-        <meshStandardMaterial 
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="wall"
           color="#e8e8e8" 
           roughness={0.7}
           metalness={0.05}
@@ -156,7 +161,9 @@ const BaseRoom = ({ roomConfig, materials, lighting }) => {
         castShadow
       >
         <boxGeometry args={[roomConfig.width, roomConfig.height, roomConfig.wallThickness]} />
-        <meshStandardMaterial 
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="wall"
           color="#f0f0f0" 
           roughness={0.8}
           metalness={0.1}
@@ -170,7 +177,9 @@ const BaseRoom = ({ roomConfig, materials, lighting }) => {
         castShadow
       >
         <boxGeometry args={[roomConfig.width, roomConfig.height, roomConfig.wallThickness]} />
-        <meshStandardMaterial 
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="wall"
           color="#f0f0f0" 
           roughness={0.8}
           metalness={0.1}
@@ -184,7 +193,9 @@ const BaseRoom = ({ roomConfig, materials, lighting }) => {
         castShadow
       >
         <boxGeometry args={[roomConfig.width + 0.6, roomConfig.floorThickness, roomConfig.length + 0.6]} />
-        <meshStandardMaterial 
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="floor"
           color="#d4d4d4" 
           roughness={0.9}
           metalness={0.0}
@@ -195,43 +206,85 @@ const BaseRoom = ({ roomConfig, materials, lighting }) => {
       {/* Moldura frontal */}
       <mesh position={[0, -roomConfig.floorThickness - 0.05, roomConfig.length/2 + 0.3]} receiveShadow>
         <boxGeometry args={[roomConfig.width + 0.6, 0.1, 0.1]} />
-        <meshStandardMaterial color="#d4af37" roughness={0.3} metalness={0.2} />
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="decoration"
+          color="#d4af37" 
+          roughness={0.3} 
+          metalness={0.2} 
+        />
       </mesh>
       
       {/* Moldura trasera */}
       <mesh position={[0, -roomConfig.floorThickness - 0.05, -roomConfig.length/2 - 0.3]} receiveShadow>
         <boxGeometry args={[roomConfig.width + 0.6, 0.1, 0.1]} />
-        <meshStandardMaterial color="#d4af37" roughness={0.3} metalness={0.2} />
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="decoration"
+          color="#d4af37" 
+          roughness={0.3} 
+          metalness={0.2} 
+        />
       </mesh>
       
       {/* Moldura izquierda */}
       <mesh position={[-roomConfig.width/2 - 0.3, -roomConfig.floorThickness - 0.05, 0]} receiveShadow>
         <boxGeometry args={[0.1, 0.1, roomConfig.length + 0.6]} />
-        <meshStandardMaterial color="#d4af37" roughness={0.3} metalness={0.2} />
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="decoration"
+          color="#d4af37" 
+          roughness={0.3} 
+          metalness={0.2} 
+        />
       </mesh>
       
       {/* Moldura derecha */}
       <mesh position={[roomConfig.width/2 + 0.3, -roomConfig.floorThickness - 0.05, 0]} receiveShadow>
         <boxGeometry args={[0.1, 0.1, roomConfig.length + 0.6]} />
-        <meshStandardMaterial color="#d4af37" roughness={0.3} metalness={0.2} />
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="decoration"
+          color="#d4af37" 
+          roughness={0.3} 
+          metalness={0.2} 
+        />
       </mesh>
       
       {/* Molduras decorativas a lo largo del piso */}
       {/* Moldura central longitudinal */}
       <mesh position={[0, -roomConfig.floorThickness - 0.1, 0]} receiveShadow>
         <boxGeometry args={[0.1, 0.05, roomConfig.length + 0.6]} />
-        <meshStandardMaterial color="#d4af37" metalness={0.8} roughness={0.2} />
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="decoration"
+          color="#d4af37" 
+          metalness={0.8} 
+          roughness={0.2} 
+        />
       </mesh>
       
       {/* Molduras laterales longitudinales */}
       <mesh position={[-roomConfig.width/4, -roomConfig.floorThickness - 0.1, 0]} receiveShadow>
         <boxGeometry args={[0.05, 0.05, roomConfig.length + 0.6]} />
-        <meshStandardMaterial color="#d4af37" metalness={0.8} roughness={0.2} />
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="decoration"
+          color="#d4af37" 
+          metalness={0.8} 
+          roughness={0.2} 
+        />
       </mesh>
       
       <mesh position={[roomConfig.width/4, -roomConfig.floorThickness - 0.1, 0]} receiveShadow>
         <boxGeometry args={[0.05, 0.05, roomConfig.length + 0.6]} />
-        <meshStandardMaterial color="#d4af37" metalness={0.8} roughness={0.2} />
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="decoration"
+          color="#d4af37" 
+          metalness={0.8} 
+          roughness={0.2} 
+        />
       </mesh>
       
       {/* Techo con molduras */}
@@ -241,7 +294,9 @@ const BaseRoom = ({ roomConfig, materials, lighting }) => {
         castShadow
       >
         <boxGeometry args={[roomConfig.width + 0.6, roomConfig.ceilingThickness, roomConfig.length + 0.6]} />
-        <meshStandardMaterial 
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="ceiling"
           color="#f8f8f8" 
           roughness={0.2}
           metalness={0.1}
@@ -252,43 +307,85 @@ const BaseRoom = ({ roomConfig, materials, lighting }) => {
       {/* Moldura frontal */}
       <mesh position={[0, roomConfig.height + roomConfig.ceilingThickness + 0.1, roomConfig.length/2 + 0.3]} receiveShadow>
         <boxGeometry args={[roomConfig.width + 0.6, 0.2, 0.1]} />
-        <meshStandardMaterial color="#e0e0e0" roughness={0.3} metalness={0.2} />
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="decoration"
+          color="#e0e0e0" 
+          roughness={0.3} 
+          metalness={0.2} 
+        />
       </mesh>
       
       {/* Moldura trasera */}
       <mesh position={[0, roomConfig.height + roomConfig.ceilingThickness + 0.1, -roomConfig.length/2 - 0.3]} receiveShadow>
         <boxGeometry args={[roomConfig.width + 0.6, 0.2, 0.1]} />
-        <meshStandardMaterial color="#e0e0e0" roughness={0.3} metalness={0.2} />
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="decoration"
+          color="#e0e0e0" 
+          roughness={0.3} 
+          metalness={0.2} 
+        />
       </mesh>
       
       {/* Moldura izquierda */}
       <mesh position={[-roomConfig.width/2 - 0.3, roomConfig.height + roomConfig.ceilingThickness + 0.1, 0]} receiveShadow>
         <boxGeometry args={[0.1, 0.2, roomConfig.length + 0.6]} />
-        <meshStandardMaterial color="#e0e0e0" roughness={0.3} metalness={0.2} />
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="decoration"
+          color="#e0e0e0" 
+          roughness={0.3} 
+          metalness={0.2} 
+        />
       </mesh>
       
       {/* Moldura derecha */}
       <mesh position={[roomConfig.width/2 + 0.3, roomConfig.height + roomConfig.ceilingThickness + 0.1, 0]} receiveShadow>
         <boxGeometry args={[0.1, 0.2, roomConfig.length + 0.6]} />
-        <meshStandardMaterial color="#e0e0e0" roughness={0.3} metalness={0.2} />
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="decoration"
+          color="#e0e0e0" 
+          roughness={0.3} 
+          metalness={0.2} 
+        />
       </mesh>
       
       {/* Molduras decorativas a lo largo del techo */}
       {/* Moldura central longitudinal */}
       <mesh position={[0, roomConfig.height + roomConfig.ceilingThickness + 0.15, 0]} receiveShadow>
         <boxGeometry args={[0.1, 0.1, roomConfig.length + 0.6]} />
-        <meshStandardMaterial color="#d4af37" metalness={0.8} roughness={0.2} />
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="decoration"
+          color="#d4af37" 
+          metalness={0.8} 
+          roughness={0.2} 
+        />
       </mesh>
       
       {/* Molduras laterales longitudinales */}
       <mesh position={[-roomConfig.width/4, roomConfig.height + roomConfig.ceilingThickness + 0.15, 0]} receiveShadow>
         <boxGeometry args={[0.05, 0.1, roomConfig.length + 0.6]} />
-        <meshStandardMaterial color="#d4af37" metalness={0.8} roughness={0.2} />
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="decoration"
+          color="#d4af37" 
+          metalness={0.8} 
+          roughness={0.2} 
+        />
       </mesh>
       
       <mesh position={[roomConfig.width/4, roomConfig.height + roomConfig.ceilingThickness + 0.15, 0]} receiveShadow>
         <boxGeometry args={[0.05, 0.1, roomConfig.length + 0.6]} />
-        <meshStandardMaterial color="#d4af37" metalness={0.8} roughness={0.2} />
+        <FastPBRMaterial 
+          salaId={salaId}
+          materialType="decoration"
+          color="#d4af37" 
+          metalness={0.8} 
+          roughness={0.2} 
+        />
       </mesh>
       
 
@@ -322,17 +419,35 @@ const BaseRoom = ({ roomConfig, materials, lighting }) => {
         {/* Base */}
         <mesh position={[0, 0.1, 0]} receiveShadow castShadow>
           <cylinderGeometry args={[0.15, 0.15, 0.3, 8]} />
-          <meshStandardMaterial color="#2F4F4F" metalness={0.9} roughness={0.1} />
+          <FastPBRMaterial 
+            salaId={salaId}
+            materialType="decoration"
+            color="#2F4F4F" 
+            metalness={0.9} 
+            roughness={0.1} 
+          />
         </mesh>
         {/* Poste */}
         <mesh position={[0, 1.5, 0]} receiveShadow castShadow>
           <cylinderGeometry args={[0.04, 0.04, 3, 8]} />
-          <meshStandardMaterial color="#2F4F4F" metalness={0.9} roughness={0.1} />
+          <FastPBRMaterial 
+            salaId={salaId}
+            materialType="decoration"
+            color="#2F4F4F" 
+            metalness={0.9} 
+            roughness={0.1} 
+          />
         </mesh>
         {/* Lámpara */}
         <mesh position={[0, 3, 0]} receiveShadow castShadow>
           <sphereGeometry args={[0.2, 8, 6]} />
-          <meshStandardMaterial color="#FFD700" metalness={0.9} roughness={0.05} />
+          <FastPBRMaterial 
+            salaId={salaId}
+            materialType="decoration"
+            color="#FFD700" 
+            metalness={0.9} 
+            roughness={0.05} 
+          />
         </mesh>
         {/* Luz de la lámpara */}
         <pointLight position={[0, 3, 0]} intensity={0.4} color="#FFD700" />
@@ -343,17 +458,35 @@ const BaseRoom = ({ roomConfig, materials, lighting }) => {
         {/* Base */}
         <mesh position={[0, 0.1, 0]} receiveShadow castShadow>
           <cylinderGeometry args={[0.15, 0.15, 0.3, 8]} />
-          <meshStandardMaterial color="#2F4F4F" metalness={0.9} roughness={0.1} />
+          <FastPBRMaterial 
+            salaId={salaId}
+            materialType="decoration"
+            color="#2F4F4F" 
+            metalness={0.9} 
+            roughness={0.1} 
+          />
         </mesh>
         {/* Poste */}
         <mesh position={[0, 1.5, 0]} receiveShadow castShadow>
           <cylinderGeometry args={[0.04, 0.04, 3, 8]} />
-          <meshStandardMaterial color="#2F4F4F" metalness={0.9} roughness={0.1} />
+          <FastPBRMaterial 
+            salaId={salaId}
+            materialType="decoration"
+            color="#2F4F4F" 
+            metalness={0.9} 
+            roughness={0.1} 
+          />
         </mesh>
         {/* Lámpara */}
         <mesh position={[0, 3, 0]} receiveShadow castShadow>
           <sphereGeometry args={[0.2, 8, 6]} />
-          <meshStandardMaterial color="#FFD700" metalness={0.9} roughness={0.05} />
+          <FastPBRMaterial 
+            salaId={salaId}
+            materialType="decoration"
+            color="#FFD700" 
+            metalness={0.9} 
+            roughness={0.05} 
+          />
         </mesh>
         {/* Luz de la lámpara */}
         <pointLight position={[0, 3, 0]} intensity={0.4} color="#FFD700" />
@@ -364,17 +497,35 @@ const BaseRoom = ({ roomConfig, materials, lighting }) => {
         {/* Base */}
         <mesh position={[0, 0.1, 0]} receiveShadow castShadow>
           <cylinderGeometry args={[0.15, 0.15, 0.3, 8]} />
-          <meshStandardMaterial color="#2F4F4F" metalness={0.9} roughness={0.1} />
+          <FastPBRMaterial 
+            salaId={salaId}
+            materialType="decoration"
+            color="#2F4F4F" 
+            metalness={0.9} 
+            roughness={0.1} 
+          />
         </mesh>
         {/* Poste */}
         <mesh position={[0, 1.5, 0]} receiveShadow castShadow>
           <cylinderGeometry args={[0.04, 0.04, 3, 8]} />
-          <meshStandardMaterial color="#2F4F4F" metalness={0.9} roughness={0.1} />
+          <FastPBRMaterial 
+            salaId={salaId}
+            materialType="decoration"
+            color="#2F4F4F" 
+            metalness={0.9} 
+            roughness={0.1} 
+          />
         </mesh>
         {/* Lámpara */}
         <mesh position={[0, 3, 0]} receiveShadow castShadow>
           <sphereGeometry args={[0.2, 8, 6]} />
-          <meshStandardMaterial color="#FFD700" metalness={0.9} roughness={0.05} />
+          <FastPBRMaterial 
+            salaId={salaId}
+            materialType="decoration"
+            color="#FFD700" 
+            metalness={0.9} 
+            roughness={0.05} 
+          />
         </mesh>
         {/* Luz de la lámpara */}
         <pointLight position={[0, 3, 0]} intensity={0.4} color="#FFD700" />
@@ -385,17 +536,35 @@ const BaseRoom = ({ roomConfig, materials, lighting }) => {
         {/* Base */}
         <mesh position={[0, 0.1, 0]} receiveShadow castShadow>
           <cylinderGeometry args={[0.15, 0.15, 0.3, 8]} />
-          <meshStandardMaterial color="#2F4F4F" metalness={0.9} roughness={0.1} />
+          <FastPBRMaterial 
+            salaId={salaId}
+            materialType="decoration"
+            color="#2F4F4F" 
+            metalness={0.9} 
+            roughness={0.1} 
+          />
         </mesh>
         {/* Poste */}
         <mesh position={[0, 1.5, 0]} receiveShadow castShadow>
           <cylinderGeometry args={[0.04, 0.04, 3, 8]} />
-          <meshStandardMaterial color="#2F4F4F" metalness={0.9} roughness={0.1} />
+          <FastPBRMaterial 
+            salaId={salaId}
+            materialType="decoration"
+            color="#2F4F4F" 
+            metalness={0.9} 
+            roughness={0.1} 
+          />
         </mesh>
         {/* Lámpara */}
         <mesh position={[0, 3, 0]} receiveShadow castShadow>
           <sphereGeometry args={[0.2, 8, 6]} />
-          <meshStandardMaterial color="#FFD700" metalness={0.9} roughness={0.05} />
+          <FastPBRMaterial 
+            salaId={salaId}
+            materialType="decoration"
+            color="#FFD700" 
+            metalness={0.9} 
+            roughness={0.05} 
+          />
         </mesh>
         {/* Luz de la lámpara */}
         <pointLight position={[0, 3, 0]} intensity={0.4} color="#FFD700" />

@@ -1,7 +1,8 @@
 import React from "react";
 import * as THREE from "three";
 import { GALLERY_CONFIG } from "./core/config.js";
-import { useGalleryTextures } from "../../hooks/useGalleryTextures.js";
+// BYPASS: Import Fast version for performance
+import { useFastGalleryTextures as useGalleryTextures } from "../../hooks/useFastGalleryTextures.js";
 import { FloorMesh, ExtendedFloorMesh } from "./structure/FloorMesh.jsx";
 import { SideWalls } from "./structure/WallMesh.jsx";
 import { GalleryWalls } from "./GalleryWalls.jsx";

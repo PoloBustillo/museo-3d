@@ -39,10 +39,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+// BYPASS: Import Fast version for performance
 import {
   generateMuralGLB,
   generateMuralGLBFallback,
-} from "../../../utils/generateMuralGLB";
+} from "../../../utils/generateMuralGLBFast";
 import { uploadModelToCloudinary } from "../../../utils/uploadToCloudinary";
 import { generateSimpleGLB } from "../../../utils/generateSimpleGLB";
 import { validateGLB, diagnoseModel } from "../../../utils/validateGLB";
