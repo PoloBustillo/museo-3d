@@ -6,6 +6,7 @@ import { FloorMesh, ExtendedFloorMesh } from "./structure/FloorMesh.jsx";
 import { SideWalls } from "./structure/WallMesh.jsx";
 import { GalleryWalls } from "./GalleryWalls.jsx";
 import { CeilingLamps } from "./CeilingLamps.jsx";
+import { WallLamps } from "./furniture/WallLamps.jsx";
 import { CeilingMesh } from "./structure/CeilingMesh.jsx";
 import { CinematicLighting } from "./lighting/CinematicLighting.jsx";
 
@@ -73,13 +74,20 @@ export function GalleryEnvironment({
         textureOptimization="none"
       />
 
-      {/* Lámparas de techo */}
+      {/* Lámparas de techo - SINCRONIZADAS con GalleryLighting */}
       <CeilingLamps
         dynamicLength={dynamicLength}
         dynamicCenterX={dynamicCenterX}
         ceilingHeight={CEILING_HEIGHT}
         hallWidth={HALL_WIDTH}
-        lampCount={4}
+        lampCount={Math.max(4, Math.floor(dynamicLength / 4))}
+      />
+
+      {/* Lámparas de pared para obras - iluminación tenue */}
+      <WallLamps
+        dynamicLength={dynamicLength}
+        dynamicCenterX={dynamicCenterX}
+        wallHeight={CEILING_HEIGHT}
       />
 
       {/* Paredes laterales */}

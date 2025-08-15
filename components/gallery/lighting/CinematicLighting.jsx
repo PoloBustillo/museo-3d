@@ -42,9 +42,9 @@ export function CinematicLighting({
       {/* Sistema de focos profesionales del techo */}
       {lightPositions.map((x, i) => (
         <React.Fragment key={`ceiling-light-${i}`}>
-          {/* Foco principal del techo - con decay realista */}
+          {/* Foco principal del techo - EXACTAMENTE desde lámparas */}
           <spotLight
-            position={[x, CEILING_HEIGHT - 0.1, 0]}
+            position={[x, CEILING_HEIGHT - 0.08, 0]}
             target-position={[x, 0, 0]}
             intensity={8.0} // Aumentado para compensar decay
             angle={0.5} // Ángulo más cerrado
@@ -60,9 +60,9 @@ export function CinematicLighting({
             shadow-bias={-0.0001}
           />
 
-          {/* Foco adicional para obras de arte - más direccional */}
+          {/* Foco adicional para obras - desde lámparas del techo */}
           <spotLight
-            position={[x, CEILING_HEIGHT - 0.05, -2]}
+            position={[x, CEILING_HEIGHT - 0.08, -2]}
             target-position={[x, 1.8, -6.8]}
             intensity={6.0} // Aumentado para compensar decay
             angle={0.25} // Ángulo más cerrado
@@ -77,9 +77,9 @@ export function CinematicLighting({
 
           {/* Foco para iluminar el piso y paredes */}
 
-          {/* Foco para piso con decay */}
+          {/* Foco para piso - desde lámparas del techo */}
           <spotLight
-            position={[x, CEILING_HEIGHT - 0.1, 2]}
+            position={[x, CEILING_HEIGHT - 0.08, 2]}
             target-position={[x, 0, 3]}
             intensity={4.0} // Reducido
             angle={0.4} // Más cerrado
@@ -92,9 +92,9 @@ export function CinematicLighting({
         </React.Fragment>
       ))}
 
-      {/* Foco central con menos intensidad */}
+      {/* Foco central - desde lámpara central del techo */}
       <spotLight
-        position={[dynamicCenterX, CEILING_HEIGHT - 0.1, 0]}
+        position={[dynamicCenterX, CEILING_HEIGHT - 0.08, 0]}
         target-position={[dynamicCenterX, 0, 0]}
         intensity={7.0} // Reducido pero compensado por decay
         angle={0.6} // Más cerrado
@@ -107,9 +107,13 @@ export function CinematicLighting({
         shadow-mapSize-height={512}
       />
 
-      {/* Focos laterales REDUCIDOS para crear zonas más oscuras */}
+      {/* Focos laterales - desde lámparas laterales del techo */}
       <spotLight
-        position={[dynamicCenterX - dynamicLength / 3, CEILING_HEIGHT - 0.1, 0]}
+        position={[
+          dynamicCenterX - dynamicLength / 3,
+          CEILING_HEIGHT - 0.08,
+          0,
+        ]}
         target-position={[dynamicCenterX - dynamicLength / 3, 0, 0]}
         intensity={3.0} // Muy reducido
         angle={0.5} // Más cerrado
@@ -121,7 +125,11 @@ export function CinematicLighting({
       />
 
       <spotLight
-        position={[dynamicCenterX + dynamicLength / 3, CEILING_HEIGHT - 0.1, 0]}
+        position={[
+          dynamicCenterX + dynamicLength / 3,
+          CEILING_HEIGHT - 0.08,
+          0,
+        ]}
         target-position={[dynamicCenterX + dynamicLength / 3, 0, 0]}
         intensity={3.0} // Muy reducido
         angle={0.5}

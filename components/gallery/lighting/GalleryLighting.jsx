@@ -35,7 +35,7 @@ export function GalleryLighting({
         intensity={0.15}
       />
 
-      {/* Focos principales del techo con falloff realista */}
+      {/* Focos principales del techo - EXACTAMENTE desde las lámparas */}
       {Array.from({ length: numCeilingLights }).map((_, i) => (
         <spotLight
           key={`ceiling-spot-${i}`}
@@ -44,7 +44,7 @@ export function GalleryLighting({
               dynamicLength / 2 +
               2 +
               i * (dynamicLength / (numCeilingLights - 1)),
-            CEILING_HEIGHT - 0.1,
+            CEILING_HEIGHT - 0.08, // Misma altura que las lámparas
             0,
           ]}
           target-position={[
@@ -67,9 +67,9 @@ export function GalleryLighting({
         />
       ))}
 
-      {/* Focos específicos para obras - más intensos y direccionales */}
+      {/* Focos específicos para obras - desde lámparas del techo */}
       <spotLight
-        position={[dynamicCenterX, CEILING_HEIGHT - 0.1, -1]}
+        position={[dynamicCenterX, CEILING_HEIGHT - 0.08, -1]}
         target-position={[dynamicCenterX, 2, -6.5]}
         intensity={18.0}
         angle={0.3} // Ángulo muy cerrado para iluminar solo las obras
@@ -83,7 +83,7 @@ export function GalleryLighting({
       />
 
       <spotLight
-        position={[dynamicCenterX, CEILING_HEIGHT - 0.1, 1]}
+        position={[dynamicCenterX, CEILING_HEIGHT - 0.08, 1]}
         target-position={[dynamicCenterX, 2, 6.5]}
         intensity={18.0}
         angle={0.3}
@@ -96,9 +96,13 @@ export function GalleryLighting({
         shadow-mapSize-height={1024}
       />
 
-      {/* Focos laterales con menor intensidad para crear gradiente */}
+      {/* Focos laterales desde lámparas del techo */}
       <spotLight
-        position={[dynamicCenterX - dynamicLength / 4, CEILING_HEIGHT - 0.1, 0]}
+        position={[
+          dynamicCenterX - dynamicLength / 4,
+          CEILING_HEIGHT - 0.08,
+          0,
+        ]}
         target-position={[dynamicCenterX - dynamicLength / 4, 0, 0]}
         intensity={6.0} // Reducida para crear zonas más oscuras
         angle={0.4} // Ángulo más cerrado
@@ -110,7 +114,11 @@ export function GalleryLighting({
       />
 
       <spotLight
-        position={[dynamicCenterX + dynamicLength / 4, CEILING_HEIGHT - 0.1, 0]}
+        position={[
+          dynamicCenterX + dynamicLength / 4,
+          CEILING_HEIGHT - 0.08,
+          0,
+        ]}
         target-position={[dynamicCenterX + dynamicLength / 4, 0, 0]}
         intensity={6.0}
         angle={0.4}
@@ -123,7 +131,11 @@ export function GalleryLighting({
 
       {/* Luces adicionales para esquinas - muy tenues */}
       <pointLight
-        position={[dynamicCenterX - dynamicLength / 2 + 1, CEILING_HEIGHT - 1, -3]}
+        position={[
+          dynamicCenterX - dynamicLength / 2 + 1,
+          CEILING_HEIGHT - 1,
+          -3,
+        ]}
         intensity={2.0}
         distance={4}
         decay={2}
@@ -131,7 +143,11 @@ export function GalleryLighting({
       />
 
       <pointLight
-        position={[dynamicCenterX + dynamicLength / 2 - 1, CEILING_HEIGHT - 1, 3]}
+        position={[
+          dynamicCenterX + dynamicLength / 2 - 1,
+          CEILING_HEIGHT - 1,
+          3,
+        ]}
         intensity={2.0}
         distance={4}
         decay={2}

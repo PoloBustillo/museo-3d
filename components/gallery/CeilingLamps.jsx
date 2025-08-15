@@ -10,15 +10,20 @@ export function CeilingLamps({
   dynamicCenterX,
   ceilingHeight,
   hallWidth,
-  lampCount = 4,
+  lampCount, // Ahora será calculado dinámicamente desde el padre
 }) {
-  // Distribuir lámparas a lo largo del techo
+  // Usar el mismo cálculo que GalleryLighting para sincronización
+  const actualLampCount =
+    lampCount || Math.max(4, Math.floor(dynamicLength / 4));
+
+  // Distribuir lámparas a lo largo del techo - SINCRONIZADO con luces
   const lampPositions = [];
-  for (let i = 0; i < lampCount; i++) {
+  for (let i = 0; i < actualLampCount; i++) {
     const x =
       dynamicCenterX -
       dynamicLength / 2 +
-      (i + 1) * (dynamicLength / (lampCount + 1));
+      2 +
+      i * (dynamicLength / (actualLampCount - 1));
     lampPositions.push(x);
   }
 

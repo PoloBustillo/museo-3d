@@ -237,6 +237,116 @@ export function InteractiveTable({
         <boxGeometry args={[0.2, 0.02, 0.15]} />
         <meshStandardMaterial color="#ff9800" roughness={0.3} metalness={0.7} />
       </mesh>
+
+      {/* Lámpara de mesa elegante */}
+      <group position={[0.6, 0.84, 0.6]}>
+        {/* Base de la lámpara - circular metálica */}
+        <mesh castShadow receiveShadow>
+          <cylinderGeometry args={[0.08, 0.1, 0.03, 16]} />
+          <meshPhysicalMaterial
+            color="#2c3e50"
+            metalness={0.9}
+            roughness={0.1}
+            clearcoat={0.8}
+          />
+        </mesh>
+
+        {/* Poste de la lámpara */}
+        <mesh position={[0, 0.25, 0]} castShadow>
+          <cylinderGeometry args={[0.008, 0.008, 0.5, 8]} />
+          <meshPhysicalMaterial
+            color="#34495e"
+            metalness={0.8}
+            roughness={0.2}
+          />
+        </mesh>
+
+        {/* Pantalla de la lámpara - forma de cono invertido */}
+        <mesh position={[0, 0.42, 0]} castShadow receiveShadow>
+          <coneGeometry args={[0.12, 0.15, 16]} />
+          <meshPhysicalMaterial
+            color="#ecf0f1"
+            roughness={0.4}
+            metalness={0.1}
+            transmission={0.1}
+          />
+        </mesh>
+
+        {/* Interior de la pantalla - emisivo para simular luz */}
+        <mesh position={[0, 0.37, 0]} rotation={[Math.PI, 0, 0]}>
+          <coneGeometry args={[0.11, 0.13, 16]} />
+          <meshStandardMaterial
+            color="#fff9e6"
+            emissive="#fff9e6"
+            emissiveIntensity={0.3}
+          />
+        </mesh>
+
+        {/* Luz puntual de la lámpara */}
+        <pointLight
+          position={[0, 0.3, 0]}
+          intensity={2.0}
+          distance={3}
+          decay={2}
+          color="#fff9e6"
+          castShadow={false}
+        />
+      </group>
+
+      {/* Segunda lámpara de mesa - espejo de la primera */}
+      <group position={[-0.6, 0.84, -0.6]}>
+        {/* Base de la lámpara - circular metálica */}
+        <mesh castShadow receiveShadow>
+          <cylinderGeometry args={[0.08, 0.1, 0.03, 16]} />
+          <meshPhysicalMaterial
+            color="#2c3e50"
+            metalness={0.9}
+            roughness={0.1}
+            clearcoat={0.8}
+          />
+        </mesh>
+
+        {/* Poste de la lámpara */}
+        <mesh position={[0, 0.25, 0]} castShadow>
+          <cylinderGeometry args={[0.008, 0.008, 0.5, 8]} />
+          <meshPhysicalMaterial
+            color="#34495e"
+            metalness={0.8}
+            roughness={0.2}
+          />
+        </mesh>
+
+        {/* Pantalla de la lámpara - forma de cono invertido */}
+        <mesh position={[0, 0.42, 0]} castShadow receiveShadow>
+          <coneGeometry args={[0.12, 0.15, 16]} />
+          <meshPhysicalMaterial
+            color="#ecf0f1"
+            roughness={0.4}
+            metalness={0.1}
+            transmission={0.1}
+          />
+        </mesh>
+
+        {/* Interior de la pantalla - emisivo para simular luz */}
+        <mesh position={[0, 0.37, 0]} rotation={[Math.PI, 0, 0]}>
+          <coneGeometry args={[0.11, 0.13, 16]} />
+          <meshStandardMaterial
+            color="#fff9e6"
+            emissive="#fff9e6"
+            emissiveIntensity={0.3}
+          />
+        </mesh>
+
+        {/* Luz puntual de la lámpara */}
+        <pointLight
+          position={[0, 0.3, 0]}
+          intensity={2.0}
+          distance={3}
+          decay={2}
+          color="#fff9e6"
+          castShadow={false}
+        />
+      </group>
     </group>
   );
 }
