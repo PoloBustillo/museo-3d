@@ -1,70 +1,80 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import SceneStructure from "./SceneStructure";
-import { HALL_HEIGHT, FRONT_CENTER, HALF_HALL_D, HALL_WIDTH } from "./sceneConfig";
+import { HALL_HEIGHT, FRONT_CENTER, HALF_HALL_D, HALL_WIDTH, CAMERA_INITIAL_POS, ENABLE_FOG, FOG_NEAR, FOG_FAR } from "./sceneConfig";
+import { useAdaptiveQuality } from "./hooks/useAdaptiveQuality";
+import { LightingRig } from "./components/LightingRig";
+import { useEntranceAnimation } from "./hooks/useEntranceAnimation";
+import { useWASDControls } from "./hooks/useWASDControls";
 
 export default function SalaPruebaPage() {
-  const [started, setStarted] = useState(false);      // controles activos
-  const [animating, setAnimating] = useState(false);  // en transición de entrada
+  const [started, setStarted] = useState(false);
+  const [presentationMode, setPresentationMode] = useState(true);
+  const [wasd, setWasd] = useState(false);
+  const [animating, setAnimating] = useState(false);
   const cameraRef = useRef(null);
-  const animRef = useRef(null);
+  const rendererRef = useRef(null);
+  const beginRef = useRef(null);
+  const [sceneManagerKey, setSceneManagerKey] = useState(0);
   // Posición inicial elevada y retrasada para mostrar interior con giro.
-  const initialCameraPos = useRef([0, HALL_HEIGHT * 1.15, FRONT_CENTER + HALF_HALL_D + 26]);
+  const initialCameraPos = useRef(CAMERA_INITIAL_POS);
 
   // Ajustar orientación inicial.
   useEffect(() => {
     if (cameraRef.current) {
       cameraRef.current.position.set(...initialCameraPos.current);
-      cameraRef.current.lookAt(0, HALL_HEIGHT * 0.6, FRONT_CENTER - 2);
+    cameraRef.current.lookAt(0, HALL_HEIGHT * 0.5, FRONT_CENTER - 6.5);
     }
   }, []);
+  useAdaptiveQuality({ rendererRef, enabled: true });
 
-  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
-
-  function CameraController() {
-    const { camera } = useThree();
-    cameraRef.current = camera;
-    useFrame(() => {
-      if (animating && animRef.current) {
-        const { start, duration, from, to, lookAt } = animRef.current;
-        const elapsed = (performance.now() - start) / duration;
-        const t = elapsed >= 1 ? 1 : easeOutCubic(elapsed);
-        camera.position.set(
-          from.x + (to.x - from.x) * t,
-          from.y + (to.y - from.y) * t,
-          from.z + (to.z - from.z) * t
-        );
-        camera.lookAt(lookAt.x, lookAt.y, lookAt.z);
-        if (elapsed >= 1) {
-          setAnimating(false);
-          setStarted(true);
-          animRef.current = null;
-        }
-      }
-    });
-    return null;
-  }
-
-  const handleStart = () => {
-    if (!cameraRef.current || animating || started) return;
-    // Destino dentro de la sala frontal
-    const targetZ = FRONT_CENTER + HALF_HALL_D - 6;
-    const to = { x: 0, y: 1.8, z: targetZ };
-    const lookAt = { x: 0, y: 2.2, z: FRONT_CENTER - 3 };
-    animRef.current = {
-      start: performance.now(),
-      duration: 3000,
-      from: cameraRef.current.position.clone(),
-      to,
-      lookAt
-    };
-    setAnimating(true);
+  const handleStart = () => beginRef.current && beginRef.current();
+  const handleReset = () => {
+    // Return to presentation mode
+    setPresentationMode(true);
+    setStarted(false);
+    setAnimating(false);
+    beginRef.current = null;
+    if (cameraRef.current) {
+      cameraRef.current.position.set(...initialCameraPos.current);
+    cameraRef.current.lookAt(0, HALL_HEIGHT * 0.5, FRONT_CENTER - 6.5);
+    }
+    // Force remount SceneManager to reset internal hook state
+    setSceneManagerKey(k => k + 1);
   };
+
+  // Component inside Canvas to safely use R3F hooks
+  function SceneManager({ presentationMode, wasdEnabled }) {
+    const { begin, animating: anim, started: startedInner } = useEntranceAnimation({ onFinish: () => {
+      setStarted(true);
+      setPresentationMode(false);
+    }});
+    // Expose begin externally
+    useEffect(() => { beginRef.current = begin; }, [begin]);
+
+    // Track animating state upward
+    useEffect(() => { setAnimating(anim); }, [anim]);
+    // WASD controls only after start
+    useWASDControls(wasdEnabled && startedInner);
+
+    // Binder for camera & renderer refs
+    const Binder = () => {
+      const { camera, gl } = useEntranceAnimation.__proto__.constructor.name ? {} : {}; // no-op placeholder
+      return null;
+    };
+    return (
+      <>
+  <LightingRig />
+  <SceneStructure rotate={presentationMode && !anim} scaleFactor={presentationMode ? 0.85 : 1} />
+        {/* Acquire refs via function child pattern not available here; use onCreated below instead */}
+      </>
+    );
+  }
   return (
     <div className="w-full h-screen bg-neutral-900 relative">
-      {!started && (
+      {presentationMode && (
         <div className="pointer-events-none select-none absolute inset-0 z-20 flex flex-col items-center justify-end pb-24 bg-gradient-to-t from-neutral-900/75 via-neutral-900/10 to-transparent">
           <div className="pointer-events-auto flex flex-col items-center gap-3 rounded-xl px-6 py-4 bg-neutral-900/40 backdrop-blur-md border border-white/10 shadow-lg">
             <h1 className="text-white text-sm font-medium tracking-wide">Sala Demo</h1>
@@ -74,17 +84,29 @@ export default function SalaPruebaPage() {
           </div>
         </div>
       )}
+      {started && !presentationMode && (
+        <div className="absolute top-3 left-3 z-20 flex gap-2 items-center">
+          <button onClick={() => setWasd(w => !w)} className="px-3 py-1.5 text-[11px] rounded bg-neutral-800/70 text-neutral-100 border border-white/10 hover:bg-neutral-700/70 transition">
+            {wasd ? 'Mover: ON' : 'Mover: OFF'}
+          </button>
+          <button onClick={handleReset} className="px-3 py-1.5 text-[11px] rounded bg-neutral-800/70 text-neutral-100 border border-white/10 hover:bg-neutral-700/70 transition">
+            Presentación
+          </button>
+        </div>
+      )}
       <Canvas
         shadows
         camera={{ position: initialCameraPos.current, fov: 55 }}
         gl={{ antialias: true }}
+        onCreated={({ camera, gl }) => {
+          cameraRef.current = camera;
+          rendererRef.current = gl;
+        }}
       >
-        <color attach="background" args={["#101010"]} />
-        <ambientLight intensity={0.4} />
-        <directionalLight position={[70, 110, 50]} intensity={0.55} castShadow />
-  <SceneStructure rotate={!animating && !started} />
-  <CameraController />
-  <OrbitControls enablePan={started} enableZoom enableRotate maxPolarAngle={Math.PI/2.1} enabled={!animating} />
+  <color attach="background" args={["#0f0f10"]} />
+  {ENABLE_FOG && <fog attach="fog" args={["#0f0f10", FOG_NEAR, FOG_FAR]} />}
+  <SceneManager key={sceneManagerKey} presentationMode={presentationMode} wasdEnabled={wasd} />
+        <OrbitControls enablePan={started} enableZoom enableRotate maxPolarAngle={Math.PI/2.1} enabled={!animating} />
       </Canvas>
     </div>
   );

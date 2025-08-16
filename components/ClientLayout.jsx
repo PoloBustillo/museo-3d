@@ -66,7 +66,7 @@ const LayoutContainer = ({ children }) => {
           <MainMenu />
         </header>
       )}
-      <main className={`flex-1 ${pathname.includes('/ar') || isSalaPage ? '' : 'pt-22 md:pt-24'}`}>
+  <main className={`flex-1 ${pathname.includes('/ar') || isSalaPage || isSalaPrueba ? '' : 'pt-22 md:pt-24'}`}>
         {children}
         {useFixedFooter && (
           <div
