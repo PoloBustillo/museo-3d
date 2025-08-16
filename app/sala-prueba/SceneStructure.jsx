@@ -1,6 +1,5 @@
 "use client";
-import React, { useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
+import React, { useRef, useMemo, useEffect } from 'react';
 import {
   HALL_WIDTH,
   HALL_HEIGHT,
@@ -15,7 +14,9 @@ import {
   WALL_COLOR,
   FLOOR_COLOR,
   CEIL_COLOR,
-  PRESENTATION_ROT_SPEED
+  MB,
+  INITIAL_ROT_Y,
+  INITIAL_ROT_X
 } from './sceneConfig';
 
 export default function SceneStructure({ rotate, scaleFactor = 1 }) {
@@ -24,15 +25,18 @@ export default function SceneStructure({ rotate, scaleFactor = 1 }) {
   const sideSeg = (HALL_WIDTH - openingWidth) / 2;
   const entranceSeg = (HALL_WIDTH - ENTRANCE_WIDTH) / 2;
 
-  useFrame((_, delta) => {
+  // Aplicar rotación inicial y escala reducida solo en modo presentación (rotate true al montar)
+  useEffect(() => {
     if (!groupRef.current) return;
     if (rotate) {
-      groupRef.current.rotation.y += delta * PRESENTATION_ROT_SPEED;
-    } else if (groupRef.current.rotation.y % (Math.PI * 2) !== 0) {
-      groupRef.current.rotation.y *= 0.92;
-      if (Math.abs(groupRef.current.rotation.y) < 0.002) groupRef.current.rotation.y = 0;
+  groupRef.current.rotation.set(INITIAL_ROT_X, INITIAL_ROT_Y, 0);
+  groupRef.current.scale.setScalar(MB);
+    } else {
+      groupRef.current.scale.setScalar(1);
+      // Mantén rotación Y acumulada si hubo animación previa, o resetea si quieres: la dejamos en 0
+      groupRef.current.rotation.set(0, 0, 0);
     }
-  });
+  }, [rotate]);
 
   const wallMat = useMemo(() => (<meshStandardMaterial color={WALL_COLOR} roughness={0.95} />), []);
   const floorMat = useMemo(() => (<meshStandardMaterial color={FLOOR_COLOR} roughness={1} />), []);

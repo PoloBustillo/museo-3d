@@ -1,12 +1,12 @@
 "use client";
 // Configuración y constantes de la sala de prueba
-export const HALL_WIDTH = 40;      // ancho total X
-export const HALL_DEPTH = 28;      // profundidad de cada sala
-export const HALL_HEIGHT = 12;     // altura
-export const CORRIDOR_WIDTH = 14;  // ancho del pasillo y de las aperturas
+export const HALL_WIDTH = 40; // ancho total X
+export const HALL_DEPTH = 28; // profundidad de cada sala
+export const HALL_HEIGHT = 12; // altura
+export const CORRIDOR_WIDTH = 14; // ancho del pasillo y de las aperturas
 export const CORRIDOR_LENGTH = 50; // separación entre las salas
 export const WALL_THICK = 0.4;
-export const ENTRANCE_WIDTH = 10;  // entrada principal
+export const ENTRANCE_WIDTH = 10; // entrada principal
 
 // Derivados
 export const TOTAL_LENGTH = HALL_DEPTH * 2 + CORRIDOR_LENGTH;
@@ -16,15 +16,22 @@ export const HALF_HALL_W = HALL_WIDTH / 2;
 export const HALF_HALL_D = HALL_DEPTH / 2;
 
 // Colores
-export const WALL_COLOR = '#f2f2f2';
-export const FLOOR_COLOR = '#dadada';
-export const CEIL_COLOR = '#ffffff';
+export const WALL_COLOR = "#f2f2f2";
+export const FLOOR_COLOR = "#dadada";
+export const CEIL_COLOR = "#ffffff";
 
-export const PRESENTATION_ROT_SPEED = 0.15;
+// Escala / rotaciones de presentación
+export const MB = 0.5; // miniatura base (escala)
+export const INITIAL_ROT_Y = (45 * Math.PI) / 180; // 45 grados en Y
+export const INITIAL_ROT_X = (20 * Math.PI) / 180; // -20 grados en X (ligera inclinación hacia abajo)
 
 // Presentación / cámara
 // Camera positions tuned to show more interior (lower height, deeper look)
-export const CAMERA_INITIAL_POS = [0, HALL_HEIGHT * 0.8, FRONT_CENTER + HALF_HALL_D + 20];
+export const CAMERA_INITIAL_POS = [
+  0,
+  HALL_HEIGHT * 0.8,
+  FRONT_CENTER + HALF_HALL_D + 20,
+];
 export const CAMERA_TARGET_POS = [0, 1.85, FRONT_CENTER + HALF_HALL_D - 8.5];
 export const CAMERA_TARGET_LOOK = [0, 1.9, FRONT_CENTER - 6.5];
 export const ENTRANCE_ANIM_DURATION = 3000; // ms

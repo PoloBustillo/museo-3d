@@ -67,7 +67,7 @@ export default function SalaPruebaPage() {
     return (
       <>
   <LightingRig />
-  <SceneStructure rotate={presentationMode && !anim} scaleFactor={presentationMode ? 0.85 : 1} />
+  <SceneStructure rotate={presentationMode && !anim} />
         {/* Acquire refs via function child pattern not available here; use onCreated below instead */}
       </>
     );
