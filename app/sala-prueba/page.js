@@ -4,16 +4,17 @@ import { Canvas } from "@react-three/fiber";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import { OrbitControls } from "@react-three/drei";
 import SceneStructure from "./SceneStructure";
-import { HALL_HEIGHT, FRONT_CENTER, HALF_HALL_D, HALL_WIDTH, CAMERA_INITIAL_POS, ENABLE_FOG, FOG_NEAR, FOG_FAR, PRESENTATION_EASE_OUT } from "./sceneConfig";
+import { HALL_HEIGHT, FRONT_CENTER, HALF_HALL_D, HALL_WIDTH, CAMERA_INITIAL_POS, ENABLE_FOG, FOG_NEAR, FOG_FAR, PRESENTATION_EASE_OUT, EXPLORE_BOUNDS } from "./sceneConfig";
 import { usePresentationTransition } from "./hooks/usePresentationTransition";
 import { useAdaptiveQuality } from "./hooks/useAdaptiveQuality";
 import { LightingRig } from "./components/LightingRig";
 import { useEntranceAnimation } from "./hooks/useEntranceAnimation";
-import { useWASDControls } from "./hooks/useWASDControls";
+import { useExploreControls } from "./hooks/useExploreControls";
+// WASD controls removidos temporalmente
 
 export default function SalaPruebaPage() {
   const [started, setStarted] = useState(false); // for UI legacy control (can derive from exploring)
-  const [wasd, setWasd] = useState(false);
+  // Removed WASD toggle state
   const cameraRef = useRef(null);
   const rendererRef = useRef(null);
   const [sceneManagerKey, setSceneManagerKey] = useState(0);
@@ -52,7 +53,7 @@ export default function SalaPruebaPage() {
   };
 
   // Component inside Canvas to safely use R3F hooks
-  function SceneManager({ presentationMode, wasdEnabled }) {
+  function SceneManager({ presentationMode }) {
     const { begin, animating: fly, started: startedInner } = useEntranceAnimation({ onFinish: () => {
       markExploring();
     }});
@@ -60,7 +61,8 @@ export default function SalaPruebaPage() {
     useEffect(() => {
       registerBegin(begin);
     }, [begin, registerBegin]);
-    useWASDControls(wasdEnabled && startedInner);
+    // Activar controles de exploración sólo cuando exploring true
+  useExploreControls(!presentationMode && !animating && exploring, { bounds: EXPLORE_BOUNDS });
 
     // Binder for camera & renderer refs
     const Binder = () => {
@@ -70,7 +72,7 @@ export default function SalaPruebaPage() {
     return (
       <>
   <LightingRig presentation={presentationMode && !easingOut && !animating} />
-  <SceneStructure rotate={presentationMode && !animating} exiting={easingOut} />
+  <SceneStructure rotate={presentationMode && !animating} exiting={easingOut} exploring={exploring} />
         {/* Acquire refs via function child pattern not available here; use onCreated below instead */}
       </>
     );
@@ -87,14 +89,9 @@ export default function SalaPruebaPage() {
           </div>
         </div>
       )}
-  {exploring && (
+      {exploring && (
         <div className="absolute top-3 left-3 z-20 flex gap-2 items-center">
-          <button onClick={() => setWasd(w => !w)} className="px-3 py-1.5 text-[11px] rounded bg-neutral-800/70 text-neutral-100 border border-white/10 hover:bg-neutral-700/70 transition">
-            {wasd ? 'Mover: ON' : 'Mover: OFF'}
-          </button>
-          <button onClick={handleReset} className="px-3 py-1.5 text-[11px] rounded bg-neutral-800/70 text-neutral-100 border border-white/10 hover:bg-neutral-700/70 transition">
-            Presentación
-          </button>
+          <button onClick={handleReset} className="px-3 py-1.5 text-[11px] rounded bg-neutral-800/70 text-neutral-100 border border-white/10 hover:bg-neutral-700/70 transition">Presentación</button>
         </div>
       )}
       <Canvas
@@ -108,14 +105,21 @@ export default function SalaPruebaPage() {
       >
   <color attach="background" args={["#0f0f10"]} />
   {ENABLE_FOG && <fog attach="fog" args={["#0f0f10", FOG_NEAR, FOG_FAR]} />}
-  <SceneManager key={sceneManagerKey} presentationMode={presentationMode} wasdEnabled={wasd} />
+  <SceneManager key={sceneManagerKey} presentationMode={presentationMode} />
   {presentationMode && (
     <EffectComposer disableNormalPass>
       <Bloom intensity={0.3} luminanceThreshold={0.2} luminanceSmoothing={0.9} mipmapBlur radius={0.6} />
       <Vignette eskil={false} offset={0.2} darkness={0.55} />
     </EffectComposer>
   )}
-        <OrbitControls enablePan={started} enableZoom enableRotate maxPolarAngle={Math.PI/2.1} enabled={!animating} />
+  <OrbitControls
+    enablePan={false}
+    enableZoom={presentationMode && !animating}
+    enableRotate={presentationMode && !animating}
+    enabled={presentationMode && !animating}
+    maxPolarAngle={Math.PI/2.1}
+    makeDefault={presentationMode}
+  />
       </Canvas>
     </div>
   );

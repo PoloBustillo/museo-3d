@@ -1,5 +1,7 @@
 "use client";
 import React, { useRef, useMemo, useEffect } from 'react';
+import { Door } from './components/Door';
+import { useHallMaterials } from './hooks/useHallMaterials';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import {
@@ -14,6 +16,9 @@ import {
   CORRIDOR_WIDTH,
   WALL_THICK,
   WALL_COLOR,
+  WALL_TOP_COLOR,
+  WALL_BOTTOM_COLOR,
+  ENTRANCE_ACCENT_COLOR,
   FLOOR_COLOR,
   CEIL_COLOR,
   MB,
@@ -26,7 +31,7 @@ import {
   PRESENTATION_FLOAT_SPEED
 } from './sceneConfig';
 
-export default function SceneStructure({ rotate, exiting=false }) {
+export default function SceneStructure({ rotate, exiting=false, exploring=false }) {
   const groupRef = useRef();
   const elapsedRef = useRef(0);
   const exitElapsedRef = useRef(0);
@@ -79,27 +84,8 @@ export default function SceneStructure({ rotate, exiting=false }) {
     groupRef.current.position.y = floatY;
   });
 
-  const wallMat = useMemo(() => (<meshStandardMaterial color={WALL_COLOR} roughness={0.95} />), []);
-  const floorMat = useMemo(() => (<meshStandardMaterial color={FLOOR_COLOR} roughness={1} />), []);
-  const ceilMat = useMemo(() => (<meshStandardMaterial color={CEIL_COLOR} roughness={1} />), []);
-
-  // Material suave para sombra falsa
-  const shadowMat = useMemo(() => {
-    const size = 256;
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = size;
-    const ctx = canvas.getContext('2d');
-    const grd = ctx.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2);
-    grd.addColorStop(0,'rgba(0,0,0,0.4)');
-    grd.addColorStop(0.5,'rgba(0,0,0,0.15)');
-    grd.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle = grd;
-    ctx.fillRect(0,0,size,size);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.anisotropy = 4;
-    tex.needsUpdate = true;
-    return <meshBasicMaterial map={tex} transparent />;
-  }, []);
+  // Procedural lightweight gradient + noise para paredes / techo / piso.
+  const { wallMat, floorMat, ceilMat, shadowMat } = useHallMaterials();
 
   return (
   <group ref={groupRef} frustumCulled={false}>
@@ -129,15 +115,58 @@ export default function SceneStructure({ rotate, exiting=false }) {
         <boxGeometry args={[WALL_THICK, HALL_HEIGHT, TOTAL_LENGTH]} />
         {wallMat}
       </mesh>
-      {/* Entrada principal (pared frontal exterior) */}
-      <mesh position={[-(ENTRANCE_WIDTH/2 + entranceSeg/2), HALL_HEIGHT/2, FRONT_CENTER + HALF_HALL_D]} castShadow receiveShadow>
-        <boxGeometry args={[entranceSeg, HALL_HEIGHT, WALL_THICK]} />
-        {wallMat}
-      </mesh>
-      <mesh position={[(ENTRANCE_WIDTH/2 + entranceSeg/2), HALL_HEIGHT/2, FRONT_CENTER + HALF_HALL_D]} castShadow receiveShadow>
-        <boxGeometry args={[entranceSeg, HALL_HEIGHT, WALL_THICK]} />
-        {wallMat}
-      </mesh>
+  {/* Entrada principal (pared frontal exterior) con marco acentuado */}
+      <group>
+        <mesh position={[-(ENTRANCE_WIDTH/2 + entranceSeg/2), HALL_HEIGHT/2, FRONT_CENTER + HALF_HALL_D]} castShadow receiveShadow>
+          <boxGeometry args={[entranceSeg, HALL_HEIGHT, WALL_THICK]} />
+          {wallMat}
+        </mesh>
+        <mesh position={[(ENTRANCE_WIDTH/2 + entranceSeg/2), HALL_HEIGHT/2, FRONT_CENTER + HALF_HALL_D]} castShadow receiveShadow>
+          <boxGeometry args={[entranceSeg, HALL_HEIGHT, WALL_THICK]} />
+          {wallMat}
+        </mesh>
+        {/* Marco vertical */}
+        <mesh position={[0, HALL_HEIGHT/2, FRONT_CENTER + HALF_HALL_D + 0.02]}>
+          <boxGeometry args={[ENTRANCE_WIDTH+0.6, 0.3, 0.1]} />
+          <meshStandardMaterial color={ENTRANCE_ACCENT_COLOR} roughness={0.6} metalness={0.15} />
+        </mesh>
+        <mesh position={[0, HALL_HEIGHT-0.15, FRONT_CENTER + HALF_HALL_D + 0.02]}>
+          <boxGeometry args={[ENTRANCE_WIDTH+0.6, 0.3, 0.1]} />
+          <meshStandardMaterial color={ENTRANCE_ACCENT_COLOR} roughness={0.6} metalness={0.15} />
+        </mesh>
+        <mesh position={[-(ENTRANCE_WIDTH/2 + 0.3), HALL_HEIGHT/2, FRONT_CENTER + HALF_HALL_D + 0.02]}>
+          <boxGeometry args={[0.3, HALL_HEIGHT-0.3, 0.1]} />
+          <meshStandardMaterial color={ENTRANCE_ACCENT_COLOR} roughness={0.6} metalness={0.15} />
+        </mesh>
+        <mesh position={[(ENTRANCE_WIDTH/2 + 0.3), HALL_HEIGHT/2, FRONT_CENTER + HALF_HALL_D + 0.02]}>
+          <boxGeometry args={[0.3, HALL_HEIGHT-0.3, 0.1]} />
+          <meshStandardMaterial color={ENTRANCE_ACCENT_COLOR} roughness={0.6} metalness={0.15} />
+        </mesh>
+        {/* Elementos que sólo aparecen al entrar para enriquecer el interior del marco */}
+        {exploring && (
+          <group>
+            {/* Lintel interior ligeramente sobresalido */}
+            <mesh position={[0, HALL_HEIGHT-0.4, FRONT_CENTER + HALF_HALL_D - 0.15]}>
+              <boxGeometry args={[ENTRANCE_WIDTH*0.98, 0.25, 0.3]} />
+              <meshStandardMaterial color={ENTRANCE_ACCENT_COLOR} roughness={0.5} metalness={0.18} />
+            </mesh>
+            {/* Umbral / zócalo */}
+            <mesh position={[0, 0.12, FRONT_CENTER + HALF_HALL_D - 0.05]}>
+              <boxGeometry args={[ENTRANCE_WIDTH*0.98, 0.24, 0.25]} />
+              <meshStandardMaterial color={ENTRANCE_ACCENT_COLOR} roughness={0.55} metalness={0.2} />
+            </mesh>
+            {/* Moldura interior lateral fina */}
+            <mesh position={[-(ENTRANCE_WIDTH/2 -0.1), HALL_HEIGHT/2, FRONT_CENTER + HALF_HALL_D - 0.08]}>
+              <boxGeometry args={[0.12, HALL_HEIGHT-0.8, 0.15]} />
+              <meshStandardMaterial color={ENTRANCE_ACCENT_COLOR} roughness={0.55} metalness={0.2} />
+            </mesh>
+            <mesh position={[(ENTRANCE_WIDTH/2 -0.1), HALL_HEIGHT/2, FRONT_CENTER + HALF_HALL_D - 0.08]}>
+              <boxGeometry args={[0.12, HALL_HEIGHT-0.8, 0.15]} />
+              <meshStandardMaterial color={ENTRANCE_ACCENT_COLOR} roughness={0.55} metalness={0.2} />
+            </mesh>
+          </group>
+        )}
+      </group>
       {/* Aperturas internas (frontal) */}
       <mesh position={[-(openingWidth/2 + sideSeg/2), HALL_HEIGHT/2, FRONT_CENTER - HALF_HALL_D]} castShadow receiveShadow>
         <boxGeometry args={[sideSeg, HALL_HEIGHT, WALL_THICK]} />
@@ -161,6 +190,8 @@ export default function SceneStructure({ rotate, exiting=false }) {
         <boxGeometry args={[HALL_WIDTH, HALL_HEIGHT, WALL_THICK]} />
         {wallMat}
       </mesh>
+  {/* Puerta dinámica visible sólo al explorar */}
+  {exploring && <Door visible={exploring} />}
     </group>
   );
 }

@@ -16,9 +16,12 @@ export const HALF_HALL_W = HALL_WIDTH / 2;
 export const HALF_HALL_D = HALL_DEPTH / 2;
 
 // Colores
-export const WALL_COLOR = "#f2f2f2";
-export const FLOOR_COLOR = "#dadada";
-export const CEIL_COLOR = "#ffffff";
+export const WALL_COLOR = "#f2f2f2"; // base mid tone
+export const WALL_TOP_COLOR = "#ffffff"; // gradiente parte superior
+export const WALL_BOTTOM_COLOR = "#e3e3e3"; // gradiente parte inferior
+export const ENTRANCE_ACCENT_COLOR = "#c7c7c7"; // marco / moldura
+export const FLOOR_COLOR = "#d5d5d5";
+export const CEIL_COLOR = "#fcfcfc";
 
 // Escala / rotaciones de presentación
 export const MB = 0.5; // miniatura base (escala)
@@ -42,9 +45,20 @@ export const CAMERA_INITIAL_POS = [
   HALL_HEIGHT * 0.8,
   FRONT_CENTER + HALF_HALL_D + 20,
 ];
-export const CAMERA_TARGET_POS = [0, 1.85, FRONT_CENTER + HALF_HALL_D - 8.5];
-export const CAMERA_TARGET_LOOK = [0, 1.9, FRONT_CENTER - 6.5];
+// Posición objetivo: justo dentro del lobby frente a la puerta (a ~1m detrás del plano de la puerta)
+export const CAMERA_TARGET_POS = [0, 1.85, FRONT_CENTER + HALF_HALL_D - 1.4]; // ~51.6 si puerta ~52.6
+export const CAMERA_TARGET_LOOK = [0, 1.9, FRONT_CENTER - HALF_HALL_D + 3]; // mira hacia el interior desde la puerta
 export const ENTRANCE_ANIM_DURATION = 3000; // ms
 export const ENABLE_FOG = true;
 export const FOG_NEAR = 35;
 export const FOG_FAR = 160;
+
+// Límites de exploración (evitan atravesar muros y salida frontal). Valores ajustados con un margen interno.
+export const EXPLORE_BOUNDS = {
+  minX: -HALF_HALL_W + 1,
+  maxX: HALF_HALL_W - 1,
+  // Permite recorrer desde casi el fondo hasta el lobby frontal
+  minZ: BACK_CENTER - HALF_HALL_D + 1.2,
+  // Hasta justo antes del plano de la puerta exterior (evita atravesarla)
+  maxZ: FRONT_CENTER + HALF_HALL_D - 1.2 // ~51.8
+};
