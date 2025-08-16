@@ -52,8 +52,10 @@ export default function SceneStructure({ rotate, exiting=false }) {
   useFrame((state, delta) => {
     if (!groupRef.current) return;
     if (!rotate) {
-      // Suavizar leve jitter post entrada: amortiguar posicion y rotacion hacia 0
+      // Suavizar leve jitter + rotación: amortiguar posición y rotación Y hacia 0
       groupRef.current.position.y *= 0.9;
+      groupRef.current.rotation.y *= 0.92;
+      if (Math.abs(groupRef.current.rotation.y) < 0.0005) groupRef.current.rotation.y = 0;
       return;
     }
     if (exiting) {

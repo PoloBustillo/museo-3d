@@ -5,21 +5,29 @@ import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import { OrbitControls } from "@react-three/drei";
 import SceneStructure from "./SceneStructure";
 import { HALL_HEIGHT, FRONT_CENTER, HALF_HALL_D, HALL_WIDTH, CAMERA_INITIAL_POS, ENABLE_FOG, FOG_NEAR, FOG_FAR, PRESENTATION_EASE_OUT } from "./sceneConfig";
+import { usePresentationTransition } from "./hooks/usePresentationTransition";
 import { useAdaptiveQuality } from "./hooks/useAdaptiveQuality";
 import { LightingRig } from "./components/LightingRig";
 import { useEntranceAnimation } from "./hooks/useEntranceAnimation";
 import { useWASDControls } from "./hooks/useWASDControls";
 
 export default function SalaPruebaPage() {
-  const [started, setStarted] = useState(false);
-  const [presentationMode, setPresentationMode] = useState(true);
-  const [exitingPresentation, setExitingPresentation] = useState(false);
+  const [started, setStarted] = useState(false); // for UI legacy control (can derive from exploring)
   const [wasd, setWasd] = useState(false);
-  const [animating, setAnimating] = useState(false);
   const cameraRef = useRef(null);
   const rendererRef = useRef(null);
-  const beginRef = useRef(null);
   const [sceneManagerKey, setSceneManagerKey] = useState(0);
+  const {
+    presentationMode,
+    easingOut,
+    animating,
+    exploring,
+    beginReady,
+    registerBegin,
+    requestStart,
+    markExploring,
+    reset: resetMachine
+  } = usePresentationTransition({ easeOutMs: PRESENTATION_EASE_OUT * 1000, onExplore: () => setStarted(true) });
   // Posición inicial elevada y retrasada para mostrar interior con giro.
   const initialCameraPos = useRef(CAMERA_INITIAL_POS);
 
@@ -32,42 +40,26 @@ export default function SalaPruebaPage() {
   }, []);
   useAdaptiveQuality({ rendererRef, enabled: true });
 
-  const handleStart = () => {
-    if (exitingPresentation) return;
-    // Fase de easing de salida antes de animación de entrada
-    setExitingPresentation(true);
-    setTimeout(() => {
-      if (beginRef.current) beginRef.current();
-      // al iniciar animación ya no necesitamos rotación/flotación
-    }, PRESENTATION_EASE_OUT * 1000);
-  };
+  const handleStart = () => requestStart();
   const handleReset = () => {
-    // Return to presentation mode
-  setPresentationMode(true);
-  setExitingPresentation(false);
+    resetMachine();
     setStarted(false);
-    setAnimating(false);
-    beginRef.current = null;
     if (cameraRef.current) {
       cameraRef.current.position.set(...initialCameraPos.current);
-    cameraRef.current.lookAt(0, HALL_HEIGHT * 0.5, FRONT_CENTER - 6.5);
+      cameraRef.current.lookAt(0, HALL_HEIGHT * 0.5, FRONT_CENTER - 6.5);
     }
-    // Force remount SceneManager to reset internal hook state
     setSceneManagerKey(k => k + 1);
   };
 
   // Component inside Canvas to safely use R3F hooks
   function SceneManager({ presentationMode, wasdEnabled }) {
-    const { begin, animating: anim, started: startedInner } = useEntranceAnimation({ onFinish: () => {
-      setStarted(true);
-      setPresentationMode(false);
+    const { begin, animating: fly, started: startedInner } = useEntranceAnimation({ onFinish: () => {
+      markExploring();
     }});
-    // Expose begin externally
-    useEffect(() => { beginRef.current = begin; }, [begin]);
-
-    // Track animating state upward
-    useEffect(() => { setAnimating(anim); }, [anim]);
-    // WASD controls only after start
+    // Register immediately (not waiting react flush) via microtask
+    useEffect(() => {
+      registerBegin(begin);
+    }, [begin, registerBegin]);
     useWASDControls(wasdEnabled && startedInner);
 
     // Binder for camera & renderer refs
@@ -77,8 +69,8 @@ export default function SalaPruebaPage() {
     };
     return (
       <>
-  <LightingRig presentation={presentationMode && !exitingPresentation && !anim} />
-  <SceneStructure rotate={presentationMode && !anim} exiting={exitingPresentation} />
+  <LightingRig presentation={presentationMode && !easingOut && !animating} />
+  <SceneStructure rotate={presentationMode && !animating} exiting={easingOut} />
         {/* Acquire refs via function child pattern not available here; use onCreated below instead */}
       </>
     );
@@ -89,13 +81,13 @@ export default function SalaPruebaPage() {
         <div className="pointer-events-none select-none absolute inset-0 z-20 flex flex-col items-center justify-end pb-24 bg-gradient-to-t from-neutral-900/75 via-neutral-900/10 to-transparent">
           <div className="pointer-events-auto flex flex-col items-center gap-3 rounded-xl px-6 py-4 bg-neutral-900/40 backdrop-blur-md border border-white/10 shadow-lg">
             <h1 className="text-white text-sm font-medium tracking-wide">Sala Demo</h1>
-            <button onClick={handleStart} disabled={animating} className="px-5 py-2 rounded-md bg-white/90 text-neutral-900 text-xs font-medium shadow hover:bg-white transition disabled:opacity-60">
-              {animating ? 'Entrando...' : 'Entrar'}
+            <button onClick={handleStart} disabled={animating || easingOut || (!beginReady && !easingOut)} className="px-5 py-2 rounded-md bg-white/90 text-neutral-900 text-xs font-medium shadow hover:bg-white transition disabled:opacity-60">
+              {animating ? 'Entrando...' : easingOut ? 'Preparando...' : beginReady ? 'Entrar' : 'Cargando...'}
             </button>
           </div>
         </div>
       )}
-      {started && !presentationMode && (
+  {exploring && (
         <div className="absolute top-3 left-3 z-20 flex gap-2 items-center">
           <button onClick={() => setWasd(w => !w)} className="px-3 py-1.5 text-[11px] rounded bg-neutral-800/70 text-neutral-100 border border-white/10 hover:bg-neutral-700/70 transition">
             {wasd ? 'Mover: ON' : 'Mover: OFF'}
