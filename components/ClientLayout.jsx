@@ -32,9 +32,10 @@ const LayoutContainer = ({ children }) => {
   const fixedFooterPages = ["/", "/museo"];
   const useFixedFooter = fixedFooterPages.includes(pathname);
   
-  // No mostrar navbar en páginas de sala
+  // No mostrar navbar en páginas de sala ni en sala de prueba 3D
   const isSalaPage = pathname.includes('/museo/sala/');
-  const showNavbar = !isSalaPage;
+  const isSalaPrueba = pathname === '/sala-prueba';
+  const showNavbar = !(isSalaPage || isSalaPrueba);
 
   useEffect(() => {
     setFrase(
