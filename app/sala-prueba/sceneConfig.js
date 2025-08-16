@@ -23,7 +23,17 @@ export const CEIL_COLOR = "#ffffff";
 // Escala / rotaciones de presentación
 export const MB = 0.5; // miniatura base (escala)
 export const INITIAL_ROT_Y = (45 * Math.PI) / 180; // 45 grados en Y
-export const INITIAL_ROT_X = (20 * Math.PI) / 180; // -20 grados en X (ligera inclinación hacia abajo)
+export const INITIAL_ROT_X = (30 * Math.PI) / 180; // -20 grados en X (ligera inclinación hacia abajo)
+
+// Dinámica de presentación
+export const PRESENTATION_ROT_SPEED = 0.12; // rad/s
+export const PRESENTATION_EASE_IN = 1.2; // s para llegar a velocidad completa
+export const PRESENTATION_EASE_OUT = 0.6; // s para detenerse
+export const PRESENTATION_FLOAT_AMPLITUDE = 0.25; // metros
+export const PRESENTATION_FLOAT_SPEED = 0.5; // Hz
+// Pulso de luz ambiental
+export const PRESENTATION_PULSE_BASE = 0.35;
+export const PRESENTATION_PULSE_DELTA = 0.08;
 
 // Presentación / cámara
 // Camera positions tuned to show more interior (lower height, deeper look)

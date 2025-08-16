@@ -1,9 +1,10 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { Canvas } from "@react-three/fiber";
+import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import { OrbitControls } from "@react-three/drei";
 import SceneStructure from "./SceneStructure";
-import { HALL_HEIGHT, FRONT_CENTER, HALF_HALL_D, HALL_WIDTH, CAMERA_INITIAL_POS, ENABLE_FOG, FOG_NEAR, FOG_FAR } from "./sceneConfig";
+import { HALL_HEIGHT, FRONT_CENTER, HALF_HALL_D, HALL_WIDTH, CAMERA_INITIAL_POS, ENABLE_FOG, FOG_NEAR, FOG_FAR, PRESENTATION_EASE_OUT } from "./sceneConfig";
 import { useAdaptiveQuality } from "./hooks/useAdaptiveQuality";
 import { LightingRig } from "./components/LightingRig";
 import { useEntranceAnimation } from "./hooks/useEntranceAnimation";
@@ -12,6 +13,7 @@ import { useWASDControls } from "./hooks/useWASDControls";
 export default function SalaPruebaPage() {
   const [started, setStarted] = useState(false);
   const [presentationMode, setPresentationMode] = useState(true);
+  const [exitingPresentation, setExitingPresentation] = useState(false);
   const [wasd, setWasd] = useState(false);
   const [animating, setAnimating] = useState(false);
   const cameraRef = useRef(null);
@@ -30,10 +32,19 @@ export default function SalaPruebaPage() {
   }, []);
   useAdaptiveQuality({ rendererRef, enabled: true });
 
-  const handleStart = () => beginRef.current && beginRef.current();
+  const handleStart = () => {
+    if (exitingPresentation) return;
+    // Fase de easing de salida antes de animación de entrada
+    setExitingPresentation(true);
+    setTimeout(() => {
+      if (beginRef.current) beginRef.current();
+      // al iniciar animación ya no necesitamos rotación/flotación
+    }, PRESENTATION_EASE_OUT * 1000);
+  };
   const handleReset = () => {
     // Return to presentation mode
-    setPresentationMode(true);
+  setPresentationMode(true);
+  setExitingPresentation(false);
     setStarted(false);
     setAnimating(false);
     beginRef.current = null;
@@ -66,8 +77,8 @@ export default function SalaPruebaPage() {
     };
     return (
       <>
-  <LightingRig />
-  <SceneStructure rotate={presentationMode && !anim} />
+  <LightingRig presentation={presentationMode && !exitingPresentation && !anim} />
+  <SceneStructure rotate={presentationMode && !anim} exiting={exitingPresentation} />
         {/* Acquire refs via function child pattern not available here; use onCreated below instead */}
       </>
     );
@@ -106,6 +117,12 @@ export default function SalaPruebaPage() {
   <color attach="background" args={["#0f0f10"]} />
   {ENABLE_FOG && <fog attach="fog" args={["#0f0f10", FOG_NEAR, FOG_FAR]} />}
   <SceneManager key={sceneManagerKey} presentationMode={presentationMode} wasdEnabled={wasd} />
+  {presentationMode && (
+    <EffectComposer disableNormalPass>
+      <Bloom intensity={0.3} luminanceThreshold={0.2} luminanceSmoothing={0.9} mipmapBlur radius={0.6} />
+      <Vignette eskil={false} offset={0.2} darkness={0.55} />
+    </EffectComposer>
+  )}
         <OrbitControls enablePan={started} enableZoom enableRotate maxPolarAngle={Math.PI/2.1} enabled={!animating} />
       </Canvas>
     </div>

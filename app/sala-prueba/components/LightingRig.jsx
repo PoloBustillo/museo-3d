@@ -1,11 +1,20 @@
 "use client";
-import React from 'react';
-import { HALL_HEIGHT, FRONT_CENTER } from '../sceneConfig';
+import React, { useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { HALL_HEIGHT, FRONT_CENTER, PRESENTATION_FLOAT_SPEED, PRESENTATION_PULSE_BASE, PRESENTATION_PULSE_DELTA } from '../sceneConfig';
 
-export function LightingRig() {
+export function LightingRig({ presentation=false }) {
+  const ambientRef = useRef();
+  useFrame((state, delta) => {
+    if (presentation && ambientRef.current) {
+      const t = state.clock.getElapsedTime();
+      const pulse = Math.sin(t * Math.PI * 2 * PRESENTATION_FLOAT_SPEED) * 0.5 + 0.5; // 0..1
+      ambientRef.current.intensity = PRESENTATION_PULSE_BASE + pulse * PRESENTATION_PULSE_DELTA;
+    }
+  });
   return (
     <>
-      <ambientLight intensity={0.35} />
+      <ambientLight ref={ambientRef} intensity={PRESENTATION_PULSE_BASE} />
       <directionalLight
         position={[70, 110, 50]}
         intensity={0.6}
