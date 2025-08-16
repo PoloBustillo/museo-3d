@@ -69,14 +69,23 @@ export default function MuseoPage() {
               Explora las salas y descubre obras en un entorno inmersivo
             </p>
           </div>
-          {isAdmin && (
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Botón de Sala de Prueba */}
             <button
-              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-bold shadow hover:bg-indigo-700 transition"
-              onClick={() => router.push("/mis-salas")}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-green-600 text-white font-bold shadow hover:bg-green-700 transition"
+              onClick={() => router.push("/sala-prueba")}
             >
-              <Plus className="h-5 w-5" /> Crear sala
+              🏗️ Sala de Prueba
             </button>
-          )}
+            {isAdmin && (
+              <button
+                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-bold shadow hover:bg-indigo-700 transition"
+                onClick={() => router.push("/mis-salas")}
+              >
+                <Plus className="h-5 w-5" /> Crear sala
+              </button>
+            )}
+          </div>
         </div>
         {/* Filtros */}
         <div className="mb-8 flex flex-col sm:flex-row gap-4">
