@@ -2,7 +2,6 @@
 import React, { useRef, useMemo, useEffect } from 'react';
 import { Door } from './components/Door';
 import { useHallMaterials } from './hooks/useHallMaterials';
-import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import {
   HALL_WIDTH,
@@ -16,11 +15,7 @@ import {
   CORRIDOR_WIDTH,
   WALL_THICK,
   WALL_COLOR,
-  WALL_TOP_COLOR,
-  WALL_BOTTOM_COLOR,
   ENTRANCE_ACCENT_COLOR,
-  FLOOR_COLOR,
-  CEIL_COLOR,
   MB,
   INITIAL_ROT_Y,
   INITIAL_ROT_X,
@@ -87,6 +82,34 @@ export default function SceneStructure({ rotate, exiting=false, exploring=false 
   // Procedural lightweight gradient + noise para paredes / techo / piso.
   const { wallMat, floorMat, ceilMat, shadowMat } = useHallMaterials();
 
+  // Pequeño factory para paredes repetitivas
+  const Wall = ({ position, size, mat=wallMat }) => (
+    <mesh position={position} castShadow receiveShadow>
+      <boxGeometry args={size} />
+      {mat}
+    </mesh>
+  );
+
+  const sideWalls = [
+    { position: [-HALF_HALL_W, HALL_HEIGHT/2, 0], size: [WALL_THICK, HALL_HEIGHT, TOTAL_LENGTH] },
+    { position: [ HALF_HALL_W, HALL_HEIGHT/2, 0], size: [WALL_THICK, HALL_HEIGHT, TOTAL_LENGTH] }
+  ];
+
+  const entranceExterior = [
+    { position: [-(ENTRANCE_WIDTH/2 + entranceSeg/2), HALL_HEIGHT/2, FRONT_CENTER + HALF_HALL_D], size: [entranceSeg, HALL_HEIGHT, WALL_THICK] },
+    { position: [ (ENTRANCE_WIDTH/2 + entranceSeg/2), HALL_HEIGHT/2, FRONT_CENTER + HALF_HALL_D], size: [entranceSeg, HALL_HEIGHT, WALL_THICK] },
+  ];
+
+  const internalFront = [
+    { position: [-(openingWidth/2 + sideSeg/2), HALL_HEIGHT/2, FRONT_CENTER - HALF_HALL_D], size: [sideSeg, HALL_HEIGHT, WALL_THICK] },
+    { position: [ (openingWidth/2 + sideSeg/2), HALL_HEIGHT/2, FRONT_CENTER - HALF_HALL_D], size: [sideSeg, HALL_HEIGHT, WALL_THICK] },
+  ];
+
+  const internalBack = [
+    { position: [-(openingWidth/2 + sideSeg/2), HALL_HEIGHT/2, BACK_CENTER + HALF_HALL_D], size: [sideSeg, HALL_HEIGHT, WALL_THICK] },
+    { position: [ (openingWidth/2 + sideSeg/2), HALL_HEIGHT/2, BACK_CENTER + HALF_HALL_D], size: [sideSeg, HALL_HEIGHT, WALL_THICK] },
+  ];
+
   return (
   <group ref={groupRef} frustumCulled={false}>
       {/* Sombra suave (contact shadow fake) */}
@@ -106,25 +129,11 @@ export default function SceneStructure({ rotate, exiting=false, exploring=false 
         <planeGeometry args={[HALL_WIDTH, TOTAL_LENGTH]} />
         {ceilMat}
       </mesh>
-      {/* Paredes laterales */}
-      <mesh position={[-HALF_HALL_W, HALL_HEIGHT/2, 0]} castShadow receiveShadow>
-        <boxGeometry args={[WALL_THICK, HALL_HEIGHT, TOTAL_LENGTH]} />
-        {wallMat}
-      </mesh>
-      <mesh position={[HALF_HALL_W, HALL_HEIGHT/2, 0]} castShadow receiveShadow>
-        <boxGeometry args={[WALL_THICK, HALL_HEIGHT, TOTAL_LENGTH]} />
-        {wallMat}
-      </mesh>
+  {/* Paredes laterales */}
+  {sideWalls.map((w,i)=>(<Wall key={'side'+i} position={w.position} size={w.size} />))}
   {/* Entrada principal (pared frontal exterior) con marco acentuado */}
       <group>
-        <mesh position={[-(ENTRANCE_WIDTH/2 + entranceSeg/2), HALL_HEIGHT/2, FRONT_CENTER + HALF_HALL_D]} castShadow receiveShadow>
-          <boxGeometry args={[entranceSeg, HALL_HEIGHT, WALL_THICK]} />
-          {wallMat}
-        </mesh>
-        <mesh position={[(ENTRANCE_WIDTH/2 + entranceSeg/2), HALL_HEIGHT/2, FRONT_CENTER + HALF_HALL_D]} castShadow receiveShadow>
-          <boxGeometry args={[entranceSeg, HALL_HEIGHT, WALL_THICK]} />
-          {wallMat}
-        </mesh>
+  {entranceExterior.map((w,i)=>(<Wall key={'entrExt'+i} position={w.position} size={w.size} />))}
         {/* Marco vertical */}
         <mesh position={[0, HALL_HEIGHT/2, FRONT_CENTER + HALF_HALL_D + 0.02]}>
           <boxGeometry args={[ENTRANCE_WIDTH+0.6, 0.3, 0.1]} />
@@ -167,24 +176,10 @@ export default function SceneStructure({ rotate, exiting=false, exploring=false 
           </group>
         )}
       </group>
-      {/* Aperturas internas (frontal) */}
-      <mesh position={[-(openingWidth/2 + sideSeg/2), HALL_HEIGHT/2, FRONT_CENTER - HALF_HALL_D]} castShadow receiveShadow>
-        <boxGeometry args={[sideSeg, HALL_HEIGHT, WALL_THICK]} />
-        {wallMat}
-      </mesh>
-      <mesh position={[(openingWidth/2 + sideSeg/2), HALL_HEIGHT/2, FRONT_CENTER - HALF_HALL_D]} castShadow receiveShadow>
-        <boxGeometry args={[sideSeg, HALL_HEIGHT, WALL_THICK]} />
-        {wallMat}
-      </mesh>
-      {/* Aperturas internas (posterior) */}
-      <mesh position={[-(openingWidth/2 + sideSeg/2), HALL_HEIGHT/2, BACK_CENTER + HALF_HALL_D]} castShadow receiveShadow>
-        <boxGeometry args={[sideSeg, HALL_HEIGHT, WALL_THICK]} />
-        {wallMat}
-      </mesh>
-      <mesh position={[(openingWidth/2 + sideSeg/2), HALL_HEIGHT/2, BACK_CENTER + HALF_HALL_D]} castShadow receiveShadow>
-        <boxGeometry args={[sideSeg, HALL_HEIGHT, WALL_THICK]} />
-        {wallMat}
-      </mesh>
+  {/* Aperturas internas (frontal) */}
+  {internalFront.map((w,i)=>(<Wall key={'frontOpen'+i} position={w.position} size={w.size} />))}
+  {/* Aperturas internas (posterior) */}
+  {internalBack.map((w,i)=>(<Wall key={'backOpen'+i} position={w.position} size={w.size} />))}
       {/* Pared posterior completa */}
       <mesh position={[0, HALL_HEIGHT/2, BACK_CENTER - HALF_HALL_D]} castShadow receiveShadow>
         <boxGeometry args={[HALL_WIDTH, HALL_HEIGHT, WALL_THICK]} />

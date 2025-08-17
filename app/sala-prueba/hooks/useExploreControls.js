@@ -11,7 +11,7 @@ import { useThree, useFrame } from '@react-three/fiber';
 */
 export function useExploreControls(active,{speed=14, damping=0.86, pitchLimit=Math.PI/2.4, sprintMultiplier=2.1, bounds}={}) {
   const { camera, gl } = useThree();
-  const keys = useRef({});
+  const keys = useRef(Object.create(null));
   const velocity = useRef([0,0,0]);
   const yawRef = useRef(0);
   const pitchRef = useRef(0);
@@ -20,7 +20,7 @@ export function useExploreControls(active,{speed=14, damping=0.86, pitchLimit=Ma
 
   useEffect(() => {
     if (!active) return;
-    if (needInitAngles.current) {
+  if (needInitAngles.current) {
       yawRef.current = camera.rotation.y;
       pitchRef.current = camera.rotation.x;
       needInitAngles.current = false;
@@ -32,7 +32,7 @@ export function useExploreControls(active,{speed=14, damping=0.86, pitchLimit=Ma
 
     const el = gl.domElement;
 
-    const preventContext = e => { e.preventDefault(); };
+  const preventContext = e => { e.preventDefault(); };
     const onMouseDown = e => {
       if (e.button === 2) { // right click
         if (document.pointerLockElement !== el) {
@@ -53,8 +53,8 @@ export function useExploreControls(active,{speed=14, damping=0.86, pitchLimit=Ma
       if (pitchRef.current > pitchLimit) pitchRef.current = pitchLimit;
       if (pitchRef.current < -pitchLimit) pitchRef.current = -pitchLimit;
     };
-    const keyDown = e => { keys.current[e.code] = true; };
-    const keyUp = e => { keys.current[e.code] = false; };
+  const keyDown = e => { keys.current[e.code] = true; };
+  const keyUp = e => { keys.current[e.code] = false; };
 
     el.addEventListener('contextmenu', preventContext);
     el.addEventListener('mousedown', onMouseDown);
@@ -112,9 +112,11 @@ export function useExploreControls(active,{speed=14, damping=0.86, pitchLimit=Ma
     velocity.current[0] *= damping;
     velocity.current[2] *= damping;
 
-    // Apply translation
-    camera.position.x += velocity.current[0] * delta;
-    camera.position.z += velocity.current[2] * delta;
+    // Apply translation (only if moving significantly)
+    if (Math.abs(velocity.current[0]) + Math.abs(velocity.current[2]) > 1e-5) {
+      camera.position.x += velocity.current[0] * delta;
+      camera.position.z += velocity.current[2] * delta;
+    }
 
     // Bounds opcionales: { minX,maxX,minZ,maxZ }
     if (bounds) {

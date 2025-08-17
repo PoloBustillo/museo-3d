@@ -52,7 +52,7 @@ export function useEntranceAnimation({ onFinish }) {
       // Head-bob slight sinus vertical oscillation near end
       const bob = t > 0.85 ? Math.sin((t - 0.85) * Math.PI * 4) * 0.05 * (1 - (1 - t) * 6) : 0;
       camera.position.y += bob;
-      camera.lookAt(lookAt.x, lookAt.y, lookAt.z);
+      if (t === 1 || t < 0.995) camera.lookAt(lookAt.x, lookAt.y, lookAt.z);
       if (t === 1) {
         setAnimating(false);
         setStarted(true);
