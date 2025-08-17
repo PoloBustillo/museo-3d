@@ -1,6 +1,7 @@
 "use client";
 import React, { useRef, useMemo, useEffect } from 'react';
 import { Door } from './components/Door';
+import { CeilingLamps } from './components/CeilingLamps';
 import { useHallMaterials } from './hooks/useHallMaterials';
 import { useFrame } from '@react-three/fiber';
 import {
@@ -124,11 +125,13 @@ export default function SceneStructure({ rotate, exiting=false, exploring=false 
         <planeGeometry args={[HALL_WIDTH, TOTAL_LENGTH]} />
         {floorMat}
       </mesh>
-      {/* Techo */}
-      <mesh position={[0, HALL_HEIGHT, 0]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[HALL_WIDTH, TOTAL_LENGTH]} />
-        {ceilMat}
-      </mesh>
+      {/* Techo - transparente en modo presentación, normal en exploración */}
+      {!rotate && (
+        <mesh position={[0, HALL_HEIGHT, 0]} rotation={[Math.PI / 2, 0, 0]} receiveShadow>
+          <planeGeometry args={[HALL_WIDTH, TOTAL_LENGTH]} />
+          {ceilMat}
+        </mesh>
+      )}
   {/* Paredes laterales */}
   {sideWalls.map((w,i)=>(<Wall key={'side'+i} position={w.position} size={w.size} />))}
   {/* Entrada principal (pared frontal exterior) con marco acentuado */}
@@ -187,6 +190,12 @@ export default function SceneStructure({ rotate, exiting=false, exploring=false 
       </mesh>
   {/* Puerta dinámica visible sólo al explorar */}
   {exploring && <Door visible={exploring} />}
+  
+  {/* Lámparas del techo - siempre visibles */}
+  <CeilingLamps 
+    hallDimensions={{ width: HALL_WIDTH, height: HALL_HEIGHT, length: TOTAL_LENGTH }}
+    exploring={exploring}
+  />
     </group>
   );
 }

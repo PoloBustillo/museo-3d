@@ -19,6 +19,7 @@ import {
 import { Button } from './ui/button';
 import { ChevronLeft, Settings } from 'lucide-react';
 import { createCeilingTileTexture } from '../utils/proceduralTextures.js';
+import { GalleryLightingSystem } from './lighting/GalleryLightingSystem.jsx';
 import './artwork-styles.css';
 
 // Componente optimizado para renderizar obras de arte
@@ -375,28 +376,12 @@ const BaseRoom = ({ roomConfig, materials, lighting, proceduralCeiling=true }) =
       
 
       
-      {/* Iluminación ambiental */}
-      <ambientLight intensity={0.4} />
-      
-      {/* Luz principal desde arriba */}
-      <directionalLight
-        position={[0, roomConfig.height + 2, 0]}
-        intensity={0.6}
-        castShadow
-        shadow-mapSize-width={2048}
-        shadow-mapSize-height={2048}
-        shadow-camera-far={50}
-        shadow-camera-left={-20}
-        shadow-camera-right={20}
-        shadow-camera-top={20}
-        shadow-camera-bottom={-20}
+      {/* Sistema de iluminación profesional para galería */}
+      <GalleryLightingSystem 
+        roomConfig={roomConfig}
+        artworkPositions={artworkPositions}
+        showInstructions={showInstructions}
       />
-      
-      {/* Luces puntuales en las esquinas */}
-      <pointLight position={[-roomConfig.width/2 + 1, roomConfig.height - 1, -roomConfig.length/2 + 1]} intensity={0.3} color="#ffffff" />
-      <pointLight position={[roomConfig.width/2 - 1, roomConfig.height - 1, -roomConfig.length/2 + 1]} intensity={0.3} color="#ffffff" />
-      <pointLight position={[-roomConfig.width/2 + 1, roomConfig.height - 1, roomConfig.length/2 - 1]} intensity={0.3} color="#ffffff" />
-      <pointLight position={[roomConfig.width/2 - 1, roomConfig.height - 1, roomConfig.length/2 - 1]} intensity={0.3} color="#ffffff" />
       
       {/* Lámparas en cada esquina */}
       {/* Esquina trasera izquierda */}
@@ -671,53 +656,20 @@ const calculateArtworkPositions = useMemo(() => (artworks, roomDimensions) => {
     <>
   <BaseRoom roomConfig={roomConfig} materials={materials} lighting={lighting} proceduralCeiling />
       
-      {/* Renderizar obras con iluminación optimizada */}
+      {/* Renderizar obras sin luces redundantes */}
       {artworkPositions.map((artworkPos, index) => {
         const artwork = artworks[index];
         if (!artwork) return null;
         
         return (
-          <group key={`artwork-${artwork.id}-${index}`}>
-            {/* Luz principal focalizada */}
-            <pointLight 
-              position={[artworkPos.position[0], artworkPos.position[1] + 2.5, artworkPos.position[2]]} 
-              intensity={0.8} 
-              color="#ffffff"
-              distance={4}
-              decay={2}
-            />
-            
-            {/* Luz de relleno para eliminar sombras */}
-            <pointLight 
-              position={[artworkPos.position[0], artworkPos.position[1] - 1.5, artworkPos.position[2]]} 
-              intensity={0.4} 
-              color="#ffffff"
-              distance={3}
-              decay={1.5}
-            />
-            
-            {/* Luz frontal para resaltar detalles */}
-            <pointLight 
-              position={[
-                artworkPos.wallSide === 'left' ? artworkPos.position[0] + 1 : artworkPos.position[0] - 1, 
-                artworkPos.position[1], 
-                artworkPos.position[2]
-              ]} 
-              intensity={0.6} 
-              color="#ffffff"
-              distance={2.5}
-              decay={1.8}
-            />
-            
-            {/* Obra de arte */}
-            <Artwork
-              artwork={artwork}
-              slot={artworkPos}
-              onClick={handleArtworkClick}
-              showPlaque={passedInitialWall && !selectedArtwork && !showInstructions}
-              selected={selectedArtwork && selectedArtwork.id === artwork.id}
-            />
-          </group>
+          <Artwork
+            key={`artwork-${artwork.id}-${index}`}
+            artwork={artwork}
+            slot={artworkPos}
+            onClick={handleArtworkClick}
+            showPlaque={showInstructions}
+            selected={selectedArtwork?.id === artwork.id}
+          />
         );
       })}
     </>
