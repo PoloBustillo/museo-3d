@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback, Suspense } from "react";
+import React, { useEffect, useRef, useState, useCallback, Suspense, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { PointerLockControls, useTexture, Html, useGLTF } from "@react-three/drei";
@@ -18,68 +18,48 @@ import {
 } from "../lib/personalCollection.js";
 import { Button } from './ui/button';
 import { ChevronLeft, Settings } from 'lucide-react';
+import { createCeilingTileTexture } from '../utils/proceduralTextures.js';
+import './artwork-styles.css';
 
-// Componente para renderizar una obra de arte
-function Artwork({ artwork, slot, onClick, showPlaque, selected }) {
+// Componente optimizado para renderizar obras de arte
+const Artwork = React.memo(function Artwork({ artwork, slot, onClick, showPlaque, selected }) {
   const texture = useTexture(artwork.src);
-  const [imageDimensions, setImageDimensions] = useState({ width: 3, height: 2.5 }); // Tamaño base más grande
+  const [imageDimensions, setImageDimensions] = useState({ width: 3, height: 2.5 });
   
-  console.log('Artwork renderizando:', artwork.title, 'con src:', artwork.src);
+  const calculateDimensions = useCallback((imgWidth, imgHeight) => {
+    if (imgWidth <= 0 || imgHeight <= 0) return { width: 3, height: 2.5 };
+    
+    const aspectRatio = imgWidth / imgHeight;
+    const constraints = { maxWidth: 4, maxHeight: 3.5, minWidth: 2.5, minHeight: 2 };
+    
+    let { width, height } = constraints;
+    height = width / aspectRatio;
+    
+    if (height > constraints.maxHeight) {
+      height = constraints.maxHeight;
+      width = height * aspectRatio;
+    }
+    
+    width = Math.max(constraints.minWidth, width);
+    height = Math.max(constraints.minHeight, height);
+    
+    return isFinite(width) && isFinite(height) ? { width, height } : { width: 3, height: 2.5 };
+  }, []);
   
   useEffect(() => {
     const img = new Image();
-    img.onload = () => {
-      if (img.width > 0 && img.height > 0) {
-        const aspectRatio = img.width / img.height;
-        const maxWidth = 4; // Tamaño máximo más grande
-        const maxHeight = 3.5; // Tamaño máximo más grande
-        const minWidth = 2.5; // Tamaño mínimo
-        const minHeight = 2; // Tamaño mínimo
-        
-        let width = maxWidth;
-        let height = maxWidth / aspectRatio;
-        
-        if (height > maxHeight) {
-          height = maxHeight;
-          width = maxHeight * aspectRatio;
-        }
-        
-        // Asegurar tamaño mínimo
-        if (width < minWidth) {
-          width = minWidth;
-          height = minWidth / aspectRatio;
-        }
-        if (height < minHeight) {
-          height = minHeight;
-          width = minHeight * aspectRatio;
-        }
-        
-        if (isFinite(width) && isFinite(height)) {
-          setImageDimensions({ width, height });
-        }
-      }
-    };
-    img.onerror = () => {
-      console.warn(`Failed to load image, using default dimensions: ${artwork.src}`);
-      setImageDimensions({ width: 3, height: 2.5 });
-    };
+    img.onload = () => setImageDimensions(calculateDimensions(img.width, img.height));
+    img.onerror = () => setImageDimensions({ width: 3, height: 2.5 });
     img.crossOrigin = "anonymous";
     img.src = artwork.src;
-  }, [artwork.src]);
+  }, [artwork.src, calculateDimensions]);
   
-  const w = imageDimensions.width;
-  const h = imageDimensions.height;
-  
-  console.log('Artwork renderizando:', artwork.title, 'con src:', artwork.src, 'tamaño:', [w, h]);
+  const { width: w, height: h } = imageDimensions;
   
   return (
     <group position={slot.position} rotation={slot.rotation}>
       {/* Marco de la obra */}
-      <mesh 
-        onClick={() => onClick(artwork)}
-        castShadow 
-        receiveShadow
-      >
+      <mesh onClick={() => onClick(artwork)} castShadow receiveShadow>
         <boxGeometry args={[w, h, 0.1]} />
         <FastPBRMaterial 
           color={selected ? "#ffd700" : "#8b4513"} 
@@ -94,32 +74,33 @@ function Artwork({ artwork, slot, onClick, showPlaque, selected }) {
         <FastPBRMaterial map={texture} />
       </mesh>
       
-      {/* Placa informativa */}
+      {/* Placa informativa optimizada */}
       {showPlaque && (
         <Html position={[0, -h/2 - 0.3, 0]} center>
-          <div style={{
-            background: "rgba(0, 0, 0, 0.8)",
-            color: "white",
-            padding: "8px 12px",
-            borderRadius: "4px",
-            fontSize: "0.8em",
-            whiteSpace: "nowrap",
-            pointerEvents: "none"
-          }}>
-            <div style={{ fontSize: "1.2em", fontWeight: "bold", marginBottom: 4 }}>{artwork.title}</div>
-            <div style={{ fontWeight: "bold", color: "#ffe082", marginBottom: 2 }}>{artwork.artist} ({artwork.year})</div>
-            <div style={{ fontSize: "0.98em", color: "#bdbdbd", marginBottom: 2 }}><b>Técnica:</b> {artwork.technique}</div>
-            <div style={{ fontSize: "0.98em", color: "#bdbdbd", marginBottom: 2 }}><b>Dimensiones:</b> {artwork.dimensions}</div>
-            <div style={{ fontSize: "0.97em", color: "#e0e0e0", marginTop: 6 }}>{artwork.description}</div>
+          <div className="artwork-plaque">
+            <div className="artwork-title">{artwork.title}</div>
+            <div className="artwork-artist">{artwork.artist} ({artwork.year})</div>
+            <div className="artwork-technique"><b>Técnica:</b> {artwork.technique}</div>
+            <div className="artwork-dimensions"><b>Dimensiones:</b> {artwork.dimensions}</div>
+            <div className="artwork-description">{artwork.description}</div>
           </div>
         </Html>
       )}
     </group>
   );
-}
+});
 
 // Componente para la sala base
-const BaseRoom = ({ roomConfig, materials, lighting }) => {
+// Componente optimizado para texturas procedurales de techo
+const ProceduralCeilingMaterial = React.memo(function ProceduralCeilingMaterial(){
+  const material = useMemo(() => {
+    const { material } = createCeilingTileTexture();
+    return material;
+  }, []);
+  return <primitive object={material} attach="material" />;
+});
+
+const BaseRoom = ({ roomConfig, materials, lighting, proceduralCeiling=true }) => {
   return (
     <group>
       {/* Pared izquierda */}
@@ -287,20 +268,24 @@ const BaseRoom = ({ roomConfig, materials, lighting }) => {
         />
       </mesh>
       
-      {/* Techo con molduras */}
-      <mesh 
-        position={[0, roomConfig.height + roomConfig.ceilingThickness / 2, 0]} 
-        receiveShadow 
-        castShadow
+      {/* Techo (plano interior) con opción procedural */}
+      <mesh
+        position={[0, roomConfig.height + roomConfig.ceilingThickness - 0.01, 0]}
+        rotation={[-Math.PI / 2, 0, 0]} // flip normal downward into room
+        receiveShadow
       >
-        <boxGeometry args={[roomConfig.width + 0.6, roomConfig.ceilingThickness, roomConfig.length + 0.6]} />
-        <FastPBRMaterial 
-          salaId={salaId}
-          materialType="ceiling"
-          color="#f8f8f8" 
-          roughness={0.2}
-          metalness={0.1}
-        />
+        <planeGeometry args={[roomConfig.width + 0.6, roomConfig.length + 0.6]} />
+        {proceduralCeiling ? (
+          <ProceduralCeilingMaterial />
+        ) : (
+          <FastPBRMaterial
+            salaId={salaId}
+            materialType="ceiling"
+            color="#f8f8f8"
+            roughness={0.2}
+            metalness={0.1}
+          />
+        )}
       </mesh>
       
       {/* Molduras del techo */}
@@ -577,18 +562,34 @@ const BaseRoom = ({ roomConfig, materials, lighting }) => {
 function PlayerControls({ roomConfig, onPassInitialWall }) {
   const passedWallRef = useRef(false);
   const { camera } = useThree();
+  const keys = useRef({ w: false, a: false, s: false, d: false });
   const velocity = useRef(new THREE.Vector3());
   const direction = useRef(new THREE.Vector3());
-  const keys = useRef({ w: false, a: false, s: false, d: false });
 
   useEffect(() => {
-    const onKeyDown = (e) => { keys.current[e.key.toLowerCase()] = true; };
-    const onKeyUp = (e) => { keys.current[e.key.toLowerCase()] = false; };
-    window.addEventListener("keydown", onKeyDown);
-    window.addEventListener("keyup", onKeyUp);
+    const onKeyDown = (e) => {
+      switch (e.key.toLowerCase()) {
+        case 'w': keys.current.w = true; break;
+        case 'a': keys.current.a = true; break;
+        case 's': keys.current.s = true; break;
+        case 'd': keys.current.d = true; break;
+        default: break;
+      }
+    };
+    const onKeyUp = (e) => {
+      switch (e.key.toLowerCase()) {
+        case 'w': keys.current.w = false; break;
+        case 'a': keys.current.a = false; break;
+        case 's': keys.current.s = false; break;
+        case 'd': keys.current.d = false; break;
+        default: break;
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
     return () => {
-      window.removeEventListener("keydown", onKeyDown);
-      window.removeEventListener("keyup", onKeyUp);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
     };
   }, []);
 
@@ -627,82 +628,57 @@ function PlayerControls({ roomConfig, onPassInitialWall }) {
 function Room({ artworks, slots, roomConfig, materials, lighting, passedInitialWall, setSelectedArtwork, selectedArtwork, showInstructions }) {
   const { width, length } = roomConfig;
   
-  // Función simplificada para calcular posiciones de obras
-  const calculateArtworkPositions = (artworks) => {
-    if (artworks.length === 0) return [];
-    
-    const positions = [];
-    
-    console.log('Calculando posiciones para', artworks.length, 'obras');
-    console.log('Dimensiones sala:', { width, length });
-    
-    // Calcular espaciado uniforme
-    const usableLength = length - 8; // Margen para lámparas
-    const totalSlots = Math.ceil(artworks.length / 2);
-    
-    // Mejorar el espaciado para que sea más uniforme
-    let spacing;
-    if (totalSlots <= 1) {
-      spacing = 0;
-    } else if (totalSlots <= 2) {
-      spacing = usableLength / 2; // Espaciado máximo para 2 obras
-    } else if (totalSlots <= 4) {
-      spacing = usableLength / (totalSlots - 1);
-    } else {
-      // Para más obras, usar un espaciado mínimo para evitar que se peguen
-      spacing = Math.max(usableLength / (totalSlots - 1), 4);
-    }
-    
-    console.log(`Espaciado calculado: ${spacing}, slots totales: ${totalSlots}, longitud usable: ${usableLength}`);
-    
-    for (let i = 0; i < artworks.length; i++) {
-      const wall = i % 2 === 0 ? 'left' : 'right';
-      const wallIndex = Math.floor(i / 2);
-      
-      // Posición Z: distribuir uniformemente desde el centro
-      const startZ = -usableLength / 2;
-      const z = startZ + (wallIndex * spacing);
-      
-      // Posición X: dentro del room, cerca de las paredes pero no dentro
-      const x = wall === 'left' ? -width/2 + 0.3 : width/2 - 0.3; // Mucho más pegadas a la pared
-      
-      // Altura - centrada en la pared
-      const y = 3;
-      
-      console.log(`Obra ${i}: ${wall} wall, index ${wallIndex}, pos [${x}, ${y}, ${z}], spacing: ${spacing}`);
-      
-      positions.push({
-        position: [x, y, z],
-        rotation: wall === 'left' ? [0, Math.PI/2, 0] : [0, -Math.PI/2, 0],
-        wall,
-        index: wallIndex,
-        // Agregar información para las luces
-        artworkId: i,
-        wallSide: wall
-      });
-    }
-    
-    return positions;
-  };
+// Función optimizada para calcular posiciones de obras
+const calculateArtworkPositions = useMemo(() => (artworks, roomDimensions) => {
+  if (!artworks?.length) return [];
   
-  const artworkPositions = calculateArtworkPositions(artworks);
+  const { width, length } = roomDimensions;
+  const usableLength = length - 8; // Margen para lámparas
+  const totalSlots = Math.ceil(artworks.length / 2);
+  
+  // Cálculo de espaciado optimizado
+  const spacing = totalSlots <= 1 ? 0 
+    : totalSlots <= 2 ? usableLength / 2
+    : totalSlots <= 4 ? usableLength / (totalSlots - 1)
+    : Math.max(usableLength / (totalSlots - 1), 4);
+  
+  const startZ = -usableLength / 2;
+  
+  return artworks.map((artwork, i) => {
+    const wall = i % 2 === 0 ? 'left' : 'right';
+    const wallIndex = Math.floor(i / 2);
+    const x = wall === 'left' ? -width/2 + 0.3 : width/2 - 0.3;
+    const z = startZ + (wallIndex * spacing);
+    
+    return {
+      position: [x, 3, z],
+      rotation: wall === 'left' ? [0, Math.PI/2, 0] : [0, -Math.PI/2, 0],
+      wall,
+      index: wallIndex,
+      artworkId: i,
+      wallSide: wall
+    };
+  });
+}, []);
+  const artworkPositions = useMemo(() => 
+    calculateArtworkPositions(artworks, { width, length }), 
+    [artworks, width, length, calculateArtworkPositions]
+  );
   
   const handleArtworkClick = (art) => setSelectedArtwork(art);
 
   return (
     <>
-      <BaseRoom roomConfig={roomConfig} materials={materials} lighting={lighting} />
+  <BaseRoom roomConfig={roomConfig} materials={materials} lighting={lighting} proceduralCeiling />
       
-      {/* Renderizar obras con sus luces */}
+      {/* Renderizar obras con iluminación optimizada */}
       {artworkPositions.map((artworkPos, index) => {
         const artwork = artworks[index];
         if (!artwork) return null;
         
-        console.log(`Renderizando obra: ${artwork.titulo} en posición:`, artworkPos.position, 'con rotación:', artworkPos.rotation);
-        
         return (
           <group key={`artwork-${artwork.id}-${index}`}>
-            {/* Luz arriba del cuadro - más intensa y focalizada */}
+            {/* Luz principal focalizada */}
             <pointLight 
               position={[artworkPos.position[0], artworkPos.position[1] + 2.5, artworkPos.position[2]]} 
               intensity={0.8} 
@@ -711,7 +687,7 @@ function Room({ artworks, slots, roomConfig, materials, lighting, passedInitialW
               decay={2}
             />
             
-            {/* Luz abajo del cuadro - para eliminar sombras */}
+            {/* Luz de relleno para eliminar sombras */}
             <pointLight 
               position={[artworkPos.position[0], artworkPos.position[1] - 1.5, artworkPos.position[2]]} 
               intensity={0.4} 
@@ -884,16 +860,13 @@ export default function HybridGalleryRoom({
     digital: { name: "Sala Digital", description: "Arte moderno", icon: "💻" }
   };
 
-  console.log('Room Config:', {
-    roomType: roomConfig.roomType,
-    roomConfig: {
-      width: roomConfig.width,
-      length: roomConfig.length,
-      height: roomConfig.height
-    },
-    materials: materials,
-    lighting: lighting
-  });
+  // Configuración optimizada de la sala
+  const roomConfigMemo = useMemo(() => roomConfig || {
+    roomType: 'default',
+    width: 12,
+    length: 16,
+    height: 6
+  }, [roomConfig]);
 
   const fetchCollection = useCallback(async () => {
     if (userId) {
@@ -906,33 +879,28 @@ export default function HybridGalleryRoom({
     fetchCollection();
   }, [fetchCollection]);
 
-  // Preparar obras de arte
-  const validArtworks = murales
-    .filter((art) => art && art.url_imagen)
-    .map((art) => ({
-      ...art,
-      src: art.url_imagen,
-      title: art.titulo || "Sin título",
-      artist: art.autor || "Desconocido",
-      year: art.anio || "N/A",
-      description: art.descripcion || "Sin descripción",
-      technique: art.tecnica || "No especificada",
-      dimensions: "Dimensiones no especificadas",
-    }));
+  // Procesamiento optimizado de obras de arte
+  const validArtworks = useMemo(() => {
+    if (!murales?.length) return [];
+    return murales
+      .filter(art => art?.url_imagen && art?.titulo)
+      .map(art => ({
+        ...art,
+        src: art.url_imagen,
+        title: art.titulo || "Sin título",
+        artist: art.autor || "Desconocido", 
+        year: art.anio || "N/A",
+        description: art.descripcion || "Sin descripción",
+        technique: art.tecnica || "No especificada",
+        dimensions: "Dimensiones no especificadas"
+      }));
+  }, [murales]);
 
-  console.log('Murales recibidos:', murales);
-  console.log('Obras válidas:', validArtworks);
-
-  // Calcular slots para las obras
-  const slots = calculateSlots(validArtworks.length, roomConfig);
-  
-  // Debug: verificar slots y obras
-  console.log('HybridGalleryRoom Debug:', {
-    artworkCount: validArtworks.length,
-    roomConfig: roomConfig,
-    slots: slots,
-    artworks: validArtworks.slice(0, 3) // Primeras 3 obras
-  });
+  // Cálculo de slots optimizado
+  const slots = useMemo(() => 
+    calculateSlots(validArtworks.length, roomConfigMemo), 
+    [validArtworks.length, roomConfigMemo]
+  );
 
   const handleSelectArtwork = (art) => setSelectedArtwork(art);
   const handleCloseModal = () => setSelectedArtwork(null);

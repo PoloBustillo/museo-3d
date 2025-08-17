@@ -1,7 +1,8 @@
 "use client";
 import { useMemo } from 'react';
 import * as THREE from 'three';
-import { WALL_COLOR, WALL_TOP_COLOR, WALL_BOTTOM_COLOR, FLOOR_COLOR, CEIL_COLOR } from '../sceneConfig';
+import { createCeilingTileTexture } from '../../../utils/proceduralTextures.js';
+import { WALL_COLOR, WALL_TOP_COLOR, WALL_BOTTOM_COLOR, FLOOR_COLOR } from '../sceneConfig';
 
 // Deterministic PRNG for stable noise
 function prng(seed){
@@ -35,13 +36,30 @@ export function useHallMaterials(){
   return useMemo(()=>{
     const wallTex=makeGradient({ top:WALL_TOP_COLOR, bottom:WALL_BOTTOM_COLOR, noise:0.045, seed:11 });
     const floorTex=makeGradient({ top:'#f0f0f0', bottom:FLOOR_COLOR, noise:0.02, seed:22, repeatX:6 });
-    const ceilTex=makeGradient({ top:CEIL_COLOR, bottom:'#fdfdfd', noise:0.015, seed:33, repeatX:3 });
+    
+    // Usar módulo centralizado para textura de techo
+    const { material: ceilMaterial } = createCeilingTileTexture();
 
     const wallMat=<meshStandardMaterial map={wallTex} color={WALL_COLOR} roughness={0.92} metalness={0.02} />;
     const floorMat=<meshStandardMaterial map={floorTex} color={FLOOR_COLOR} roughness={0.95} metalness={0.04} />;
-    const ceilMat=<meshStandardMaterial map={ceilTex} color={CEIL_COLOR} roughness={0.9} metalness={0.01} />;
+    const ceilMat=<primitive object={ceilMaterial} attach="material" />;
 
-    const shadowMat=(()=>{ const size=256; const c=document.createElement('canvas'); c.width=c.height=size; const ctx=c.getContext('2d'); const grd=ctx.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2); grd.addColorStop(0,'rgba(0,0,0,0.4)'); grd.addColorStop(0.5,'rgba(0,0,0,0.15)'); grd.addColorStop(1,'rgba(0,0,0,0)'); ctx.fillStyle=grd; ctx.fillRect(0,0,size,size); const tex=new THREE.CanvasTexture(c); tex.anisotropy=4; tex.needsUpdate=true; return <meshBasicMaterial map={tex} transparent />; })();
+    const shadowMat=(()=>{ 
+      const size=256; 
+      const canvas=document.createElement('canvas'); 
+      canvas.width=canvas.height=size; 
+      const ctx=canvas.getContext('2d'); 
+      const gradient=ctx.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2); 
+      gradient.addColorStop(0,'rgba(0,0,0,0.4)'); 
+      gradient.addColorStop(0.5,'rgba(0,0,0,0.15)'); 
+      gradient.addColorStop(1,'rgba(0,0,0,0)'); 
+      ctx.fillStyle=gradient; 
+      ctx.fillRect(0,0,size,size); 
+      const tex=new THREE.CanvasTexture(canvas); 
+      tex.anisotropy=4; 
+      tex.needsUpdate=true; 
+      return <meshBasicMaterial map={tex} transparent />; 
+    })();
 
     return { wallMat, floorMat, ceilMat, shadowMat };
   },[]);
