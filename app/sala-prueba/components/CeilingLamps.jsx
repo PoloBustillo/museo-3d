@@ -1,100 +1,170 @@
 /**
- * Componente de lámparas modernas para el techo
- * Lámparas colgantes con focos dirigidos hacia abajo
+ * Lámparas profesionales optimizadas para ambiente oscuro
+ * Sistema de iluminación direccional hacia el piso
  */
-import React from 'react';
+import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
-const CeilingLamp = React.memo(function CeilingLamp({ position, intensity = 0.8, color = "#ffffff", distance = 6 }) {
+const ProfessionalCeilingLamp = React.memo(function ProfessionalCeilingLamp({ 
+  position, 
+  intensity = 6.0, 
+  color = "#ffffff",
+  distance = 30,
+  size = 1.0
+}) {
+  // Materiales optimizados
+  const materials = useMemo(() => ({
+    blackMetal: new THREE.MeshStandardMaterial({
+      color: '#1a1a1a',
+      metalness: 0.9,
+      roughness: 0.3
+    }),
+    chrome: new THREE.MeshStandardMaterial({
+      color: '#e8e8e8',
+      metalness: 0.95,
+      roughness: 0.05
+    }),
+    reflector: new THREE.MeshStandardMaterial({
+      color: '#ffffff',
+      metalness: 0.95,
+      roughness: 0.02
+    }),
+    led: new THREE.MeshStandardMaterial({
+      color: '#fff5e6',
+      emissive: '#fff2e6',
+      emissiveIntensity: 0.2
+    })
+  }), []);
+
   return (
     <group position={position}>
-      {/* Cable/soporte de la lámpara */}
-      <mesh position={[0, -0.2, 0]}>
-        <cylinderGeometry args={[0.01, 0.01, 0.4, 8]} />
-        <meshStandardMaterial color="#2a2a2a" metalness={0.7} roughness={0.3} />
+      {/* Soporte del techo */}
+      <mesh position={[0, 0.1, 0]}>
+        <boxGeometry args={[0.6 * size, 0.08 * size, 0.08 * size]} />
+        <primitive object={materials.blackMetal} />
       </mesh>
       
-      {/* Cuerpo principal de la lámpara */}
-      <mesh position={[0, -0.5, 0]}>
-        <cylinderGeometry args={[0.15, 0.25, 0.3, 16]} />
-        <meshStandardMaterial color="#f5f5f5" metalness={0.1} roughness={0.2} />
+      {/* Cable de suspensión */}
+      <mesh position={[0, -0.3 * size, 0]}>
+        <cylinderGeometry args={[0.015 * size, 0.015 * size, 0.6 * size, 8]} />
+        <primitive object={materials.chrome} />
+      </mesh>
+      
+      {/* Cuerpo principal */}
+      <mesh position={[0, -0.8 * size, 0]}>
+        <cylinderGeometry args={[0.35 * size, 0.4 * size, 0.6 * size, 16]} />
+        <primitive object={materials.blackMetal} />
       </mesh>
       
       {/* Reflector interior */}
-      <mesh position={[0, -0.6, 0]}>
-        <cylinderGeometry args={[0.12, 0.22, 0.05, 16]} />
-        <meshStandardMaterial 
-          color="#ffffff" 
-          metalness={0.9} 
-          roughness={0.1}
-          emissive="#ffffff"
-          emissiveIntensity={0.1}
-        />
+      <mesh position={[0, -0.95 * size, 0]}>
+        <cylinderGeometry args={[0.32 * size, 0.37 * size, 0.1 * size, 16]} />
+        <primitive object={materials.reflector} />
       </mesh>
       
-      {/* Anillo decorativo */}
-      <mesh position={[0, -0.35, 0]}>
-        <torusGeometry args={[0.26, 0.02, 8, 16]} />
-        <meshStandardMaterial color="#cccccc" metalness={0.8} roughness={0.2} />
+      {/* LED central */}
+      <mesh position={[0, -0.9 * size, 0]}>
+        <cylinderGeometry args={[0.25 * size, 0.25 * size, 0.02 * size, 12]} />
+        <primitive object={materials.led} />
       </mesh>
       
-      {/* Punto de luz principal */}
+      {/* SpotLight principal direccionado hacia abajo */}
       <spotLight
-        position={[0, -0.65, 0]}
-        target-position={[0, -10, 0]}
+        position={[0, -1.1 * size, 0]}
+        target-position={[0, -15, 0]}
         intensity={intensity}
         color={color}
         distance={distance}
-        angle={Math.PI / 6}
-        penumbra={0.3}
-        decay={2}
+        angle={Math.PI / 2.2}
+        penumbra={0.5}
+        decay={1.0}
         castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-near={0.1}
+        shadow-camera-far={25}
+        shadow-bias={-0.0001}
       />
       
-      {/* Luz ambiental suave */}
+      {/* PointLight para iluminación local */}
       <pointLight
-        position={[0, -0.4, 0]}
+        position={[0, -0.9 * size, 0]}
         intensity={intensity * 0.3}
         color={color}
-        distance={distance * 0.7}
+        distance={distance * 0.4}
         decay={2}
       />
     </group>
   );
 });
 
-const CeilingLamps = React.memo(function CeilingLamps({ hallDimensions, exploring = false }) {
+const ProfessionalCeilingLamps = React.memo(function ProfessionalCeilingLamps({ 
+  hallDimensions, 
+  exploring = false 
+}) {
   const { width, height, length } = hallDimensions;
   
-  // Configuración de lámparas - distribución uniforme
-  const lampPositions = [
-    // Fila frontal
-    [-width * 0.25, height - 0.1, length * 0.25],
-    [width * 0.25, height - 0.1, length * 0.25],
+  // Configuración optimizada para ambiente oscuro con luces potentes
+  const lampConfigs = [
+    // Lámpara central principal - muy potente
+    { 
+      position: [0, height - 0.1, 0],
+      size: 1.3,
+      intensity: exploring ? 8.0 : 6.0,
+      color: "#ffffff"
+    },
     
-    // Fila central
-    [-width * 0.25, height - 0.1, 0],
-    [width * 0.25, height - 0.1, 0],
+    // Lámparas laterales frontales
+    { 
+      position: [-width * 0.35, height - 0.15, length * 0.3],
+      size: 1.1,
+      intensity: exploring ? 7.0 : 5.5,
+      color: "#ffffff"
+    },
+    { 
+      position: [width * 0.35, height - 0.15, length * 0.3],
+      size: 1.1,
+      intensity: exploring ? 7.0 : 5.5,
+      color: "#ffffff"
+    },
     
-    // Fila trasera
-    [-width * 0.25, height - 0.1, -length * 0.25],
-    [width * 0.25, height - 0.1, -length * 0.25],
+    // Lámparas traseras
+    { 
+      position: [-width * 0.25, height - 0.2, -length * 0.25],
+      size: 1.0,
+      intensity: exploring ? 6.5 : 5.0,
+      color: "#ffffff"
+    },
+    { 
+      position: [width * 0.25, height - 0.2, -length * 0.25],
+      size: 1.0,
+      intensity: exploring ? 6.5 : 5.0,
+      color: "#ffffff"
+    },
+    
+    // Lámpara trasera central
+    { 
+      position: [0, height - 0.18, -length * 0.35],
+      size: 0.9,
+      intensity: exploring ? 6.0 : 4.5,
+      color: "#ffffff"
+    }
   ];
   
   return (
     <group>
-      {lampPositions.map((position, index) => (
-        <CeilingLamp
-          key={`ceiling-lamp-${index}`}
-          position={position}
-          intensity={exploring ? 0.9 : 0.6}
-          distance={exploring ? 8 : 6}
+      {lampConfigs.map((config, index) => (
+        <ProfessionalCeilingLamp
+          key={`professional-lamp-${index}`}
+          position={config.position}
+          size={config.size}
+          intensity={config.intensity}
+          color={config.color}
+          distance={exploring ? 35 : 30}
         />
       ))}
     </group>
   );
 });
 
-export { CeilingLamp, CeilingLamps };
+export { ProfessionalCeilingLamp, ProfessionalCeilingLamps as CeilingLamps };

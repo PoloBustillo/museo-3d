@@ -7,7 +7,7 @@ import SceneStructure from "./SceneStructure";
 import { HALL_HEIGHT, FRONT_CENTER, HALF_HALL_D, HALL_WIDTH, CAMERA_INITIAL_POS, ENABLE_FOG, FOG_NEAR, FOG_FAR, PRESENTATION_EASE_OUT, EXPLORE_BOUNDS } from "./sceneConfig";
 import { usePresentationTransition } from "./hooks/usePresentationTransition";
 import { useAdaptiveQuality } from "./hooks/useAdaptiveQuality";
-import { LightingRig } from "./components/LightingRig";
+import ProfessionalLightingSystem from "../../components/lighting/BohemianLightingSystem";
 import { useEntranceAnimation } from "./hooks/useEntranceAnimation";
 import { useExploreControls } from "./hooks/useExploreControls";
 import { PositionalAmbientAudio } from "./components/PositionalAmbientAudio";
@@ -79,8 +79,8 @@ export default function SalaPruebaPage() {
     };
     return (
       <>
-  <LightingRig presentation={presentationMode && !easingOut && !animating} />
-  <SceneStructure rotate={presentationMode && !animating} exiting={easingOut} exploring={exploring} />
+        <ProfessionalLightingSystem exploring={exploring} />
+        <SceneStructure rotate={presentationMode && !animating} exiting={easingOut} exploring={exploring} />
         {/* Acquire refs via function child pattern not available here; use onCreated below instead */}
       </>
     );
@@ -111,15 +111,21 @@ export default function SalaPruebaPage() {
           rendererRef.current = gl;
         }}
       >
-  <color attach="background" args={["#0f0f10"]} />
-  {ENABLE_FOG && <fog attach="fog" args={["#0f0f10", FOG_NEAR, FOG_FAR]} />}
+  <color attach="background" args={["#0a0a0a"]} />
+  {ENABLE_FOG && <fog attach="fog" args={["#0a0a0a", FOG_NEAR, FOG_FAR]} />}
   <SceneManager key={sceneManagerKey} presentationMode={presentationMode} />
   {/* Audio posicional multi-zona (se monta sólo al explorar) */}
   <PositionalAmbientAudio active={exploring} intensity={1} />
   {presentationMode && (
     <EffectComposer disableNormalPass>
-      <Bloom intensity={0.3} luminanceThreshold={0.2} luminanceSmoothing={0.9} mipmapBlur radius={0.6} />
-      <Vignette eskil={false} offset={0.2} darkness={0.55} />
+      <Bloom 
+        intensity={0.6} 
+        luminanceThreshold={0.4} 
+        luminanceSmoothing={0.9} 
+        mipmapBlur 
+        radius={0.7} 
+      />
+      <Vignette eskil={false} offset={0.15} darkness={0.6} />
     </EffectComposer>
   )}
   <OrbitControls

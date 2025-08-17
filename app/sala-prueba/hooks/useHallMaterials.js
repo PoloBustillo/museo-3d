@@ -34,14 +34,29 @@ function makeGradient({ top, bottom, noise=0.05, repeatX=4, seed=1 }) {
 
 export function useHallMaterials(){
   return useMemo(()=>{
-    const wallTex=makeGradient({ top:WALL_TOP_COLOR, bottom:WALL_BOTTOM_COLOR, noise:0.045, seed:11 });
-    const floorTex=makeGradient({ top:'#f0f0f0', bottom:FLOOR_COLOR, noise:0.02, seed:22, repeatX:6 });
+    const wallTex=makeGradient({ top:'#e8e8e8', bottom:'#d0d0d0', noise:0.02, seed:11 });
+    const floorTex=makeGradient({ top:'#f0f0f0', bottom:'#e0e0e0', noise:0.015, seed:22, repeatX:6 });
     
     // Usar módulo centralizado para textura de techo
     const { material: ceilMaterial } = createCeilingTileTexture();
 
-    const wallMat=<meshStandardMaterial map={wallTex} color={WALL_COLOR} roughness={0.92} metalness={0.02} />;
-    const floorMat=<meshStandardMaterial map={floorTex} color={FLOOR_COLOR} roughness={0.95} metalness={0.04} />;
+    // Materiales optimizados para ambiente oscuro
+    const wallMat=<meshStandardMaterial 
+      map={wallTex} 
+      color="#f2f2f2" 
+      roughness={0.6} 
+      metalness={0.01} 
+      envMapIntensity={0.5} 
+    />;
+    
+    const floorMat=<meshStandardMaterial 
+      map={floorTex} 
+      color="#f5f5f5" 
+      roughness={0.7} 
+      metalness={0.02} 
+      envMapIntensity={0.3} 
+    />;
+    
     const ceilMat=<primitive object={ceilMaterial} attach="material" />;
 
     const shadowMat=(()=>{ 
@@ -51,7 +66,7 @@ export function useHallMaterials(){
       const ctx=canvas.getContext('2d'); 
       const gradient=ctx.createRadialGradient(size/2,size/2,0,size/2,size/2,size/2); 
       gradient.addColorStop(0,'rgba(0,0,0,0.4)'); 
-      gradient.addColorStop(0.5,'rgba(0,0,0,0.15)'); 
+      gradient.addColorStop(0.5,'rgba(0,0,0,0.2)'); 
       gradient.addColorStop(1,'rgba(0,0,0,0)'); 
       ctx.fillStyle=gradient; 
       ctx.fillRect(0,0,size,size); 
