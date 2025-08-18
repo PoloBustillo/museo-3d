@@ -392,21 +392,21 @@ const Artwork3D = React.memo(function Artwork3D({
           <coneGeometry args={[0.2,0.32,26,1,true]} />
           <meshStandardMaterial color="#5c5c5c" metalness={0.5} roughness={0.35} side={THREE.DoubleSide} />
         </mesh>
-        {/* Bombilla más brillante */}
+        {/* Bombilla más brillante con luz cálida intensa */}
         <mesh position={[0,-0.07,1.18]}>
           <sphereGeometry args={[0.065,26,26]} />
-          <meshStandardMaterial emissive={focused || hovered ? '#fff7bb' : '#f3e3b0'} emissiveIntensity={focused || hovered ? 4.2 : 2.6} color="#fff9e9" />
+          <meshStandardMaterial emissive={focused || hovered ? '#ffaa44' : '#ff8c00'} emissiveIntensity={focused || hovered ? 5.5 : 3.8} color="#ffa500" />
         </mesh>
-        {/* Spot principal MUY intensificado hacia la obra (haz más amplio) */}
+        {/* Spot principal MUY intensificado hacia la obra con luz cálida */}
         <spotLight
           ref={lampSpotRef}
           position={[0,-0.07,1.18]}
-          angle={Math.PI/5.2} /* antes PI/12 => ahora mucho más amplio */
+          angle={Math.PI/5.2}
           penumbra={0.95}
-          intensity={focused || hovered ? 4.2 : 2.8} /* bajamos un poco para compensar mayor área */
+          intensity={focused || hovered ? 6.8 : 4.5}
           distance={6.5}
           decay={2}
-          color={focused || hovered ? '#ffe1a3' : '#f7e6cc'}
+          color={focused || hovered ? '#ffaa44' : '#ff8c00'}
           castShadow={false}
         />
         {/* Target centrado canvas (ligeramente por delante del plano para evitar z-fighting) */}
@@ -415,24 +415,24 @@ const Artwork3D = React.memo(function Artwork3D({
           position={[0, -(dims.h/2 + 0.42), 0.09]}
           visible={false}
         />
-        {/* Halo secundario más amplio para suavizar viñeteo en bordes */}
+        {/* Halo secundario más amplio con luz cálida */}
         <spotLight
           position={[0,-0.07,1.18]}
           angle={Math.PI/3.2}
           penumbra={1}
-          intensity={focused || hovered ? 1.2 : 0.85}
+          intensity={focused || hovered ? 2.0 : 1.4}
           distance={5.0}
           decay={2}
-          color={focused || hovered ? '#ffe6b8' : '#f9edd8'}
+          color={focused || hovered ? '#ffcc66' : '#ffb347'}
           castShadow={false}
         />
-        {/* Relleno difuso extra muy suave pegado al cuadro para levantar sombras sin lavar contrastes */}
+        {/* Relleno difuso extra cálido */}
         <pointLight
-          position={[0,-0.12,0.45]} /* entre lámpara y superficie */
-          intensity={focused || hovered ? 0.55 : 0.38}
+          position={[0,-0.12,0.45]}
+          intensity={focused || hovered ? 0.9 : 0.6}
           distance={2.2}
           decay={2}
-          color={focused || hovered ? '#fff3d1' : '#f5ebd6'}
+          color={focused || hovered ? '#ffa500' : '#ff8c00'}
         />
       </group>
       {/* Wash superior reducido aún más para no competir con la lámpara individual */}
@@ -454,6 +454,72 @@ const Artwork3D = React.memo(function Artwork3D({
         decay={2}
         color={'#fff7e2'}
       />
+      
+      {/* Lámpara de piso en el suelo apuntando a la obra */}
+      <group position={[0, -4.8, 1.8]}> {/* Y=-4.8 = nivel del piso, Z=1.8m separada de la pared */}
+        {/* Base circular en el piso */}
+        <mesh position={[0, 0.025, 0]}>
+          <cylinderGeometry args={[0.3, 0.3, 0.05, 32]} />
+          <meshStandardMaterial color="#1a1a1a" metalness={0.6} roughness={0.4} />
+        </mesh>
+        
+        {/* Poste vertical hasta altura media del cuadro */}
+        <mesh position={[0, 1.5, 0]}>
+          <cylinderGeometry args={[0.05, 0.05, 3.0, 24]} />
+          <meshStandardMaterial color="#2d2d2d" metalness={0.7} roughness={0.3} />
+        </mesh>
+        
+        {/* Cabezal dirigible apuntando al cuadro */}
+        <mesh position={[0, 3.0, 0]} rotation={[-Math.PI/4, 0, 0]}>
+          <coneGeometry args={[0.35, 0.5, 32, 1, true]} />
+          <meshStandardMaterial color="#404040" metalness={0.6} roughness={0.35} />
+        </mesh>
+        
+        {/* Bombilla cálida intensa dentro del cabezal */}
+        <mesh position={[0, 2.85, 0.1]}>
+          <sphereGeometry args={[0.1, 32, 32]} />
+          <meshStandardMaterial 
+            emissive={focused || hovered ? '#ffb347' : '#ff9500'} 
+            emissiveIntensity={focused || hovered ? 6.0 : 4.2} 
+            color="#ffa500" 
+          />
+        </mesh>
+        
+        {/* Spotlight principal muy intenso con luz cálida */}
+        <spotLight
+          position={[0, 2.85, 0.1]}
+          target-position={[0, 0, -1.8]} /* apunta al centro de la obra */
+          angle={Math.PI/7}
+          penumbra={0.7}
+          intensity={focused || hovered ? 12.0 : 8.5}
+          distance={15}
+          decay={1.8}
+          color={focused || hovered ? '#ffaa44' : '#ff8c00'}
+          castShadow={false}
+        />
+        
+        {/* Halo cálido amplio para envolver toda la obra */}
+        <spotLight
+          position={[0, 2.85, 0.1]}
+          target-position={[0, 0, -1.8]}
+          angle={Math.PI/3.5}
+          penumbra={1}
+          intensity={focused || hovered ? 3.8 : 2.8}
+          distance={10}
+          decay={2}
+          color={focused || hovered ? '#ffcc66' : '#ffb347'}
+          castShadow={false}
+        />
+        
+        {/* Luz de relleno cálida extra para eliminar sombras duras */}
+        <pointLight
+          position={[0, 2.5, 0]}
+          intensity={focused || hovered ? 1.2 : 0.8}
+          distance={6}
+          decay={2}
+          color={'#ffa500'}
+        />
+      </group>
     </group>
   );
 });
