@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
 import { sendEmail } from "@/lib/sendEmail";
 import { SentryLogger } from "../../../lib/sentryLogger";
@@ -11,9 +12,35 @@ export async function GET(req) {
     // Construir filtros dinámicamente
     const where = {};
     if (creadorId) where.creadorId = creadorId;
+    
     const salasRaw = await prisma.sala.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        nombre: true,
+        descripcion: true,
+        publica: true,
+        esPrivada: true,
+        color: true,
+        texturaPared: true,
+        texturaPiso: true,
+        musica: true,
+        // imagenPortada: true, // Excluir temporalmente para evitar error de tipo
+        tema: true,
+        maxColaboradores: true,
+        fechaApertura: true,
+        notas: true,
+        creadorId: true,
+        lightingPreset: true,
+        ambientIntensity: true,
+        fogColor: true,
+        fogNear: true,
+        fogFar: true,
+        audioZones: true,
+        navigationMeshId: true,
+        layoutVersion: true,
+        createdAt: true,
+        updatedAt: true,
         creador: { select: { id: true, name: true, email: true, role: true } },
         colaboradores: {
           select: {
@@ -57,6 +84,7 @@ export async function GET(req) {
     // Construir representación extendida (manteniendo compatibilidad)
     const salas = salasRaw.map((s) => ({
       ...s,
+      imagenPortada: null, // Temporalmente nulo hasta que se arregle el esquema
       layout: (s.murales || []).map((sm) => ({
         muralId: sm.muralId,
         pos: { x: sm.posX ?? 0, y: sm.posY ?? 0, z: sm.posZ ?? 0 },
@@ -78,6 +106,7 @@ export async function GET(req) {
         layoutVersion: s.layoutVersion ?? 1,
       },
     }));
+
     const stats = {
       total: salas.length,
       totalMurales: salas.reduce((acc, sala) => acc + sala._count.murales, 0),
@@ -87,14 +116,13 @@ export async function GET(req) {
       ),
       salasConMurales: salas.filter((sala) => sala._count.murales > 0).length,
     };
-    return new Response(
-      JSON.stringify({
-        salas,
-        estadisticas: stats,
-        filtros: { creadorId: creadorId || null },
-      }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
-    );
+
+    return NextResponse.json({
+      success: true,
+      salas,
+      total: salas.length,
+      stats,
+    });
   } catch (error) {
     console.error("Error al obtener salas:", error);
     return new Response(

@@ -7,6 +7,7 @@ import SceneStructure from "./SceneStructure";
 import { HALL_HEIGHT, FRONT_CENTER, HALF_HALL_D, HALL_WIDTH, CAMERA_INITIAL_POS, ENABLE_FOG, FOG_NEAR, FOG_FAR, PRESENTATION_EASE_OUT, EXPLORE_BOUNDS } from "./sceneConfig";
 import { usePresentationTransition } from "./hooks/usePresentationTransition";
 import { useAdaptiveQuality } from "./hooks/useAdaptiveQuality";
+import { useSalaData } from "./hooks/useSalaData";
 import ProfessionalLightingSystem from "../../components/lighting/BohemianLightingSystem";
 import { useEntranceAnimation } from "./hooks/useEntranceAnimation";
 import { useExploreControls } from "./hooks/useExploreControls";
@@ -21,6 +22,10 @@ export default function SalaPruebaPage() {
   const cameraRef = useRef(null);
   const rendererRef = useRef(null);
   const [sceneManagerKey, setSceneManagerKey] = useState(0);
+  
+  // Obtener datos reales de la sala
+  const { sala, artworks, loading, error } = useSalaData();
+  
   const {
     presentationMode,
     easingOut,
@@ -61,99 +66,9 @@ export default function SalaPruebaPage() {
     setSceneManagerKey(k => k + 1);
   };
 
-  // Obras de arte de ejemplo para demostrar el sistema de anclajes
-  const sampleArtworks = useMemo(() => [
-    {
-      id: 'artwork-1',
-      anchorId: 'left-2',
-      title: 'Abstracción Urbana',
-      artist: 'María González',
-      year: '2023',
-      technique: 'Óleo sobre lienzo',
-      width: 5,
-      height: 4,
-      color: '#e74c3c',
-      type: 'painting',
-      frameStyle: 'classic',
-      frameMaterial: 'wood',
-      animated: false
-    },
-    {
-      id: 'artwork-2',
-      anchorId: 'right-1',
-      title: 'Fragmentos de Luz',
-      artist: 'Carlos Mendoza',
-      year: '2024',
-      technique: 'Fotografía digital',
-      width: 4,
-      height: 3,
-      color: '#3498db',
-      type: 'photo',
-      frameStyle: 'modern',
-      frameMaterial: 'metal',
-      animated: false
-    },
-    {
-      id: 'artwork-3',
-      anchorId: 'back-1',
-      title: 'Memoria Colectiva',
-      artist: 'Ana Ruiz',
-      year: '2023',
-      technique: 'Técnica mixta',
-      width: 6,
-      height: 4,
-      color: '#f39c12',
-      type: 'mixed',
-      frameStyle: 'ornate',
-      frameMaterial: 'gold',
-      animated: true
-    },
-    {
-      id: 'artwork-4',
-      anchorId: 'front-left-0',
-      title: 'Espacio Interior',
-      artist: 'Jorge Vega',
-      year: '2024',
-      technique: 'Acrílico sobre madera',
-      width: 3,
-      height: 4,
-      color: '#9b59b6',
-      type: 'painting',
-      frameStyle: 'minimal',
-      frameMaterial: 'silver',
-      animated: false
-    },
-    {
-      id: 'artwork-5',
-      anchorId: 'right-3',
-      title: 'Reflexiones',
-      artist: 'Laura Torres',
-      year: '2023',
-      technique: 'Relieve en bronce',
-      width: 3.5,
-      height: 2.5,
-      color: '#2ecc71',
-      type: 'relief',
-      frameStyle: 'modern',
-      frameMaterial: 'metal',
-      animated: false
-    },
-    {
-      id: 'artwork-6',
-      anchorId: 'back-3',
-      title: 'Cosmos Digital',
-      artist: 'Roberto Silva',
-      year: '2024',
-      technique: 'Arte digital impreso',
-      width: 4.5,
-      height: 3.5,
-      color: '#e67e22',
-      type: 'photo',
-      frameStyle: 'classic',
-      frameMaterial: 'wood',
-      animated: true
-    }
-  ], []);
+  // Nombre de la sala dinámico
+  const salaName = sala?.nombre || 'Sala de Prueba';
+  const totalArtworks = artworks?.length || 0;
 
   // Component inside Canvas to safely use R3F hooks
   function SceneManager({ presentationMode }) {
@@ -179,7 +94,7 @@ export default function SalaPruebaPage() {
           rotate={presentationMode && !animating} 
           exiting={easingOut} 
           exploring={exploring}
-          artworks={sampleArtworks}
+          artworks={artworks}
           debugAnchors={debugAnchors}
         />
         {/* Acquire refs via function child pattern not available here; use onCreated below instead */}
@@ -191,11 +106,13 @@ export default function SalaPruebaPage() {
       {presentationMode && (
         <div className="pointer-events-none select-none absolute inset-0 z-20 flex flex-col items-center justify-end pb-24 bg-gradient-to-t from-neutral-900/75 via-neutral-900/10 to-transparent">
           <div className="pointer-events-auto flex flex-col items-center gap-3 rounded-xl px-6 py-4 bg-neutral-900/40 backdrop-blur-md border border-white/10 shadow-lg">
-            <h1 className="text-white text-lg font-medium tracking-wide">Sala de Prueba</h1>
+            <h1 className="text-white text-lg font-medium tracking-wide">{salaName}</h1>
             <div className="flex gap-6 text-neutral-300 text-xs">
-              <span>{sampleArtworks.length} obras</span>
+              <span>{totalArtworks} obras</span>
               <span>52 puntos de anclaje</span>
               <span>40×28×12m</span>
+              {loading && <span className="text-yellow-400">Cargando...</span>}
+              {error && <span className="text-red-400">Datos mock</span>}
             </div>
             <button onClick={handleStartAudioWrapped} disabled={animating || easingOut || (!beginReady && !easingOut)} className="px-5 py-2 rounded-md bg-white/90 text-neutral-900 text-xs font-medium shadow hover:bg-white transition disabled:opacity-60">
               {animating ? 'Entrando...' : easingOut ? 'Preparando...' : beginReady ? 'Entrar' : 'Cargando...'}

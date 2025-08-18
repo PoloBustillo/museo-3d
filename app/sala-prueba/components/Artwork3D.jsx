@@ -84,11 +84,28 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
   const canvasRef = useRef();
   
   const artworkMaterial = useMemo(() => {
-    if (artwork?.imageUrl) {
+    // Priorizar imagen real de la obra
+    const imageUrl = artwork?.imagenUrlWebp || artwork?.url_imagen || artwork?.imageUrl;
+    
+    if (imageUrl) {
       const loader = new THREE.TextureLoader();
-      const texture = loader.load(artwork.imageUrl);
-      texture.wrapS = THREE.ClampToEdgeWrapping;
-      texture.wrapT = THREE.ClampToEdgeWrapping;
+      const texture = loader.load(
+        imageUrl,
+        // onLoad
+        (texture) => {
+          texture.wrapS = THREE.ClampToEdgeWrapping;
+          texture.wrapT = THREE.ClampToEdgeWrapping;
+          texture.generateMipmaps = false;
+          texture.minFilter = THREE.LinearFilter;
+          texture.magFilter = THREE.LinearFilter;
+        },
+        // onProgress
+        undefined,
+        // onError - fallback to procedural
+        (error) => {
+          console.warn('Failed to load artwork image:', imageUrl, error);
+        }
+      );
       
       return new THREE.MeshStandardMaterial({
         map: texture,
@@ -97,53 +114,92 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
       });
     }
     
-    // Placeholder con color y patrón
+    // Fallback: Placeholder procedural con información de la obra
     const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 384;
+    canvas.width = 1024;
+    canvas.height = Math.floor(1024 * (height / width));
     const ctx = canvas.getContext('2d');
     
-    // Color base
-    ctx.fillStyle = artwork?.color || '#f0f0f0';
+    // Color base más sofisticado
+    const baseColor = artwork?.color || '#f5f5f5';
+    const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+    gradient.addColorStop(0, baseColor);
+    gradient.addColorStop(1, adjustBrightness(baseColor, -0.2));
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // Patrón según tipo de obra
     if (artworkType === 'painting') {
-      // Textura de pinceladas
-      ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-      ctx.lineWidth = 2;
-      for (let i = 0; i < 50; i++) {
+      // Textura de pinceladas más realista
+      ctx.globalAlpha = 0.1;
+      ctx.strokeStyle = '#000000';
+      for (let i = 0; i < 200; i++) {
+        ctx.lineWidth = Math.random() * 3 + 1;
         ctx.beginPath();
-        ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
-        ctx.lineTo(
-          Math.random() * canvas.width, 
-          Math.random() * canvas.height
-        );
+        const x1 = Math.random() * canvas.width;
+        const y1 = Math.random() * canvas.height;
+        const length = Math.random() * 50 + 20;
+        const angle = Math.random() * Math.PI * 2;
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x1 + Math.cos(angle) * length, y1 + Math.sin(angle) * length);
         ctx.stroke();
       }
+      ctx.globalAlpha = 1;
     } else if (artworkType === 'photo') {
-      // Patrón fotográfico sutil
+      // Patrón fotográfico con grain
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       for (let i = 0; i < data.length; i += 4) {
-        const noise = (Math.random() - 0.5) * 10;
+        const noise = (Math.random() - 0.5) * 15;
         data[i] += noise;     // R
         data[i + 1] += noise; // G
         data[i + 2] += noise; // B
       }
       ctx.putImageData(imageData, 0, 0);
+    } else if (artworkType === 'relief') {
+      // Patrón de relieve con sombras
+      ctx.fillStyle = 'rgba(0,0,0,0.1)';
+      for (let i = 0; i < 50; i++) {
+        ctx.beginPath();
+        ctx.arc(
+          Math.random() * canvas.width,
+          Math.random() * canvas.height,
+          Math.random() * 20 + 5,
+          0, Math.PI * 2
+        );
+        ctx.fill();
+      }
     }
     
-    // Título de la obra
-    if (artwork?.title) {
+    // Título centrado si no hay imagen
+    if (artwork?.titulo || artwork?.title) {
+      const title = artwork.titulo || artwork.title;
       ctx.fillStyle = 'rgba(0,0,0,0.8)';
-      ctx.font = '24px Arial';
+      ctx.font = `${Math.floor(canvas.width/20)}px Georgia, serif`;
       ctx.textAlign = 'center';
-      ctx.fillText(artwork.title, canvas.width/2, canvas.height - 30);
+      ctx.textBaseline = 'middle';
+      
+      // Fondo para el texto
+      const textMetrics = ctx.measureText(title);
+      const textWidth = textMetrics.width;
+      const textHeight = parseInt(ctx.font);
+      
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.fillRect(
+        (canvas.width - textWidth) / 2 - 20,
+        canvas.height / 2 - textHeight / 2 - 10,
+        textWidth + 40,
+        textHeight + 20
+      );
+      
+      ctx.fillStyle = '#2c3e50';
+      ctx.fillText(title, canvas.width / 2, canvas.height / 2);
     }
     
     const texture = new THREE.CanvasTexture(canvas);
     texture.needsUpdate = true;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
     
     return new THREE.MeshStandardMaterial({
       map: texture,
@@ -151,6 +207,18 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
       metalness: 0.0
     });
   }, [artwork, artworkType, width, height]);
+
+  // Función helper para ajustar brillo
+  function adjustBrightness(color, amount) {
+    const num = parseInt(color.replace("#",""), 16);
+    const amt = Math.round(2.55 * amount * 100);
+    const R = (num >> 16) + amt;
+    const G = (num >> 8 & 0x00FF) + amt;
+    const B = (num & 0x0000FF) + amt;
+    return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
+      (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+      (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
+  }
 
   // Animación sutil para obras especiales
   useFrame((state) => {
@@ -176,60 +244,115 @@ const ArtworkPlaque = React.memo(function ArtworkPlaque({
   artwork,
   position = [0, -2, 0.1]
 }) {
-  const plaqueText = useMemo(() => {
-    if (!artwork) return '';
-    
-    let text = '';
-    if (artwork.title) text += artwork.title;
-    if (artwork.artist) text += `\n${artwork.artist}`;
-    if (artwork.year) text += `, ${artwork.year}`;
-    if (artwork.technique) text += `\n${artwork.technique}`;
-    
-    return text;
-  }, [artwork]);
-
   const textTexture = useMemo(() => {
+    if (!artwork) return null;
+    
     const canvas = document.createElement('canvas');
-    canvas.width = 256;
-    canvas.height = 128;
+    canvas.width = 512;
+    canvas.height = 256;
     const ctx = canvas.getContext('2d');
     
-    // Fondo de la placa
-    ctx.fillStyle = '#f8f8f8';
+    // Fondo elegante de la placa
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, '#f8f8f8');
+    gradient.addColorStop(1, '#f0f0f0');
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Borde
-    ctx.strokeStyle = '#cccccc';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
+    // Borde doble elegante
+    ctx.strokeStyle = '#d0d0d0';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+    ctx.strokeStyle = '#e8e8e8';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(12, 12, canvas.width - 24, canvas.height - 24);
     
-    // Texto
-    ctx.fillStyle = '#333333';
-    ctx.font = '14px Arial';
+    // Configuración de texto
     ctx.textAlign = 'center';
+    ctx.fillStyle = '#2c3e50';
     
-    const lines = plaqueText.split('\n');
-    const lineHeight = 16;
-    const startY = (canvas.height - (lines.length * lineHeight)) / 2 + lineHeight;
+    let yOffset = 50;
     
-    lines.forEach((line, index) => {
-      ctx.fillText(line, canvas.width / 2, startY + (index * lineHeight));
-    });
+    // Título principal
+    if (artwork.titulo || artwork.title) {
+      ctx.font = 'bold 28px Georgia, serif';
+      const title = artwork.titulo || artwork.title;
+      ctx.fillText(title, canvas.width / 2, yOffset);
+      yOffset += 40;
+    }
+    
+    // Artista y año
+    if (artwork.autor || artwork.artist) {
+      ctx.font = '20px Georgia, serif';
+      ctx.fillStyle = '#34495e';
+      const artist = artwork.autor || artwork.artist;
+      const year = artwork.anio || artwork.year;
+      const artistText = year ? `${artist}, ${year}` : artist;
+      ctx.fillText(artistText, canvas.width / 2, yOffset);
+      yOffset += 35;
+    }
+    
+    // Técnica
+    if (artwork.tecnica || artwork.technique) {
+      ctx.font = 'italic 16px Georgia, serif';
+      ctx.fillStyle = '#7f8c8d';
+      const technique = artwork.tecnica || artwork.technique;
+      ctx.fillText(technique, canvas.width / 2, yOffset);
+      yOffset += 30;
+    }
+    
+    // Descripción (si existe y es corta)
+    if (artwork.descripcion && artwork.descripcion.length < 100) {
+      ctx.font = '14px Arial, sans-serif';
+      ctx.fillStyle = '#5d6d7e';
+      const words = artwork.descripcion.split(' ');
+      let line = '';
+      let lineHeight = 18;
+      
+      for (let i = 0; i < words.length; i++) {
+        const testLine = line + words[i] + ' ';
+        const metrics = ctx.measureText(testLine);
+        const testWidth = metrics.width;
+        
+        if (testWidth > canvas.width - 40 && i > 0) {
+          ctx.fillText(line, canvas.width / 2, yOffset);
+          line = words[i] + ' ';
+          yOffset += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, canvas.width / 2, yOffset);
+    }
     
     const texture = new THREE.CanvasTexture(canvas);
     texture.needsUpdate = true;
+    texture.flipY = false;
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    
     return texture;
-  }, [plaqueText]);
+  }, [
+    artwork?.titulo, 
+    artwork?.title, 
+    artwork?.autor, 
+    artwork?.artist, 
+    artwork?.anio, 
+    artwork?.year, 
+    artwork?.tecnica, 
+    artwork?.technique,
+    artwork?.descripcion
+  ]);
 
-  if (!plaqueText) return null;
+  if (!artwork || !textTexture) return null;
 
   return (
-    <mesh position={position}>
-      <planeGeometry args={[2, 1]} />
+    <mesh position={position} castShadow>
+      <planeGeometry args={[3, 1.5]} />
       <meshStandardMaterial 
         map={textTexture}
-        transparent={true}
-        opacity={0.9}
+        transparent={false}
+        side={THREE.FrontSide}
       />
     </mesh>
   );

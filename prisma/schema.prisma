@@ -120,7 +120,7 @@ model Sala {
     texturaPared     String?
     texturaPiso      String?
     musica           String?
-    imagenPortada    Int?
+    imagenPortada    String?
     tema             String?
     maxColaboradores Int?
     fechaApertura    DateTime?
