@@ -4,29 +4,29 @@
  * Se mantienen los nombres de paredes e IDs compatibles con el algoritmo de asignación (useSalaData) pero
  * se recalculan posiciones para mejorar visibilidad, ritmo y evitar tapar obras con muros internos.
  */
-import { 
-  HALL_WIDTH, 
-  HALL_DEPTH, 
-  HALL_HEIGHT, 
-  FRONT_CENTER, 
-  BACK_CENTER, 
-  HALF_HALL_W, 
-  HALF_HALL_D
-} from '../sceneConfig';
+import {
+  HALL_WIDTH,
+  HALL_DEPTH,
+  HALL_HEIGHT,
+  FRONT_CENTER,
+  BACK_CENTER,
+  HALF_HALL_W,
+  HALF_HALL_D,
+} from "../sceneConfig";
 
 // Altura estándar (aprox. 1.6m – 1.8m a centro de obra) => 40% de la altura del hall
 const ARTWORK_HEIGHT = HALL_HEIGHT * 0.4; // 4.8
 
 // Margenes para no invadir áreas conflictivas
-const ENTRANCE_MARGIN_Z = 3;         // metros dentro desde la puerta
-const DIVIDER_MARGIN_Z = 2;          // separación de los planos divisores (z ≈ ±25)
-const BACK_WALL_MARGIN = 0.1;        // ligera separación de pared
-const SIDE_WALL_OFFSET = 0.1;        // separar del plano lateral
+const ENTRANCE_MARGIN_Z = 3; // metros dentro desde la puerta
+const DIVIDER_MARGIN_Z = 2; // separación de los planos divisores (z ≈ ±25)
+const BACK_WALL_MARGIN = 0.1; // ligera separación de pared
+const SIDE_WALL_OFFSET = 0.1; // separar del plano lateral
 
 // Cantidad de anclajes por tramo
 const FRONT_SIDE_COUNT = 4; // más ritmo visual en sala frontal
-const BACK_SIDE_COUNT = 3;  // menos densidad atrás para remate
-const BACK_WALL_COUNT = 2;  // remate final (izq / der)
+const BACK_SIDE_COUNT = 3; // menos densidad atrás para remate
+const BACK_WALL_COUNT = 2; // remate final (izq / der)
 
 // Rango Z sala frontal: [FRONT_CENTER - HALF_HALL_D, FRONT_CENTER + HALF_HALL_D]
 const FRONT_Z_MIN = FRONT_CENTER - HALF_HALL_D + DIVIDER_MARGIN_Z; // evitar divisor frontal (≈25)
@@ -34,7 +34,7 @@ const FRONT_Z_MAX = FRONT_CENTER + HALF_HALL_D - ENTRANCE_MARGIN_Z; // evitar pu
 
 // Rango Z sala trasera: [BACK_CENTER - HALF_HALL_D, BACK_CENTER + HALF_HALL_D]
 const BACK_Z_BACK_WALL = BACK_CENTER - HALF_HALL_D + BACK_WALL_MARGIN; // pared más profunda (≈ -53)
-const BACK_Z_MIN = BACK_CENTER + HALF_HALL_D - DIVIDER_MARGIN_Z;       // borde cercano al divisor (≈ -25 + margen)
+const BACK_Z_MIN = BACK_CENTER + HALF_HALL_D - DIVIDER_MARGIN_Z; // borde cercano al divisor (≈ -25 + margen)
 const BACK_Z_MAX = BACK_Z_BACK_WALL + 6; // un poco hacia delante desde la pared para ritmo (-47 aprox)
 
 // Utilidad para generar posiciones interpoladas (inclusive endpoints controlados)
@@ -50,21 +50,29 @@ function spreadDescending(from, to, count) {
 
 // 1) PAREDES SALA FRONTAL – perspectiva inicial
 // Right-front: empezar CERCA de la entrada y avanzar hacia el interior (Z decreciente)
-const rightFrontZs = spreadDescending(FRONT_Z_MAX, FRONT_Z_MIN + 6, FRONT_SIDE_COUNT); // dejar colchón antes del divisor
+const rightFrontZs = spreadDescending(
+  FRONT_Z_MAX,
+  FRONT_Z_MIN + 6,
+  FRONT_SIDE_COUNT
+); // dejar colchón antes del divisor
 // Left-front: queremos que el recorrido cruce y "regrese" hacia la salida para balance visual, así que invertimos el sentido
-const leftFrontZs = spreadDescending(FRONT_Z_MIN + 6, FRONT_Z_MAX, FRONT_SIDE_COUNT);
+const leftFrontZs = spreadDescending(
+  FRONT_Z_MIN + 6,
+  FRONT_Z_MAX,
+  FRONT_SIDE_COUNT
+);
 
 const leftFrontAnchors = leftFrontZs.map((z, i) => ({
   id: `left-front-${i}`,
   position: [-HALF_HALL_W + SIDE_WALL_OFFSET, ARTWORK_HEIGHT, z],
   normal: [1, 0, 0],
-  wall: 'left-front'
+  wall: "left-front",
 }));
 const rightFrontAnchors = rightFrontZs.map((z, i) => ({
   id: `right-front-${i}`,
   position: [HALF_HALL_W - SIDE_WALL_OFFSET, ARTWORK_HEIGHT, z],
   normal: [-1, 0, 0],
-  wall: 'right-front'
+  wall: "right-front",
 }));
 
 // 2) ESQUINAS FRONTALES (eliminadas: no se permiten obras en pared de la puerta)
@@ -80,13 +88,13 @@ const rightBackAnchors = rightBackZs.map((z, i) => ({
   id: `right-back-${i}`,
   position: [HALF_HALL_W - SIDE_WALL_OFFSET, ARTWORK_HEIGHT, z],
   normal: [-1, 0, 0],
-  wall: 'right-back'
+  wall: "right-back",
 }));
 const leftBackAnchors = leftBackZs.map((z, i) => ({
   id: `left-back-${i}`,
   position: [-HALF_HALL_W + SIDE_WALL_OFFSET, ARTWORK_HEIGHT, z],
   normal: [1, 0, 0],
-  wall: 'left-back'
+  wall: "left-back",
 }));
 
 // 4) PARED TRASERA – remate (centrada y clara)
@@ -96,48 +104,54 @@ const backWallAnchors = backWallXs.slice(0, BACK_WALL_COUNT).map((x, i) => ({
   id: `back-${i}`,
   position: [x, ARTWORK_HEIGHT, BACK_Z_BACK_WALL],
   normal: [0, 0, 1],
-  wall: 'back'
+  wall: "back",
 }));
 
 // Agregar zona media (corredor) para distribuir cuando hay pocas obras
 const MID_SIDE_COUNT = 3; // -18, 0, +18 aprox.
-const CORRIDOR_Z_MIN = - (FRONT_CENTER - HALF_HALL_D) + 2; // ~ -23
-const CORRIDOR_Z_MAX = (FRONT_CENTER - HALF_HALL_D) - 2;  // ~ 23
+const CORRIDOR_Z_MIN = -(FRONT_CENTER - HALF_HALL_D) + 2; // ~ -23
+const CORRIDOR_Z_MAX = FRONT_CENTER - HALF_HALL_D - 2; // ~ 23
 // Distribución manual para control fino
-const midZs = [-18, 0, 18].filter(z => z > CORRIDOR_Z_MIN && z < CORRIDOR_Z_MAX);
-const rightMidAnchors = midZs.map((z,i)=>({
+const midZs = [-18, 0, 18].filter(
+  (z) => z > CORRIDOR_Z_MIN && z < CORRIDOR_Z_MAX
+);
+const rightMidAnchors = midZs.map((z, i) => ({
   id: `right-mid-${i}`,
   position: [HALF_HALL_W - SIDE_WALL_OFFSET, ARTWORK_HEIGHT, z],
-  normal: [-1,0,0],
-  wall: 'right-mid'
+  normal: [-1, 0, 0],
+  wall: "right-mid",
 }));
-const leftMidAnchors = midZs.map((z,i)=>({
+const leftMidAnchors = midZs.map((z, i) => ({
   id: `left-mid-${i}`,
   position: [-HALF_HALL_W + SIDE_WALL_OFFSET, ARTWORK_HEIGHT, z],
-  normal: [1,0,0],
-  wall: 'left-mid'
+  normal: [1, 0, 0],
+  wall: "left-mid",
 }));
 
 // Ajustar front anchors para no acercarse demasiado a la puerta (eliminar los más cercanos si z > FRONT_Z_MAX - 4)
 const FRONT_DOOR_SAFE_Z = FRONT_Z_MAX - 4;
-const filteredRightFrontAnchors = rightFrontAnchors.filter(a => a.position[2] <= FRONT_DOOR_SAFE_Z);
-const filteredLeftFrontAnchors = leftFrontAnchors.filter(a => a.position[2] <= FRONT_DOOR_SAFE_Z);
+const filteredRightFrontAnchors = rightFrontAnchors.filter(
+  (a) => a.position[2] <= FRONT_DOOR_SAFE_Z
+);
+const filteredLeftFrontAnchors = leftFrontAnchors.filter(
+  (a) => a.position[2] <= FRONT_DOOR_SAFE_Z
+);
 
 // PAREDES DIVISORIAS INTERNAS (permitidas para colocar obras)
 const FRONT_DIVIDER_Z = FRONT_CENTER - HALF_HALL_D; // ~ +25
-const BACK_DIVIDER_Z  = BACK_CENTER + HALF_HALL_D;  // ~ -25
+const BACK_DIVIDER_Z = BACK_CENTER + HALF_HALL_D; // ~ -25
 const DIVIDER_WALL_XS = [-HALF_HALL_W * 0.6, 0, HALF_HALL_W * 0.6];
-const dividerFrontAnchors = DIVIDER_WALL_XS.map((x,i)=>({
+const dividerFrontAnchors = DIVIDER_WALL_XS.map((x, i) => ({
   id: `divider-front-${i}`,
   position: [x, ARTWORK_HEIGHT, FRONT_DIVIDER_Z + 0.01], // leve offset para evitar z-fighting
-  normal: [0,0,1],
-  wall: 'divider-front'
+  normal: [0, 0, 1],
+  wall: "divider-front",
 }));
-const dividerBackAnchors = DIVIDER_WALL_XS.map((x,i)=>({
+const dividerBackAnchors = DIVIDER_WALL_XS.map((x, i) => ({
   id: `divider-back-${i}`,
   position: [x, ARTWORK_HEIGHT, BACK_DIVIDER_Z + 0.01],
-  normal: [0,0,1],
-  wall: 'divider-back'
+  normal: [0, 0, 1],
+  wall: "divider-back",
 }));
 
 // Asegurar arrays internos definidos (actualmente no usados)
@@ -156,16 +170,19 @@ let rawAnchorPoints = [
   ...leftBackAnchors,
   ...backWallAnchors,
   ...internalFrontAnchors,
-  ...internalBackAnchors
+  ...internalBackAnchors,
 ];
 // Filtro defensivo: excluir cualquier anchor cuya normal apunte hacia -Z (pared con puerta)
-rawAnchorPoints = rawAnchorPoints.filter(a => !(a.normal && a.normal[2] < 0));
+rawAnchorPoints = rawAnchorPoints.filter((a) => !(a.normal && a.normal[2] < 0));
 export const anchorPoints = rawAnchorPoints;
 
 // Utilidades para buscar puntos específicos
-export const getAnchorById = (id) => anchorPoints.find(point => point.id === id);
-export const getAnchorsByWall = (wall) => anchorPoints.filter(point => point.wall === wall);
-export const getAvailableAnchors = (usedAnchorIds = []) => anchorPoints.filter(point => !usedAnchorIds.includes(point.id));
+export const getAnchorById = (id) =>
+  anchorPoints.find((point) => point.id === id);
+export const getAnchorsByWall = (wall) =>
+  anchorPoints.filter((point) => point.wall === wall);
+export const getAvailableAnchors = (usedAnchorIds = []) =>
+  anchorPoints.filter((point) => !usedAnchorIds.includes(point.id));
 
 // Estadísticas
 export const anchorStats = {
@@ -181,7 +198,7 @@ export const anchorStats = {
     leftBack: leftBackAnchors.length,
     back: backWallAnchors.length,
     internalFront: internalFrontAnchors.length,
-    internalBack: internalBackAnchors.length
+    internalBack: internalBackAnchors.length,
   },
   layout: {
     frontZRange: [FRONT_Z_MIN, FRONT_Z_MAX],
@@ -190,9 +207,9 @@ export const anchorStats = {
     entranceMargin: ENTRANCE_MARGIN_Z,
     dividerMargin: DIVIDER_MARGIN_Z,
     doorSafeZ: FRONT_DOOR_SAFE_Z,
-    dividerPlanes: { front: FRONT_DIVIDER_Z, back: BACK_DIVIDER_Z }
+    dividerPlanes: { front: FRONT_DIVIDER_Z, back: BACK_DIVIDER_Z },
   },
-  artworkHeight: ARTWORK_HEIGHT
+  artworkHeight: ARTWORK_HEIGHT,
 };
 
-console.log('Anchor Points Configuration (nuevo con mid):', anchorStats);
+console.log("Anchor Points Configuration (nuevo con mid):", anchorStats);
