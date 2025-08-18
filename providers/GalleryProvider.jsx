@@ -1,6 +1,7 @@
 "use client";
-import React, { useRef, createContext, useContext, useState, useCallback } from "react";
+import React, { useRef, createContext, useContext, useState, useCallback, useReducer} from "react";
 import * as Sentry from "@sentry/nextjs";
+import { useStateManager } from "react-select";
 
 const GalleryContext = createContext();
 
@@ -141,9 +142,8 @@ export const GalleryProvider = ({ children }) => {
     },
     [allMuralesLoaded]
   );
-
+//Cargar lo murales mediante la paginacion de los mismos
   const [muralesForScroll, setMuralesForScroll] = useState([]);
-  const [pageLoaded, setPageLoaded] = useState(false);
   const [loadingPageMurales, setLoadingPageMurales] = useState(false);
   const pageRef = useRef(0);
   const pageTotalRef = useRef(1);
@@ -160,7 +160,6 @@ export const GalleryProvider = ({ children }) => {
       pageTotalRef.current = data.filtros.paginationInfo.totalPages;
       console.log("Si entre",data,pageTotalRef);
       setMuralesForScroll(prev=>[...prev,...data.murales]);
-      setPageLoaded(true);
       
     } catch (err) {
       console.error(`Error loading ${page} from murales:`, err);
@@ -170,6 +169,49 @@ export const GalleryProvider = ({ children }) => {
       setLoadingPageMurales(false);
     }
   }, []);
+
+// Cargar el nombre, id, y primera imagen de una sala
+  const [roomsToShow, setRoomsToShow] = useState([]);
+  const [loadingRooms, setLoadingRooms] = useState(false);
+  const hasLoadedRoomsRef =  useRef(false);
+
+
+  const fetchRoomsNames = useCallback(async (force=false) =>{
+    if(hasLoadedRoomsRef.current && !force) return;
+    hasLoadedRoomsRef.current = true;
+
+    try{
+      setLoadingRooms(true);
+      const request = await fetch(`/api/salas`);
+      const response = await request.json();
+      console.log("AQUI LA RESPUESTA",response);
+      const salas = response.salas
+      .filter((sala)=>sala.publica)
+      .map((sala)=>({
+        id: sala.id,
+        name:sala.nombre,
+        img: sala.murales[0].mural.url_imagen,
+
+      }));
+      console.log('estoy dentro');
+      setRoomsToShow(salas);
+    }
+    catch(err){
+      console.error(`Error fetching Roooms: `, err);
+      hasLoadedRoomsRef.current = false;
+
+
+    } finally {
+      setLoadingRooms(false);
+    }
+  },[]);
+
+//useReduce para el renderizado y busqueda mediante filtros
+
+
+
+
+
 
   const getGalleryStats = useCallback(() => {
     if (artworks.length === 0) {
@@ -267,6 +309,11 @@ export const GalleryProvider = ({ children }) => {
     fetchPageMurales,
     setMuralesForScroll,
     pageTotalRef,
+    //FUNCIONES PARA OBTENER LAS SALAS EXISTENTES
+    loadingRooms,
+    roomsToShow,
+    fetchRoomsNames,
+     hasLoadedRoomsRef,
   };
 
   return (

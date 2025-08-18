@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { PageLoader,SectionLoader } from "../../components/LoadingSpinner";
 import AnimatedBackground from "../../components/shared/AnimatedBackground";
 import { useGallery } from "../../providers/GalleryProvider";
@@ -8,6 +8,7 @@ import FilterControls from "../mis-obras/components/FilterControls";
 import { useUIState } from "../mis-obras/hooks/useUIState";
 import MuralesList from "../../components/gallery/MuralesList";
 import SalasList from "../../components/gallery/SalasList";
+import SearchBar from "../../components/gallery/SearchBar";
 import ModalZoomImage from "../../components/gallery/ModalZoomImage";
 import { useCollection } from "../../providers/CollectionProvider";
 import { toast } from "react-hot-toast";
@@ -17,25 +18,31 @@ import useSalas from "@/app/hooks/useSalas";
 import dynamic from "next/dynamic";
 //Para el Scroll Infinito
 import InfiniteScroll from 'react-infinite-scroll-component';
+
 const ARExperience = dynamic(() => import("../../components/ar/ARExperience"), { ssr: false });
 
-
 export default function GaleriaPage() {
+  
   const {
+    //Fetch Galeria General a Todos los
     allMurales,
     loadingAllMurales,
     fetchAllMurales,
-    artworks: murales,
-    loading,
     //Fetch para el scroll infinito
     muralesForScroll,
     loadingPageMurales,
     fetchPageMurales,
     pageTotalRef,
+
+    artworks: murales,
+    loading,
+    //Para determinar y cargar las salas dentro de la barra de busqueda
+    loadingRooms,
+    fetchRoomsNames,
     // Si tienes salas en el provider, agrégalas aquí
   } = useGallery();
   // Si las salas no están en el provider, puedes mantener un estado local o migrar la lógica después.
-
+  const [currentMurales, setCurrentMurales] = useState(muralesForScroll);
   // Estado de filtros y UI (adaptado de mis obras)
   const [filters, setFilters] = useState({
     search: "",
@@ -57,21 +64,14 @@ export default function GaleriaPage() {
   // Estado para sala seleccionada
   const [selectedSalaId, setSelectedSalaId] = useState(null);
 
-  // Cargar todos los murales al montar la galería
-  useEffect(() => {
-    fetchAllMurales();
-  }, [fetchAllMurales]);
-
-  // Usar allMurales como fuente para filtrar y paginar
-  const muralesBase = allMurales;
-  // Filtrar por sala si aplica
+  // Filtrar murales por sala seleccionada (si hay selección)
   const muralesFiltradosPorSala = selectedSalaId
-    ? muralesBase.filter(
+    ? muralesForScroll.filter(
         (m) =>
           m.SalaMural &&
           m.SalaMural.some((sm) => sm.salaId === selectedSalaId)
-    )
-    : muralesBase;
+      )
+    : muralesForScroll;
 
   // Adaptar lógica de filtrado (usando useMuralFilters o lógica propia)
   const filteredMurales = useMuralFilters({
@@ -118,67 +118,37 @@ export default function GaleriaPage() {
   const handleARClick = (mural) => {
     setArMural(mural);
   };
+
+  // Cargar todos los murales al montar la galería (para el carrusel)
+  const [page, setPage] = useState(1);
+  const carruselRef = useRef();
+
+    useEffect(() => {
+      fetchPageMurales(page);  
+
+      if(page===1) {
+        carruselRef.current = muralesForScroll
+        fetchRoomsNames();
+        
+      };
+
+       
+    }, [page]);
+
+const previousScrollY = window.scrollY;
+
+useEffect(() => {
+  window.scrollTo({ top: previousScrollY });
+}, [muralesForScroll]);
+
+
   // Estado para el modal de zoom
   const [zoomMural, setZoomMural] = useState(null);
-  const scrollYRef = useRef(0);
 
-  const handleOpenZoom = (mural) => {
-    scrollYRef.current = window.scrollY;
-    setZoomMural(mural);
-    document.body.style.overflow = 'hidden';
-  };
-
-  const handleCloseZoom = () => {
-    setZoomMural(null);
-    document.body.style.overflow = '';
-    window.scrollTo({ top: scrollYRef.current, behavior: 'auto' });
-  };
-
-  // Estado para el paginado local
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 6;
-  const paginatedMurales = filteredMurales.slice(0, page * itemsPerPage);
-  const hasMore = paginatedMurales.length < filteredMurales.length;
-
-  // Ref para el último mural visible
-  const lastItemRef = useRef(null);
-  const [lastItemOffset, setLastItemOffset] = useState(null);
-
-  // Guardar offset antes de cargar más
-  const handleNextPage = useCallback(() => {
-    if (hasMore && lastItemRef.current) {
-      const rect = lastItemRef.current.getBoundingClientRect();
-      setLastItemOffset(rect.top);
-    }
-    setPage((prev) => prev + 1);
-  }, [hasMore]);
-
-  // Ajustar scroll después de renderizar
-  useEffect(() => {
-    if (lastItemOffset !== null && lastItemRef.current) {
-      const newRect = lastItemRef.current.getBoundingClientRect();
-      const diff = newRect.top - lastItemOffset;
-      window.scrollBy({ top: diff, behavior: "auto" });
-      setLastItemOffset(null);
-    }
-  }, [paginatedMurales.length]);
-
-  // Resetear paginado al cambiar filtros, sala o vista
-  useEffect(() => {
-    setPage(1);
-  }, [filters, selectedSalaId, view]);
-
-  //Manejo del scroll para mantenerlo en el lugar ultimo antes de hacer fetching
-  const previousScrollY = window.scrollY;
+  if (loading || loadingPageMurales  && page ===1) return <PageLoader text="Cargando galería..."/>;
   
-  useEffect(() => {
-    window.scrollTo({ top: previousScrollY });
-  }, [muralesForScroll]);
-
-  if (loading || loadingAllMurales  && page ===1 ) return <PageLoader text="Cargando galería..." />;
-
   return (
-    <div className="relative w-full min-h-screen bg-gradient-to-br from-purple-50 to-blue-100 p-4">
+    <div className="relative min-h-screen  bg-gradient-to-br from-purple-50 to-blue-100 p-4">
       <AnimatedBackground />
       <div className="max-w-7xl mx-auto relative z-10">
         <div className="text-center mb-12 mt-12">
@@ -191,35 +161,20 @@ export default function GaleriaPage() {
           </p>
         </div>
 
-        {/* Carrusel destacado (arriba de la barra de filtros) */}
-        {allMurales && allMurales.length > 0 && (
-          <div className="mb-8 mt-4">
+        {/* Carrusel destacado */}
+        {carruselRef.current && (
+          <div className="mb-8">
             <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
               Obras Destacadas
             </h2>
             <GalleryCarousel
-              items={allMurales.slice(0, 10)}
+              items={muralesForScroll.slice(0, 10)}
               title="Galería de Obras"
             />
           </div>
         )}
 
-        {/* Barra de filtros sticky (ahora debajo del carrusel) */}
-        <div className="mb-4 sticky top-0 z-20 bg-white border-b border-border">
-          <FilterControls
-            filters={filters}
-            setFilters={setFilters}
-            resetFilters={resetFilters}
-            getFilterOptions={getFilterOptions}
-            showFilters={showFilters}
-            setShowFilters={setShowFilters}
-            view={view}
-            setView={setView}
-            resultsCount={filteredMurales.length}
-          />
-        </div>
-
-        {/* Sección de selección de salas */}
+        {/* Sección de selección de salas
         {salas && salas.length > 0 && (
           <div className="mb-4 flex flex-wrap gap-2 items-center">
             <span className="font-semibold text-muted-foreground">Filtrar por sala:</span>
@@ -240,54 +195,80 @@ export default function GaleriaPage() {
             ))}
           </div>
         )}
+        */}
 
-        {filteredMurales.length === 0 ? (
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border mt-8">
-              <div className="text-6xl mb-4">📄</div>
-              <h3 className="text-2xl font-bold text-foreground mb-2">
-                No hay obras disponibles
-              </h3>
-              <p className="text-muted-foreground">
-                Prueba quitando filtros o busca otro término.
-              </p>
-            </div>
-          </div>
+        {/* Header de filtros y tabs 
+        <div className="mb-4">
+          <FilterControls
+            filters={filters}
+            setFilters={setFilters}
+            resetFilters={resetFilters}
+            getFilterOptions={getFilterOptions}
+            showFilters={showFilters}
+            setShowFilters={setShowFilters}
+            view={view}
+            setView={setView}
+            resultsCount={filteredMurales.length}
+          />
+        </div>
+        */}
+
+        {/* Vista principal: siempre mostrar murales filtrados 
+        {muralesForScroll.length > 0 ? (
+          <MuralesList
+            murales={filteredMurales}
+            onMuralClick={setZoomMural}
+            onLike={handleLike}
+            likedMurales={likedMurales}
+            view={view}
+            onARClick={handleARClick}
+          />
         ) : (
-          <div id="galeria-scroll">
-            <InfiniteScroll
-              dataLength={paginatedMurales.length}
-              next={handleNextPage}
-              hasMore={hasMore}
-              loader={<SectionLoader />}
-              endMessage={
-                <p style={{ textAlign: 'center' }}>
-                  <b>¡Has llegado al final!</b>
-                </p>
-              }
-              scrollableTarget="galeria-scroll"
-              scrollThreshold="90%"
-            >
-              <div style={{ marginBottom: 120 }}>
-                <MuralesList
-                  murales={paginatedMurales}
-                  onMuralClick={handleOpenZoom}
-                  onLike={handleLike}
-                  likedMurales={likedMurales}
-                  view={view}
-                  onARClick={handleARClick}
-                  lastItemRef={lastItemRef}
-                />
-              </div>
-            </InfiniteScroll>
+          <div className="bg-card rounded-2xl shadow-lg p-12 text-center border border-border mt-8">
+            <div className="text-6xl mb-4">📄</div>
+            <h3 className="text-2xl font-bold text-foreground mb-2">
+              No hay resultados
+            </h3>
+            <p className="text-muted-foreground">
+              No se encontraron murales que coincidan con tu búsqueda o filtros.
+            </p>
           </div>
-        )}
+        )}*/}
+      <div className="relative z-50">
+        <SearchBar 
+        
+        />
+      </div>
+
+       <InfiniteScroll 
+          className="z-10"
+          dataLength={muralesForScroll.length}
+          next={() => setPage((prev) => prev + 1)}
+          hasMore={!(page > pageTotalRef.current)}
+          pullDownToRefreshThreshold={100}
+          loader={<SectionLoader/>}
+          endMessage={
+              <p style={{ textAlign: 'center' }}>
+              <b>¡Has llegado al final!</b>
+              </p>
+          }
+          >
+          <MuralesList
+              murales={muralesForScroll}
+              onMuralClick={setZoomMural}
+              onLike={handleLike}
+              likedMurales={likedMurales}
+              view={view}
+              onARClick={handleARClick}
+          />
+        </InfiniteScroll>
+
 
         {/* Modal de zoom */}
         {zoomMural && (
           <ModalZoomImage
             mural={zoomMural}
-            onClose={handleCloseZoom}
+            onClose={() => setZoomMural(null)}
           />
         )}
         {/* Modal AR */}
