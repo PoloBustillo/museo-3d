@@ -10,6 +10,9 @@ import { DeviceProvider } from "../providers/DeviceProvider";
 import { CollectionProvider } from "../providers/CollectionProvider";
 import AuthModal from "./AuthModal";
 import { ModalWrapper } from "./ui/Modal";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useNotification } from "../providers/NotificationProvider";
+import { useCollection } from "../providers/CollectionProvider";
 
 export default function AppProviders({ children }) {
   return (
@@ -228,54 +231,17 @@ export default function AppProviders({ children }) {
                       <ModalWrapper
                         modalName="artwork-modal"
                         title="Obra"
-                        size="lg"
+                        size="xl"
                       >
                         {(data) => {
                           const art = data?.artwork;
                           if (!art)
                             return (
-                              <p className="text-center text-gray-500">Sin datos</p>
+                              <p className="text-center text-muted-foreground">
+                                Sin datos
+                              </p>
                             );
-                          return (
-                            <div className="space-y-4">
-                              <div className="flex flex-col md:flex-row gap-6">
-                                <div className="flex-1 flex items-center justify-center bg-gray-50 p-4 rounded-lg">
-                                  <img
-                                    src={
-                                      art.imagenUrlWebp ||
-                                      art.url_imagen ||
-                                      art.imageUrl
-                                    }
-                                    alt={art.titulo || art.title || "Obra"}
-                                    className="max-h-96 object-contain rounded shadow"
-                                  />
-                                </div>
-                                <div className="flex-1 space-y-3">
-                                  <h2 className="text-2xl font-semibold text-gray-900">
-                                    {art.titulo || art.title}
-                                  </h2>
-                                  <p className="text-lg text-gray-700 font-medium">
-                                    {art.autor || art.artist}
-                                  </p>
-                                  {(art.anio || art.year) && (
-                                    <p className="text-sm text-gray-500">
-                                      {art.anio || art.year}
-                                    </p>
-                                  )}
-                                  {art.tecnica && (
-                                    <p className="text-sm text-gray-600 italic">
-                                      {art.tecnica}
-                                    </p>
-                                  )}
-                                  {art.descripcion && (
-                                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                                      {art.descripcion}
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          );
+                          return <ArtworkModalContent artwork={art} />;
                         }}
                       </ModalWrapper>
                     </CollectionProvider>
@@ -287,5 +253,220 @@ export default function AppProviders({ children }) {
         </UserProvider>
       </ThemeProvider>
     </SessionProvider>
+  );
+}
+
+function ArtworkModalContent({ artwork }) {
+  // Estado de imagen
+  const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef(null);
+  const containerRef = useRef(null);
+  // Zoom & pan
+  const [zoom, setZoom] = useState(1);
+  const [fitZoom, setFitZoom] = useState(1); // escala mínima (fit)
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const drag = useRef(false);
+  const origin = useRef({ x: 0, y: 0, panX: 0, panY: 0, button: 0 });
+  // UI state
+  const [sectionOpen, setSectionOpen] = useState({ desc: true, meta: true });
+  const { notify } = useNotification();
+  const { isInCollection, addToCollection, removeFromCollection } = useCollection();
+  const favorite = useMemo(() => isInCollection(artwork.id), [artwork.id, isInCollection]);
+
+  const MIN_EXTRA = 0.15; // margen adicional sobre fit
+  const MAX_ZOOM = 6;
+
+  const computeFit = useCallback(() => {
+    const c = containerRef.current;
+    const img = imgRef.current;
+    if (!c || !img) return;
+    const cw = c.clientWidth;
+    const ch = c.clientHeight;
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+    if (!iw || !ih) return;
+    const scale = Math.min(cw / iw, ch / ih);
+    setFitZoom(scale);
+    setZoom(scale);
+    setPan({ x: 0, y: 0 });
+  }, []);
+
+  useEffect(() => { if (loaded) computeFit(); }, [loaded, computeFit]);
+  useEffect(() => { const onResize = () => computeFit(); window.addEventListener("resize", onResize); return () => window.removeEventListener("resize", onResize); }, [computeFit]);
+
+  const clampZoom = useCallback((v) => Math.max(fitZoom - fitZoom * MIN_EXTRA, Math.min(MAX_ZOOM, v)), [fitZoom]);
+
+  const focalZoom = useCallback((direction, clientX, clientY) => {
+    const c = containerRef.current; if (!c) return;
+    const rect = c.getBoundingClientRect();
+    const offsetX = clientX - rect.left - rect.width / 2 - pan.x;
+    const offsetY = clientY - rect.top - rect.height / 2 - pan.y;
+    setZoom((prev) => {
+      const next = clampZoom(prev * (direction > 0 ? 1.15 : 0.85));
+      const factor = next / prev;
+      setPan((p) => ({ x: p.x - offsetX * (factor - 1), y: p.y - offsetY * (factor - 1) }));
+      return next;
+    });
+  }, [clampZoom, pan.x, pan.y]);
+
+  const onWheel = useCallback((e) => { e.preventDefault(); focalZoom(e.deltaY < 0 ? 1 : -1, e.clientX, e.clientY); }, [focalZoom]);
+  useEffect(() => { const el = containerRef.current; if (!el) return; el.addEventListener("wheel", onWheel, { passive: false }); return () => el.removeEventListener("wheel", onWheel); }, [onWheel]);
+
+  // Drag solo con click derecho (button === 2)
+  const startDrag = (e) => {
+    // permitir arrastrar con botón izquierdo normal
+    if (zoom <= fitZoom) return;
+    drag.current = true;
+    origin.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y, button: e.button };
+  };
+  const onMove = (e) => { if (!drag.current) return; e.preventDefault(); const dx = e.clientX - origin.current.x; const dy = e.clientY - origin.current.y; setPan({ x: origin.current.panX + dx, y: origin.current.panY + dy }); };
+  const endDrag = () => { drag.current = false; };
+  useEffect(() => { window.addEventListener("pointerup", endDrag); window.addEventListener("pointerleave", endDrag); return () => { window.removeEventListener("pointerup", endDrag); window.removeEventListener("pointerleave", endDrag); }; }, []);
+
+  const resetView = () => { setZoom(fitZoom); setPan({ x: 0, y: 0 }); };
+  const zoomIn = () => focalZoom(1, window.innerWidth / 2, window.innerHeight / 2);
+  const zoomOut = () => focalZoom(-1, window.innerWidth / 2, window.innerHeight / 2);
+  const onDoubleClick = (e) => { if (zoom <= fitZoom * 1.02) { focalZoom(1, e.clientX, e.clientY); focalZoom(1, e.clientX, e.clientY); } else { resetView(); } };
+
+  // Favorito
+  const toggleFavorite = async () => { try { if (favorite) { await removeFromCollection(artwork.id); notify("Removido de favoritos", "info"); } else { await addToCollection(artwork.id, artwork.type || "mural", artwork); notify("Agregado a favoritos", "success"); } } catch (err) { notify(err.message || "Error", "error"); } };
+
+  // Atajos de teclado (sin fullscreen)
+  useEffect(() => { const handler = (e) => { if (e.key === "+" || e.key === "=") zoomIn(); else if (e.key === "-" || e.key === "_") zoomOut(); else if (e.key === "0") resetView(); }; window.addEventListener("keydown", handler); return () => window.removeEventListener("keydown", handler); }, [zoomIn, zoomOut]);
+
+  const hasImage = artwork.imagenUrlWebp || artwork.url_imagen || artwork.imageUrl;
+  const imgSrc = hasImage || '/images/placeholder-artwork-1.jpg';
+
+  return (
+    <div className="flex flex-col gap-4 max-h-[80vh]">
+      <div className="flex flex-col lg:flex-row gap-6 flex-1 overflow-hidden">
+        <div className="relative flex-1 rounded-xl border border-neutral-700/50 shadow-inner bg-neutral-900/80 backdrop-blur-sm h-[60vh]">
+          <div
+            ref={containerRef}
+            className="w-full h-full relative overflow-hidden rounded-lg cursor-grab active:cursor-grabbing select-none"
+            onPointerDown={startDrag}
+            onPointerMove={onMove}
+            onDoubleClick={onDoubleClick}
+            onContextMenu={(e)=> e.preventDefault()}
+            aria-label="Visor de obra"
+            role="region"
+          >
+            {!loaded && (
+              <div className="absolute inset-0 flex items-center justify-center bg-neutral-800 animate-pulse">
+                <div className="w-24 h-24 rounded-full bg-neutral-700/60 blur-sm" />
+              </div>
+            )}
+            <img
+              ref={imgRef}
+              src={imgSrc}
+              alt={artwork.titulo || artwork.title || 'Obra'}
+              onLoad={() => setLoaded(true)}
+              draggable={false}
+              style={{ transform: `translate3d(${pan.x}px,${pan.y}px,0) scale(${zoom})`, transition: drag.current ? 'none' : 'transform .25s ease' }}
+              className="max-w-none max-h-none top-1/2 left-1/2 absolute -translate-x-1/2 -translate-y-1/2 shadow-2xl rounded-md"
+            />
+            {zoom <= fitZoom && loaded && (
+              <div className="absolute inset-x-0 bottom-3 text-center text-[11px] text-neutral-400 pointer-events-none">
+                Doble clic para ampliar. Zoom con rueda. Arrastra con click derecho.
+              </div>
+            )}
+          </div>
+          {/* Controles flotantes (sin fullscreen) */}
+          <div className="absolute top-3 right-3 flex flex-col gap-2" aria-label="Controles de zoom">
+            <IconButton label="Acercar" onClick={zoomIn}>+</IconButton>
+            <IconButton label="Alejar" onClick={zoomOut}>−</IconButton>
+            <IconButton label="Ajustar" onClick={resetView}>Fit</IconButton>
+          </div>
+          <div className="absolute top-3 left-3 flex gap-2 items-center">
+            <span className="px-3 py-1 rounded-full bg-neutral-800/70 text-neutral-200 text-xs font-medium backdrop-blur border border-neutral-700/50">
+              {artwork.tecnica || artwork.technique || 'Técnica'}
+            </span>
+            {(artwork.anio || artwork.year) && <span className="px-2 py-1 rounded bg-neutral-800/70 text-neutral-300 text-[11px] border border-neutral-700/40">{artwork.anio || artwork.year}</span>}
+            {artwork.type && <span className="px-2 py-1 rounded bg-blue-900/40 text-blue-200 text-[11px] border border-blue-700/40">{artwork.type}</span>}
+          </div>
+          <button
+            onClick={toggleFavorite}
+            aria-pressed={favorite}
+            className={`absolute bottom-3 left-3 w-11 h-11 rounded-full flex items-center justify-center border transition-colors shadow ${favorite ? 'bg-pink-600 hover:bg-pink-500 border-pink-400' : 'bg-neutral-800/80 hover:bg-neutral-700 border-neutral-600/40'}`}
+            title={favorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
+          >
+            {favorite ? '❤' : '♡'}
+          </button>
+        </div>
+        {/* Panel lateral */}
+        <aside className="w-full lg:w-96 flex flex-col overflow-y-auto pr-2" aria-label="Detalles de la obra">
+          <header className="mb-2">
+            <h2 className="text-3xl font-bold tracking-tight text-neutral-100 leading-snug">{artwork.titulo || artwork.title}</h2>
+            <p className="text-lg font-medium text-neutral-300">{artwork.autor || artwork.artist || 'Autor desconocido'}</p>
+          </header>
+          {artwork.descripcion && (
+            <Section title="Descripción" open={sectionOpen.desc} onToggle={() => setSectionOpen(s => ({...s, desc: !s.desc}))}>
+              <p className="text-sm leading-relaxed text-neutral-300 whitespace-pre-wrap">{artwork.descripcion}</p>
+            </Section>
+          )}
+          <Section title="Metadatos" open={sectionOpen.meta} onToggle={() => setSectionOpen(s => ({...s, meta: !s.meta}))}>
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              {artwork.type && <InfoBlock label="Tipo" value={artwork.type} />}
+              <InfoBlock label="Dimensiones" value={`${artwork.width || '—'} × ${artwork.height || '—'} u.`} />
+              {artwork.frameStyle && <InfoBlock label="Marco" value={artwork.frameStyle} />}
+              {artwork.frameMaterial && <InfoBlock label="Material" value={artwork.frameMaterial} />}
+              {artwork.material && <InfoBlock label="Soporte" value={artwork.material} />}
+              {artwork.category && <InfoBlock label="Categoría" value={artwork.category} />}
+            </div>
+          </Section>
+          {artwork.tags && Array.isArray(artwork.tags) && artwork.tags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-2" aria-label="Etiquetas">
+              {artwork.tags.map((t, i) => (<span key={i} className="px-2 py-1 rounded-full bg-neutral-800/60 text-[11px] text-neutral-300 border border-neutral-700/50">#{t}</span>))}
+            </div>
+          )}
+          <div className="mt-auto pt-4 flex flex-wrap gap-3 border-t border-neutral-800/70">
+            <button type="button" onClick={toggleFavorite} className={`px-4 py-2 rounded-md text-sm font-medium shadow focus:outline-none focus:ring-2 focus:ring-pink-400/40 transition-colors ${favorite ? 'bg-pink-600 hover:bg-pink-500 text-white' : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-100'}`}>{favorite ? 'En favoritos' : 'Favorito'}</button>
+            <button type="button" onClick={() => { navigator?.clipboard?.writeText(window.location.href).then(() => notify('Enlace copiado','success')).catch(()=>{}); }} className="px-4 py-2 rounded-md bg-neutral-700 hover:bg-neutral-600 text-neutral-100 text-sm font-medium shadow focus:outline-none focus:ring-2 focus:ring-neutral-400/40">Compartir</button>
+            <button type="button" onClick={resetView} className="px-4 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-sm font-medium shadow focus:outline-none focus:ring-2 focus:ring-neutral-500/40">Ajustar</button>
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function InfoBlock({ label, value }) {
+  return (
+    <div className="bg-neutral-800/60 border border-neutral-700/60 rounded-md px-3 py-2">
+      <p className="text-neutral-400 uppercase tracking-wide font-semibold">
+        {label}
+      </p>
+      <p className="text-neutral-200 mt-0.5 leading-snug">{value}</p>
+    </div>
+  );
+}
+
+function IconButton({ children, onClick, label }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className="w-10 h-10 rounded-md bg-neutral-800/80 hover:bg-neutral-700 text-neutral-100 text-xs font-semibold shadow border border-neutral-600/40 focus:outline-none focus:ring-2 focus:ring-neutral-400/40"
+    >
+      {children}
+    </button>
+  );
+}
+
+function Section({ title, children, open, onToggle }) {
+  return (
+    <div className="border border-neutral-800/60 rounded-md bg-neutral-900/60 mb-2">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-neutral-300 hover:text-white"
+        aria-expanded={open}
+      >
+        <span>{title}</span>
+        <span className="text-xs opacity-70">{open ? '−' : '+'}</span>
+      </button>
+      {open && <div className="px-3 pb-3">{children}</div>}
+    </div>
   );
 }

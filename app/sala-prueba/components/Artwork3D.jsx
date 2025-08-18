@@ -323,8 +323,9 @@ const Artwork3D = React.memo(function Artwork3D({
 
   const handlePointerOver = () => interactive && setHovered(true);
   const handlePointerOut = () => interactive && setHovered(false);
-  const handleClick = () => {
-    if (artwork) openModal('artwork-modal', { artwork });
+  const handleClick = (e) => {
+    e.stopPropagation();
+    if (artwork) openModal('artwork-modal', { artwork: { ...artwork } });
   };
 
   return (
