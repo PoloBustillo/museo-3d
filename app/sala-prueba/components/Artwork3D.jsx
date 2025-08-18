@@ -2,9 +2,16 @@
  * Componente de obra de arte 3D con marco y detalles
  * Soporta diferentes tipos de obras: pintura, fotografía, relieve, etc.
  */
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, extend, useThree } from '@react-three/fiber';
+import { RoundedPlaneGeometry } from 'maath/geometry';
+
+// Registrar geometría personalizada
+extend({ RoundedPlaneGeometry });
+
+// Cache simple de texturas por URL para evitar recargas repetidas
+const textureCache = new Map();
 
 const ArtworkFrame = React.memo(function ArtworkFrame({ 
   width = 4, 
@@ -86,35 +93,26 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
   const artworkMaterial = useMemo(() => {
     // Priorizar imagen real de la obra
     const imageUrl = artwork?.imagenUrlWebp || artwork?.url_imagen || artwork?.imageUrl;
-    
-    console.log(`🖼️ Loading artwork: "${artwork?.titulo}" - URL: ${imageUrl}`);
-    
     if (imageUrl) {
-      const loader = new THREE.TextureLoader();
-      const texture = loader.load(
-        imageUrl,
-        // onLoad - imagen cargada exitosamente
-        (texture) => {
-          console.log(`✅ Image loaded successfully: "${artwork?.titulo}"`);
-          texture.wrapS = THREE.ClampToEdgeWrapping;
-          texture.wrapT = THREE.ClampToEdgeWrapping;
-          texture.generateMipmaps = false;
-          texture.minFilter = THREE.LinearFilter;
-          texture.magFilter = THREE.LinearFilter;
-          texture.flipY = true; // Asegurar orientación correcta (no al revés)
-        },
-        // onProgress
-        (progress) => {
-          if (progress.lengthComputable) {
-            const percent = (progress.loaded / progress.total) * 100;
-            console.log(`📊 Loading "${artwork?.titulo}": ${percent.toFixed(1)}%`);
+      let texture = textureCache.get(imageUrl);
+      if (!texture) {
+        const loader = new THREE.TextureLoader();
+        texture = loader.load(
+          imageUrl,
+          (tx) => {
+            tx.wrapS = THREE.ClampToEdgeWrapping;
+            tx.wrapT = THREE.ClampToEdgeWrapping;
+            tx.generateMipmaps = false;
+            tx.minFilter = THREE.LinearFilter;
+            tx.magFilter = THREE.LinearFilter;
+            tx.flipY = true; // orientación correcta
+            if (tx.colorSpace !== undefined) {
+              tx.colorSpace = THREE.SRGBColorSpace;
+            }
+            textureCache.set(imageUrl, tx);
           }
-        },
-        // onError - fallback to procedural
-        (error) => {
-          console.error(`❌ Failed to load image for "${artwork?.titulo}":`, imageUrl, error);
-        }
-      );
+        );
+      }
       
       return new THREE.MeshStandardMaterial({
         map: texture,
@@ -125,8 +123,6 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
     }
     
     // Fallback: Placeholder procedural con información de la obra más visible
-    console.log(`🎨 Using fallback for "${artwork?.titulo}" - No image URL available`);
-    
     const canvas = document.createElement('canvas');
     canvas.width = 1024;
     canvas.height = Math.floor(1024 * (height / width));
@@ -229,11 +225,14 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
       ctx.fillText(title, canvas.width / 2, canvas.height / 2);
     }
     
-  const texture = new THREE.CanvasTexture(canvas);
+    const texture = new THREE.CanvasTexture(canvas);
   texture.needsUpdate = true;
   texture.wrapS = THREE.ClampToEdgeWrapping;
   texture.wrapT = THREE.ClampToEdgeWrapping;
   texture.flipY = true; // Mantener orientación correcta también en fallback
+    if (texture.colorSpace !== undefined) {
+      texture.colorSpace = THREE.SRGBColorSpace;
+    }
     
     return new THREE.MeshStandardMaterial({
       map: texture,
@@ -276,7 +275,7 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
 
 const ArtworkPlaque = React.memo(function ArtworkPlaque({
   artwork,
-  position = [0, -2.8, 0.15] // Posición más cerca y hacia adelante para mejor visibilidad
+  position = [0, -2.8, 0.18] // Un poco más al frente para evitar z-fighting con pared
 }) {
   const textTexture = useMemo(() => {
     if (!artwork) return null;
@@ -439,6 +438,9 @@ const ArtworkPlaque = React.memo(function ArtworkPlaque({
   texture.flipY = true; // Mantener orientación correcta del texto en la placa
     texture.wrapS = THREE.ClampToEdgeWrapping;
     texture.wrapT = THREE.ClampToEdgeWrapping;
+    if (texture.colorSpace !== undefined) {
+      texture.colorSpace = THREE.SRGBColorSpace;
+    }
     
     return texture;
   }, [
@@ -457,39 +459,51 @@ const ArtworkPlaque = React.memo(function ArtworkPlaque({
 
   return (
     <group position={position}>
-      {/* Fondo de la placa con efecto de profundidad */}
+      {/* Backplate sutil para separar del muro */}
       <mesh position={[0, 0, -0.03]} castShadow>
-        <planeGeometry args={[5, 2.8]} />
+        <roundedPlaneGeometry args={[5.3, 3.0, 0.15]} />
         <meshStandardMaterial 
-          color="#f8f8f8"
-          roughness={0.1}
+          color="#ececec"
+          roughness={0.25}
           metalness={0.05}
-          transparent
-          opacity={0.98}
         />
       </mesh>
-      
-      {/* Marco decorativo dorado */}
-      <mesh position={[0, 0, -0.02]}>
-        <ringGeometry args={[2.3, 2.45, 32]} />
+
+      {/* Placa metálica moderna */}
+      <mesh position={[0, 0, -0.015]} castShadow>
+        <roundedPlaneGeometry args={[5.0, 2.8, 0.12]} />
         <meshStandardMaterial 
-          color="#d4af37"
-          roughness={0.2}
-          metalness={0.8}
+          color="#f6f2e7"
+          roughness={0.35}
+          metalness={0.35}
         />
       </mesh>
       
       {/* Texto principal de la placa */}
       <mesh position={[0, 0, -0.01]} castShadow>
-        <planeGeometry args={[4.8, 2.6]} />
+        <planeGeometry args={[4.7, 2.5]} />
         <meshStandardMaterial 
           map={textTexture}
           transparent={false}
           side={THREE.FrontSide}
-          roughness={0.4}
+          roughness={0.5}
           metalness={0.0}
+          toneMapped
         />
       </mesh>
+
+      {/* Luz sutil dedicada a la placa */}
+      <spotLight
+        position={[0, 0.6, 0.2]}
+        target-position={[0, 0, 0]}
+        intensity={0.6}
+        color="#fff6d5"
+        angle={Math.PI / 6}
+        penumbra={0.8}
+        distance={3}
+        decay={2}
+        castShadow={false}
+      />
     </group>
   );
 });
@@ -499,16 +513,21 @@ const Artwork3D = React.memo(function Artwork3D({
   width = 6, // Aumentado de 4 a 6
   height = 4.5, // Aumentado de 3 a 4.5
   showPlaque = true,
-  interactive = false
+  interactive = false,
+  plaqueDistance = 12 // Mostrar placa cuando la cámara esté a < 12m
 }) {
   const groupRef = useRef();
+  const frameCounter = useRef(0);
+  const plaqueVisibleRef = useRef(true);
+  const [plaqueVisible, setPlaqueVisible] = useState(true);
   const [hovered, setHovered] = React.useState(false);
+  const { camera } = useThree();
   
   const artworkType = artwork?.type || 'painting';
   const frameStyle = artwork?.frameStyle || 'classic';
   const frameMaterial = artwork?.frameMaterial || 'wood';
   
-  // Efecto de hover
+  // Efecto de hover + LOD de placa por distancia (con throttling)
   useFrame(() => {
     if (groupRef.current && interactive) {
       const targetScale = hovered ? 1.02 : 1.0;
@@ -516,6 +535,18 @@ const Artwork3D = React.memo(function Artwork3D({
         new THREE.Vector3(targetScale, targetScale, targetScale), 
         0.1
       );
+    }
+    if (!groupRef.current) return;
+    // Reducir cálculos (cada ~6 frames)
+    frameCounter.current = (frameCounter.current + 1) % 6;
+    if (frameCounter.current !== 0) return;
+    const worldPos = new THREE.Vector3();
+    groupRef.current.getWorldPosition(worldPos);
+    const dist = worldPos.distanceTo(camera.position);
+    const shouldShow = hovered || dist < plaqueDistance;
+    if (shouldShow !== plaqueVisibleRef.current) {
+      plaqueVisibleRef.current = shouldShow;
+      setPlaqueVisible(shouldShow);
     }
   });
 
@@ -544,8 +575,8 @@ const Artwork3D = React.memo(function Artwork3D({
         artworkType={artworkType}
       />
       
-      {/* Placa informativa */}
-      {showPlaque && (
+  {/* Placa informativa con LOD por distancia */}
+  {showPlaque && plaqueVisible && (
         <ArtworkPlaque 
           artwork={artwork}
           position={[0, -height/2 - 1.2, 0.1]} // Ajustada para obras más grandes

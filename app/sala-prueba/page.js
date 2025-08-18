@@ -4,6 +4,7 @@ import { Canvas } from "@react-three/fiber";
 import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
 import { OrbitControls } from "@react-three/drei";
 import SceneStructure from "./SceneStructure";
+import { anchorPoints } from "./config/anchorPoints";
 import { HALL_HEIGHT, FRONT_CENTER, HALF_HALL_D, HALL_WIDTH, CAMERA_INITIAL_POS, ENABLE_FOG, FOG_NEAR, FOG_FAR, PRESENTATION_EASE_OUT, EXPLORE_BOUNDS } from "./sceneConfig";
 import { usePresentationTransition } from "./hooks/usePresentationTransition";
 import { useAdaptiveQuality } from "./hooks/useAdaptiveQuality";
@@ -110,7 +111,7 @@ export default function SalaPruebaPage() {
             <h1 className="text-white text-lg font-medium tracking-wide">{salaName}</h1>
             <div className="flex gap-6 text-neutral-300 text-xs">
               <span>{totalArtworks} obras</span>
-              <span>52 puntos de anclaje</span>
+              <span>{anchorPoints.length} puntos de anclaje</span>
               <span>40×28×12m</span>
               {loading && <span className="text-yellow-400">Cargando...</span>}
               {error && <span className="text-red-400">Datos mock</span>}

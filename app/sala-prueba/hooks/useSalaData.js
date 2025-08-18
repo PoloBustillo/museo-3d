@@ -2,6 +2,7 @@
  * Hook para obtener datos reales de una sala específica
  */
 import { useState, useEffect, useMemo } from 'react';
+import { anchorPoints } from '../config/anchorPoints';
 
 export function useSalaData(salaId = null) {
   const [sala, setSala] = useState(null);
@@ -135,26 +136,31 @@ export function useSalaData(salaId = null) {
   };
 
   const getSequentialAnchorId = (index) => {
-    // DISTRIBUCIÓN SIMPLE Y ESPACIADA: Solo usar anchor points principales bien separados
-    // Empezar por sala trasera, luego sala frontal, evitando zona de divisores
-    const anchorSequence = [
-      // PRIMERA SALA (frontal, cerca de la entrada)
-      'right-front-0', 'left-front-0',
-      'right-front-1', 'left-front-1',
-      'right-front-2', 'left-front-2',
-      // Paredes frontales (esquinas) si hacen falta
-      'front-far-left', 'front-far-right',
-      // SEGUNDA SALA (trasera)
-      'right-back-0', 'left-back-0',
-      'right-back-1', 'left-back-1',
-      'right-back-2', 'left-back-2',
-      // Pared del fondo
-      'back-0', 'back-1'
+    // Construir secuencia basada en anchors existentes para evitar IDs inexistentes
+    const by = (pred) => anchorPoints.filter(pred);
+    const sortByIndex = (id) => {
+      const m = id.match(/-(\d+)$/);
+      return m ? parseInt(m[1], 10) : 0;
+    };
+
+    const rightFront = by(a => a.wall === 'right-front').sort((a,b)=>sortByIndex(a.id)-sortByIndex(b.id));
+    const leftFront  = by(a => a.wall === 'left-front').sort((a,b)=>sortByIndex(a.id)-sortByIndex(b.id));
+    const frontCorners = by(a => a.wall?.startsWith('front-far'));
+    const rightBack  = by(a => a.wall === 'right-back').sort((a,b)=>sortByIndex(a.id)-sortByIndex(b.id));
+    const leftBack   = by(a => a.wall === 'left-back').sort((a,b)=>sortByIndex(a.id)-sortByIndex(b.id));
+    const backWall   = by(a => a.wall === 'back').sort((a,b)=>sortByIndex(a.id)-sortByIndex(b.id));
+
+    const sequence = [
+      ...rightFront.map(a=>a.id),
+      ...leftFront.map(a=>a.id),
+      ...frontCorners.map(a=>a.id),
+      ...rightBack.map(a=>a.id),
+      ...leftBack.map(a=>a.id),
+      ...backWall.map(a=>a.id)
     ];
-    
-    const selectedAnchor = anchorSequence[index % anchorSequence.length];
-    console.log(`🎯 Obra ${index + 1}: Asignando anchor "${selectedAnchor}"`);
-    return selectedAnchor;
+
+    const selected = sequence[index % sequence.length];
+    return selected;
   };
 
   const detectArtworkType = (tecnica) => {
@@ -178,7 +184,9 @@ export function useSalaData(salaId = null) {
     }
     
     console.log('🔄 Convirtiendo murales a artworks...');
-    return convertMuralesToArtworks(sala.murales);
+    const converted = convertMuralesToArtworks(sala.murales);
+    // Limitar al número de anclajes disponibles para evitar reutilización/solapamiento
+    return converted.slice(0, anchorPoints.length);
   }, [sala]);
 
   return {

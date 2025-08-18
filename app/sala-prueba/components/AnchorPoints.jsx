@@ -176,7 +176,9 @@ const AnchorPoints = React.memo(function AnchorPoints({
   else if (nz > 0) rotation = [0, 0, 0];          // trasera  → +Z (interior)
   else if (nz < 0) rotation = [0, Math.PI, 0];    // frontal  → -Z (interior)
 
-      console.log(`🖼️ Obra "${artwork.titulo}": Pos=[${artworkPosition.map(p => p.toFixed(1)).join(', ')}], Rot=[${rotation.map(r => (r * 180 / Math.PI).toFixed(0)).join(', ')}]°`);
+      if (debug) {
+        console.log(`🖼️ Obra "${artwork.titulo}": Pos=[${artworkPosition.map(p => p.toFixed(1)).join(', ')}], Rot=[${rotation.map(r => (r * 180 / Math.PI).toFixed(0)).join(', ')}]°`);
+      }
 
       // Si está en modo debug y es problemática, añadir indicador visual
       const groupElements = [
@@ -201,7 +203,7 @@ const AnchorPoints = React.memo(function AnchorPoints({
       }
 
       return (
-        <group key={`artwork-${index}`} position={artworkPosition} rotation={rotation}>
+        <group key={`artwork-${index}`} position={artworkPosition} rotation={rotation} frustumCulled={false}>
           {groupElements}
         </group>
       );
