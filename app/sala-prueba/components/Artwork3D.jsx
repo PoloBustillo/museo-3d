@@ -367,6 +367,17 @@ const Artwork3D = React.memo(function Artwork3D({
         color={focused || hovered ? '#ffe9b0' : '#f2f2f2'}
         castShadow={false}
       />
+      {/* Lámpara puntual focal (pequeña) simulando lámpara dirigida */}
+      <spotLight
+        position={[0, dims.h/2 + 0.6, 0.6]}
+        intensity={focused || hovered ? 1.15 : 0.85}
+        angle={Math.PI / 10}
+        penumbra={0.9}
+        distance={6}
+        decay={2}
+        color={focused || hovered ? '#fff6d5' : '#f7f3e9'}
+        castShadow={false}
+      />
     </group>
   );
 });

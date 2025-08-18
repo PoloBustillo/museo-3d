@@ -74,7 +74,8 @@ export function useExploreControls(active,{speed=14, damping=0.86, pitchLimit=Ma
 
   useFrame((_, delta) => {
     if (!active) return;
-    if (!rotating.current) return; // sólo mover y rotar mientras click derecho
+    if (!rotating.current) return; // sólo mover y rotar mientras click derecho presionado
+    // Sprint ya soportado via Shift (multiplica velocidad)
     camera.rotation.order = 'YXZ';
     camera.rotation.y = yawRef.current;
     camera.rotation.x = pitchRef.current;
