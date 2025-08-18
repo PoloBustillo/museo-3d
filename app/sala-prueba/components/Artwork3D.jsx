@@ -229,10 +229,11 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
       ctx.fillText(title, canvas.width / 2, canvas.height / 2);
     }
     
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.needsUpdate = true;
-    texture.wrapS = THREE.ClampToEdgeWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.flipY = true; // Mantener orientación correcta también en fallback
     
     return new THREE.MeshStandardMaterial({
       map: texture,

@@ -17,8 +17,7 @@ import { useSound } from "../../providers/SoundProvider";
 
 export default function SalaPruebaPage() {
   const [started, setStarted] = useState(false); // for UI legacy control (can derive from exploring)
-  const [debugAnchors, setDebugAnchors] = useState(false);
-  const [debugDistribution, setDebugDistribution] = useState(false);
+  // Debug UI removida para limpieza
   // Removed WASD toggle state
   const cameraRef = useRef(null);
   const rendererRef = useRef(null);
@@ -27,26 +26,7 @@ export default function SalaPruebaPage() {
   // Obtener datos reales de la sala
   const { sala, artworks, loading, error } = useSalaData();
   
-  // Debug: mostrar información de carga
-  useEffect(() => {
-    if (sala && artworks) {
-      console.log('🏛️ SALA CARGADA:', {
-        nombre: sala.nombre,
-        totalMurales: sala.murales?.length || 0,
-        artworksGenerados: artworks.length
-      });
-      
-      console.log('🖼️ ARTWORKS GENERADOS:');
-      artworks.slice(0, 5).forEach((artwork, i) => {
-        console.log(`  ${i + 1}. "${artwork.titulo}" por ${artwork.autor}`);
-        console.log(`     Anchor: ${artwork.anchorId} | URL: ${artwork.imageUrl ? '✅' : '❌'}`);
-      });
-    }
-    
-    if (error) {
-      console.error('❌ Error cargando sala:', error);
-    }
-  }, [sala, artworks, error]);
+  // Limpieza: sin logs de depuración en producción
   
   const {
     presentationMode,
@@ -117,8 +97,6 @@ export default function SalaPruebaPage() {
           exiting={easingOut} 
           exploring={exploring}
           artworks={artworks}
-          debugAnchors={debugAnchors}
-          debugDistribution={debugDistribution}
         />
         {/* Acquire refs via function child pattern not available here; use onCreated below instead */}
       </>
@@ -146,47 +124,6 @@ export default function SalaPruebaPage() {
       {exploring && (
         <div className="absolute top-3 left-3 z-20 flex gap-2 items-center">
           <button onClick={handleReset} className="px-3 py-1.5 text-[11px] rounded bg-neutral-800/70 text-neutral-100 border border-white/10 hover:bg-neutral-700/70 transition">Presentación</button>
-          <button 
-            onClick={() => setDebugAnchors(!debugAnchors)} 
-            className={`px-3 py-1.5 text-[11px] rounded border border-white/10 hover:bg-neutral-700/70 transition ${
-              debugAnchors ? 'bg-blue-600/70 text-white' : 'bg-neutral-800/70 text-neutral-100'
-            }`}
-          >
-            Debug Anclajes
-          </button>
-          <button 
-            onClick={() => setDebugDistribution(!debugDistribution)} 
-            className={`px-3 py-1.5 text-[11px] rounded border border-white/10 hover:bg-neutral-700/70 transition ${
-              debugDistribution ? 'bg-orange-600/70 text-white' : 'bg-neutral-800/70 text-neutral-100'
-            }`}
-          >
-            Análisis Distribución
-          </button>
-          
-          <button 
-            onClick={() => {
-              console.log('🔍 ESTADO COMPLETO DE LA SALA:');
-              console.log('================================');
-              console.log('Sala cargada:', sala?.nombre || 'No cargada');
-              console.log('Murales en sala:', sala?.murales?.length || 0);
-              console.log('Artworks generados:', artworks?.length || 0);
-              console.log('Loading:', loading);
-              console.log('Error:', error);
-              
-              if (artworks && artworks.length > 0) {
-                console.log('\n🖼️ PRIMEROS 5 ARTWORKS:');
-                artworks.slice(0, 5).forEach((artwork, i) => {
-                  console.log(`${i + 1}. "${artwork.titulo}" - ${artwork.autor}`);
-                  console.log(`   Anchor: ${artwork.anchorId}`);
-                  console.log(`   URL: ${artwork.imageUrl || 'No disponible'}`);
-                  console.log(`   Tamaño: ${artwork.width}x${artwork.height}`);
-                });
-              }
-            }} 
-            className="px-3 py-1.5 text-[11px] rounded border border-white/10 hover:bg-neutral-700/70 transition bg-green-600/70 text-white"
-          >
-            Debug Completo
-          </button>
         </div>
       )}
       <Canvas

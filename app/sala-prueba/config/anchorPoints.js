@@ -1,17 +1,6 @@
 /**
  * Configuración de puntos de anclaje para obras de arte
- * Distribuidos un// Generar puntos en pared trasera - solo 2 puntos bien separados
-const backWallAnchors = [];
-const backPositions = [-10, 10]; // Solo 2 posiciones: izquierda y derecha del centro
-
-backPositions.forEach((x, index) => {
-  backWallAnchors.push({
-    id: `back-${index}`,
-    position: [x, ARTWORK_HEIGHT, BACK_CENTER - HALF_HALL_D + 0.1],
-    normal: [0, 0, 1], // normal hacia el interior
-    wall: 'back'
-  });
-});en todas las paredes de la sala
+ * Distribuidos uniformemente en paredes seleccionadas de la sala, evitando divisores y entrada
  */
 import { 
   HALL_WIDTH, 

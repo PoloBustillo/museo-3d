@@ -164,12 +164,17 @@ const AnchorPoints = React.memo(function AnchorPoints({
                             (artworkPosition[2] > 45 && Math.abs(artworkPosition[0]) < 5) ||  // zona de entrada
                             Math.abs(artworkPosition[2] - 15) < 1 || Math.abs(artworkPosition[2] + 15) < 1; // cerca de divisores
       
-      // Calcular rotación basada en la normal de la pared
-      let rotation = [0, 0, 0];
-      if (nx > 0) rotation = [0, -Math.PI/2, 0]; // pared izquierda - girar hacia la derecha
-      else if (nx < 0) rotation = [0, Math.PI/2, 0]; // pared derecha - girar hacia la izquierda  
-      else if (nz > 0) rotation = [0, Math.PI, 0]; // pared trasera - girar 180°
-      else if (nz < 0) rotation = [0, 0, 0]; // pared frontal - sin rotación
+  // Calcular rotación basada en la normal de la pared (siempre mirando al interior)
+  // Nota: un plano por defecto mira hacia +Z. Para mirar al interior:
+  // - Pared izquierda (normal +X): rotar +90° en Y para que +Z -> +X
+  // - Pared derecha (normal -X): rotar -90° en Y para que +Z -> -X
+  // - Pared trasera (normal +Z): sin rotación (ya mira al interior)
+  // - Pared frontal (normal -Z): rotar 180° en Y para mirar -Z
+  let rotation = [0, 0, 0];
+  if (nx > 0) rotation = [0, Math.PI/2, 0];     // izquierda → +X (interior)
+  else if (nx < 0) rotation = [0, -Math.PI/2, 0]; // derecha  → -X (interior)
+  else if (nz > 0) rotation = [0, 0, 0];          // trasera  → +Z (interior)
+  else if (nz < 0) rotation = [0, Math.PI, 0];    // frontal  → -Z (interior)
 
       console.log(`🖼️ Obra "${artwork.titulo}": Pos=[${artworkPosition.map(p => p.toFixed(1)).join(', ')}], Rot=[${rotation.map(r => (r * 180 / Math.PI).toFixed(0)).join(', ')}]°`);
 
