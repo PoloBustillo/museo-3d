@@ -185,9 +185,9 @@ const AnchorPoints = React.memo(function AnchorPoints({
         <Artwork3D
           key="artwork"
           artwork={artwork}
-          width={artwork.width || 6} // Tamaño aumentado
-          height={artwork.height || 4.5} // Tamaño aumentado
-          showPlaque={true} // Siempre mostrar placas para verificar posición
+          width={artwork.width || 6}
+          height={artwork.height || 4.5}
+          showPlaque={false}
           interactive={true}
         />
       ];

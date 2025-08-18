@@ -2,10 +2,11 @@
  * Componente de obra de arte 3D con marco y detalles
  * Soporta diferentes tipos de obras: pintura, fotografía, relieve, etc.
  */
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame, extend, useThree } from '@react-three/fiber';
 import { RoundedPlaneGeometry } from 'maath/geometry';
+import { useModal } from '../../../providers/ModalProvider';
 
 // Registrar geometría personalizada
 extend({ RoundedPlaneGeometry });
@@ -18,35 +19,27 @@ const ArtworkFrame = React.memo(function ArtworkFrame({
   height = 3, 
   depth = 0.1,
   frameWidth = 0.15,
-  frameStyle = 'classic', // 'classic', 'modern', 'ornate', 'minimal'
-  material = 'wood' // 'wood', 'metal', 'gold', 'silver'
+  frameStyle = 'classic',
+  material = 'wood',
+  highlight = false
 }) {
   const frameMaterials = useMemo(() => {
-    const materials = {
-      wood: new THREE.MeshStandardMaterial({
-        color: '#8b4513',
-        roughness: 0.8,
-        metalness: 0.1,
-        normalScale: new THREE.Vector2(0.3, 0.3)
-      }),
-      metal: new THREE.MeshStandardMaterial({
-        color: '#2c2c2c',
-        roughness: 0.3,
-        metalness: 0.9
-      }),
-      gold: new THREE.MeshStandardMaterial({
-        color: '#ffd700',
-        roughness: 0.2,
-        metalness: 0.8
-      }),
-      silver: new THREE.MeshStandardMaterial({
-        color: '#c0c0c0',
-        roughness: 0.1,
-        metalness: 0.9
-      })
+    const baseColors = {
+      wood: '#8b4513',
+      metal: '#2c2c2c',
+      gold: '#ffd700',
+      silver: '#c0c0c0'
     };
-    return materials[material] || materials.wood;
-  }, [material]);
+    const base = baseColors[material] || baseColors.wood;
+    const hl = highlight ? new THREE.Color(base).offsetHSL(0, 0, 0.25) : new THREE.Color(base);
+    return new THREE.MeshStandardMaterial({
+      color: hl,
+      roughness: material === 'metal' || material === 'silver' ? 0.3 : 0.8,
+      metalness: material === 'metal' || material === 'silver' ? 0.9 : (material === 'gold' ? 0.8 : 0.1),
+      emissive: highlight ? hl.clone().multiplyScalar(0.15) : new THREE.Color('#000'),
+      emissiveIntensity: highlight ? 0.6 : 0.0
+    });
+  }, [material, highlight]);
 
   const frameGeometry = useMemo(() => {
     const shape = new THREE.Shape();
@@ -86,7 +79,8 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
   width = 4,
   height = 3,
   artwork,
-  artworkType = 'painting' // 'painting', 'photo', 'relief', 'mixed'
+  artworkType = 'painting',
+  onAspect = ()=>{}
 }) {
   const canvasRef = useRef();
   
@@ -100,18 +94,26 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
         texture = loader.load(
           imageUrl,
           (tx) => {
+            // Calcular aspecto y avisar al padre
+            if (tx.image && tx.image.width && tx.image.height) {
+              const aspect = tx.image.width / tx.image.height;
+              onAspect(aspect);
+            }
             tx.wrapS = THREE.ClampToEdgeWrapping;
             tx.wrapT = THREE.ClampToEdgeWrapping;
             tx.generateMipmaps = false;
             tx.minFilter = THREE.LinearFilter;
             tx.magFilter = THREE.LinearFilter;
-            tx.flipY = true; // orientación correcta
-            if (tx.colorSpace !== undefined) {
-              tx.colorSpace = THREE.SRGBColorSpace;
-            }
+            tx.flipY = true;
+            if (tx.colorSpace !== undefined) tx.colorSpace = THREE.SRGBColorSpace;
             textureCache.set(imageUrl, tx);
           }
         );
+      } else {
+        // Ya en caché: emitir aspecto si disponible
+        if (texture.image && texture.image.width && texture.image.height) {
+          onAspect(texture.image.width / texture.image.height);
+        }
       }
       
       return new THREE.MeshStandardMaterial({
@@ -239,7 +241,7 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
       roughness: artworkType === 'photo' ? 0.1 : 0.7,
       metalness: 0.0
     });
-  }, [artwork, artworkType, width, height]);
+  }, [artwork, artworkType, width, height, onAspect]);
 
   // Función helper para ajustar brillo
   function adjustBrightness(color, amount) {
@@ -273,331 +275,95 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
   );
 });
 
-const ArtworkPlaque = React.memo(function ArtworkPlaque({
-  artwork,
-  position = [0, -2.8, 0.18] // Un poco más al frente para evitar z-fighting con pared
-}) {
-  const textTexture = useMemo(() => {
-    if (!artwork) return null;
-    
-    const canvas = document.createElement('canvas');
-    canvas.width = 896; // Resolución aumentada para mejor calidad
-    canvas.height = 448;
-    const ctx = canvas.getContext('2d');
-    
-    // Fondo con gradiente radial elegante
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, canvas.width / 2);
-    gradient.addColorStop(0, '#ffffff');
-    gradient.addColorStop(0.7, '#fafafa');
-    gradient.addColorStop(1, '#f0f0f0');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Marco exterior con sombra
-    ctx.shadowColor = 'rgba(0,0,0,0.15)';
-    ctx.shadowBlur = 12;
-    ctx.shadowOffsetY = 4;
-    
-    // Marco principal
-    ctx.fillStyle = '#f8f8f8';
-    ctx.fillRect(8, 8, canvas.width - 16, canvas.height - 16);
-    
-    // Borde dorado fino
-    ctx.strokeStyle = '#d4af37';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(12, 12, canvas.width - 24, canvas.height - 24);
-    
-    // Resetear sombra
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetY = 0;
-    
-    // Configuración de texto mejorada
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    
-    let yOffset = 85;
-    const maxWidth = canvas.width - 60;
-    
-    // Título principal con mejor espaciado
-    if (artwork.titulo || artwork.title) {
-      ctx.font = 'bold 38px "Playfair Display", "Times New Roman", serif';
-      ctx.fillStyle = '#1a1a1a';
-      const title = artwork.titulo || artwork.title;
-      
-      // Efecto de relieve en el texto
-      ctx.shadowColor = 'rgba(255,255,255,0.8)';
-      ctx.shadowOffsetY = 1;
-      ctx.shadowBlur = 1;
-      
-      // Dividir título si es muy largo
-      const words = title.split(' ');
-      let lines = [];
-      let currentLine = '';
-      
-      for (let word of words) {
-        const testLine = currentLine + (currentLine ? ' ' : '') + word;
-        const metrics = ctx.measureText(testLine);
-        if (metrics.width > maxWidth && currentLine) {
-          lines.push(currentLine);
-          currentLine = word;
-        } else {
-          currentLine = testLine;
-        }
-      }
-      if (currentLine) lines.push(currentLine);
-      
-      lines.forEach((line, index) => {
-        ctx.fillText(line, centerX, yOffset + (index * 45));
-      });
-      
-      yOffset += lines.length * 45 + 20;
-    }
-    
-    // Resetear sombra del texto
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    
-    // Línea decorativa elegante
-    ctx.strokeStyle = '#d4af37';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(centerX - 80, yOffset);
-    ctx.lineTo(centerX + 80, yOffset);
-    ctx.stroke();
-    yOffset += 35;
-    
-    // Artista y año con mejor formato
-    if (artwork.autor || artwork.artist) {
-      ctx.font = '28px "Crimson Text", "Georgia", serif';
-      ctx.fillStyle = '#2c3e50';
-      const artist = artwork.autor || artwork.artist;
-      const year = artwork.anio || artwork.year;
-      const artistText = year ? `${artist}, ${year}` : artist;
-      
-      // Dividir si es muy largo
-      const metrics = ctx.measureText(artistText);
-      if (metrics.width > maxWidth) {
-        ctx.fillText(artist, centerX, yOffset);
-        yOffset += 35;
-        if (year) {
-          ctx.font = '24px "Crimson Text", "Georgia", serif';
-          ctx.fillText(year.toString(), centerX, yOffset);
-          yOffset += 35;
-        }
-      } else {
-        ctx.fillText(artistText, centerX, yOffset);
-        yOffset += 40;
-      }
-    }
-    
-    // Técnica con mejor estilo
-    if (artwork.tecnica || artwork.technique) {
-      ctx.font = 'italic 22px "Crimson Text", "Georgia", serif';
-      ctx.fillStyle = '#7f8c8d';
-      const technique = artwork.tecnica || artwork.technique;
-      ctx.fillText(technique, centerX, yOffset);
-      yOffset += 45;
-    }
-    
-    // Descripción mejorada con mejor tipografía
-    if (artwork.descripcion && artwork.descripcion.length < 120) {
-      ctx.font = '16px "Open Sans", Arial, sans-serif';
-      ctx.fillStyle = '#34495e';
-      const words = artwork.descripcion.split(' ');
-      let line = '';
-      let lineHeight = 22;
-      const maxWidth = canvas.width - 80;
-      
-      for (let i = 0; i < words.length; i++) {
-        const testLine = line + words[i] + ' ';
-        const metrics = ctx.measureText(testLine);
-        const testWidth = metrics.width;
-        
-        if (testWidth > maxWidth && i > 0) {
-          ctx.fillText(line, canvas.width / 2, yOffset);
-          line = words[i] + ' ';
-          yOffset += lineHeight;
-          
-          // Limitar a 3 líneas máximo
-          if (yOffset > canvas.height - 60) break;
-        } else {
-          line = testLine;
-        }
-      }
-      
-      if (line.trim()) {
-        ctx.fillText(line, canvas.width / 2, yOffset);
-      }
-    }
-    
-  const texture = new THREE.CanvasTexture(canvas);
-    texture.needsUpdate = true;
-  texture.flipY = true; // Mantener orientación correcta del texto en la placa
-    texture.wrapS = THREE.ClampToEdgeWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
-    if (texture.colorSpace !== undefined) {
-      texture.colorSpace = THREE.SRGBColorSpace;
-    }
-    
-    return texture;
-  }, [
-    artwork?.titulo, 
-    artwork?.title, 
-    artwork?.autor, 
-    artwork?.artist, 
-    artwork?.anio, 
-    artwork?.year, 
-    artwork?.tecnica, 
-    artwork?.technique,
-    artwork?.descripcion
-  ]);
-
-  if (!artwork || !textTexture) return null;
-
-  return (
-    <group position={position}>
-      {/* Backplate sutil para separar del muro */}
-      <mesh position={[0, 0, -0.03]} castShadow>
-        <roundedPlaneGeometry args={[5.3, 3.0, 0.15]} />
-        <meshStandardMaterial 
-          color="#ececec"
-          roughness={0.25}
-          metalness={0.05}
-        />
-      </mesh>
-
-      {/* Placa metálica moderna */}
-      <mesh position={[0, 0, -0.015]} castShadow>
-        <roundedPlaneGeometry args={[5.0, 2.8, 0.12]} />
-        <meshStandardMaterial 
-          color="#f6f2e7"
-          roughness={0.35}
-          metalness={0.35}
-        />
-      </mesh>
-      
-      {/* Texto principal de la placa */}
-      <mesh position={[0, 0, -0.01]} castShadow>
-        <planeGeometry args={[4.7, 2.5]} />
-        <meshStandardMaterial 
-          map={textTexture}
-          transparent={false}
-          side={THREE.FrontSide}
-          roughness={0.5}
-          metalness={0.0}
-          toneMapped
-        />
-      </mesh>
-
-      {/* Luz sutil dedicada a la placa */}
-      <spotLight
-        position={[0, 0.6, 0.2]}
-        target-position={[0, 0, 0]}
-        intensity={0.6}
-        color="#fff6d5"
-        angle={Math.PI / 6}
-        penumbra={0.8}
-        distance={3}
-        decay={2}
-        castShadow={false}
-      />
-    </group>
-  );
-});
-
 const Artwork3D = React.memo(function Artwork3D({
   artwork,
-  width = 6, // Aumentado de 4 a 6
-  height = 4.5, // Aumentado de 3 a 4.5
-  showPlaque = true,
-  interactive = false,
-  plaqueDistance = 12 // Mostrar placa cuando la cámara esté a < 12m
+  width = 6,
+  height = 4.5,
+  interactive = false
 }) {
   const groupRef = useRef();
-  const frameCounter = useRef(0);
-  const plaqueVisibleRef = useRef(true);
-  const [plaqueVisible, setPlaqueVisible] = useState(true);
-  const [hovered, setHovered] = React.useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [aspect, setAspect] = useState(null); // ancho/alto real de la imagen
+  const [dims, setDims] = useState({ w: width, h: height });
+  const [focused, setFocused] = useState(false);
+  const { openModal } = useModal();
   const { camera } = useThree();
-  
-  const artworkType = artwork?.type || 'painting';
-  const frameStyle = artwork?.frameStyle || 'classic';
-  const frameMaterial = artwork?.frameMaterial || 'wood';
-  
-  // Efecto de hover + LOD de placa por distancia (con throttling)
+
+  // Actualizar dimensiones cuando se conoce aspecto
+  useEffect(() => {
+    if (!aspect) return;
+    const targetHeight = Math.min(Math.max(height, 4.5), 6.5); // permitir crecer hasta 6.5
+    let targetWidth = targetHeight * aspect;
+    const maxWidth = 10; // ampliar límite
+    const minWidth = 2.5;
+    if (targetWidth > maxWidth) targetWidth = maxWidth;
+    if (targetWidth < minWidth) targetWidth = minWidth;
+    setDims({ w: targetWidth, h: targetHeight });
+  }, [aspect, height]);
+
+  // Detección de foco (cámara mirando al cuadro)
   useFrame(() => {
-    if (groupRef.current && interactive) {
-      const targetScale = hovered ? 1.02 : 1.0;
-      groupRef.current.scale.lerp(
-        new THREE.Vector3(targetScale, targetScale, targetScale), 
-        0.1
-      );
-    }
     if (!groupRef.current) return;
-    // Reducir cálculos (cada ~6 frames)
-    frameCounter.current = (frameCounter.current + 1) % 6;
-    if (frameCounter.current !== 0) return;
+    // Escala hover
+    if (interactive) {
+      const targetScale = hovered ? 1.02 : 1.0;
+      groupRef.current.scale.lerp(new THREE.Vector3(targetScale,targetScale,targetScale), 0.1);
+    }
+    // Cálculo de foco
     const worldPos = new THREE.Vector3();
     groupRef.current.getWorldPosition(worldPos);
-    const dist = worldPos.distanceTo(camera.position);
-    const shouldShow = hovered || dist < plaqueDistance;
-    if (shouldShow !== plaqueVisibleRef.current) {
-      plaqueVisibleRef.current = shouldShow;
-      setPlaqueVisible(shouldShow);
-    }
+    const toArtwork = worldPos.clone().sub(camera.position).normalize();
+    const camDir = new THREE.Vector3();
+    camera.getWorldDirection(camDir);
+    const facing = camDir.dot(toArtwork); // 1 si exacto
+    const dist = camera.position.distanceTo(worldPos);
+    const isFocused = facing > 0.985 && dist < 40; // umbral ajustable
+    if (isFocused !== focused) setFocused(isFocused);
   });
 
   const handlePointerOver = () => interactive && setHovered(true);
   const handlePointerOut = () => interactive && setHovered(false);
+  const handleClick = () => {
+    if (artwork) openModal('artwork-modal', { artwork });
+  };
 
   return (
     <group 
       ref={groupRef}
+      scale={dims.w > width ? width / dims.w : 1}
+      position={[0, 0, 0]}
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
+      onClick={handleClick}
+      dispose={null}
     >
-      {/* Marco */}
-      <ArtworkFrame 
-        width={width}
-        height={height}
-        frameStyle={frameStyle}
-        material={frameMaterial}
-      />
-      
-      {/* Lienzo/obra */}
-      <ArtworkCanvas 
-        width={width}
-        height={height}
+      <ArtworkCanvas
+        width={dims.w}
+        height={dims.h}
         artwork={artwork}
-        artworkType={artworkType}
+        artworkType={artwork?.tipo || 'painting'}
+        onAspect={setAspect}
       />
-      
-  {/* Placa informativa con LOD por distancia */}
-  {showPlaque && plaqueVisible && (
-        <ArtworkPlaque 
-          artwork={artwork}
-          position={[0, -height/2 - 1.2, 0.1]} // Ajustada para obras más grandes
-        />
-      )}
-      
-      {/* Sombra del marco mejorada */}
-      <mesh position={[0, 0, -0.05]} receiveShadow>
-        <planeGeometry args={[width + 0.5, height + 0.5]} />
-        <shadowMaterial transparent opacity={0.2} />
-      </mesh>
-      
-      {/* Luz focal para la obra */}
+      <ArtworkFrame
+        width={dims.w}
+        height={dims.h}
+        depth={0.15}
+        frameWidth={0.15}
+        frameStyle={'classic'}
+        material={'wood'}
+        highlight={focused}
+      />
+      <spotLight position={[0, 0, 3]} target-position={[0, 0, 0]} intensity={0.55} angle={Math.PI / 6} penumbra={0.5} distance={10} decay={2} castShadow={false} color={focused || hovered ? '#fff8dd' : '#ffffff'} />
+      {/* Luz superior adicional tipo wash */}
       <spotLight
-        position={[0, 0, 3]}
+        position={[0, dims.h/2 + 1.2, 1.2]}
         target-position={[0, 0, 0]}
-        intensity={0.5}
-        angle={Math.PI / 6}
-        penumbra={0.5}
-        distance={10}
+        intensity={0.7}
+        angle={Math.PI / 5}
+        penumbra={0.6}
+        distance={12}
         decay={2}
+        color={focused || hovered ? '#ffe9b0' : '#f2f2f2'}
         castShadow={false}
       />
     </group>

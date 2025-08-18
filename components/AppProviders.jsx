@@ -223,6 +223,61 @@ export default function AppProviders({ children }) {
                           </div>
                         )}
                       </ModalWrapper>
+
+                      {/* Modal de obras */}
+                      <ModalWrapper
+                        modalName="artwork-modal"
+                        title="Obra"
+                        size="lg"
+                      >
+                        {(data) => {
+                          const art = data?.artwork;
+                          if (!art)
+                            return (
+                              <p className="text-center text-gray-500">Sin datos</p>
+                            );
+                          return (
+                            <div className="space-y-4">
+                              <div className="flex flex-col md:flex-row gap-6">
+                                <div className="flex-1 flex items-center justify-center bg-gray-50 p-4 rounded-lg">
+                                  <img
+                                    src={
+                                      art.imagenUrlWebp ||
+                                      art.url_imagen ||
+                                      art.imageUrl
+                                    }
+                                    alt={art.titulo || art.title || "Obra"}
+                                    className="max-h-96 object-contain rounded shadow"
+                                  />
+                                </div>
+                                <div className="flex-1 space-y-3">
+                                  <h2 className="text-2xl font-semibold text-gray-900">
+                                    {art.titulo || art.title}
+                                  </h2>
+                                  <p className="text-lg text-gray-700 font-medium">
+                                    {art.autor || art.artist}
+                                  </p>
+                                  {(art.anio || art.year) && (
+                                    <p className="text-sm text-gray-500">
+                                      {art.anio || art.year}
+                                    </p>
+                                  )}
+                                  {art.tecnica && (
+                                    <p className="text-sm text-gray-600 italic">
+                                      {art.tecnica}
+                                    </p>
+                                  )}
+                                  {art.descripcion && (
+                                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                      {art.descripcion}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }}
+                      </ModalWrapper>
                     </CollectionProvider>
                   </DeviceProvider>
                 </GalleryProvider>
