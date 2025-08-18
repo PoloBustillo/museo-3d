@@ -251,7 +251,7 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
     const G = (num >> 8 & 0x00FF) + amt;
     const B = (num & 0x0000FF) + amt;
     return "#" + (0x1000000 + (R < 255 ? R < 1 ? 0 : R : 255) * 0x10000 +
-      (G < 255 ? G < 1 ? 0 : G : 255) * 0x100 +
+      (G < 255 ? G < 1 ? 0 : G : 255) * 0.100 +
       (B < 255 ? B < 1 ? 0 : B : 255)).toString(16).slice(1);
   }
 
@@ -277,9 +277,9 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
 
 const Artwork3D = React.memo(function Artwork3D({
   artwork,
-  width = 6,
-  height = 4.5,
-  interactive = false
+  width = 12,
+  height = 8,
+  interactive = true
 }) {
   const groupRef = useRef();
   const [hovered, setHovered] = useState(false);
@@ -288,6 +288,9 @@ const Artwork3D = React.memo(function Artwork3D({
   const [focused, setFocused] = useState(false);
   const { openModal } = useModal();
   const { camera } = useThree();
+  const lampSpotRef = useRef(null);
+  const lampTargetRef = useRef(null);
+  const lampHeadRef = useRef(null);
 
   // Actualizar dimensiones cuando se conoce aspecto
   useEffect(() => {
@@ -320,6 +323,14 @@ const Artwork3D = React.memo(function Artwork3D({
     const isFocused = facing > 0.985 && dist < 40; // umbral ajustable
     if (isFocused !== focused) setFocused(isFocused);
   });
+
+  useEffect(() => {
+    if (lampSpotRef.current && lampTargetRef.current) {
+      lampSpotRef.current.target = lampTargetRef.current;
+      lampSpotRef.current.target.updateMatrixWorld();
+    }
+    // Ya no usamos orientación dinámica; la cabeza se rota manualmente para apuntar hacia abajo y atrás
+  }, [dims.h, dims.w]);
 
   const handlePointerOver = () => interactive && setHovered(true);
   const handlePointerOut = () => interactive && setHovered(false);
@@ -354,29 +365,64 @@ const Artwork3D = React.memo(function Artwork3D({
         material={'wood'}
         highlight={focused}
       />
-      <spotLight position={[0, 0, 3]} target-position={[0, 0, 0]} intensity={0.55} angle={Math.PI / 6} penumbra={0.5} distance={10} decay={2} castShadow={false} color={focused || hovered ? '#fff8dd' : '#ffffff'} />
-      {/* Luz superior adicional tipo wash */}
+      {/* Lámpara con brazo visible perpendicular a la pared */}
+      <group position={[0, dims.h/2 + 0.42, 0.0]}> {/* origen sobre el cuadro */}
+        {/* Placa de soporte contra la pared */}
+        <mesh position={[0,-0.15,0]}>
+          <boxGeometry args={[0.18,0.18,0.04]} />
+          <meshStandardMaterial color="#3f3f3f" metalness={0.45} roughness={0.55} />
+        </mesh>
+        {/* Brazo horizontal más largo (sale más hacia afuera) */}
+        <mesh position={[0,-0.15,0.425]} rotation={[Math.PI/2,0,0]}> {/* longitud 0.85 => centro 0.425 */}
+          <cylinderGeometry args={[0.02,0.02,0.85,18]} />
+          <meshStandardMaterial color="#505050" metalness={0.55} roughness={0.45} />
+        </mesh>
+        {/* Cabezal: rotado 180° respecto arriba (eje +Y -> -Z) y un poco inclinado hacia abajo */}
+        <mesh ref={lampHeadRef} position={[0,-0.07,0.85]} rotation={[Math.PI/2.3,0,0]}> {/* PI/2 apunta a -Z; /2.3 añade ligero down */}
+          <coneGeometry args={[0.18,0.28,24,1,true]} />
+          <meshStandardMaterial color="#5a5a5a" metalness={0.45} roughness={0.35} side={THREE.DoubleSide} />
+        </mesh>
+        {/* Bombilla ajustada cerca del borde interior del cabezal */}
+        <mesh position={[0,-0.065,0.80]}>
+          <sphereGeometry args={[0.06,24,24]} />
+          <meshStandardMaterial emissive={focused || hovered ? '#fff7d1' : '#e8dfc2'} emissiveIntensity={focused || hovered ? 2.15 : 1.2} color="#f8f4e8" />
+        </mesh>
+        {/* Spot apuntando hacia abajo y atrás al centro del canvas */}
+        <spotLight
+          ref={lampSpotRef}
+          position={[0,-0.065,0.80]}
+          angle={Math.PI/10}
+          penumbra={0.9}
+          intensity={focused || hovered ? 1.55 : 1.15}
+          distance={3.8}
+          decay={2}
+          color={focused || hovered ? '#ffe4b0' : '#f9f5e8'}
+          castShadow={false}
+        />
+        <mesh
+          ref={lampTargetRef}
+          position={[0, -(dims.h/2 + 0.42), 0.08]} /* centro del canvas algo hacia atrás (-Z) relativo al cabezal */
+          visible={false}
+        />
+      </group>
+      {/* Wash superior suave (ligeramente reducido) */}
       <spotLight
-        position={[0, dims.h/2 + 1.2, 1.2]}
-        target-position={[0, 0, 0]}
-        intensity={0.7}
+        position={[0, dims.h/2 + 1.15, 0.55]}
+        intensity={0.48}
         angle={Math.PI / 5}
         penumbra={0.6}
-        distance={12}
+        distance={7.5}
         decay={2}
-        color={focused || hovered ? '#ffe9b0' : '#f2f2f2'}
+        color={focused || hovered ? '#ffdca0' : '#f2f2f2'}
         castShadow={false}
       />
-      {/* Lámpara puntual focal (pequeña) simulando lámpara dirigida */}
-      <spotLight
-        position={[0, dims.h/2 + 0.6, 0.6]}
-        intensity={focused || hovered ? 1.15 : 0.85}
-        angle={Math.PI / 10}
-        penumbra={0.9}
-        distance={6}
+      {/* Luz de relleno frontal muy tenue */}
+      <pointLight
+        position={[0,0,1.05]}
+        intensity={focused || hovered ? 0.2 : 0.11}
+        distance={3.0}
         decay={2}
-        color={focused || hovered ? '#fff6d5' : '#f7f3e9'}
-        castShadow={false}
+        color={'#fff7e2'}
       />
     </group>
   );

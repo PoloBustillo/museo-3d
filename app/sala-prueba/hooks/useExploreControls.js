@@ -15,7 +15,7 @@ export function useExploreControls(active,{speed=14, damping=0.86, pitchLimit=Ma
   const velocity = useRef([0,0,0]);
   const yawRef = useRef(0);
   const pitchRef = useRef(0);
-  const rotating = useRef(false); // nuevo: true sólo mientras click derecho presionado
+  const rotating = useRef(false); // true mientras pointer lock activo (click derecho)
   const needInitAngles = useRef(true);
 
   useEffect(() => {
@@ -35,11 +35,25 @@ export function useExploreControls(active,{speed=14, damping=0.86, pitchLimit=Ma
     const preventContext = e => { e.preventDefault(); };
     const onMouseDown = e => {
       if (e.button === 2) { // right click
-        rotating.current = true;
+        if (document.pointerLockElement !== el) {
+          el.requestPointerLock?.();
+        }
       }
     };
     const onMouseUp = e => {
-      if (e.button === 2) rotating.current = false;
+      if (e.button === 2) {
+        if (document.pointerLockElement === el) {
+          document.exitPointerLock?.();
+        }
+      }
+    };
+    const onPointerLockChange = () => {
+      const locked = document.pointerLockElement === el;
+      rotating.current = locked; // activa/desactiva movimiento y rotación
+      if (!locked) {
+        // limpiar estado al salir
+        keys.current = Object.create(null);
+      }
     };
     const onMouseMove = e => {
       if (!rotating.current) return;
@@ -57,6 +71,7 @@ export function useExploreControls(active,{speed=14, damping=0.86, pitchLimit=Ma
     el.addEventListener('contextmenu', preventContext);
     el.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mouseup', onMouseUp);
+    document.addEventListener('pointerlockchange', onPointerLockChange);
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('keydown', keyDown);
     window.addEventListener('keyup', keyUp);
@@ -65,17 +80,19 @@ export function useExploreControls(active,{speed=14, damping=0.86, pitchLimit=Ma
       el.removeEventListener('contextmenu', preventContext);
       el.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('pointerlockchange', onPointerLockChange);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('keydown', keyDown);
       window.removeEventListener('keyup', keyUp);
       rotating.current = false;
+      if (document.pointerLockElement === el) document.exitPointerLock?.();
     };
   }, [active, gl, pitchLimit]);
 
   useFrame((_, delta) => {
     if (!active) return;
-    if (!rotating.current) return; // sólo mover y rotar mientras click derecho presionado
-    // Sprint ya soportado via Shift (multiplica velocidad)
+    if (!rotating.current) return; // sólo activo mientras pointer lock (click derecho mantenido)
+    // Sprint con Shift
     camera.rotation.order = 'YXZ';
     camera.rotation.y = yawRef.current;
     camera.rotation.x = pitchRef.current;
