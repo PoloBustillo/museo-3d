@@ -329,7 +329,17 @@ const Artwork3D = React.memo(function Artwork3D({
       lampSpotRef.current.target = lampTargetRef.current;
       lampSpotRef.current.target.updateMatrixWorld();
     }
-    // Ya no usamos orientación dinámica; la cabeza se rota manualmente para apuntar hacia abajo y atrás
+    // Re-orientar cabeza: apuntar el eje +Y del cono hacia el target (centro canvas) = giro efectivo de 180° respecto a orientación hacia afuera
+    if (lampHeadRef.current && lampTargetRef.current) {
+      const headPos = new THREE.Vector3();
+      const targetPos = new THREE.Vector3();
+      lampHeadRef.current.getWorldPosition(headPos);
+      lampTargetRef.current.getWorldPosition(targetPos);
+      const dir = targetPos.sub(headPos).normalize();
+      const from = new THREE.Vector3(0,1,0); // eje +Y geom del cono
+      const q = new THREE.Quaternion().setFromUnitVectors(from, dir);
+      lampHeadRef.current.quaternion.copy(q);
+    }
   }, [dims.h, dims.w]);
 
   const handlePointerOver = () => interactive && setHovered(true);
@@ -370,57 +380,77 @@ const Artwork3D = React.memo(function Artwork3D({
         {/* Placa de soporte contra la pared */}
         <mesh position={[0,-0.15,0]}>
           <boxGeometry args={[0.18,0.18,0.04]} />
-          <meshStandardMaterial color="#3f3f3f" metalness={0.45} roughness={0.55} />
+          <meshStandardMaterial color="#3f3f3f" metalness={0.5} roughness={0.5} />
         </mesh>
-        {/* Brazo horizontal más largo (sale más hacia afuera) */}
-        <mesh position={[0,-0.15,0.425]} rotation={[Math.PI/2,0,0]}> {/* longitud 0.85 => centro 0.425 */}
-          <cylinderGeometry args={[0.02,0.02,0.85,18]} />
-          <meshStandardMaterial color="#505050" metalness={0.55} roughness={0.45} />
+        {/* Brazo aún más largo para separar la lámpara y permitir ángulo pronunciado */}
+        <mesh position={[0,-0.15,0.62]} rotation={[Math.PI/2,0,0]}> {/* longitud 1.24 => centro 0.62 */}
+          <cylinderGeometry args={[0.022,0.022,1.24,20]} />
+          <meshStandardMaterial color="#525252" metalness={0.6} roughness={0.42} />
         </mesh>
-        {/* Cabezal: rotado 180° respecto arriba (eje +Y -> -Z) y un poco inclinado hacia abajo */}
-        <mesh ref={lampHeadRef} position={[0,-0.07,0.85]} rotation={[Math.PI/2.3,0,0]}> {/* PI/2 apunta a -Z; /2.3 añade ligero down */}
-          <coneGeometry args={[0.18,0.28,24,1,true]} />
-          <meshStandardMaterial color="#5a5a5a" metalness={0.45} roughness={0.35} side={THREE.DoubleSide} />
+        {/* Cabezal (orientación dinámica) */}
+        <mesh ref={lampHeadRef} position={[0,-0.075,1.24]}> {/* lookAt en effect => boca hacia la obra */}
+          <coneGeometry args={[0.2,0.32,26,1,true]} />
+          <meshStandardMaterial color="#5c5c5c" metalness={0.5} roughness={0.35} side={THREE.DoubleSide} />
         </mesh>
-        {/* Bombilla ajustada cerca del borde interior del cabezal */}
-        <mesh position={[0,-0.065,0.80]}>
-          <sphereGeometry args={[0.06,24,24]} />
-          <meshStandardMaterial emissive={focused || hovered ? '#fff7d1' : '#e8dfc2'} emissiveIntensity={focused || hovered ? 2.15 : 1.2} color="#f8f4e8" />
+        {/* Bombilla más brillante */}
+        <mesh position={[0,-0.07,1.18]}>
+          <sphereGeometry args={[0.065,26,26]} />
+          <meshStandardMaterial emissive={focused || hovered ? '#fff7bb' : '#f3e3b0'} emissiveIntensity={focused || hovered ? 4.2 : 2.6} color="#fff9e9" />
         </mesh>
-        {/* Spot apuntando hacia abajo y atrás al centro del canvas */}
+        {/* Spot principal MUY intensificado hacia la obra (haz más amplio) */}
         <spotLight
           ref={lampSpotRef}
-          position={[0,-0.065,0.80]}
-          angle={Math.PI/10}
-          penumbra={0.9}
-          intensity={focused || hovered ? 1.55 : 1.15}
-          distance={3.8}
+          position={[0,-0.07,1.18]}
+          angle={Math.PI/5.2} /* antes PI/12 => ahora mucho más amplio */
+          penumbra={0.95}
+          intensity={focused || hovered ? 4.2 : 2.8} /* bajamos un poco para compensar mayor área */
+          distance={6.5}
           decay={2}
-          color={focused || hovered ? '#ffe4b0' : '#f9f5e8'}
+          color={focused || hovered ? '#ffe1a3' : '#f7e6cc'}
           castShadow={false}
         />
+        {/* Target centrado canvas (ligeramente por delante del plano para evitar z-fighting) */}
         <mesh
           ref={lampTargetRef}
-          position={[0, -(dims.h/2 + 0.42), 0.08]} /* centro del canvas algo hacia atrás (-Z) relativo al cabezal */
+          position={[0, -(dims.h/2 + 0.42), 0.09]}
           visible={false}
         />
+        {/* Halo secundario más amplio para suavizar viñeteo en bordes */}
+        <spotLight
+          position={[0,-0.07,1.18]}
+          angle={Math.PI/3.2}
+          penumbra={1}
+          intensity={focused || hovered ? 1.2 : 0.85}
+          distance={5.0}
+          decay={2}
+          color={focused || hovered ? '#ffe6b8' : '#f9edd8'}
+          castShadow={false}
+        />
+        {/* Relleno difuso extra muy suave pegado al cuadro para levantar sombras sin lavar contrastes */}
+        <pointLight
+          position={[0,-0.12,0.45]} /* entre lámpara y superficie */
+          intensity={focused || hovered ? 0.55 : 0.38}
+          distance={2.2}
+          decay={2}
+          color={focused || hovered ? '#fff3d1' : '#f5ebd6'}
+        />
       </group>
-      {/* Wash superior suave (ligeramente reducido) */}
+      {/* Wash superior reducido aún más para no competir con la lámpara individual */}
       <spotLight
-        position={[0, dims.h/2 + 1.15, 0.55]}
-        intensity={0.48}
-        angle={Math.PI / 5}
-        penumbra={0.6}
-        distance={7.5}
+        position={[0, dims.h/2 + 1.1, 0.55]}
+        intensity={0.18}
+        angle={Math.PI / 5.2}
+        penumbra={0.5}
+        distance={5.5}
         decay={2}
-        color={focused || hovered ? '#ffdca0' : '#f2f2f2'}
+        color={focused || hovered ? '#ffd39a' : '#ececec'}
         castShadow={false}
       />
-      {/* Luz de relleno frontal muy tenue */}
+      {/* Relleno frontal muy tenue */}
       <pointLight
         position={[0,0,1.05]}
-        intensity={focused || hovered ? 0.2 : 0.11}
-        distance={3.0}
+        intensity={focused || hovered ? 0.16 : 0.09}
+        distance={2.6}
         decay={2}
         color={'#fff7e2'}
       />
