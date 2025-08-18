@@ -103,32 +103,40 @@ const ProfessionalCeilingLamp = React.memo(function ProfessionalCeilingLamp({
     [metalTexture, chromeTexture, reflectorTexture].forEach(tex => {
       tex.wrapS = THREE.RepeatWrapping;
       tex.wrapT = THREE.RepeatWrapping;
+      tex.generateMipmaps = false;
+      tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
       tex.needsUpdate = true;
     });
+    
+    // Forzar actualización inmediata
+    metalTexture.needsUpdate = true;
+    chromeTexture.needsUpdate = true;
+    reflectorTexture.needsUpdate = true;
 
     return {
       blackMetal: new THREE.MeshStandardMaterial({
-        color: '#2a2a2a',
-        metalness: 0.9,
-        roughness: 0.4,
+        color: '#404040',
+        metalness: 0.7,
+        roughness: 0.3,
         map: metalTexture,
         bumpMap: metalTexture,
-        bumpScale: 0.02,
+        bumpScale: 0.05,
         side: THREE.FrontSide
       }),
       chrome: new THREE.MeshStandardMaterial({
-        color: '#f0f0f0',
-        metalness: 0.95,
-        roughness: 0.08,
+        color: '#ffffff',
+        metalness: 0.85,
+        roughness: 0.1,
         map: chromeTexture,
         bumpMap: chromeTexture,
-        bumpScale: 0.01,
+        bumpScale: 0.02,
         side: THREE.FrontSide
       }),
       reflector: new THREE.MeshStandardMaterial({
         color: '#ffffff',
-        metalness: 0.9,
-        roughness: 0.18,
+        metalness: 0.6,
+        roughness: 0.2,
         map: reflectorTexture,
         roughnessMap: reflectorTexture,
         side: THREE.DoubleSide
@@ -136,7 +144,7 @@ const ProfessionalCeilingLamp = React.memo(function ProfessionalCeilingLamp({
       led: new THREE.MeshStandardMaterial({
         color: '#fff9e6',
         emissive: '#ffecd1',
-        emissiveIntensity: 1.1,
+        emissiveIntensity: 2.0,
         roughness: 0.7,
         side: THREE.DoubleSide
       })
@@ -167,7 +175,7 @@ const ProfessionalCeilingLamp = React.memo(function ProfessionalCeilingLamp({
       
       {/* Cuerpo principal con más detalle */}
       <mesh position={[0, -0.8 * size, 0]} material={materials.blackMetal}>
-        <cylinderGeometry args={[0.35 * size, 0.42 * size, 0.65 * size, 24]} />
+        <cylinderGeometry args={[0.35 * size, 0.42 * size, 0.65 * size, 24, 1, true]} />
       </mesh>
       
       {/* Anillo decorativo superior del cuerpo */}
@@ -182,12 +190,12 @@ const ProfessionalCeilingLamp = React.memo(function ProfessionalCeilingLamp({
       
       {/* Reflector interior principal */}
       <mesh position={[0, -0.95 * size, 0]} material={materials.reflector}>
-        <cylinderGeometry args={[0.32 * size, 0.37 * size, 0.12 * size, 32]} />
+        <cylinderGeometry args={[0.32 * size, 0.37 * size, 0.12 * size, 32, 1, true]} />
       </mesh>
       
       {/* Reflector interior secundario (anillos concentricos) */}
       <mesh position={[0, -0.89 * size, 0]} material={materials.reflector}>
-        <cylinderGeometry args={[0.28 * size, 0.33 * size, 0.05 * size, 32]} />
+        <cylinderGeometry args={[0.28 * size, 0.33 * size, 0.05 * size, 32, 1, true]} />
       </mesh>
       
       {/* LED central mejorado */}

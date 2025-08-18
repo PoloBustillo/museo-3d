@@ -2,6 +2,7 @@
 import React, { useRef, useMemo, useEffect } from 'react';
 import { Door } from './components/Door';
 import { CeilingLamps } from './components/CeilingLamps';
+import AnchorPoints from './components/AnchorPoints';
 import { useHallMaterials } from './hooks/useHallMaterials';
 import { useFrame } from '@react-three/fiber';
 import {
@@ -27,7 +28,13 @@ import {
   PRESENTATION_FLOAT_SPEED
 } from './sceneConfig';
 
-export default function SceneStructure({ rotate, exiting=false, exploring=false }) {
+export default function SceneStructure({ 
+  rotate, 
+  exiting=false, 
+  exploring=false, 
+  artworks = [],
+  debugAnchors = false 
+}) {
   const groupRef = useRef();
   const elapsedRef = useRef(0);
   const exitElapsedRef = useRef(0);
@@ -195,6 +202,12 @@ export default function SceneStructure({ rotate, exiting=false, exploring=false 
   <CeilingLamps 
     hallDimensions={{ width: HALL_WIDTH, height: HALL_HEIGHT, length: TOTAL_LENGTH }}
     exploring={exploring}
+  />
+  
+  {/* Sistema de puntos de anclaje y obras de arte */}
+  <AnchorPoints 
+    artworks={artworks}
+    debug={debugAnchors}
   />
     </group>
   );
