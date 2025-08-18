@@ -12,61 +12,202 @@ const ProfessionalCeilingLamp = React.memo(function ProfessionalCeilingLamp({
   distance = 30,
   size = 1.0
 }) {
-  // Materiales optimizados
-  const materials = useMemo(() => ({
-    blackMetal: new THREE.MeshStandardMaterial({
-      color: '#1a1a1a',
-      metalness: 0.9,
-      roughness: 0.3
-    }),
-    chrome: new THREE.MeshStandardMaterial({
-      color: '#e8e8e8',
-      metalness: 0.95,
-      roughness: 0.05
-    }),
-    reflector: new THREE.MeshStandardMaterial({
-      color: '#ffffff',
-      metalness: 0.95,
-      roughness: 0.02
-    }),
-    led: new THREE.MeshStandardMaterial({
-      color: '#fff5e6',
-      emissive: '#fff2e6',
-      emissiveIntensity: 0.2
-    })
-  }), []);
+  // Materiales con texturas procedurales avanzadas
+  const materials = useMemo(() => {
+    // Generador de textura procedural para metal
+    const createMetalTexture = (baseColor, size = 256, scratches = true) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      
+      // Base color
+      ctx.fillStyle = baseColor;
+      ctx.fillRect(0, 0, size, size);
+      
+      // Noise pattern
+      const imageData = ctx.getImageData(0, 0, size, size);
+      const data = imageData.data;
+      
+      for (let i = 0; i < data.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 30;
+        data[i] = Math.max(0, Math.min(255, data[i] + noise));     // R
+        data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise)); // G
+        data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise)); // B
+      }
+      
+      ctx.putImageData(imageData, 0, 0);
+      
+      // Scratches and wear
+      if (scratches) {
+        ctx.strokeStyle = 'rgba(200, 200, 200, 0.1)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 20; i++) {
+          ctx.beginPath();
+          ctx.moveTo(Math.random() * size, Math.random() * size);
+          ctx.lineTo(Math.random() * size, Math.random() * size);
+          ctx.stroke();
+        }
+      }
+      
+      return new THREE.CanvasTexture(canvas);
+    };
+
+    // Generador de textura para reflector
+    const createReflectorTexture = (size = 512) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      
+      // Base reflective surface
+      const gradient = ctx.createRadialGradient(size/2, size/2, 0, size/2, size/2, size/2);
+      gradient.addColorStop(0, '#ffffff');
+      gradient.addColorStop(0.7, '#f0f0f0');
+      gradient.addColorStop(1, '#e0e0e0');
+      
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+      
+      // Concentric circles for reflector pattern
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i < 8; i++) {
+        ctx.beginPath();
+        ctx.arc(size/2, size/2, (size/2) * (i/8), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      
+      // Subtle radial lines
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.03)';
+      for (let i = 0; i < 32; i++) {
+        const angle = (i / 32) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(size/2, size/2);
+        ctx.lineTo(
+          size/2 + Math.cos(angle) * size/2,
+          size/2 + Math.sin(angle) * size/2
+        );
+        ctx.stroke();
+      }
+      
+      return new THREE.CanvasTexture(canvas);
+    };
+
+    // Crear texturas
+    const metalTexture = createMetalTexture('#1a1a1a', 256, true);
+    const chromeTexture = createMetalTexture('#e8e8e8', 256, false);
+    const reflectorTexture = createReflectorTexture(512);
+    
+    // Configurar texturas
+    [metalTexture, chromeTexture, reflectorTexture].forEach(tex => {
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.needsUpdate = true;
+    });
+
+    return {
+      blackMetal: new THREE.MeshStandardMaterial({
+        color: '#2a2a2a',
+        metalness: 0.9,
+        roughness: 0.4,
+        map: metalTexture,
+        bumpMap: metalTexture,
+        bumpScale: 0.02,
+        side: THREE.FrontSide
+      }),
+      chrome: new THREE.MeshStandardMaterial({
+        color: '#f0f0f0',
+        metalness: 0.95,
+        roughness: 0.08,
+        map: chromeTexture,
+        bumpMap: chromeTexture,
+        bumpScale: 0.01,
+        side: THREE.FrontSide
+      }),
+      reflector: new THREE.MeshStandardMaterial({
+        color: '#ffffff',
+        metalness: 0.9,
+        roughness: 0.18,
+        map: reflectorTexture,
+        roughnessMap: reflectorTexture,
+        side: THREE.DoubleSide
+      }),
+      led: new THREE.MeshStandardMaterial({
+        color: '#fff9e6',
+        emissive: '#ffecd1',
+        emissiveIntensity: 1.1,
+        roughness: 0.7,
+        side: THREE.DoubleSide
+      })
+    };
+  }, []);
 
   return (
     <group position={position}>
-      {/* Soporte del techo */}
-      <mesh position={[0, 0.1, 0]}>
-        <boxGeometry args={[0.6 * size, 0.08 * size, 0.08 * size]} />
-        <primitive object={materials.blackMetal} />
+      {/* Soporte del techo mejorado */}
+      <mesh position={[0, 0.1, 0]} material={materials.blackMetal}>
+        <boxGeometry args={[0.8 * size, 0.1 * size, 0.1 * size]} />
       </mesh>
       
-      {/* Cable de suspensión */}
-      <mesh position={[0, -0.3 * size, 0]}>
-        <cylinderGeometry args={[0.015 * size, 0.015 * size, 0.6 * size, 8]} />
-        <primitive object={materials.chrome} />
+      {/* Detalle decorativo del soporte */}
+      <mesh position={[0, 0.05, 0]} material={materials.chrome}>
+        <cylinderGeometry args={[0.05 * size, 0.05 * size, 0.12 * size, 8]} />
       </mesh>
       
-      {/* Cuerpo principal */}
-      <mesh position={[0, -0.8 * size, 0]}>
-        <cylinderGeometry args={[0.35 * size, 0.4 * size, 0.6 * size, 16]} />
-        <primitive object={materials.blackMetal} />
+      {/* Cable de suspensión con más resolución */}
+      <mesh position={[0, -0.3 * size, 0]} material={materials.chrome}>
+        <cylinderGeometry args={[0.018 * size, 0.018 * size, 0.6 * size, 12]} />
       </mesh>
       
-      {/* Reflector interior */}
-      <mesh position={[0, -0.95 * size, 0]}>
-        <cylinderGeometry args={[0.32 * size, 0.37 * size, 0.1 * size, 16]} />
-        <primitive object={materials.reflector} />
+      {/* Conector superior */}
+      <mesh position={[0, -0.05 * size, 0]} material={materials.blackMetal}>
+        <cylinderGeometry args={[0.04 * size, 0.04 * size, 0.08 * size, 8]} />
       </mesh>
       
-      {/* LED central */}
-      <mesh position={[0, -0.9 * size, 0]}>
-        <cylinderGeometry args={[0.25 * size, 0.25 * size, 0.02 * size, 12]} />
-        <primitive object={materials.led} />
+      {/* Cuerpo principal con más detalle */}
+      <mesh position={[0, -0.8 * size, 0]} material={materials.blackMetal}>
+        <cylinderGeometry args={[0.35 * size, 0.42 * size, 0.65 * size, 24]} />
       </mesh>
+      
+      {/* Anillo decorativo superior del cuerpo */}
+      <mesh position={[0, -0.5 * size, 0]} material={materials.chrome}>
+        <cylinderGeometry args={[0.44 * size, 0.44 * size, 0.04 * size, 24]} />
+      </mesh>
+      
+      {/* Anillo decorativo inferior del cuerpo */}
+      <mesh position={[0, -1.1 * size, 0]} material={materials.chrome}>
+        <cylinderGeometry args={[0.36 * size, 0.36 * size, 0.03 * size, 24]} />
+      </mesh>
+      
+      {/* Reflector interior principal */}
+      <mesh position={[0, -0.95 * size, 0]} material={materials.reflector}>
+        <cylinderGeometry args={[0.32 * size, 0.37 * size, 0.12 * size, 32]} />
+      </mesh>
+      
+      {/* Reflector interior secundario (anillos concentricos) */}
+      <mesh position={[0, -0.89 * size, 0]} material={materials.reflector}>
+        <cylinderGeometry args={[0.28 * size, 0.33 * size, 0.05 * size, 32]} />
+      </mesh>
+      
+      {/* LED central mejorado */}
+      <mesh position={[0, -0.92 * size, 0]} material={materials.led}>
+        <cylinderGeometry args={[0.22 * size, 0.22 * size, 0.03 * size, 16]} />
+      </mesh>
+      
+      {/* LED anillo exterior */}
+      <mesh position={[0, -0.94 * size, 0]} material={materials.led}>
+        <ringGeometry args={[0.24 * size, 0.26 * size, 16]} />
+      </mesh>
+
+      {/* Luz sutil del LED para visibilidad interna */}
+      <pointLight
+        position={[0, -0.92 * size, 0]}
+        intensity={0.6}
+        distance={3.0}
+        color={color}
+        decay={2}
+      />
       
       {/* SpotLight principal direccionado hacia abajo */}
       <spotLight
