@@ -33,7 +33,8 @@ export default function SceneStructure({
   exiting=false, 
   exploring=false, 
   artworks = [],
-  debugAnchors = false 
+  debugAnchors = false,
+  debugDistribution = false 
 }) {
   const groupRef = useRef();
   const elapsedRef = useRef(0);
@@ -207,7 +208,7 @@ export default function SceneStructure({
   {/* Sistema de puntos de anclaje y obras de arte */}
   <AnchorPoints 
     artworks={artworks}
-    debug={debugAnchors}
+    debug={debugAnchors || debugDistribution}
   />
     </group>
   );

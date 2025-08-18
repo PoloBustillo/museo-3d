@@ -87,46 +87,79 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
     // Priorizar imagen real de la obra
     const imageUrl = artwork?.imagenUrlWebp || artwork?.url_imagen || artwork?.imageUrl;
     
+    console.log(`🖼️ Loading artwork: "${artwork?.titulo}" - URL: ${imageUrl}`);
+    
     if (imageUrl) {
       const loader = new THREE.TextureLoader();
       const texture = loader.load(
         imageUrl,
-        // onLoad
+        // onLoad - imagen cargada exitosamente
         (texture) => {
+          console.log(`✅ Image loaded successfully: "${artwork?.titulo}"`);
           texture.wrapS = THREE.ClampToEdgeWrapping;
           texture.wrapT = THREE.ClampToEdgeWrapping;
           texture.generateMipmaps = false;
           texture.minFilter = THREE.LinearFilter;
           texture.magFilter = THREE.LinearFilter;
+          texture.flipY = true; // Asegurar orientación correcta (no al revés)
         },
         // onProgress
-        undefined,
+        (progress) => {
+          if (progress.lengthComputable) {
+            const percent = (progress.loaded / progress.total) * 100;
+            console.log(`📊 Loading "${artwork?.titulo}": ${percent.toFixed(1)}%`);
+          }
+        },
         // onError - fallback to procedural
         (error) => {
-          console.warn('Failed to load artwork image:', imageUrl, error);
+          console.error(`❌ Failed to load image for "${artwork?.titulo}":`, imageUrl, error);
         }
       );
       
       return new THREE.MeshStandardMaterial({
         map: texture,
-        roughness: artworkType === 'photo' ? 0.1 : 0.7,
-        metalness: 0.0
+        roughness: artworkType === 'photo' ? 0.1 : 0.6,
+        metalness: 0.0,
+        transparent: false
       });
     }
     
-    // Fallback: Placeholder procedural con información de la obra
+    // Fallback: Placeholder procedural con información de la obra más visible
+    console.log(`🎨 Using fallback for "${artwork?.titulo}" - No image URL available`);
+    
     const canvas = document.createElement('canvas');
     canvas.width = 1024;
     canvas.height = Math.floor(1024 * (height / width));
     const ctx = canvas.getContext('2d');
     
-    // Color base más sofisticado
-    const baseColor = artwork?.color || '#f5f5f5';
+    // Color base más llamativo para indicar que es fallback
+    const baseColor = artwork?.color || '#e8f4f8';
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
     gradient.addColorStop(0, baseColor);
-    gradient.addColorStop(1, adjustBrightness(baseColor, -0.2));
+    gradient.addColorStop(1, adjustBrightness(baseColor, -0.3));
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Mensaje de "Imagen no disponible" más visible
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#2c3e50';
+    ctx.font = 'bold 48px Arial, sans-serif';
+    ctx.fillText('🖼️', canvas.width / 2, canvas.height / 2 - 100);
+    
+    ctx.font = 'bold 32px Arial, sans-serif';
+    ctx.fillText('IMAGEN NO DISPONIBLE', canvas.width / 2, canvas.height / 2 - 20);
+    
+    if (artwork?.titulo) {
+      ctx.font = '24px Arial, sans-serif';
+      ctx.fillStyle = '#34495e';
+      ctx.fillText(`"${artwork.titulo}"`, canvas.width / 2, canvas.height / 2 + 40);
+    }
+    
+    if (artwork?.autor) {
+      ctx.font = '20px Arial, sans-serif';
+      ctx.fillStyle = '#7f8c8d';
+      ctx.fillText(artwork.autor, canvas.width / 2, canvas.height / 2 + 80);
+    }
     
     // Patrón según tipo de obra
     if (artworkType === 'painting') {
@@ -242,92 +275,167 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
 
 const ArtworkPlaque = React.memo(function ArtworkPlaque({
   artwork,
-  position = [0, -2, 0.1]
+  position = [0, -2.8, 0.15] // Posición más cerca y hacia adelante para mejor visibilidad
 }) {
   const textTexture = useMemo(() => {
     if (!artwork) return null;
     
     const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 256;
+    canvas.width = 896; // Resolución aumentada para mejor calidad
+    canvas.height = 448;
     const ctx = canvas.getContext('2d');
     
-    // Fondo elegante de la placa
-    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    gradient.addColorStop(0, '#f8f8f8');
+    // Fondo con gradiente radial elegante
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, canvas.width / 2);
+    gradient.addColorStop(0, '#ffffff');
+    gradient.addColorStop(0.7, '#fafafa');
     gradient.addColorStop(1, '#f0f0f0');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Borde doble elegante
-    ctx.strokeStyle = '#d0d0d0';
+    // Marco exterior con sombra
+    ctx.shadowColor = 'rgba(0,0,0,0.15)';
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 4;
+    
+    // Marco principal
+    ctx.fillStyle = '#f8f8f8';
+    ctx.fillRect(8, 8, canvas.width - 16, canvas.height - 16);
+    
+    // Borde dorado fino
+    ctx.strokeStyle = '#d4af37';
     ctx.lineWidth = 3;
-    ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
-    ctx.strokeStyle = '#e8e8e8';
-    ctx.lineWidth = 1;
     ctx.strokeRect(12, 12, canvas.width - 24, canvas.height - 24);
     
-    // Configuración de texto
+    // Resetear sombra
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // Configuración de texto mejorada
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#2c3e50';
+    ctx.textBaseline = 'middle';
     
-    let yOffset = 50;
+    let yOffset = 85;
+    const maxWidth = canvas.width - 60;
     
-    // Título principal
+    // Título principal con mejor espaciado
     if (artwork.titulo || artwork.title) {
-      ctx.font = 'bold 28px Georgia, serif';
+      ctx.font = 'bold 38px "Playfair Display", "Times New Roman", serif';
+      ctx.fillStyle = '#1a1a1a';
       const title = artwork.titulo || artwork.title;
-      ctx.fillText(title, canvas.width / 2, yOffset);
-      yOffset += 40;
+      
+      // Efecto de relieve en el texto
+      ctx.shadowColor = 'rgba(255,255,255,0.8)';
+      ctx.shadowOffsetY = 1;
+      ctx.shadowBlur = 1;
+      
+      // Dividir título si es muy largo
+      const words = title.split(' ');
+      let lines = [];
+      let currentLine = '';
+      
+      for (let word of words) {
+        const testLine = currentLine + (currentLine ? ' ' : '') + word;
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      if (currentLine) lines.push(currentLine);
+      
+      lines.forEach((line, index) => {
+        ctx.fillText(line, centerX, yOffset + (index * 45));
+      });
+      
+      yOffset += lines.length * 45 + 20;
     }
     
-    // Artista y año
+    // Resetear sombra del texto
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    
+    // Línea decorativa elegante
+    ctx.strokeStyle = '#d4af37';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(centerX - 80, yOffset);
+    ctx.lineTo(centerX + 80, yOffset);
+    ctx.stroke();
+    yOffset += 35;
+    
+    // Artista y año con mejor formato
     if (artwork.autor || artwork.artist) {
-      ctx.font = '20px Georgia, serif';
-      ctx.fillStyle = '#34495e';
+      ctx.font = '28px "Crimson Text", "Georgia", serif';
+      ctx.fillStyle = '#2c3e50';
       const artist = artwork.autor || artwork.artist;
       const year = artwork.anio || artwork.year;
       const artistText = year ? `${artist}, ${year}` : artist;
-      ctx.fillText(artistText, canvas.width / 2, yOffset);
-      yOffset += 35;
+      
+      // Dividir si es muy largo
+      const metrics = ctx.measureText(artistText);
+      if (metrics.width > maxWidth) {
+        ctx.fillText(artist, centerX, yOffset);
+        yOffset += 35;
+        if (year) {
+          ctx.font = '24px "Crimson Text", "Georgia", serif';
+          ctx.fillText(year.toString(), centerX, yOffset);
+          yOffset += 35;
+        }
+      } else {
+        ctx.fillText(artistText, centerX, yOffset);
+        yOffset += 40;
+      }
     }
     
-    // Técnica
+    // Técnica con mejor estilo
     if (artwork.tecnica || artwork.technique) {
-      ctx.font = 'italic 16px Georgia, serif';
+      ctx.font = 'italic 22px "Crimson Text", "Georgia", serif';
       ctx.fillStyle = '#7f8c8d';
       const technique = artwork.tecnica || artwork.technique;
-      ctx.fillText(technique, canvas.width / 2, yOffset);
-      yOffset += 30;
+      ctx.fillText(technique, centerX, yOffset);
+      yOffset += 45;
     }
     
-    // Descripción (si existe y es corta)
-    if (artwork.descripcion && artwork.descripcion.length < 100) {
-      ctx.font = '14px Arial, sans-serif';
-      ctx.fillStyle = '#5d6d7e';
+    // Descripción mejorada con mejor tipografía
+    if (artwork.descripcion && artwork.descripcion.length < 120) {
+      ctx.font = '16px "Open Sans", Arial, sans-serif';
+      ctx.fillStyle = '#34495e';
       const words = artwork.descripcion.split(' ');
       let line = '';
-      let lineHeight = 18;
+      let lineHeight = 22;
+      const maxWidth = canvas.width - 80;
       
       for (let i = 0; i < words.length; i++) {
         const testLine = line + words[i] + ' ';
         const metrics = ctx.measureText(testLine);
         const testWidth = metrics.width;
         
-        if (testWidth > canvas.width - 40 && i > 0) {
+        if (testWidth > maxWidth && i > 0) {
           ctx.fillText(line, canvas.width / 2, yOffset);
           line = words[i] + ' ';
           yOffset += lineHeight;
+          
+          // Limitar a 3 líneas máximo
+          if (yOffset > canvas.height - 60) break;
         } else {
           line = testLine;
         }
       }
-      ctx.fillText(line, canvas.width / 2, yOffset);
+      
+      if (line.trim()) {
+        ctx.fillText(line, canvas.width / 2, yOffset);
+      }
     }
     
-    const texture = new THREE.CanvasTexture(canvas);
+  const texture = new THREE.CanvasTexture(canvas);
     texture.needsUpdate = true;
-    texture.flipY = false;
+  texture.flipY = true; // Mantener orientación correcta del texto en la placa
     texture.wrapS = THREE.ClampToEdgeWrapping;
     texture.wrapT = THREE.ClampToEdgeWrapping;
     
@@ -347,21 +455,48 @@ const ArtworkPlaque = React.memo(function ArtworkPlaque({
   if (!artwork || !textTexture) return null;
 
   return (
-    <mesh position={position} castShadow>
-      <planeGeometry args={[3, 1.5]} />
-      <meshStandardMaterial 
-        map={textTexture}
-        transparent={false}
-        side={THREE.FrontSide}
-      />
-    </mesh>
+    <group position={position}>
+      {/* Fondo de la placa con efecto de profundidad */}
+      <mesh position={[0, 0, -0.03]} castShadow>
+        <planeGeometry args={[5, 2.8]} />
+        <meshStandardMaterial 
+          color="#f8f8f8"
+          roughness={0.1}
+          metalness={0.05}
+          transparent
+          opacity={0.98}
+        />
+      </mesh>
+      
+      {/* Marco decorativo dorado */}
+      <mesh position={[0, 0, -0.02]}>
+        <ringGeometry args={[2.3, 2.45, 32]} />
+        <meshStandardMaterial 
+          color="#d4af37"
+          roughness={0.2}
+          metalness={0.8}
+        />
+      </mesh>
+      
+      {/* Texto principal de la placa */}
+      <mesh position={[0, 0, -0.01]} castShadow>
+        <planeGeometry args={[4.8, 2.6]} />
+        <meshStandardMaterial 
+          map={textTexture}
+          transparent={false}
+          side={THREE.FrontSide}
+          roughness={0.4}
+          metalness={0.0}
+        />
+      </mesh>
+    </group>
   );
 });
 
 const Artwork3D = React.memo(function Artwork3D({
   artwork,
-  width = 4,
-  height = 3,
+  width = 6, // Aumentado de 4 a 6
+  height = 4.5, // Aumentado de 3 a 4.5
   showPlaque = true,
   interactive = false
 }) {
@@ -412,14 +547,14 @@ const Artwork3D = React.memo(function Artwork3D({
       {showPlaque && (
         <ArtworkPlaque 
           artwork={artwork}
-          position={[0, -height/2 - 0.8, 0.1]}
+          position={[0, -height/2 - 1.2, 0.1]} // Ajustada para obras más grandes
         />
       )}
       
-      {/* Sombra del marco */}
-      <mesh position={[0, 0, -0.02]} receiveShadow>
-        <planeGeometry args={[width + 0.3, height + 0.3]} />
-        <shadowMaterial transparent opacity={0.3} />
+      {/* Sombra del marco mejorada */}
+      <mesh position={[0, 0, -0.05]} receiveShadow>
+        <planeGeometry args={[width + 0.5, height + 0.5]} />
+        <shadowMaterial transparent opacity={0.2} />
       </mesh>
       
       {/* Luz focal para la obra */}

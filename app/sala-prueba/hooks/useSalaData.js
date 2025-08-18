@@ -1,7 +1,7 @@
 /**
  * Hook para obtener datos reales de una sala específica
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 export function useSalaData(salaId = null) {
   const [sala, setSala] = useState(null);
@@ -20,31 +20,49 @@ export function useSalaData(salaId = null) {
   const fetchFirstAvailableSala = async () => {
     try {
       setLoading(true);
+      console.log('🔍 Buscando salas disponibles...');
       
       // Intentar obtener salas del API
       const response = await fetch('/api/salas');
       
       if (!response.ok) {
-        throw new Error('API no disponible');
+        throw new Error(`API error: ${response.status}`);
       }
       
       const data = await response.json();
+      console.log('📊 Respuesta API:', {
+        totalSalas: data.salas?.length || 0,
+        primeraSala: data.salas?.[0]?.nombre || 'N/A'
+      });
       
       if (data.salas && data.salas.length > 0) {
-        // Buscar sala con murales
-        const salaConMurales = data.salas.find(s => s._count?.murales > 0);
-        if (salaConMurales) {
-          setSala(salaConMurales);
-        } else {
-          // Usar primera sala disponible
-          setSala(data.salas[0]);
+        // Buscar específicamente la sala "Colección ARPA" (primera sala) 
+        const salaARPA = data.salas.find(s => s.nombre === "Colección ARPA" || s.id === 1);
+        if (salaARPA && salaARPA.murales && salaARPA.murales.length > 0) {
+          console.log('🏛️ ✅ Cargando sala ARPA:', salaARPA.nombre, 'con', salaARPA.murales?.length || 0, 'murales');
+          setSala(salaARPA);
+          return;
         }
+        
+        // Fallback: Buscar cualquier sala con murales
+        const salaConMurales = data.salas.find(s => s.murales && s.murales.length > 0);
+        if (salaConMurales) {
+          console.log('🏛️ ⚠️ Cargando sala fallback:', salaConMurales.nombre, 'con', salaConMurales.murales.length, 'murales');
+          setSala(salaConMurales);
+          return;
+        }
+        
+        // Si no hay murales, usar datos mock
+        console.log('⚠️ No hay salas con murales, usando datos mock');
+        setSala(getMockSalaData());
       } else {
         // Fallback a datos mock si no hay salas
+        console.log('⚠️ No hay salas disponibles, usando datos mock');
         setSala(getMockSalaData());
       }
     } catch (err) {
-      console.warn('Error fetching sala data, using mock data:', err);
+      console.error('❌ Error fetching sala data:', err);
+      console.log('🔄 Usando datos mock como fallback');
       setSala(getMockSalaData());
     } finally {
       setLoading(false);
@@ -72,32 +90,41 @@ export function useSalaData(salaId = null) {
   };
 
   // Convertir murales de la sala a formato compatible con anchor points
-  const getArtworksForAnchors = () => {
-    if (!sala || !sala.murales) return [];
-
-    return sala.murales.map((salaMural, index) => {
+    const convertMuralesToArtworks = (murales) => {
+    console.log('🔄 Convirtiendo murales a artworks:', murales.length, 'murales encontrados');
+    
+    return murales.map((salaMural, index) => {
       const mural = salaMural.mural;
-      return {
-        id: `mural-${mural.id}`,
-        // Usar posición del layout si existe, sino usar anchor points secuenciales
-        anchorId: salaMural.wallId || getSequentialAnchorId(index),
+      console.log(`📷 Procesando mural ${index + 1}:`, {
         titulo: mural.titulo,
-        artist: mural.autor,
         autor: mural.autor,
-        year: mural.anio,
+        url_imagen: mural.url_imagen,
+        imagenUrlWebp: mural.imagenUrlWebp
+      });
+      
+      const anchorId = getSequentialAnchorId(index);
+      
+      return {
+        id: mural.id,
+        titulo: mural.titulo,
+        title: mural.titulo,
+        autor: mural.autor,
+        artist: mural.autor,
         anio: mural.anio,
+        year: mural.anio,
         technique: mural.tecnica,
         tecnica: mural.tecnica,
         descripcion: mural.descripcion,
         imageUrl: mural.imagenUrlWebp || mural.url_imagen,
         imagenUrlWebp: mural.imagenUrlWebp,
         url_imagen: mural.url_imagen,
-        width: salaMural.scale ? 4 * salaMural.scale : 4,
-        height: salaMural.scale ? 3 * salaMural.scale : 3,
+        width: salaMural.scale ? Math.max(6 * salaMural.scale, 6) : 6, // Obras más grandes, mínimo 6
+        height: salaMural.scale ? Math.max(4.5 * salaMural.scale, 4.5) : 4.5, // Más altas, mínimo 4.5
         type: detectArtworkType(mural.tecnica),
         frameStyle: salaMural.frameStyle || 'classic',
         frameMaterial: 'wood',
         animated: false,
+        anchorId: anchorId, // ID del anchor asignado
         // Posición y rotación del layout
         position: salaMural.pos ? [salaMural.pos.x, salaMural.pos.y, salaMural.pos.z] : null,
         rotation: salaMural.rot ? [salaMural.rot.x, salaMural.rot.y, salaMural.rot.z] : null,
@@ -108,13 +135,26 @@ export function useSalaData(salaId = null) {
   };
 
   const getSequentialAnchorId = (index) => {
+    // DISTRIBUCIÓN SIMPLE Y ESPACIADA: Solo usar anchor points principales bien separados
+    // Empezar por sala trasera, luego sala frontal, evitando zona de divisores
     const anchorSequence = [
-      'right-0', 'right-2', 'right-4', 'right-6',
-      'left-0', 'left-2', 'left-4', 'left-6',
-      'back-1', 'back-3', 'back-5',
-      'front-left-0', 'front-right-0'
+      // PRIMERA SALA (frontal, cerca de la entrada)
+      'right-front-0', 'left-front-0',
+      'right-front-1', 'left-front-1',
+      'right-front-2', 'left-front-2',
+      // Paredes frontales (esquinas) si hacen falta
+      'front-far-left', 'front-far-right',
+      // SEGUNDA SALA (trasera)
+      'right-back-0', 'left-back-0',
+      'right-back-1', 'left-back-1',
+      'right-back-2', 'left-back-2',
+      // Pared del fondo
+      'back-0', 'back-1'
     ];
-    return anchorSequence[index % anchorSequence.length];
+    
+    const selectedAnchor = anchorSequence[index % anchorSequence.length];
+    console.log(`🎯 Obra ${index + 1}: Asignando anchor "${selectedAnchor}"`);
+    return selectedAnchor;
   };
 
   const detectArtworkType = (tecnica) => {
@@ -130,9 +170,20 @@ export function useSalaData(salaId = null) {
     return 'painting';
   };
 
+  // Convertir murales a artworks cuando la sala cambie
+  const artworks = useMemo(() => {
+    if (!sala || !sala.murales || sala.murales.length === 0) {
+      console.log('⚠️ No hay murales para convertir');
+      return [];
+    }
+    
+    console.log('🔄 Convirtiendo murales a artworks...');
+    return convertMuralesToArtworks(sala.murales);
+  }, [sala]);
+
   return {
     sala,
-    artworks: getArtworksForAnchors(),
+    artworks,
     loading,
     error,
     refresh: () => {

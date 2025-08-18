@@ -1,6 +1,17 @@
 /**
  * Configuración de puntos de anclaje para obras de arte
- * Distribuidos uniformemente en todas las paredes de la sala
+ * Distribuidos un// Generar puntos en pared trasera - solo 2 puntos bien separados
+const backWallAnchors = [];
+const backPositions = [-10, 10]; // Solo 2 posiciones: izquierda y derecha del centro
+
+backPositions.forEach((x, index) => {
+  backWallAnchors.push({
+    id: `back-${index}`,
+    position: [x, ARTWORK_HEIGHT, BACK_CENTER - HALF_HALL_D + 0.1],
+    normal: [0, 0, 1], // normal hacia el interior
+    wall: 'back'
+  });
+});en todas las paredes de la sala
  */
 import { 
   HALL_WIDTH, 
@@ -16,135 +27,100 @@ import {
 // Altura estándar para colocar obras (altura media)
 const ARTWORK_HEIGHT = HALL_HEIGHT * 0.4; // 4.8 unidades de altura
 
-// Separación entre puntos de anclaje
-const ANCHOR_SPACING = 6;
+// Separación entre puntos de anclaje - aumentada para evitar amontonamiento
+const ANCHOR_SPACING = 15; // Aumentado de 10 a 15 para mayor separación
 
-// Generar puntos en pared izquierda
+// Generar puntos en pared izquierda - evitando zona de divisores (Z ≈ 0)
 const leftWallAnchors = [];
-const leftWallCount = Math.floor(TOTAL_LENGTH / ANCHOR_SPACING);
-for (let i = 0; i < leftWallCount; i++) {
-  const z = -TOTAL_LENGTH/2 + (i + 0.5) * ANCHOR_SPACING;
-  leftWallAnchors.push({
-    id: `left-${i}`,
-    position: [-HALF_HALL_W + 0.1, ARTWORK_HEIGHT, z],
-    normal: [1, 0, 0], // normal hacia el interior
-    wall: 'left'
-  });
+
+// SALA TRASERA (Z negativo) - solo 3 puntos bien separados
+for (let i = 0; i < 3; i++) {
+  const z = BACK_CENTER - HALF_HALL_D + 5 + (i * ANCHOR_SPACING);
+  if (z < -10) { // Evitar acercarse a la zona divisoria
+    leftWallAnchors.push({
+      id: `left-back-${i}`,
+      position: [-HALF_HALL_W + 0.1, ARTWORK_HEIGHT, z],
+      normal: [1, 0, 0], // normal hacia el interior
+      wall: 'left-back'
+    });
+  }
 }
 
-// Generar puntos en pared derecha
+// SALA FRONTAL (Z positivo) - solo 3 puntos bien separados  
+for (let i = 0; i < 3; i++) {
+  const z = FRONT_CENTER - HALF_HALL_D + 5 + (i * ANCHOR_SPACING);
+  if (z > 10 && z < FRONT_CENTER + HALF_HALL_D - 5) { // Evitar zona divisoria y zona de entrada
+    leftWallAnchors.push({
+      id: `left-front-${i}`,
+      position: [-HALF_HALL_W + 0.1, ARTWORK_HEIGHT, z],
+      normal: [1, 0, 0], // normal hacia el interior
+      wall: 'left-front'
+    });
+  }
+}
+
+// Generar puntos en pared derecha - misma lógica que izquierda
 const rightWallAnchors = [];
-const rightWallCount = Math.floor(TOTAL_LENGTH / ANCHOR_SPACING);
-for (let i = 0; i < rightWallCount; i++) {
-  const z = -TOTAL_LENGTH/2 + (i + 0.5) * ANCHOR_SPACING;
-  rightWallAnchors.push({
-    id: `right-${i}`,
-    position: [HALF_HALL_W - 0.1, ARTWORK_HEIGHT, z],
-    normal: [-1, 0, 0], // normal hacia el interior
-    wall: 'right'
-  });
+
+// SALA TRASERA (Z negativo)
+for (let i = 0; i < 3; i++) {
+  const z = BACK_CENTER - HALF_HALL_D + 5 + (i * ANCHOR_SPACING);
+  if (z < -10) { // Evitar zona divisoria
+    rightWallAnchors.push({
+      id: `right-back-${i}`,
+      position: [HALF_HALL_W - 0.1, ARTWORK_HEIGHT, z],
+      normal: [-1, 0, 0], // normal hacia el interior
+      wall: 'right-back'
+    });
+  }
 }
 
-// Generar puntos en pared trasera (back wall)
+// SALA FRONTAL (Z positivo)
+for (let i = 0; i < 3; i++) {
+  const z = FRONT_CENTER - HALF_HALL_D + 5 + (i * ANCHOR_SPACING);
+  if (z > 10 && z < FRONT_CENTER + HALF_HALL_D - 5) { // Evitar zona divisoria y entrada
+    rightWallAnchors.push({
+      id: `right-front-${i}`,
+      position: [HALF_HALL_W - 0.1, ARTWORK_HEIGHT, z],
+      normal: [-1, 0, 0], // normal hacia el interior
+      wall: 'right-front'
+    });
+  }
+}
+
+// Generar puntos en pared trasera - solo 2 puntos bien separados
 const backWallAnchors = [];
-const backWallCount = Math.floor(HALL_WIDTH / ANCHOR_SPACING);
-for (let i = 0; i < backWallCount; i++) {
-  const x = -HALF_HALL_W + (i + 0.5) * ANCHOR_SPACING;
+const backPositions = [-10, 10]; // Solo 2 posiciones: izquierda y derecha del centro
+
+backPositions.forEach((x, index) => {
   backWallAnchors.push({
-    id: `back-${i}`,
+    id: `back-${index}`,
     position: [x, ARTWORK_HEIGHT, BACK_CENTER - HALF_HALL_D + 0.1],
     normal: [0, 0, 1], // normal hacia el interior
     wall: 'back'
   });
-}
+});
 
-// Generar puntos en las paredes frontales (evitando la entrada)
+// Generar puntos en las paredes frontales (solo algunas posiciones, lejos de la entrada)
 const frontWallAnchors = [];
-// Lado izquierdo de la entrada
-const frontLeftCount = Math.floor((HALL_WIDTH/2 - 5) / ANCHOR_SPACING); // evitar zona de entrada
-for (let i = 0; i < frontLeftCount; i++) {
-  const x = -HALF_HALL_W + (i + 0.5) * ANCHOR_SPACING;
-  if (x < -5) { // solo si está fuera de la zona de entrada
-    frontWallAnchors.push({
-      id: `front-left-${i}`,
-      position: [x, ARTWORK_HEIGHT, FRONT_CENTER + HALF_HALL_D - 0.1],
-      normal: [0, 0, -1],
-      wall: 'front-left'
-    });
-  }
-}
+// Solo en las esquinas, alejado de la zona central de entrada
+const frontPositions = [
+  { x: -HALF_HALL_W + 3, side: 'front-far-left' },
+  { x: HALF_HALL_W - 3, side: 'front-far-right' }
+];
 
-// Lado derecho de la entrada
-const frontRightCount = Math.floor((HALL_WIDTH/2 - 5) / ANCHOR_SPACING);
-for (let i = 0; i < frontRightCount; i++) {
-  const x = 5 + (i + 0.5) * ANCHOR_SPACING; // empezar después de la entrada
-  if (x < HALF_HALL_W) {
-    frontWallAnchors.push({
-      id: `front-right-${i}`,
-      position: [x, ARTWORK_HEIGHT, FRONT_CENTER + HALF_HALL_D - 0.1],
-      normal: [0, 0, -1],
-      wall: 'front-right'
-    });
-  }
-}
+frontPositions.forEach((pos, index) => {
+  frontWallAnchors.push({
+    id: `front-${pos.side}`,
+    position: [pos.x, ARTWORK_HEIGHT, FRONT_CENTER + HALF_HALL_D - 0.1],
+    normal: [0, 0, -1],
+    wall: pos.side
+  });
+});
 
-// Puntos en las paredes internas (separación entre salas)
+// Puntos en las paredes internas (separación entre salas) deshabilitados para evitar obras cerca de divisores
 const internalFrontAnchors = [];
 const internalBackAnchors = [];
-
-// Pared interna frontal (evitando apertura central)
-const internalFrontLeftCount = Math.floor((HALL_WIDTH/2 - 7) / ANCHOR_SPACING);
-for (let i = 0; i < internalFrontLeftCount; i++) {
-  const x = -HALF_HALL_W + (i + 0.5) * ANCHOR_SPACING;
-  if (x < -7) {
-    internalFrontAnchors.push({
-      id: `internal-front-left-${i}`,
-      position: [x, ARTWORK_HEIGHT, FRONT_CENTER - HALF_HALL_D + 0.1],
-      normal: [0, 0, 1],
-      wall: 'internal-front-left'
-    });
-  }
-}
-
-const internalFrontRightCount = Math.floor((HALL_WIDTH/2 - 7) / ANCHOR_SPACING);
-for (let i = 0; i < internalFrontRightCount; i++) {
-  const x = 7 + (i + 0.5) * ANCHOR_SPACING;
-  if (x < HALF_HALL_W) {
-    internalFrontAnchors.push({
-      id: `internal-front-right-${i}`,
-      position: [x, ARTWORK_HEIGHT, FRONT_CENTER - HALF_HALL_D + 0.1],
-      normal: [0, 0, 1],
-      wall: 'internal-front-right'
-    });
-  }
-}
-
-// Pared interna trasera (evitando apertura central)
-const internalBackLeftCount = Math.floor((HALL_WIDTH/2 - 7) / ANCHOR_SPACING);
-for (let i = 0; i < internalBackLeftCount; i++) {
-  const x = -HALF_HALL_W + (i + 0.5) * ANCHOR_SPACING;
-  if (x < -7) {
-    internalBackAnchors.push({
-      id: `internal-back-left-${i}`,
-      position: [x, ARTWORK_HEIGHT, BACK_CENTER + HALF_HALL_D - 0.1],
-      normal: [0, 0, -1],
-      wall: 'internal-back-left'
-    });
-  }
-}
-
-const internalBackRightCount = Math.floor((HALL_WIDTH/2 - 7) / ANCHOR_SPACING);
-for (let i = 0; i < internalBackRightCount; i++) {
-  const x = 7 + (i + 0.5) * ANCHOR_SPACING;
-  if (x < HALF_HALL_W) {
-    internalBackAnchors.push({
-      id: `internal-back-right-${i}`,
-      position: [x, ARTWORK_HEIGHT, BACK_CENTER + HALF_HALL_D - 0.1],
-      normal: [0, 0, -1],
-      wall: 'internal-back-right'
-    });
-  }
-}
 
 // Combinar todos los puntos de anclaje
 export const anchorPoints = [
