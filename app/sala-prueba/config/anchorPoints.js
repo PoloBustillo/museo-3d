@@ -123,6 +123,23 @@ const FRONT_DOOR_SAFE_Z = FRONT_Z_MAX - 4;
 const filteredRightFrontAnchors = rightFrontAnchors.filter(a => a.position[2] <= FRONT_DOOR_SAFE_Z);
 const filteredLeftFrontAnchors = leftFrontAnchors.filter(a => a.position[2] <= FRONT_DOOR_SAFE_Z);
 
+// PAREDES DIVISORIAS INTERNAS (permitidas para colocar obras)
+const FRONT_DIVIDER_Z = FRONT_CENTER - HALF_HALL_D; // ~ +25
+const BACK_DIVIDER_Z  = BACK_CENTER + HALF_HALL_D;  // ~ -25
+const DIVIDER_WALL_XS = [-HALF_HALL_W * 0.6, 0, HALF_HALL_W * 0.6];
+const dividerFrontAnchors = DIVIDER_WALL_XS.map((x,i)=>({
+  id: `divider-front-${i}`,
+  position: [x, ARTWORK_HEIGHT, FRONT_DIVIDER_Z + 0.01], // leve offset para evitar z-fighting
+  normal: [0,0,1],
+  wall: 'divider-front'
+}));
+const dividerBackAnchors = DIVIDER_WALL_XS.map((x,i)=>({
+  id: `divider-back-${i}`,
+  position: [x, ARTWORK_HEIGHT, BACK_DIVIDER_Z + 0.01],
+  normal: [0,0,1],
+  wall: 'divider-back'
+}));
+
 // Asegurar arrays internos definidos (actualmente no usados)
 const internalFrontAnchors = [];
 const internalBackAnchors = [];
@@ -131,8 +148,10 @@ const internalBackAnchors = [];
 let rawAnchorPoints = [
   ...filteredRightFrontAnchors,
   ...filteredLeftFrontAnchors,
+  ...dividerFrontAnchors,
   ...rightMidAnchors,
   ...leftMidAnchors,
+  ...dividerBackAnchors,
   ...rightBackAnchors,
   ...leftBackAnchors,
   ...backWallAnchors,
@@ -154,12 +173,13 @@ export const anchorStats = {
   byWall: {
     rightFront: filteredRightFrontAnchors.length,
     leftFront: filteredLeftFrontAnchors.length,
+    dividerFront: dividerFrontAnchors.length,
     rightMid: rightMidAnchors.length,
     leftMid: leftMidAnchors.length,
+    dividerBack: dividerBackAnchors.length,
     rightBack: rightBackAnchors.length,
     leftBack: leftBackAnchors.length,
     back: backWallAnchors.length,
-    // frontCorners removido
     internalFront: internalFrontAnchors.length,
     internalBack: internalBackAnchors.length
   },
@@ -169,7 +189,8 @@ export const anchorStats = {
     backZRange: [BACK_Z_BACK_WALL, BACK_Z_MIN],
     entranceMargin: ENTRANCE_MARGIN_Z,
     dividerMargin: DIVIDER_MARGIN_Z,
-    doorSafeZ: FRONT_DOOR_SAFE_Z
+    doorSafeZ: FRONT_DOOR_SAFE_Z,
+    dividerPlanes: { front: FRONT_DIVIDER_Z, back: BACK_DIVIDER_Z }
   },
   artworkHeight: ARTWORK_HEIGHT
 };
