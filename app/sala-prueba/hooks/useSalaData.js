@@ -3,6 +3,7 @@
  */
 import { useState, useEffect, useMemo } from 'react';
 import { anchorPoints } from '../config/anchorPoints';
+import { FRONT_CENTER, BACK_CENTER, HALF_HALL_D } from '../sceneConfig';
 
 const DEBUG_SALA = false; // poner true sólo para depurar
 
@@ -143,6 +144,26 @@ export function useSalaData(salaId = null) {
   function allocateAnchors(arts) {
     if (!arts || arts.length === 0) return [];
 
+    // Planos divisores (z) calculados automáticamente a partir de la geometría
+    const DIVIDER_PLANES = [
+      FRONT_CENTER - HALF_HALL_D, // ≈ +25
+      BACK_CENTER + HALF_HALL_D   // ≈ -25
+    ];
+    const DIVIDER_MARGIN = 0.6; // margen de seguridad alrededor del plano
+
+    // Función para verificar si una obra (por ancho proyectado) cruzaría un divisor al colocarse en un anchor
+    function crossesDivider(art, anchor) {
+      if (!anchor) return false;
+      // Sólo relevante para paredes laterales (right/left/front-mid/back-mid) donde la extensión horizontal de la obra se proyecta sobre Z
+      const wall = anchor.wall || '';
+      const lateral = wall.includes('right') || wall.includes('left');
+      if (!lateral) return false; // En pared trasera no cruza divisores por ancho (ancho va en X)
+      const halfSpanZ = (art.width || 6) * 0.5; // asumimos ancho se extiende a lo largo de Z en paredes laterales
+      const zMin = anchor.position[2] - halfSpanZ;
+      const zMax = anchor.position[2] + halfSpanZ;
+      return DIVIDER_PLANES.some(p => (zMin - DIVIDER_MARGIN) < p && (zMax + DIVIDER_MARGIN) > p);
+    }
+
     // --- PREPROCESO: ordenar copia por área (grandes primero) ---
     const sortedByArea = [...arts].sort((a,b)=> (b.width*b.height)-(a.width*a.height));
 
@@ -165,11 +186,9 @@ export function useSalaData(salaId = null) {
     const sortDescZ = arr=>arr.sort((a,b)=> b.position[2]-a.position[2]);
     const sortAscZ  = arr=>arr.sort((a,b)=> a.position[2]-b.position[2]);
     sortDescZ(sections.rf); sortDescZ(sections.lf);
-    // mid ocupa rango central: ordenar descendente para mantener coherencia de recorrido
     sortDescZ(sections.rm); sortDescZ(sections.lm);
     sortAscZ(sections.rb);  sortAscZ(sections.lb);
 
-    // Nueva ruta: derecha frente → izquierda frente → derecha mid → izquierda mid → derecha back → izquierda back → back wall → (esquinas frontales al final solo overflow)
     const pathOrdered = [
       ...sections.rf,
       ...sections.lf,
@@ -182,45 +201,42 @@ export function useSalaData(salaId = null) {
 
     if (pathOrdered.length === 0) return arts.map(a => ({ ...a, anchorId: null }));
 
-    // --- MUestreo equiespaciado para cubrir TODO el museo incluso con pocos cuadros ---
-    const targetCount = Math.min(sortedByArea.length, pathOrdered.length);
-    const chosenAnchors = [];
-    const usedIds = new Set();
-    for (let i=0; i<targetCount; i++) {
-      // Distribuir índices uniformemente 0 → last
-      const t = targetCount === 1 ? 0 : i/(targetCount-1);
+    // Selección base equiespaciada (sin considerar todavía cruce de divisor)
+    const maxSelectable = pathOrdered.length;
+    const baseCount = Math.min(sortedByArea.length, maxSelectable);
+    let baseChosen = [];
+    const provisionalUsed = new Set();
+    for (let i=0; i<baseCount; i++) {
+      const t = baseCount === 1 ? 0 : i/(baseCount-1);
       let idx = Math.round(t * (pathOrdered.length-1));
-      // Evitar duplicados desplazando a la derecha luego izquierda
-      let offset = 0;
-      while (usedIds.has(pathOrdered[idx]?.id) && offset < pathOrdered.length) {
-        idx = (idx + 1) % pathOrdered.length;
-        offset++;
-      }
-      if (!usedIds.has(pathOrdered[idx]?.id)) {
-        usedIds.add(pathOrdered[idx]);
-        chosenAnchors.push(pathOrdered[idx]);
+      let guard = 0;
+      while (provisionalUsed.has(pathOrdered[idx].id) && guard < pathOrdered.length) { idx = (idx+1)%pathOrdered.length; guard++; }
+      if (!provisionalUsed.has(pathOrdered[idx].id)) {
+        provisionalUsed.add(pathOrdered[idx].id);
+        baseChosen.push(pathOrdered[idx]);
       }
     }
-
-    // Si por alguna razón faltan anchors (colisiones), rellenar con cualquier disponible restante
-    if (chosenAnchors.length < targetCount) {
-      for (const a of pathOrdered) {
-        if (chosenAnchors.length === targetCount) break;
-        if (!usedIds.has(a.id)) { usedIds.add(a.id); chosenAnchors.push(a); }
-      }
+    // Relleno si faltan
+    if (baseChosen.length < baseCount) {
+      for (const a of pathOrdered) { if (baseChosen.length===baseCount) break; if (!provisionalUsed.has(a.id)) { provisionalUsed.add(a.id); baseChosen.push(a);} }
     }
 
-    // --- Asignar: piezas grandes reciben anchors más visibles (primeros de la ruta) ---
-    const assignments = [];
-    for (let i=0;i<sortedByArea.length;i++) {
-      const anchor = chosenAnchors[i % chosenAnchors.length];
-      assignments.push({ artwork: sortedByArea[i], anchorId: anchor ? anchor.id : null });
+    // Asignación final evitando cruces: para cada obra grande primero buscar anchor válido
+    const finalAssignments = [];
+    const taken = new Set();
+
+    for (const art of sortedByArea) {
+      // 1. Intentar dentro de baseChosen no usados y que no crucen
+      let candidate = baseChosen.find(a => !taken.has(a.id) && !crossesDivider(art, a));
+      // 2. Si ninguno, buscar en pathOrdered completo filtrando cruce
+      if (!candidate) candidate = pathOrdered.find(a => !taken.has(a.id) && !crossesDivider(art, a));
+      // 3. Último recurso: cualquier anchor libre (aunque cruce) para no dejar null (pero en teoría no debería pasar)
+      if (!candidate) candidate = pathOrdered.find(a => !taken.has(a.id));
+      if (candidate) taken.add(candidate.id);
+      finalAssignments.push({ artwork: art, anchorId: candidate ? candidate.id : null });
     }
 
-    // --- Espaciado adicional: bloquear anchors demasiado cercanos en mismas paredes (solo si sobran anchors) ---
-    // (Opcional rápido) si hay más cuadros que anchors elegidos no hacemos ajuste.
-    // Recuperar mapping id final para restaurar orden original de entrada.
-    const idMap = new Map(assignments.map(x => [x.artwork.id, x.anchorId]));
+    const idMap = new Map(finalAssignments.map(x => [x.artwork.id, x.anchorId]));
     return arts.map(a => ({ ...a, anchorId: idMap.get(a.id) || null }));
   }
 
