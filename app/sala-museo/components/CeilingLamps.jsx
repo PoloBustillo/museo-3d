@@ -1,51 +1,85 @@
 import React, { useRef, useEffect } from 'react';
 import * as THREE from 'three';
 
-const ProfessionalCeilingLamp = React.memo(function ProfessionalCeilingLamp({ position, intensity=6, color='#ffffff', distance=30, size=1, hallWidth=40, hallHeight=12 }){
+const ProfessionalCeilingLamp = React.memo(function ProfessionalCeilingLamp({ position, intensity=6, color='#ffffff', distance=30, size=1, hallWidth=40, hallHeight=12, beams='dual' }){
   const downRef = useRef();
-  const wallRefPrimary = useRef();
-  const wallRefSecondary = useRef();
-  const targetPrimary = useRef();
-  const targetSecondary = useRef();
-
-  const x = position[0];
-  const isCentral = Math.abs(x) < hallWidth * 0.15;
-  // Mid wall height target
-  const targetY = hallHeight * 0.45 - position[1]; // relative in local group space (group at lamp position)
-  // Distance from lamp to side walls
-  const leftWallX = -hallWidth/2 + 0.4;
-  const rightWallX = hallWidth/2 - 0.4;
-  const toLeft = leftWallX - x;
-  const toRight = rightWallX - x;
-
-  useEffect(()=>{
-    if (wallRefPrimary.current && targetPrimary.current){
-      wallRefPrimary.current.target = targetPrimary.current;
-      wallRefPrimary.current.target.updateMatrixWorld();
-    }
-    if (wallRefSecondary.current && targetSecondary.current){
-      wallRefSecondary.current.target = targetSecondary.current;
-      wallRefSecondary.current.target.updateMatrixWorld();
-    }
-  },[]);
-
+  const leftRef = useRef();
+  const rightRef = useRef();
+  const leftTarget = useRef();
+  const rightTarget = useRef();
+  const targetY = (hallHeight * 0.48 - position[1]);
+  const leftWallX = -hallWidth/2 + 0.6;
+  const rightWallX = hallWidth/2 - 0.6;
+  const toLeft = leftWallX - position[0];
+  const toRight = rightWallX - position[0];
+  useEffect(()=>{ if(beams!=='right' && leftRef.current && leftTarget.current){ leftRef.current.target=leftTarget.current; leftRef.current.target.updateMatrixWorld(); } if(beams!=='left' && rightRef.current && rightTarget.current){ rightRef.current.target=rightTarget.current; rightRef.current.target.updateMatrixWorld(); } },[beams]);
+  const beamFactor = beams==='dual'?1:1.18;
   return (
     <group position={position}>
-      <mesh position={[0,0.1,0]}><boxGeometry args={[0.8*size,0.1*size,0.1*size]} /><meshStandardMaterial color="#404040" metalness={0.7} roughness={0.3} /></mesh>
-      <mesh position={[0,-0.3*size,0]}><cylinderGeometry args={[0.018*size,0.018*size,0.6*size,12]} /><meshStandardMaterial color="#e8e8e8" metalness={0.85} roughness={0.3} /></mesh>
-      <mesh position={[0,-0.8*size,0]}><cylinderGeometry args={[0.35*size,0.42*size,0.65*size,24,1,true]} /><meshStandardMaterial color="#404040" metalness={0.7} roughness={0.3} side={THREE.FrontSide} /></mesh>
-      {/* Downward soft fill */}
-      <spotLight ref={downRef} position={[0,-1.05*size,0]} angle={Math.PI/3} intensity={intensity*0.35} color={color} distance={distance*0.9} penumbra={0.8} decay={1.4} />
-      {/* Primary wall wash */}
-      <spotLight ref={wallRefPrimary} position={[0,-1.05*size,0]} angle={Math.PI/6.2} intensity={intensity} color={color} distance={distance} penumbra={0.9} decay={1.6} />
-      <mesh ref={targetPrimary} position={[ (isCentral? toRight: (toRight<toLeft? toRight: toLeft))*0.92, targetY, 0 ]} visible={false} />
-      {isCentral && (
-        <>
-          <spotLight ref={wallRefSecondary} position={[0,-1.05*size,0]} angle={Math.PI/6.2} intensity={intensity*0.85} color={color} distance={distance} penumbra={0.9} decay={1.6} />
-          <mesh ref={targetSecondary} position={[ toLeft*0.92, targetY, 0 ]} visible={false} />
-        </>
-      )}
+      {/* Base plate */}
+      <mesh position={[0,0.05,0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.55*size,0.55*size,0.08*size,24]} />
+        <meshStandardMaterial color="#4a4a4a" metalness={0.6} roughness={0.35} />
+      </mesh>
+      {/* Rod */}
+      <mesh position={[0,-0.35*size,0]} castShadow>
+        <cylinderGeometry args={[0.06*size,0.06*size,0.7*size,20]} />
+        <meshStandardMaterial color="#d8d8d8" metalness={0.85} roughness={0.25} />
+      </mesh>
+      {/* Main housing (double shell) */}
+      <mesh position={[0,-0.9*size,0]} castShadow>
+        <cylinderGeometry args={[0.55*size,0.62*size,0.55*size,32,1,true]} />
+        <meshStandardMaterial color="#535353" metalness={0.65} roughness={0.4} side={THREE.DoubleSide} />
+      </mesh>
+      {/* Inner reflective bowl */}
+      <mesh position={[0,-0.9*size,0]} rotation={[Math.PI,0,0]}>
+        <cylinderGeometry args={[0.0,0.5*size,0.32*size,32,1,false]} />
+        <meshStandardMaterial color="#ffffff" metalness={0.15} roughness={0.15} emissive="#ffffff" emissiveIntensity={0.3} side={THREE.FrontSide} />
+      </mesh>
+      {/* Diffuser disc */}
+      <mesh position={[0,-1.05*size,0]}>
+        <circleGeometry args={[0.46*size, 40]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.55} transparent opacity={0.9} roughness={0.1} metalness={0.05} />
+      </mesh>
+      {/* Decorative ring */}
+      <mesh position={[0,-1.05*size,0]}>
+        <torusGeometry args={[0.47*size,0.03*size,12,32]} />
+        <meshStandardMaterial color="#606060" metalness={0.7} roughness={0.3} />
+      </mesh>
+      {/* Downward fill */}
+      <spotLight ref={downRef} position={[0,-1.07*size,0]} angle={Math.PI/3} intensity={intensity*0.27} color={color} distance={distance*0.7} penumbra={0.95} decay={1.25} castShadow={false} />
+      {/* Left wall wash */}
+      {beams!=='right' && <>
+        <spotLight ref={leftRef} position={[0,-1.07*size,0]} angle={Math.PI/7.2} intensity={intensity*0.95*beamFactor} color={color} distance={distance} penumbra={0.85} decay={1.35} castShadow={false} />
+        <mesh ref={leftTarget} position={[toLeft*0.94, targetY, 0]} visible={false} />
+      </>}
+      {/* Right wall wash */}
+      {beams!=='left' && <>
+        <spotLight ref={rightRef} position={[0,-1.07*size,0]} angle={Math.PI/7.2} intensity={intensity*0.95*beamFactor} color={color} distance={distance} penumbra={0.85} decay={1.35} castShadow={false} />
+        <mesh ref={rightTarget} position={[toRight*0.94, targetY, 0]} visible={false} />
+      </>}
     </group>
   );
 });
-export const CeilingLamps = React.memo(function CeilingLamps({ hallDimensions, exploring=false }){ const { width,height,length }=hallDimensions; const cfg=[ { position:[0,height-0.1,0], size:1.3, intensity: exploring?8:6 }, { position:[-width*0.35,height-0.15,length*0.3], size:1.1, intensity: exploring?7:5.5 }, { position:[ width*0.35,height-0.15,length*0.3], size:1.1, intensity: exploring?7:5.5 }, { position:[-width*0.25,height-0.2,-length*0.25], size:1.0, intensity: exploring?6.5:5 }, { position:[ width*0.25,height-0.2,-length*0.25], size:1.0, intensity: exploring?6.5:5 }, { position:[0,height-0.18,-length*0.35], size:0.9, intensity: exploring?6:4.5 } ]; return <group>{cfg.map((c,i)=><ProfessionalCeilingLamp key={i} {...c} color="#ffffff" distance={exploring?40:34} hallWidth={width} hallHeight={height} />)}</group>; });
+
+export const CeilingLamps = React.memo(function CeilingLamps({ hallDimensions, exploring=false }){ 
+  const { width,height,length }=hallDimensions; 
+  const spacing = 14; // mayor separación
+  const halfL = length/2 - 3;
+  const lamps = [];
+  let toggleSide = false;
+  for(let z=-halfL; z<=halfL; z+=spacing){
+    // Central dual-beam lamp
+    lamps.push({ position:[0,height-0.12,z], size:1.05, intensity: exploring?8.2:6.4, beams:'dual' });
+    // Mid segment side row (staggered)
+    const midZ = z + spacing/2;
+    if(midZ <= halfL){
+      toggleSide = !toggleSide;
+      // Two side lamps pointing inward (single beam each)
+      const sideOffset = width*0.26;
+      lamps.push({ position:[-sideOffset,height-0.18,midZ], size:0.9, intensity: exploring?7.2:5.6, beams:'right' });
+      lamps.push({ position:[ sideOffset,height-0.18,midZ], size:0.9, intensity: exploring?7.2:5.6, beams:'left' });
+    }
+  }
+  return <group>{lamps.map((c,i)=><ProfessionalCeilingLamp key={i} {...c} color="#ffffff" distance={exploring?46:38} hallWidth={width} hallHeight={height} />)}</group>; 
+});
