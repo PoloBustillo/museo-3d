@@ -84,23 +84,20 @@ const ProfessionalCeilingLamp = React.memo(function ProfessionalCeilingLamp({ po
 });
 
 export const CeilingLamps = React.memo(function CeilingLamps({ hallDimensions, exploring=false }){ 
-  const { width,height,length }=hallDimensions; 
-  const spacing = 14; // mayor separación
+  if(!exploring) return null; // ocultar en modo presentación
+  const { width,height,length }=hallDimensions;
+  const spacing = 18; // mayor separación (antes 14)
   const halfL = length/2 - 3;
   const lamps = [];
-  let toggleSide = false;
   for(let z=-halfL; z<=halfL; z+=spacing){
-    // Central dual-beam lamp
-    lamps.push({ position:[0,height-0.12,z], size:1.05, intensity: exploring?8.2:6.4, beams:'dual' });
-    // Mid segment side row (staggered)
-    const midZ = z + spacing/2;
-    if(midZ <= halfL){
-      toggleSide = !toggleSide;
-      // Two side lamps pointing inward (single beam each)
+    // Central dual-beam lamp (solo cada 18m)
+    lamps.push({ position:[0,height-0.12,z], size:1.05, intensity: 7.8, beams:'dual' });
+    // En alternancia, añadir pares laterales sólo cada dos pasos
+    if(Math.round((z+halfL)/spacing) % 2 === 0){
       const sideOffset = width*0.26;
-      lamps.push({ position:[-sideOffset,height-0.18,midZ], size:0.9, intensity: exploring?7.2:5.6, beams:'right' });
-      lamps.push({ position:[ sideOffset,height-0.18,midZ], size:0.9, intensity: exploring?7.2:5.6, beams:'left' });
+      lamps.push({ position:[-sideOffset,height-0.18,z+spacing/2], size:0.9, intensity: 6.8, beams:'right' });
+      lamps.push({ position:[ sideOffset,height-0.18,z+spacing/2], size:0.9, intensity: 6.8, beams:'left' });
     }
   }
-  return <group>{lamps.map((c,i)=><ProfessionalCeilingLamp key={i} {...c} color="#ffffff" distance={exploring?46:38} hallWidth={width} hallHeight={height} />)}</group>; 
+  return <group>{lamps.map((c,i)=><ProfessionalCeilingLamp key={i} {...c} color="#ffffff" distance={42} hallWidth={width} hallHeight={height} />)}</group>; 
 });

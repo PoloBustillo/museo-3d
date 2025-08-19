@@ -55,31 +55,29 @@ const Artwork3D=React.memo(function Artwork3D({ artwork, width=12, height=8, int
     </group>
     {/* Floor spotlight redesigned */}
     <group position={[0,-4.8,1.8]}>
-      <mesh position={[0,0.03,0]} castShadow>
-        <cylinderGeometry args={[0.34,0.34,0.06,32]} />
-        <meshStandardMaterial color="#1f1f1f" metalness={0.65} roughness={0.45} />
+      {/* Low-profile floor washer (no pole) */}
+      <mesh position={[0,0.035,0]} castShadow>
+        <cylinderGeometry args={[0.42,0.42,0.07,36]} />
+        <meshStandardMaterial color="#222222" metalness={0.6} roughness={0.5} />
       </mesh>
-      <mesh position={[0,1.55,0]} castShadow>
-        <cylinderGeometry args={[0.055,0.055,3.1,28]} />
-        <meshStandardMaterial color="#303030" metalness={0.7} roughness={0.35} />
-      </mesh>
-      <group position={[0,3.05,0]} rotation={[-Math.PI/4,0,0]}>
+      {/* Tilting housing */}
+      <group position={[0,0.12,0]} rotation={[-Math.PI/6,0,0]}>
         <mesh castShadow>
-          <cylinderGeometry args={[0.3,0.36,0.5,32,1,true]} />
-          <meshStandardMaterial color="#414141" metalness={0.65} roughness={0.38} side={THREE.DoubleSide} />
+          <cylinderGeometry args={[0.34,0.38,0.30,32,1,true]} />
+          <meshStandardMaterial color="#3a3a3a" metalness={0.55} roughness={0.38} side={THREE.DoubleSide} />
         </mesh>
-        <mesh position={[0,0,0.14]}>
-          <circleGeometry args={[0.26,40]} />
-          <meshStandardMaterial color="#ffffff" emissive="#ffc674" emissiveIntensity={0.55} roughness={0.25} metalness={0.12} />
+        <mesh position={[0,0,0.10]}>
+          <circleGeometry args={[0.30,40]} />
+          <meshStandardMaterial color="#ffffff" emissive="#ffc674" emissiveIntensity={0.6} roughness={0.22} metalness={0.12} />
         </mesh>
       </group>
-      <mesh ref={floorBulbRef} position={[0,2.9,0.1]}>
-        <sphereGeometry args={[0.1,32,32]} />
-        <meshStandardMaterial emissive={'#ffac33'} emissiveIntensity={3.2} color="#ffb347" />
+      <mesh ref={floorBulbRef} position={[0,0.14,0.04]}>
+        <sphereGeometry args={[0.09,32,32]} />
+        <meshStandardMaterial emissive={'#ffac33'} emissiveIntensity={2.8} color="#ffb347" />
       </mesh>
-      <spotLight ref={floorSpotMainRef} position={[0,2.9,0.1]} angle={Math.PI/7} penumbra={0.72} intensity={8.5} distance={15} decay={1.8} color={'#ff9d2d'} castShadow={false} />
-      <spotLight ref={floorHaloRef} position={[0,2.9,0.1]} angle={Math.PI/3.5} penumbra={1} intensity={2.9} distance={10} decay={2} color={'#ffb85c'} castShadow={false} />
-      <pointLight ref={floorFillRef} position={[0,2.5,0]} intensity={0.85} distance={6} decay={2} color={'#ffac33'} />
+      <spotLight ref={floorSpotMainRef} position={[0,0.14,0.06]} angle={Math.PI/6.8} penumbra={0.75} intensity={7.5} distance={13} decay={1.7} color={'#ff9d2d'} castShadow={false} />
+      <spotLight ref={floorHaloRef} position={[0,0.14,0.06]} angle={Math.PI/3.2} penumbra={1} intensity={2.4} distance={9} decay={1.9} color={'#ffb85c'} castShadow={false} />
+      <pointLight ref={floorFillRef} position={[0,0.09,0]} intensity={0.7} distance={5.5} decay={2} color={'#ffac33'} />
     </group>
   </group> ); });
 export default Artwork3D;
