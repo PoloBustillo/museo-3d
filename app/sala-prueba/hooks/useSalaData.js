@@ -229,7 +229,8 @@ export function useSalaData(salaId = null, options = {}) {
       });
       if (!response.ok) throw new Error(`Sala ${id} no encontrada`);
       const data = await response.json();
-      setSala(data);
+      const salaData = data.sala || data; // soportar ambas formas
+      setSala(salaData);
     } catch (err) {
       if (err.name === "AbortError") return; // fetch cancelada
       console.error("❌ Error fetching sala by ID:", err);
@@ -262,7 +263,8 @@ export function useSalaData(salaId = null, options = {}) {
     if (!sala?.murales?.length) return [];
     const start = DEBUG_ALLOC ? performance.now() : 0;
     const converted = sala.murales.map((salaMural) => {
-      const mural = salaMural.mural;
+      const mural = salaMural.mural || salaMural; // soportar items planos
+      if (!mural) return null;
       const scale = salaMural.scale || 1;
       const widthBase = 6; // baseline
       const heightBase = 4.5;
@@ -296,7 +298,7 @@ export function useSalaData(salaId = null, options = {}) {
         scale,
         spotlightIntensity: salaMural.spotlightIntensity || 1,
       };
-    });
+    }).filter(Boolean);
     if (DEBUG_ALLOC)
       console.log(
         `🧪 convertMuralesToArtworks: ${(performance.now() - start).toFixed(2)}ms`

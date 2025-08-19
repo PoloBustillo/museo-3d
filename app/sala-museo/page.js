@@ -1,5 +1,6 @@
 "use client";
-import SalaPruebaPage from '../sala-prueba/page';
+import { redirect } from 'next/navigation';
 export default function SalaMuseoPage(){
-  return <SalaPruebaPage />;
+  redirect('/museo');
+  return null;
 }

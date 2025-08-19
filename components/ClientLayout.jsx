@@ -34,7 +34,7 @@ const LayoutContainer = ({ children }) => {
   
   // No mostrar navbar en páginas de sala ni en sala de prueba 3D
   const isSalaPage = pathname.includes('/museo/sala/');
-  const isSalaPrueba = pathname === '/sala-prueba';
+  const isSalaPrueba = false; // ruta eliminada
   const isSalaMuseo = pathname === '/sala-museo' || pathname.startsWith('/sala-museo/');
   const showNavbar = !(isSalaPage || isSalaPrueba || isSalaMuseo);
 
@@ -67,7 +67,7 @@ const LayoutContainer = ({ children }) => {
           <MainMenu />
         </header>
       )}
-  <main className={`flex-1 ${pathname.includes('/ar') || isSalaPage || isSalaPrueba || isSalaMuseo ? '' : 'pt-22 md:pt-24'}`}>
+  <main className={`flex-1 ${pathname.includes('/ar') || isSalaPage || isSalaMuseo ? '' : 'pt-22 md:pt-24'}`}>
         {children}
         {useFixedFooter && (
           <div
