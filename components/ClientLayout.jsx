@@ -60,7 +60,7 @@ const LayoutContainer = ({ children }) => {
 
   return (
     <div className="bg-white dark:bg-black text-black dark:text-white flex flex-col min-h-screen transition-colors duration-300">
-      <MouseTrail />
+  {!(isSalaPage || isSalaPrueba) && <MouseTrail />}
       {showNavbar && (
         <header className="sticky top-0 z-[60]">
           <MainMenu />

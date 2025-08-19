@@ -4,14 +4,19 @@
 
 import * as Sentry from "@sentry/nextjs";
 
+// Gate Replay to avoid feature-flag timeout noise unless explicitly enabled
+const integrations: any[] = [
+  Sentry.browserTracingIntegration(),
+];
+if (process.env.NEXT_PUBLIC_SENTRY_REPLAY === 'on') {
+  integrations.push(Sentry.replayIntegration());
+}
+
 Sentry.init({
   dsn: "https://4f04ee5774499318d4fa964d064482f1@o4509636939218944.ingest.us.sentry.io/4509636940529664",
 
   // Add optional integrations for additional features
-  integrations: [
-    Sentry.browserTracingIntegration(),
-    Sentry.replayIntegration(),
-  ],
+  integrations,
 
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
   tracesSampleRate: 1,
@@ -19,10 +24,10 @@ Sentry.init({
   // Define how likely Replay events are sampled.
   // This sets the sample rate to be 10%. You may want this to be 100% while
   // in development and sample at a lower rate in production
-  replaysSessionSampleRate: 0.1,
+  replaysSessionSampleRate: process.env.NEXT_PUBLIC_SENTRY_REPLAY === 'on' ? 0.1 : 0,
 
   // Define how likely Replay events are sampled when an error occurs.
-  replaysOnErrorSampleRate: 1.0,
+  replaysOnErrorSampleRate: process.env.NEXT_PUBLIC_SENTRY_REPLAY === 'on' ? 1.0 : 0,
 
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,

@@ -83,10 +83,11 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
   onAspect = ()=>{}
 }) {
   const canvasRef = useRef();
+  // URL de imagen real priorizada (si existe)
+  const imageUrl = artwork?.imagenUrlWebp || artwork?.url_imagen || artwork?.imageUrl;
   
   const artworkMaterial = useMemo(() => {
     // Priorizar imagen real de la obra
-    const imageUrl = artwork?.imagenUrlWebp || artwork?.url_imagen || artwork?.imageUrl;
     if (imageUrl) {
       let texture = textureCache.get(imageUrl);
       if (!texture) {
@@ -109,11 +110,6 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
             textureCache.set(imageUrl, tx);
           }
         );
-      } else {
-        // Ya en caché: emitir aspecto si disponible
-        if (texture.image && texture.image.width && texture.image.height) {
-          onAspect(texture.image.width / texture.image.height);
-        }
       }
       
       return new THREE.MeshStandardMaterial({
@@ -241,7 +237,16 @@ const ArtworkCanvas = React.memo(function ArtworkCanvas({
       roughness: artworkType === 'photo' ? 0.1 : 0.7,
       metalness: 0.0
     });
-  }, [artwork, artworkType, width, height, onAspect]);
+  }, [imageUrl, artworkType, width, height, onAspect]);
+
+  // Si la textura ya estaba en caché, emite el aspecto después del render (evita setState durante render)
+  useEffect(() => {
+    if (!imageUrl) return;
+    const tx = textureCache.get(imageUrl);
+    if (tx && tx.image && tx.image.width && tx.image.height) {
+      onAspect(tx.image.width / tx.image.height);
+    }
+  }, [imageUrl, onAspect]);
 
   // Función helper para ajustar brillo
   function adjustBrightness(color, amount) {
@@ -291,6 +296,27 @@ const Artwork3D = React.memo(function Artwork3D({
   const lampSpotRef = useRef(null);
   const lampTargetRef = useRef(null);
   const lampHeadRef = useRef(null);
+  const lampHaloRef = useRef(null);
+  const lampFillRef = useRef(null);
+  const topWashRef = useRef(null);
+  const frontFillRef = useRef(null);
+  const floorSpotMainRef = useRef(null);
+  const floorHaloRef = useRef(null);
+  const floorFillRef = useRef(null);
+  const wallBulbRef = useRef(null);
+  const floorBulbRef = useRef(null);
+  const focusedRef = useRef(false);
+  const distRef = useRef(999);
+  // Reusar vectores temporales para evitar GC por frame
+  const tmpWorldPosRef = useRef(new THREE.Vector3());
+  const tmpToArtworkRef = useRef(new THREE.Vector3());
+  const tmpCamDirRef = useRef(new THREE.Vector3());
+  // Colores cálidos memorizados (no recrear por frame)
+  const warmStrong = useMemo(() => new THREE.Color('#ffaa44'), []);
+  const warmSoft = useMemo(() => new THREE.Color('#ff8c00'), []);
+  const warmStrong2 = useMemo(() => new THREE.Color('#ffb347'), []);
+  const warmSoft2 = useMemo(() => new THREE.Color('#ff9500'), []);
+  const tmpScaleRef = useRef(new THREE.Vector3(1,1,1));
 
   // Actualizar dimensiones cuando se conoce aspecto
   useEffect(() => {
@@ -304,25 +330,120 @@ const Artwork3D = React.memo(function Artwork3D({
     setDims({ w: targetWidth, h: targetHeight });
   }, [aspect, height]);
 
-  // Detección de foco (cámara mirando al cuadro)
+  // Animación por frame (sin setState): escala hover, luces y LOD por refs
   useFrame(() => {
     if (!groupRef.current) return;
-    // Escala hover
+    // Escala hover sutil
     if (interactive) {
       const targetScale = hovered ? 1.02 : 1.0;
-      groupRef.current.scale.lerp(new THREE.Vector3(targetScale,targetScale,targetScale), 0.1);
+  tmpScaleRef.current.set(targetScale, targetScale, targetScale);
+  groupRef.current.scale.lerp(tmpScaleRef.current, 0.15);
     }
-    // Cálculo de foco
-    const worldPos = new THREE.Vector3();
-    groupRef.current.getWorldPosition(worldPos);
-    const toArtwork = worldPos.clone().sub(camera.position).normalize();
-    const camDir = new THREE.Vector3();
-    camera.getWorldDirection(camDir);
-    const facing = camDir.dot(toArtwork); // 1 si exacto
-    const dist = camera.position.distanceTo(worldPos);
-    const isFocused = facing > 0.985 && dist < 40; // umbral ajustable
-    if (isFocused !== focused) setFocused(isFocused);
+    // Usar flags precalculados (intervalo) para reducir costo por frame
+    // Target según foco o hover
+    const active = (focusedRef.current || hovered) ? 1 : 0;
+
+    // Luces de pared (solo activas si hay foco/hover)
+    if (lampSpotRef.current) {
+      lampSpotRef.current.visible = !!active;
+      if (active) {
+        const cur = lampSpotRef.current.intensity;
+        const tgt = 6.8;
+        lampSpotRef.current.intensity = THREE.MathUtils.lerp(cur, tgt, 0.12);
+      }
+    }
+    if (lampHaloRef.current) {
+      lampHaloRef.current.visible = !!active;
+      if (active) {
+        const cur = lampHaloRef.current.intensity;
+        const tgt = 2.0;
+        lampHaloRef.current.intensity = THREE.MathUtils.lerp(cur, tgt, 0.12);
+      }
+    }
+    if (lampFillRef.current) {
+      lampFillRef.current.visible = !!active;
+      if (active) {
+        const cur = lampFillRef.current.intensity;
+        const tgt = 0.9;
+        lampFillRef.current.intensity = THREE.MathUtils.lerp(cur, tgt, 0.12);
+      }
+    }
+    if (topWashRef.current) {
+      topWashRef.current.visible = !!active;
+    }
+    if (frontFillRef.current) {
+      frontFillRef.current.visible = !!active;
+    }
+
+    // Luces de piso
+    if (floorSpotMainRef.current) {
+      floorSpotMainRef.current.visible = !!active;
+      if (active) {
+        const cur = floorSpotMainRef.current.intensity;
+        const tgt = 12.0;
+        floorSpotMainRef.current.intensity = THREE.MathUtils.lerp(cur, tgt, 0.12);
+      }
+    }
+    if (floorHaloRef.current) {
+      floorHaloRef.current.visible = !!active;
+      if (active) {
+        const cur = floorHaloRef.current.intensity;
+        const tgt = 3.8;
+        floorHaloRef.current.intensity = THREE.MathUtils.lerp(cur, tgt, 0.12);
+      }
+    }
+    if (floorFillRef.current) {
+      floorFillRef.current.visible = !!active;
+      if (active) {
+        const cur = floorFillRef.current.intensity;
+        const tgt = 1.2;
+        floorFillRef.current.intensity = THREE.MathUtils.lerp(cur, tgt, 0.12);
+      }
+    }
+
+    // Emisión de bombillas (usar colores memorizados)
+    if (wallBulbRef.current?.material) {
+      const mat = wallBulbRef.current.material;
+      const targetColor = (focusedRef.current || hovered) ? warmStrong : warmSoft;
+      mat.emissive.lerp(targetColor, 0.15);
+      const cur = mat.emissiveIntensity;
+      const tgt = (focusedRef.current || hovered) ? 5.5 : 3.8;
+      mat.emissiveIntensity = THREE.MathUtils.lerp(cur, tgt, 0.12);
+    }
+    if (floorBulbRef.current?.material) {
+      const mat = floorBulbRef.current.material;
+      const targetColor = (focusedRef.current || hovered) ? warmStrong2 : warmSoft2;
+      mat.emissive.lerp(targetColor, 0.15);
+      const cur = mat.emissiveIntensity;
+      const tgt = (focusedRef.current || hovered) ? 6.0 : 4.2;
+      mat.emissiveIntensity = THREE.MathUtils.lerp(cur, tgt, 0.12);
+    }
+
+    // LOD simple: ocultar detalles de piso si muy lejos
+  const detailsVisible = active; // detalles solo si activo
+    if (floorSpotMainRef.current) floorSpotMainRef.current.visible = detailsVisible;
+    if (floorHaloRef.current) floorHaloRef.current.visible = detailsVisible;
+    if (floorFillRef.current) floorFillRef.current.visible = detailsVisible;
+    if (floorBulbRef.current) floorBulbRef.current.visible = detailsVisible;
   });
+
+  // Cálculo de foco y distancia fuera de useFrame (cada ~300ms) para reducir carga
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (!groupRef.current) return;
+      const worldPos = tmpWorldPosRef.current;
+      groupRef.current.getWorldPosition(worldPos);
+      const toArtwork = tmpToArtworkRef.current.copy(worldPos).sub(camera.position).normalize();
+      camera.getWorldDirection(tmpCamDirRef.current);
+      const facing = tmpCamDirRef.current.dot(toArtwork);
+      const dist = camera.position.distanceTo(worldPos);
+      distRef.current = dist;
+      const isFocused = facing > 0.985 && dist < 40;
+      setFocused(prev => (prev !== isFocused ? isFocused : prev));
+      focusedRef.current = isFocused;
+    }, 300);
+    return () => clearInterval(id);
+  }, [camera]);
 
   useEffect(() => {
     if (lampSpotRef.current && lampTargetRef.current) {
@@ -393,9 +514,9 @@ const Artwork3D = React.memo(function Artwork3D({
           <meshStandardMaterial color="#5c5c5c" metalness={0.5} roughness={0.35} side={THREE.DoubleSide} />
         </mesh>
         {/* Bombilla más brillante con luz cálida intensa */}
-        <mesh position={[0,-0.07,1.18]}>
+        <mesh ref={wallBulbRef} position={[0,-0.07,1.18]}>
           <sphereGeometry args={[0.065,26,26]} />
-          <meshStandardMaterial emissive={focused || hovered ? '#ffaa44' : '#ff8c00'} emissiveIntensity={focused || hovered ? 5.5 : 3.8} color="#ffa500" />
+          <meshStandardMaterial emissive={'#ff8c00'} emissiveIntensity={3.8} color="#ffa500" />
         </mesh>
         {/* Spot principal MUY intensificado hacia la obra con luz cálida */}
         <spotLight
@@ -403,10 +524,10 @@ const Artwork3D = React.memo(function Artwork3D({
           position={[0,-0.07,1.18]}
           angle={Math.PI/5.2}
           penumbra={0.95}
-          intensity={focused || hovered ? 6.8 : 4.5}
+          intensity={4.5}
           distance={6.5}
           decay={2}
-          color={focused || hovered ? '#ffaa44' : '#ff8c00'}
+          color={'#ff8c00'}
           castShadow={false}
         />
         {/* Target centrado canvas (ligeramente por delante del plano para evitar z-fighting) */}
@@ -417,39 +538,43 @@ const Artwork3D = React.memo(function Artwork3D({
         />
         {/* Halo secundario más amplio con luz cálida */}
         <spotLight
+          ref={lampHaloRef}
           position={[0,-0.07,1.18]}
           angle={Math.PI/3.2}
           penumbra={1}
-          intensity={focused || hovered ? 2.0 : 1.4}
+          intensity={1.4}
           distance={5.0}
           decay={2}
-          color={focused || hovered ? '#ffcc66' : '#ffb347'}
+          color={'#ffb347'}
           castShadow={false}
         />
         {/* Relleno difuso extra cálido */}
         <pointLight
+          ref={lampFillRef}
           position={[0,-0.12,0.45]}
-          intensity={focused || hovered ? 0.9 : 0.6}
+          intensity={0.6}
           distance={2.2}
           decay={2}
-          color={focused || hovered ? '#ffa500' : '#ff8c00'}
+          color={'#ff8c00'}
         />
       </group>
       {/* Wash superior reducido aún más para no competir con la lámpara individual */}
       <spotLight
+        ref={topWashRef}
         position={[0, dims.h/2 + 1.1, 0.55]}
         intensity={0.18}
         angle={Math.PI / 5.2}
         penumbra={0.5}
         distance={5.5}
         decay={2}
-        color={focused || hovered ? '#ffd39a' : '#ececec'}
+        color={'#ececec'}
         castShadow={false}
       />
       {/* Relleno frontal muy tenue */}
       <pointLight
+        ref={frontFillRef}
         position={[0,0,1.05]}
-        intensity={focused || hovered ? 0.16 : 0.09}
+        intensity={0.09}
         distance={2.6}
         decay={2}
         color={'#fff7e2'}
@@ -476,45 +601,44 @@ const Artwork3D = React.memo(function Artwork3D({
         </mesh>
         
         {/* Bombilla cálida intensa dentro del cabezal */}
-        <mesh position={[0, 2.85, 0.1]}>
+        <mesh ref={floorBulbRef} position={[0, 2.85, 0.1]}>
           <sphereGeometry args={[0.1, 32, 32]} />
-          <meshStandardMaterial 
-            emissive={focused || hovered ? '#ffb347' : '#ff9500'} 
-            emissiveIntensity={focused || hovered ? 6.0 : 4.2} 
-            color="#ffa500" 
-          />
+          <meshStandardMaterial emissive={'#ff9500'} emissiveIntensity={4.2} color="#ffa500" />
         </mesh>
         
         {/* Spotlight principal muy intenso con luz cálida */}
         <spotLight
+          ref={floorSpotMainRef}
           position={[0, 2.85, 0.1]}
           target-position={[0, 0, -1.8]} /* apunta al centro de la obra */
           angle={Math.PI/7}
           penumbra={0.7}
-          intensity={focused || hovered ? 12.0 : 8.5}
+          intensity={8.5}
           distance={15}
           decay={1.8}
-          color={focused || hovered ? '#ffaa44' : '#ff8c00'}
+          color={'#ff8c00'}
           castShadow={false}
         />
         
         {/* Halo cálido amplio para envolver toda la obra */}
         <spotLight
+          ref={floorHaloRef}
           position={[0, 2.85, 0.1]}
           target-position={[0, 0, -1.8]}
           angle={Math.PI/3.5}
           penumbra={1}
-          intensity={focused || hovered ? 3.8 : 2.8}
+          intensity={2.8}
           distance={10}
           decay={2}
-          color={focused || hovered ? '#ffcc66' : '#ffb347'}
+          color={'#ffb347'}
           castShadow={false}
         />
         
         {/* Luz de relleno cálida extra para eliminar sombras duras */}
         <pointLight
+          ref={floorFillRef}
           position={[0, 2.5, 0]}
-          intensity={focused || hovered ? 1.2 : 0.8}
+          intensity={0.8}
           distance={6}
           decay={2}
           color={'#ffa500'}

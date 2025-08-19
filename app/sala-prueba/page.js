@@ -9,6 +9,7 @@ import { HALL_HEIGHT, FRONT_CENTER, HALF_HALL_D, HALL_WIDTH, CAMERA_INITIAL_POS,
 import { usePresentationTransition } from "./hooks/usePresentationTransition";
 import { useAdaptiveQuality } from "./hooks/useAdaptiveQuality";
 import { useSalaData } from "./hooks/useSalaData";
+import { usePreloadArtworkImages } from "./hooks/usePreloadArtworkImages";
 import ProfessionalLightingSystem from "../../components/lighting/BohemianLightingSystem";
 import { useEntranceAnimation } from "./hooks/useEntranceAnimation";
 import { useExploreControls } from "./hooks/useExploreControls";
@@ -26,6 +27,8 @@ export default function SalaPruebaPage() {
   
   // Obtener datos reales de la sala
   const { sala, artworks, loading, error } = useSalaData();
+  // Preload artwork textures early to avoid stalls when entering
+  const { progress: preloadProgress, total: preloadTotal } = usePreloadArtworkImages(artworks, true, { concurrency: 4 });
   
   // Limpieza: sin logs de depuración en producción
   
@@ -115,6 +118,9 @@ export default function SalaPruebaPage() {
               <span>40×28×12m</span>
               {loading && <span className="text-yellow-400">Cargando...</span>}
               {error && <span className="text-red-400">Datos mock</span>}
+              {preloadTotal > 0 && (
+                <span>{Math.round(preloadProgress * 100)}% imágenes</span>
+              )}
             </div>
             <button onClick={handleStartAudioWrapped} disabled={animating || easingOut || (!beginReady && !easingOut)} className="px-5 py-2 rounded-md bg-white/90 text-neutral-900 text-xs font-medium shadow hover:bg-white transition disabled:opacity-60">
               {animating ? 'Entrando...' : easingOut ? 'Preparando...' : beginReady ? 'Entrar' : 'Cargando...'}
