@@ -35,7 +35,8 @@ const LayoutContainer = ({ children }) => {
   // No mostrar navbar en páginas de sala ni en sala de prueba 3D
   const isSalaPage = pathname.includes('/museo/sala/');
   const isSalaPrueba = pathname === '/sala-prueba';
-  const showNavbar = !(isSalaPage || isSalaPrueba);
+  const isSalaMuseo = pathname === '/sala-museo' || pathname.startsWith('/sala-museo/');
+  const showNavbar = !(isSalaPage || isSalaPrueba || isSalaMuseo);
 
   useEffect(() => {
     setFrase(
@@ -60,13 +61,13 @@ const LayoutContainer = ({ children }) => {
 
   return (
     <div className="bg-white dark:bg-black text-black dark:text-white flex flex-col min-h-screen transition-colors duration-300">
-  {!(isSalaPage || isSalaPrueba) && <MouseTrail />}
+  {!(isSalaPage || isSalaPrueba || isSalaMuseo) && <MouseTrail />}
       {showNavbar && (
         <header className="sticky top-0 z-[60]">
           <MainMenu />
         </header>
       )}
-  <main className={`flex-1 ${pathname.includes('/ar') || isSalaPage || isSalaPrueba ? '' : 'pt-22 md:pt-24'}`}>
+  <main className={`flex-1 ${pathname.includes('/ar') || isSalaPage || isSalaPrueba || isSalaMuseo ? '' : 'pt-22 md:pt-24'}`}>
         {children}
         {useFixedFooter && (
           <div

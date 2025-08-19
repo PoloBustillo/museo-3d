@@ -17,7 +17,7 @@ import { PositionalAmbientAudio } from "./components/PositionalAmbientAudio";
 import { useSound } from "../../providers/SoundProvider";
 // WASD controls removidos temporalmente
 
-export default function SalaPruebaPage() {
+export default function SalaPruebaPage({ salaId = null, disallowMockOnMissing = false }) {
   const [started, setStarted] = useState(false); // for UI legacy control (can derive from exploring)
   // Debug UI removida para limpieza
   // Removed WASD toggle state
@@ -26,7 +26,7 @@ export default function SalaPruebaPage() {
   const [sceneManagerKey, setSceneManagerKey] = useState(0);
   
   // Obtener datos reales de la sala
-  const { sala, artworks, loading, error } = useSalaData();
+  const { sala, artworks, loading, error } = useSalaData(salaId, { allowMockOnErrorWhenId: !disallowMockOnMissing });
   // Preload artwork textures early to avoid stalls when entering
   const { progress: preloadProgress, total: preloadTotal } = usePreloadArtworkImages(artworks, true, { concurrency: 4 });
   
@@ -73,7 +73,8 @@ export default function SalaPruebaPage() {
   };
 
   // Nombre de la sala dinámico
-  const salaName = sala?.nombre || 'Sala de Prueba';
+  const missingSala = salaId && !loading && !sala && error;
+  const salaName = missingSala ? `Sala ${salaId}` : (sala?.nombre || 'Sala de Prueba');
   const totalArtworks = artworks?.length || 0;
 
   // Component inside Canvas to safely use R3F hooks
@@ -117,13 +118,17 @@ export default function SalaPruebaPage() {
               <span>{anchorPoints.length} puntos de anclaje</span>
               <span>40×28×12m</span>
               {loading && <span className="text-yellow-400">Cargando...</span>}
-              {error && <span className="text-red-400">Datos mock</span>}
+              {missingSala && <span className="text-red-400">No existe</span>}
+              {!missingSala && error && <span className="text-red-400">Datos mock</span>}
               {preloadTotal > 0 && (
                 <span>{Math.round(preloadProgress * 100)}% imágenes</span>
               )}
             </div>
-            <button onClick={handleStartAudioWrapped} disabled={animating || easingOut || (!beginReady && !easingOut)} className="px-5 py-2 rounded-md bg-white/90 text-neutral-900 text-xs font-medium shadow hover:bg-white transition disabled:opacity-60">
-              {animating ? 'Entrando...' : easingOut ? 'Preparando...' : beginReady ? 'Entrar' : 'Cargando...'}
+            {missingSala && (
+              <p className="text-red-300 text-[11px] max-w-xs text-center">No se encontró la sala solicitada. Verifica el código o vuelve atrás.</p>
+            )}
+            <button onClick={handleStartAudioWrapped} disabled={missingSala || animating || easingOut || (!beginReady && !easingOut)} className="px-5 py-2 rounded-md bg-white/90 text-neutral-900 text-xs font-medium shadow hover:bg-white transition disabled:opacity-60 disabled:cursor-not-allowed">
+              {missingSala ? 'Sala no disponible' : animating ? 'Entrando...' : easingOut ? 'Preparando...' : beginReady ? 'Entrar' : 'Cargando...'}
             </button>
           </div>
         </div>

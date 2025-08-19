@@ -171,7 +171,8 @@ function getAnchorClassification() {
 // ------------------------------------------------------------------------------------
 // Hook principal
 // ------------------------------------------------------------------------------------
-export function useSalaData(salaId = null) {
+export function useSalaData(salaId = null, options = {}) {
+  const { allowMockOnErrorWhenId = true } = options;
   const [sala, setSala] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -232,7 +233,11 @@ export function useSalaData(salaId = null) {
     } catch (err) {
       if (err.name === "AbortError") return; // fetch cancelada
       console.error("❌ Error fetching sala by ID:", err);
-      setSala(getMockSalaData());
+      if (allowMockOnErrorWhenId) {
+        setSala(getMockSalaData());
+      } else {
+        setSala(null);
+      }
       setError(err.message);
     } finally {
       setLoading(false);
