@@ -45,7 +45,6 @@ export default function SalaMuseoIdPage() {
       cameraRef.current.lookAt(0, HALL_HEIGHT * 0.5, FRONT_CENTER - 6.5);
     }
   }, [salaId]);
-  useAdaptiveQuality({ rendererRef, enabled: true });
   const handleStart = () => requestStart();
   const { enableAudio } = useSound();
   const handleStartAudioWrapped = () => { enableAudio(); handleStart(); };
@@ -54,7 +53,7 @@ export default function SalaMuseoIdPage() {
   const salaName = missingSala ? `Sala ${salaId}` : (sala?.nombre || 'Sala');
   const totalArtworks = artworks?.length || 0;
   function SceneManager({ presentationMode }) {
-    const { begin } = useEntranceAnimation({ onFinish: () => { markExploring(); } });
+    const { begin } = useEntranceAnimation(cameraRef, { onFinish: () => { markExploring(); } });
     useEffect(() => { registerBegin(begin); }, [begin, registerBegin]);
     useExploreControls(!presentationMode && !animating && exploring, { bounds: EXPLORE_BOUNDS });
     return (
@@ -64,6 +63,7 @@ export default function SalaMuseoIdPage() {
       </>
     );
   }
+  const AdaptiveQuality = () => { useAdaptiveQuality({ enabled:true }); return null; };
   if (loading) {
     return (
       <div className='min-h-screen flex items-center justify-center bg-neutral-900'>
@@ -105,6 +105,7 @@ export default function SalaMuseoIdPage() {
         </div>
       )}
       <Canvas shadows camera={{ position: initialCameraPos.current, fov: 55 }} gl={{ antialias: true }} onCreated={({ camera, gl }) => { cameraRef.current = camera; rendererRef.current = gl; }}>
+        <AdaptiveQuality />
         <color attach='background' args={['#0a0a0a']} />
         {ENABLE_FOG && <fog attach='fog' args={['#0a0a0a', FOG_NEAR, FOG_FAR]} />}
         <SceneManager key={sceneManagerKey} presentationMode={presentationMode} />
