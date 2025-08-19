@@ -50,12 +50,33 @@ const ProfessionalCeilingLamp = React.memo(function ProfessionalCeilingLamp({ po
       <spotLight ref={downRef} position={[0,-1.07*size,0]} angle={Math.PI/3} intensity={intensity*0.27} color={color} distance={distance*0.7} penumbra={0.95} decay={1.25} castShadow={false} />
       {/* Left wall wash */}
       {beams!=='right' && <>
-        <spotLight ref={leftRef} position={[0,-1.07*size,0]} angle={Math.PI/7.2} intensity={intensity*0.95*beamFactor} color={color} distance={distance} penumbra={0.85} decay={1.35} castShadow={false} />
+        <spotLight
+          ref={leftRef}
+          // Option1 adjustments: wider angle, stronger intensity, lower position, lower decay
+          position={[0,-1.22*size,0]} // was -1.07*size
+          angle={Math.PI/6.5}         // was Math.PI/7.2
+          intensity={intensity*1.4*beamFactor} // was 0.95*beamFactor
+          color={color}
+          distance={distance*1.05}
+          penumbra={0.9}
+          decay={1.2}                // was 1.35
+          castShadow={false}
+        />
         <mesh ref={leftTarget} position={[toLeft*0.94, targetY, 0]} visible={false} />
       </>}
       {/* Right wall wash */}
       {beams!=='left' && <>
-        <spotLight ref={rightRef} position={[0,-1.07*size,0]} angle={Math.PI/7.2} intensity={intensity*0.95*beamFactor} color={color} distance={distance} penumbra={0.85} decay={1.35} castShadow={false} />
+        <spotLight
+          ref={rightRef}
+          position={[0,-1.22*size,0]}
+          angle={Math.PI/6.5}
+          intensity={intensity*1.4*beamFactor}
+          color={color}
+          distance={distance*1.05}
+          penumbra={0.9}
+          decay={1.2}
+          castShadow={false}
+        />
         <mesh ref={rightTarget} position={[toRight*0.94, targetY, 0]} visible={false} />
       </>}
     </group>
