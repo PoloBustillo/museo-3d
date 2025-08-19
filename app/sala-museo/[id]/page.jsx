@@ -117,6 +117,8 @@ export default function SalaMuseoIdPage() {
           </EffectComposer>
         )}
         <OrbitControls enablePan={false} enableZoom={presentationMode && !animating} enableRotate={presentationMode && !animating} enabled={presentationMode && !animating} maxPolarAngle={Math.PI/2.1} makeDefault={presentationMode} />
+        <ambientLight intensity={0.07} />
+        <hemisphereLight args={['#f0f0f0', '#141619', 0.16]} />
       </Canvas>
     </div>
   );
