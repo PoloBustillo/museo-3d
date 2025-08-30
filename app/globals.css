@@ -136,14 +136,11 @@ body.theme-flash { animation: flash-bg-pro 0.25s; }
   }
   html,
   body {
-    height: auto;
-    min-height: 100vh;
-    cursor: url('/assets/cursor-museum-bw.webp') 8 8, auto;
-    overflow-x: hidden;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+  height: 100%;
+  min-height: 100vh;
+  cursor: url('/assets/cursor-museum-bw.webp') 8 8, auto;
+  overflow-x: hidden;
+}
 }
 
 .clip-poly-right {

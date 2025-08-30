@@ -252,22 +252,21 @@ export default function AuthModal() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="fixed top-0 left-0 right-0 bottom-0 inset-0 z-[99999] bg-black/50 backdrop-blur-sm flex items-center justify-center pointer-events-auto"
-            onClick={handleBackdropClick}
-          >
-            {/* El modal original, sin tocar nada de su contenido ni clases */}
-            <motion.div
-              ref={modalRef}
-              initial={{ opacity: 0, scale: 0.8, y: 50 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: 50 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-              className="relative w-full max-w-sm sm:max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[90vh] flex flex-col"
-            >
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  exit={{ opacity: 0 }}
+  transition={{ duration: 0.3 }}
+  className="fixed inset-0 z-[99999] bg-black/50 backdrop-blur-sm flex items-center justify-center min-h-screen overflow-y-auto"
+  onClick={handleBackdropClick}
+>
+  <motion.div
+    ref={modalRef}
+    initial={{ opacity: 0, scale: 0.8, y: 50 }}
+    animate={{ opacity: 1, scale: 1, y: 0 }}
+    exit={{ opacity: 0, scale: 0.8, y: 50 }}
+    transition={{ duration: 0.4, ease: 'easeOut' }}
+    className="relative w-full max-w-sm sm:max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[90vh] flex flex-col"
+  >
               {/* Header */}
               <div className="relative p-4 sm:p-6 pb-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
                 <button

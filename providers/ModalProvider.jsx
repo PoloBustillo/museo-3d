@@ -4,29 +4,28 @@ import { createContext, useContext, useState } from "react";
 const ModalContext = createContext();
 
 export function ModalProvider({ children }) {
-  const [modal, setModal] = useState(null); // e.g. 'login', 'register', etc.
-  const [modalData, setModalData] = useState(null); // Datos adicionales para el modal
+  const [modal, setModal] = useState(null); 
+  const [modalData, setModalData] = useState(null); 
 
   const openModal = (modalName, data = null) => {
     setModal(modalName);
     setModalData(data);
+    document.body.style.overflow = "hidden";
   };
 
   const closeModal = () => {
     setModal(null);
     setModalData(null);
+    document.body.style.overflow = "unset";
   };
 
-  const isModalOpen = (modalName) => {
-    return modal === modalName;
-  };
+  const isModalOpen = (modalName) => modal === modalName;
 
   return (
     <ModalContext.Provider
       value={{
         modal,
         modalData,
-        setModal,
         openModal,
         closeModal,
         isModalOpen,
