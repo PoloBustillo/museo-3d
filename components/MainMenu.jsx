@@ -9,7 +9,7 @@ import { useUser } from "../providers/UserProvider";
 import { useSessionData } from "../providers/SessionProvider";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import {
   NavigationMenu,
@@ -26,7 +26,7 @@ import TypewriterText from "./shared/TypewriterText";
 export default function MainMenu({ onSubirArchivo }) {
   // Estado para controlar la animación del dot
   const [dotAnimating, setDotAnimating] = useState(false);
-  const dotTimeoutRef = useRef();
+  const dotIntervalRef = useRef();
   const { openModal } = useModal();
   const { 
     user,
@@ -44,18 +44,40 @@ export default function MainMenu({ onSubirArchivo }) {
     isSessionExpiringSoon,
     isSessionExpired,
   } = useSessionData();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // Estado para menú móvil
-  const [mobileArchivoOpen, setMobileArchivoOpen] = useState(false); // Estado para dropdown de Archivo
-  const router = useRouter();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") || pathname;
-  const [isVisible, setIsVisible] = useState(true);
-  const lastScrollY = useRef(0);
-  const lastHideY = useRef(0);
-  const threshold = 30;
-  const [isScrolled, setIsScrolled] = useState(false);
   const isMobile = useIsMobile();
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Efecto para iniciar/detener la animación del dot
+  useEffect(() => {
+    // Iniciar animación del dot al montar el componente
+    setDotAnimating(true);
+    
+    // Configurar intervalo para animación cíclica del dot
+    dotIntervalRef.current = setInterval(() => {
+      setDotAnimating(prev => !prev);
+    }, 4400);
+    
+    return () => {
+      if (dotIntervalRef.current) {
+        clearInterval(dotIntervalRef.current);
+      }
+    };
+  }, []);
+
+  // Efecto para detectar scroll y cambiar apariencia de la navbar
+  useEffect(() => {
+    const handleScroll = () => {
+      const isScrolledNow = window.scrollY > 10;
+      if (isScrolledNow !== isScrolled) {
+        setIsScrolled(isScrolledNow);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isScrolled]);
 
   // Cerrar menú móvil al hacer clic fuera
   useEffect(() => {
@@ -66,16 +88,14 @@ export default function MainMenu({ onSubirArchivo }) {
         !event.target.closest("[data-mobile-menu]")
       ) {
         setMobileMenuOpen(false);
-        setMobileArchivoOpen(false); // Cerrar también el dropdown
       }
     };
 
     if (mobileMenuOpen) {
       document.addEventListener("click", handleClickOutside);
-      document.body.style.overflow = "hidden"; // Prevenir scroll
+      document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "unset";
-      setMobileArchivoOpen(false); // Cerrar dropdown cuando se cierra el menú
     }
 
     return () => {
@@ -84,106 +104,16 @@ export default function MainMenu({ onSubirArchivo }) {
     };
   }, [mobileMenuOpen]);
 
-  // Control de visibilidad del navbar (detecta el contenedor que realmente tiene scroll)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    function getScrollableContainer() {
-      let el = document.querySelector("[data-scrollable-container]");
-      if (el) return el;
-      let nodes = document.querySelectorAll(
-        "main, [class*='scroll'], [class*='overflow'], [class*='container'], [class*='content']"
-      );
-      for (let node of nodes) {
-        const style = window.getComputedStyle(node);
-        if (
-          (style.overflowY === "auto" || style.overflowY === "scroll") &&
-          node.scrollHeight > node.clientHeight
-        ) {
-          return node;
-        }
-      }
-      return null;
-    }
-
-    const scrollable = getScrollableContainer();
-
-    function getAllScrollY() {
-      let values = [window.scrollY];
-      if (document.body) values.push(document.body.scrollTop);
-      if (document.documentElement)
-        values.push(document.documentElement.scrollTop);
-      if (scrollable) values.push(scrollable.scrollTop);
-      return Math.max(...values);
-    }
-
-    const handleScroll = () => {
-      const currentScrollY = getAllScrollY();
-      setIsScrolled(currentScrollY > 10);
-      if (currentScrollY < 10) {
-        setIsVisible(true);
-        lastHideY.current = 0;
-      } else if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
-        setIsVisible(false);
-        lastHideY.current = currentScrollY;
-      } else if (
-        currentScrollY < lastScrollY.current &&
-        lastHideY.current - currentScrollY > threshold
-      ) {
-        setIsVisible(true);
-      }
-      lastScrollY.current = currentScrollY;
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    if (document.body)
-      document.body.addEventListener("scroll", handleScroll, { passive: true });
-    if (document.documentElement)
-      document.documentElement.addEventListener("scroll", handleScroll, {
-        passive: true,
-      });
-    if (scrollable)
-      scrollable.addEventListener("scroll", handleScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-      if (document.body)
-        document.body.removeEventListener("scroll", handleScroll);
-      if (document.documentElement)
-        document.documentElement.removeEventListener("scroll", handleScroll);
-      if (scrollable) scrollable.removeEventListener("scroll", handleScroll);
-    };
-  }, [pathname]);
-
-  // Lanzar animación del dot cada vez que la navbar aparece
-  useEffect(() => {
-    if (isVisible) {
-      setDotAnimating(true);
-      if (dotTimeoutRef.current) clearTimeout(dotTimeoutRef.current);
-      dotTimeoutRef.current = setTimeout(() => {
-        setDotAnimating(false);
-      }, 4400); // 4.4 segundos de animación
-    } else {
-      setDotAnimating(false);
-      if (dotTimeoutRef.current) clearTimeout(dotTimeoutRef.current);
-    }
-    return () => {
-      if (dotTimeoutRef.current) clearTimeout(dotTimeoutRef.current);
-    };
-  }, [isVisible]);
-
   // Cerrar menú móvil automáticamente al cambiar de página
   useEffect(() => {
     if (mobileMenuOpen) {
       setMobileMenuOpen(false);
-      setMobileArchivoOpen(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
+  }, [pathname, mobileMenuOpen]);
 
   const handleAuthClick = (mode) => {
     openModal(mode === "register" ? "auth-register" : "auth-login", {
-      redirectTo: callbackUrl,
+      redirectTo: pathname,
     });
   };
 
@@ -196,17 +126,12 @@ export default function MainMenu({ onSubirArchivo }) {
 
   return (
     <>
-      {/* Navigation Menu with auto-hide on scroll */}
-      <motion.nav
-        initial={{ y: 0 }}
-        animate={{ y: isVisible ? 0 : -100 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-        className={`fixed top-0 z-50 w-full navbar-main navbar-enter ${
-          mobileMenuOpen ? "" : "border-b border-gray-200 dark:border-gray-700"
-        } ${
+      {/* Navigation Menu fija sin auto-hide */}
+      <nav
+        className={`fixed top-0 z-50 w-full navbar-main ${
           isScrolled
             ? "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 shadow-lg"
-            : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md"
+            : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-700"
         } text-gray-900 dark:text-white transition-all duration-300`}
       >
         <div className="max-w-screen-xl mx-auto flex items-center justify-between px-4 py-2 md:py-4">
@@ -226,8 +151,6 @@ export default function MainMenu({ onSubirArchivo }) {
                 alt="Logo"
                 className="h-10 md:h-14 w-auto flex-shrink-0 hidden dark:block mx-auto"
               />
-              {/* Título visible en móvil y desktop */}
-
               <div className="block w-full text-center">
                 <TypewriterText
                   text="MURAL ARPA"
@@ -250,18 +173,16 @@ export default function MainMenu({ onSubirArchivo }) {
               </div>
             </Link>
           </div>
+          
           {/* Links centrados en md+ */}
           <div className="flex-1 justify-center items-center md:flex hidden md:block">
             <NavigationMenu className="align-middle">
               <NavigationMenuList className="text-sm font-medium relative items-center flex h-full">
                 {menuLinks.map((link) => {
-                  let isActive;
-                  if (link.href === "/") {
-                    isActive = pathname === "/";
-                  } else {
-                    isActive = pathname.startsWith(link.href);
-                  }
-                  // Dot logic: always render, but animate only if active and navbar visible
+                  const isActive = link.href === "/" 
+                    ? pathname === "/" 
+                    : pathname.startsWith(link.href);
+                  
                   return (
                     <NavigationMenuItem key={link.href} className="relative">
                       <NavigationMenuLink asChild>
@@ -279,75 +200,53 @@ export default function MainMenu({ onSubirArchivo }) {
                                   ? `inline-block ${dotAnimating ? "w-1.5 h-1.5" : "w-2 h-2"} rounded-full shadow`
                                   : "inline-block w-1.5 h-1.5 rounded-full bg-gray-400/60"
                               }
-                              initial={
-                                isActive
-                                  ? { scale: 0.5, opacity: 0, x: 0, y: 0 }
-                                  : false
-                              }
                               animate={
-                                !isVisible
+                                isActive && dotAnimating
                                   ? {
-                                      opacity: 0,
-                                      scale: 0.7,
+                                      scale: [1, 1.18, 1],
+                                      opacity: [0.85, 0.6, 0.85],
+                                      boxShadow: [
+                                        "0 0 0px 0px #6366f1",
+                                        "0 0 3px 0.5px #6366f1aa",
+                                        "0 0 0px 0px #6366f1",
+                                      ],
+                                      x: [0, 2, 3, 2, 0, -2, -3, -2, 0],
+                                      y: [0, 2, 0, -2, -3, -2, 0, 2, 0],
+                                      background: [
+                                        "#6366f1",
+                                        "#a5b4fc",
+                                        "#fef08a",
+                                        "#f472b6",
+                                        "#38bdf8",
+                                        "#6366f1",
+                                      ],
+                                    }
+                                  : {
+                                      scale: 1,
+                                      opacity: 0.85,
                                       x: 0,
                                       y: 0,
                                       background: isActive
-                                        ? "#6366f1"
+                                        ? "linear-gradient(135deg, #6366f1 0%, #a5b4fc 40%, #fef08a 70%, #f472b6 90%, #38bdf8 100%)"
                                         : "#a1a1aa",
                                     }
-                                  : isActive && dotAnimating
-                                    ? {
-                                        scale: [1, 1.18, 1],
-                                        opacity: [0.85, 0.6, 0.85],
-                                        boxShadow: [
-                                          "0 0 0px 0px #6366f1",
-                                          "0 0 3px 0.5px #6366f1aa",
-                                          "0 0 0px 0px #6366f1",
-                                        ],
-                                        x: [0, 2, 3, 2, 0, -2, -3, -2, 0],
-                                        y: [0, 2, 0, -2, -3, -2, 0, 2, 0],
-                                        background: [
-                                          "#6366f1",
-                                          "#a5b4fc",
-                                          "#fef08a",
-                                          "#f472b6",
-                                          "#38bdf8",
-                                          "#6366f1",
-                                        ],
-                                      }
-                                    : {
-                                        scale: 1,
-                                        opacity: 0.85,
-                                        x: 0,
-                                        y: 0,
-                                        background: isActive
-                                          ? "linear-gradient(135deg, #6366f1 0%, #a5b4fc 40%, #fef08a 70%, #f472b6 90%, #38bdf8 100%)"
-                                          : "#a1a1aa",
-                                      }
                               }
                               transition={
-                                !isVisible
-                                  ? { duration: 0.3 }
-                                  : isActive && dotAnimating
-                                    ? {
-                                        duration: 1.1,
-                                        repeat: Infinity,
-                                        repeatType: "loop",
-                                        ease: "easeInOut",
-                                      }
-                                    : {
-                                        type: "spring",
-                                        stiffness: 120,
-                                        damping: 18,
-                                        mass: 0.7,
-                                        duration: 0.45,
-                                      }
+                                isActive && dotAnimating
+                                  ? {
+                                      duration: 1.1,
+                                      repeat: Infinity,
+                                      repeatType: "loop",
+                                      ease: "easeInOut",
+                                    }
+                                  : {
+                                      type: "spring",
+                                      stiffness: 120,
+                                      damping: 18,
+                                      mass: 0.7,
+                                      duration: 0.45,
+                                    }
                               }
-                              whileFocus={{
-                                scale: 1.2,
-                                boxShadow: "0 0 8px 2px #818cf8",
-                              }}
-                              whileTap={{ scale: 1.1 }}
                               style={{
                                 display: "inline-block",
                                 background:
@@ -369,50 +268,43 @@ export default function MainMenu({ onSubirArchivo }) {
                             />
                           </span>
                           <span className="relative z-10">
-                            <motion.span
-                              initial={false}
-                              animate={
-                                isActive && isVisible
-                                  ? {
-                                      backgroundPosition: [
-                                        "40% 50%",
-                                        "60% 50%",
-                                        "50% 50%",
-                                      ],
-                                      opacity: [0.7, 1, 0.7],
-                                    }
-                                  : { opacity: 0 }
-                              }
-                              transition={
-                                isActive && isVisible
-                                  ? {
-                                      duration: 1.2,
-                                      repeat: Infinity,
-                                      repeatType: "loop",
-                                      ease: "easeInOut",
-                                    }
-                                  : { duration: 0.3 }
-                              }
-                              style={{
-                                position: "absolute",
-                                left: 0,
-                                top: 0,
-                                width: "100%",
-                                height: "100%",
-                                background:
-                                  "linear-gradient(90deg, transparent 0%, #818cf8 45%, #fbbf24 50%, #818cf8 55%, transparent 100%)",
-                                backgroundClip: "text",
-                                WebkitBackgroundClip: "text",
-                                color: "transparent",
-                                WebkitTextFillColor: "transparent",
-                                pointerEvents: "none",
-                                zIndex: 2,
-                                filter: "blur(0.5px)",
-                              }}
-                              aria-hidden="true"
-                            >
-                              {link.label}
-                            </motion.span>
+                            {isActive && (
+                              <motion.span
+                                animate={{
+                                  backgroundPosition: [
+                                    "40% 50%",
+                                    "60% 50%",
+                                    "50% 50%",
+                                  ],
+                                  opacity: [0.7, 1, 0.7],
+                                }}
+                                transition={{
+                                  duration: 1.2,
+                                  repeat: Infinity,
+                                  repeatType: "loop",
+                                  ease: "easeInOut",
+                                }}
+                                style={{
+                                  position: "absolute",
+                                  left: 0,
+                                  top: 0,
+                                  width: "100%",
+                                  height: "100%",
+                                  background:
+                                    "linear-gradient(90deg, transparent 0%, #818cf8 45%, #fbbf24 50%, #818cf8 55%, transparent 100%)",
+                                  backgroundClip: "text",
+                                  WebkitBackgroundClip: "text",
+                                  color: "transparent",
+                                  WebkitTextFillColor: "transparent",
+                                  pointerEvents: "none",
+                                  zIndex: 2,
+                                  filter: "blur(0.5px)",
+                                }}
+                                aria-hidden="true"
+                              >
+                                {link.label}
+                              </motion.span>
+                            )}
                             <span
                               style={{
                                 opacity: 1,
@@ -431,6 +323,7 @@ export default function MainMenu({ onSubirArchivo }) {
               </NavigationMenuList>
             </NavigationMenu>
           </div>
+          
           {/* ThemeSwitch y botón hamburguesa a la derecha */}
           <div className="flex items-center flex-shrink-0 ml-auto gap-3">
             {/* Botón hamburguesa solo en mobile */}
@@ -443,7 +336,6 @@ export default function MainMenu({ onSubirArchivo }) {
                 aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
               >
                 <div className="w-6 h-6 relative flex flex-col justify-center items-center">
-                  {/* Línea superior */}{" "}
                   <div
                     className={`hamburger-line-top absolute w-6 h-px bg-current transition-all duration-500 ease-out ${
                       mobileMenuOpen
@@ -451,7 +343,6 @@ export default function MainMenu({ onSubirArchivo }) {
                         : "-translate-y-1.5"
                     }`}
                   />
-                  {/* Línea media con efecto especial de desplazamiento a la derecha */}{" "}
                   <div
                     className={`hamburger-line-middle absolute h-px bg-current ${
                       mobileMenuOpen ? "w-0 opacity-0" : "w-6 opacity-100"
@@ -466,7 +357,6 @@ export default function MainMenu({ onSubirArchivo }) {
                         : "translateX(0) scaleX(1)",
                     }}
                   />
-                  {/* Línea inferior */}{" "}
                   <div
                     className={`hamburger-line-bottom absolute w-6 h-px bg-current transition-all duration-500 ease-out ${
                       mobileMenuOpen
@@ -476,7 +366,6 @@ export default function MainMenu({ onSubirArchivo }) {
                   />
                 </div>
 
-                {/* SVG para el efecto de borde que se completa alrededor del margen */}
                 <svg
                   className="absolute inset-0 w-full h-full pointer-events-none"
                   viewBox="0 0 48 48"
@@ -501,7 +390,7 @@ export default function MainMenu({ onSubirArchivo }) {
                 </svg>
               </button>
             )}
-            {/* Usuario y login solo en md+ */}
+            
             <UserMenu
               isMobile={isMobile}
               status={status}
@@ -521,7 +410,7 @@ export default function MainMenu({ onSubirArchivo }) {
             <ThemeSwitch />
           </div>
         </div>
-      </motion.nav>
+      </nav>
 
       {/* Menú móvil con backdrop tipo modal */}
       <AnimatePresence>
@@ -693,6 +582,7 @@ export default function MainMenu({ onSubirArchivo }) {
                   </button>
                 )}
               </div>
+              
               {/* Avatar y nombre de usuario al final del menú móvil */}
               {isAuthenticated && (
                 <div className="flex flex-col items-center mt-6 mb-2 border-t border-border pt-4">

@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Search, Filter, Grid, List, ChevronDown } from "lucide-react";
 
 export default function FilterControls({
@@ -19,7 +19,8 @@ export default function FilterControls({
   return (
     <>
       {/* Controles de vista y filtros */}
-      <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-between gap-2 sm:gap-4 bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm rounded-xl p-4 border border-border overflow-hidden min-w-0 w-full">
+      <div className="dark:bg-black">
+      <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-between gap-2 sm:gap-4 bg-white/80 dark:bg-neutral-800/80  rounded-xl p-4 border border-border overflow-hidden min-w-0 w-full">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1 sm:gap-4 w-full sm:w-auto min-w-0">
           <div className="relative w-full sm:w-auto">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -78,13 +79,21 @@ export default function FilterControls({
       </div>
 
       {/* Panel de filtros expandible */}
+       <AnimatePresence>
       {showFilters && (
         <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
-          className="mt-4 bg-white/80 dark:bg-neutral-800/80 backdrop-blur-sm rounded-xl p-4 border border-border"
-        >
+  initial={{ opacity: 0, scaleY: 0, marginTop: 0 }}
+  animate={{ opacity: 1, scaleY: 1, marginTop: '1rem' }}
+  exit={{ opacity: 0, scaleY: 0, marginTop: 0 }}
+  transition={{
+    type: "spring",
+    stiffness: 200,   // fuerza del resorte
+    damping: 25,      // controla rebote
+    mass: 0.5         // masa ligera para respuesta rápida
+  }}
+  style={{ transformOrigin: "top" }}
+  className="bg-white dark:bg-neutral-800 rounded-xl p-5 border border-gray-200 dark:border-neutral-700 shadow-sm overflow-hidden"
+>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <select
               value={filters.tecnica}
@@ -136,6 +145,8 @@ export default function FilterControls({
           </div>
         </motion.div>
       )}
+      </AnimatePresence>
+      </div>
     </>
   );
 }
