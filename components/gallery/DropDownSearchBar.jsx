@@ -9,13 +9,9 @@ function CategoryBubble({id,name,imgSrc}){
     } = useGallery();
 
     const handleSearchRoom = () => {
-        console.log('Despachabdo sala', id);
-
         if (id != stateFilter.filters.room) {
-            console.log('dispatch Set KeyWord');
             dispatchFilter({ type: "SET_SALA", salaId: id });
         }
-
     };
 
     return(

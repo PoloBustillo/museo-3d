@@ -20,7 +20,6 @@ const ARExperience = dynamic(
 export default function GaleriaPage() {
   const {
     muralesForScroll,
-    loading,
     loadingPageMurales,
     fetchPageMurales,
     pageTotalRef,
@@ -83,7 +82,6 @@ export default function GaleriaPage() {
         break;
       case "BACK_ACTION":
           setMuralesForScroll([]);
-          console.log('Get back', muralesForScroll);
           setCurrentPage(1); // Esto dispara el primer useEffect automáticamente
           pageRef.current = 0;
           fetchPageMurales(1);

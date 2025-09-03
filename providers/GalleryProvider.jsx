@@ -226,17 +226,12 @@ const [muralesForScroll, setMuralesForScroll] = useState([]);
 //Cargar lo murales mediante la paginacion de los mismos
   
 const fetchPageMurales = async(page=1)=>{
-   console.log(`Fecth con pageref ${pageRef.current} y ${page}`);
   if (pageRef.current === page ) return;
-
-  console.log(`Entre con ${page}`);
   setLoadingPageMurales(true);
   setError(null);
   try{
     pageRef.current = page;
     let request = `/api/murales/?page=${page}`;
-    console.log(stateFilter);
-
     if(stateFilter.isFilter){
       if(stateFilter.filters.keyWord){
         request += `&keyword=${stateFilter.filters.keyWord}`;
@@ -247,11 +242,9 @@ const fetchPageMurales = async(page=1)=>{
       }
 
     }
-    console.log(request);
     const response = await fetch(request);
     const data = await response.json();
     pageTotalRef.current = data.filtros.paginationInfo.totalPages;
-    console.log(data);
     setMuralesForScroll(prev=>[...prev,...data.murales]);
     
   } catch (err) {

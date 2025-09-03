@@ -8,11 +8,6 @@ export default function SearchBar (){
     const {
         stateFilter,
         dispatchFilter,
-        fetchPageMurales,
-        currentPage,
-        setCurrentPage,
-        setMuralesForScroll,
-        loadingPageMurales
     } = useGallery();
 
     const handleSubmitAtSearchBar = (e) => {
