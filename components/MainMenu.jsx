@@ -9,7 +9,7 @@ import { useUser } from "../providers/UserProvider";
 import { useSessionData } from "../providers/SessionProvider";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import {
   NavigationMenu,
@@ -46,6 +46,8 @@ export default function MainMenu({ onSubirArchivo }) {
   } = useSessionData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const urlCallback = searchParams?.get?.("callbackUrl") || null;
   const isMobile = useIsMobile();
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -112,8 +114,10 @@ export default function MainMenu({ onSubirArchivo }) {
   }, [pathname, mobileMenuOpen]);
 
   const handleAuthClick = (mode) => {
+    // Si hay callbackUrl en la URL actual (ej. desde /?callbackUrl=/perfil), respétalo
+    const redirectTo = urlCallback || pathname;
     openModal(mode === "register" ? "auth-register" : "auth-login", {
-      redirectTo: pathname,
+      redirectTo,
     });
   };
 
@@ -175,7 +179,7 @@ export default function MainMenu({ onSubirArchivo }) {
           </div>
           
           {/* Links centrados en md+ */}
-          <div className="flex-1 justify-center items-center md:flex hidden md:block">
+          <div className="flex-1 justify-center items-center hidden md:flex">
             <NavigationMenu className="align-middle">
               <NavigationMenuList className="text-sm font-medium relative items-center flex h-full">
                 {menuLinks.map((link) => {
