@@ -1,3 +1,4 @@
+import { contain } from "three/src/extras/TextureUtils";
 import { prisma } from "../../../lib/prisma";
 import cloudinary from "../../../utils/cloudinary";
 import { sendEmail } from "@/lib/sendEmail";
@@ -14,6 +15,7 @@ export async function GET(req) {
     const deleted = searchParams.get("deleted");
     const userId = searchParams.get("userId");
     const page = parseInt(searchParams.get("page"),10);
+    const keyword = searchParams.get("keyword");
 
     // Construir filtros dinámicamente
     const where = {};
@@ -31,6 +33,15 @@ export async function GET(req) {
         },
       };
     }
+    //busqueda en multiples campos para cuando se hace uso de un searchbar
+    if(keyword){
+      where.OR = [
+        {titulo: {contains: keyword, mode: "insensitive"}},
+        {autor: {contains: keyword, mode: "insensitive"} },
+        {tecnica: {contains: keyword, mode: "insensitive"}}
+      ];
+    }
+
     //Consulta el total de elementos dentro de la base de datos
     const total = await prisma.mural.count({ where });
     // En caso de existir PAGE hacer uso de take and skip para la busqueda por paginas
@@ -39,7 +50,7 @@ export async function GET(req) {
     let infoPaginacion;
     
     if(page) {
-      take = 10;
+      take = 20;
       skip = (page - 1) * take;
       infoPaginacion = {
         total, 
@@ -51,6 +62,7 @@ export async function GET(req) {
 
     const murales = await prisma.mural.findMany({
       where,
+      distinct: ['id'],
       include: {
         SalaMural: {
           include: {

@@ -1,7 +1,8 @@
 "use client";
-import React, { useRef, createContext, useContext, useState, useCallback, useReducer} from "react";
+import React, { useRef, createContext, useContext, useState, useCallback, useReducer, useActionState} from "react";
 import * as Sentry from "@sentry/nextjs";
 import { useStateManager } from "react-select";
+import { array } from "yup";
 
 const GalleryContext = createContext();
 
@@ -142,39 +143,130 @@ export const GalleryProvider = ({ children }) => {
     },
     [allMuralesLoaded]
   );
-//Cargar lo murales mediante la paginacion de los mismos
-  const [muralesForScroll, setMuralesForScroll] = useState([]);
-  const [loadingPageMurales, setLoadingPageMurales] = useState(false);
-  const pageRef = useRef(0);
-  const pageTotalRef = useRef(1);
+//useReduce para el renderizado y busqueda mediante filtros
+const filterInitialState = {
+  isFilter: false,
+  status: "NO-ACTION",
+  setOfFilters: [], 
+  filters: {
+    room: "",
+    keyWord: "",
+  },
+  muralesForScroll: [],
+  error: null,
+};
 
-  const fetchPageMurales = useCallback(async (page = 1) =>{
-    if (pageRef.current === page ) return;
-    if (page > pageTotalRef.current) return;
-    setLoadingPageMurales(true);
-    setError(null);
-    try{
-      pageRef.current = page;
-      const response = await fetch(`/api/murales/?page=${page}`);
-      const data = await response.json();
-      pageTotalRef.current = data.filtros.paginationInfo.totalPages;
-      console.log("Si entre",data,pageTotalRef);
-      setMuralesForScroll(prev=>[...prev,...data.murales]);
+const [loadingPageMurales, setLoadingPageMurales] = useState(false);
+const pageRef = useRef(0);
+const pageTotalRef = useRef(0);
+  const [currentPage, setCurrentPage] = useState(1);
+
+const filterPaginatedReducer = (state, action) => {
+  let filterStatus;
+  switch (action.type) {
+    case "SET_KEYWORD":
+      filterStatus = state.isFilter === false ? true : state.isFilter;
+      return {
+        ...state,
+        isFilter: filterStatus,
+        status:"SEARCH_ACTION",
+        filters: {
+          ...state.filters, 
+          keyWord: action.keyWord
+        }
+        
+      };
+    case "GET_BACK":
+      filterStatus = state.isFilter === true ? false : state.isFilter;
+      return {
+        ...state,
+        isFilter: filterStatus,
+        status:"BACK_ACTION",
+        filters: {
+          ...state.filters, 
+          keyWord: "",
+        }
+        
+      };
+    case "SET_SALA":
+      filterStatus = state.isFilter === false ? true : state.isFilter;
+      return {
+        ...state,
+        isFilter: filterStatus,
+        status:"SEARCH_ACTION",
+        filters: {
+          ...state.filters, 
+          keyWord: "",
+          room: action.salaId
+        }
+        
+      };
       
-    } catch (err) {
-      console.error(`Error loading ${page} from murales:`, err);
-      setError(err.message);
-      setMuralesForScroll([]);
-    } finally {
-      setLoadingPageMurales(false);
+    case "RESET":
+      filterStatus = state.isFilter === true ? false : state.isFilter;
+      return {
+        ...state,
+        isFilter: filterStatus,
+        status:"NO_ACTION",
+        filters: {
+          ...state.filters, 
+          room: "",
+          keyWord: "",
+        }
+        
+      };
+    default:
+      throw new Error(`Unhandled action type: ${action.type}`);
+  }
+};
+
+const [stateFilter, dispatchFilter] = useReducer (filterPaginatedReducer,filterInitialState);
+const [muralesForScroll, setMuralesForScroll] = useState([]);
+
+//Cargar lo murales mediante la paginacion de los mismos
+  
+const fetchPageMurales = async(page=1)=>{
+   console.log(`Fecth con pageref ${pageRef.current} y ${page}`);
+  if (pageRef.current === page ) return;
+
+  console.log(`Entre con ${page}`);
+  setLoadingPageMurales(true);
+  setError(null);
+  try{
+    pageRef.current = page;
+    let request = `/api/murales/?page=${page}`;
+    console.log(stateFilter);
+
+    if(stateFilter.isFilter){
+      if(stateFilter.filters.keyWord){
+        request += `&keyword=${stateFilter.filters.keyWord}`;
+      }
+
+      if(stateFilter.filters.room){
+        request += `&salaId=${stateFilter.filters.room}`;
+      }
+
     }
-  }, []);
+    console.log(request);
+    const response = await fetch(request);
+    const data = await response.json();
+    pageTotalRef.current = data.filtros.paginationInfo.totalPages;
+    console.log(data);
+    setMuralesForScroll(prev=>[...prev,...data.murales]);
+    
+  } catch (err) {
+    console.error(`Error loading ${page} from murales:`, err);
+    setError(err.message);
+    setMuralesForScroll([]);
+  } finally {
+    setLoadingPageMurales(false);
+  }
+};
 
 // Cargar el nombre, id, y primera imagen de una sala
   const [roomsToShow, setRoomsToShow] = useState([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
   const hasLoadedRoomsRef =  useRef(false);
-
 
   const fetchRoomsNames = useCallback(async (force=false) =>{
     if(hasLoadedRoomsRef.current && !force) return;
@@ -184,7 +276,6 @@ export const GalleryProvider = ({ children }) => {
       setLoadingRooms(true);
       const request = await fetch(`/api/salas`);
       const response = await request.json();
-      console.log("AQUI LA RESPUESTA",response);
       const salas = response.salas
       .filter((sala)=>sala.publica)
       .map((sala)=>({
@@ -193,7 +284,6 @@ export const GalleryProvider = ({ children }) => {
         img: sala.murales[0].mural.url_imagen,
 
       }));
-      console.log('estoy dentro');
       setRoomsToShow(salas);
     }
     catch(err){
@@ -205,13 +295,6 @@ export const GalleryProvider = ({ children }) => {
       setLoadingRooms(false);
     }
   },[]);
-
-//useReduce para el renderizado y busqueda mediante filtros
-
-
-
-
-
 
   const getGalleryStats = useCallback(() => {
     if (artworks.length === 0) {
@@ -309,11 +392,17 @@ export const GalleryProvider = ({ children }) => {
     fetchPageMurales,
     setMuralesForScroll,
     pageTotalRef,
+    currentPage,
+    setCurrentPage,
     //FUNCIONES PARA OBTENER LAS SALAS EXISTENTES
     loadingRooms,
     roomsToShow,
     fetchRoomsNames,
-     hasLoadedRoomsRef,
+    hasLoadedRoomsRef,
+    //NECESARIO PARA DESPACHAR LA GALERIA 
+    stateFilter,
+    dispatchFilter,
+    pageRef
   };
 
   return (
