@@ -11,6 +11,8 @@ import AppProviders from "../components/AppProviders";
 import SentryTracker from "../components/SentryTracker";
 import { Toaster } from "react-hot-toast";
 import { PushNotificationsProvider } from "@/components/notifications/PushNotificationsProvider";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -51,6 +53,8 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} ${playfair.variable} ${monoton.variable} antialiased`}
       >
+        <SpeedInsights />
+        <Analytics />
         <PushNotificationsProvider>
           <AppProviders>
             <SentryTracker />

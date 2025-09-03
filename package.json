@@ -37,6 +37,8 @@
     "@sentry/nextjs": "^9.35.0",
     "@sentry/replay": "^7.116.0",
     "@sentry/tracing": "^7.120.3",
+    "@vercel/analytics": "^1.5.0",
+    "@vercel/speed-insights": "^1.2.0",
     "bcryptjs": "^3.0.2",
     "canvas": "^3.1.2",
     "class-variance-authority": "^0.7.1",
