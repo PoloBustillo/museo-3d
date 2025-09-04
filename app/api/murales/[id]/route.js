@@ -156,6 +156,43 @@ export async function PUT(req, context) {
         }
       );
     }
+     // 2. Validar que la descripción exista
+    if (!data.descripcion || !data.descripcion.trim()) {
+      return new Response(
+        JSON.stringify({ error: "La descripción de la obra es obligatoria." }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    //Función de análisis de sentimientos
+    async function sentimentalAnalysis() {
+      try {
+        const response = await fetch("https://kenaisan-sentiana.hf.space/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: data.descripcion })
+        });
+
+        if (!response.ok) throw new Error("Error en la API de Hugging Face");
+
+        const responseData = await response.json();
+        const probNegativa = parseFloat(responseData.probabilidades[0][0].toFixed(7));
+        const probPositiva = parseFloat(responseData.probabilidades[0][1].toFixed(7));
+
+        return [responseData.polaridad, probNegativa, probPositiva];
+
+      } catch (err) {
+        console.error("⚠️ Error analizando sentimiento:", err);
+        // Si falla la IA, asignamos valores por defecto
+        return ["NEUTRO", 0.0, 0.0];
+      }
+    }
+
+    // Ejecutar el análisis de sentimientos
+    const [polaridad, probNegativa, probPositiva] = await sentimentalAnalysis();
 
     // Filtrar solo los campos válidos para el modelo Prisma
     const allowedFields = [
@@ -199,6 +236,11 @@ export async function PUT(req, context) {
         updateData[key] = data[key];
       }
     }
+    //Añadimos los datos de la IA al modelo
+    updateData.polaridad = polaridad;
+    updateData.probNegativa = probNegativa;
+    updateData.probPositiva = probPositiva;
+
     // Conversión de tipos para algunos campos
     if (updateData.latitud !== undefined && updateData.latitud !== null) {
       updateData.latitud = parseFloat(updateData.latitud);
