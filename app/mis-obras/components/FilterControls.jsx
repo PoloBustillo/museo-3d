@@ -82,18 +82,18 @@ export default function FilterControls({
        <AnimatePresence>
       {showFilters && (
         <motion.div
-  initial={{ opacity: 0, scaleY: 0, marginTop: 0 }}
-  animate={{ opacity: 1, scaleY: 1, marginTop: '1rem' }}
-  exit={{ opacity: 0, scaleY: 0, marginTop: 0 }}
-  transition={{
-    type: "spring",
-    stiffness: 200,   // fuerza del resorte
-    damping: 25,      // controla rebote
-    mass: 0.5         // masa ligera para respuesta rápida
-  }}
-  style={{ transformOrigin: "top" }}
-  className="bg-white dark:bg-neutral-800 rounded-xl p-5 border border-gray-200 dark:border-neutral-700 shadow-sm overflow-hidden"
->
+          initial={{ opacity: 0, scaleY: 0, marginTop: 0 }}
+          animate={{ opacity: 1, scaleY: 1, marginTop: '1rem' }}
+          exit={{ opacity: 0, scaleY: 0, marginTop: 0 }}
+          transition={{
+            type: "spring",
+            stiffness: 200,   // fuerza del resorte
+            damping: 25,      // controla rebote
+            mass: 0.5         // masa ligera para respuesta rápida
+          }}
+          style={{ transformOrigin: "top" }}
+          className="bg-white dark:bg-neutral-800 rounded-xl p-5 border border-gray-200 dark:border-neutral-700 shadow-sm overflow-hidden"
+        >
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <select
               value={filters.tecnica}

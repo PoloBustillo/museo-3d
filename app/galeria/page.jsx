@@ -56,7 +56,7 @@ export default function GaleriaPage() {
 
   // Lista de favoritos
   const likedMurales = collection.map((item) => item.id);
-  // ✅ Llamada centralizada: solo se hace fetch cuando currentPage cambia
+  // Llamada centralizada: solo se hace fetch cuando currentPage cambia
   useEffect(() => {
     fetchPageMurales(currentPage);
   }, [currentPage]);
@@ -103,84 +103,76 @@ export default function GaleriaPage() {
 
   return (
     <div className="relative min-h-screen bg-gradient-to-br from-purple-50 to-blue-100 p-4">
-      <AnimatedBackground />
-      <div className="max-w-7xl mx-auto relative z-10">
-        <div className="text-center mb-12 mt-12">
-          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-4">
-            Galería Virtual
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Explora las obras de arte organizadas por salas temáticas o navega
-            por el archivo completo
-          </p>
-        </div>
-
-        <div className="relative z-50">
-          <SearchBar />
-        </div>
-        {
-          muralesForScroll.length > 0 ?
-          (
-            <InfiniteScroll
-              key={stateFilter.status} // 👈 Esto fuerza a que se reinicie
-              className="z-10"
-              dataLength={muralesForScroll.length}
-              next={() => setCurrentPage((prev) => prev + 1)}
-              hasMore={currentPage < pageTotalRef.current} 
-              pullDownToRefreshThreshold={0}
-              loader={<SectionLoader />}
-              endMessage={
-                <div className="flex flex-col gap-4 pt-4">
-                  <p className="text-center">
-                    <b>¡Has llegado al final!</b>
-                  </p>
-                  {/* Carrusel destacado */}
-                  {carruselRef.current.length > 0 && (
-                    <div className="mb-8">
-                      <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
-                        Obras Destacadas
-                      </h2>
-                      <GalleryCarousel
-                        items={carruselRef.current}
-                        title="Galería de Obras"
-                      />
-                    </div>
-                  )}
-                </div>
-                
-              }
-            >
-              <MuralesList
-                murales={muralesForScroll}
-                onMuralClick={setZoomMural}
-                onLike={handleLike}
-                likedMurales={likedMurales}
-                onARClick={(mural) => setArMural(mural)}
-              />
-            </InfiniteScroll>
-
-          ):(
-            <div className="w-full flex items-center mt-10">
-              <span className="m-auto font-bold text-xl">
-                ¡Lo sentimos! No se encontraron obras asociadas
-              </span>
-            </div>
-          )
-        }
-        
-        {/* Modal Zoom */}
-        {zoomMural && (
-          <ModalZoomImage
-            mural={zoomMural}
-            onClose={() => setZoomMural(null)}
-          />
-        )}
-
-        {/* Modal AR */}
-        {arMural && (
-          <ARExperience onClose={() => setArMural(null)} mural={arMural} />
-        )}
-      </div>
+  <AnimatedBackground />
+  <div className="max-w-7xl mx-auto relative z-10">
+    <div className="text-center mb-12 mt-12">
+      <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-4">
+        Galería Virtual
+      </h1>
+      <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+        Explora las obras de arte organizadas por salas temáticas o navega
+        por el archivo completo
+      </p>
     </div>
+
+    <div className="relative z-50 mb-6">
+      <SearchBar />
+    </div>
+    {muralesForScroll.length > 0 ? (
+      <InfiniteScroll
+        key={stateFilter.status}
+        className="z-10"
+        dataLength={muralesForScroll.length}
+        next={() => setCurrentPage((prev) => prev + 1)}
+        hasMore={currentPage < pageTotalRef.current}
+        pullDownToRefreshThreshold={0}
+        loader={<SectionLoader />}
+        endMessage={
+          <div className="flex flex-col gap-4 pt-4">
+            <p className="text-center">
+              <b>¡Has llegado al final!</b>
+            </p>
+            {carruselRef.current.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-foreground mb-6 text-center">
+                  Obras Destacadas
+                </h2>
+                <GalleryCarousel
+                  items={carruselRef.current}
+                  title="Galería de Obras"
+                />
+              </div>
+            )}
+          </div>
+        }
+      >
+        <MuralesList
+          murales={muralesForScroll}
+          onMuralClick={setZoomMural}
+          onLike={handleLike}
+          likedMurales={likedMurales}
+          onARClick={(mural) => setArMural(mural)}
+        />
+      </InfiniteScroll>
+    ) : (
+      <div className="w-full flex items-center mt-10">
+        <span className="m-auto font-bold text-xl">
+          ¡Lo sentimos! No se encontraron obras asociadas
+        </span>
+      </div>
+    )}
+  </div>
+  
+  {zoomMural && (
+    <ModalZoomImage
+      mural={zoomMural}
+      onClose={() => setZoomMural(null)}
+    />
+  )}
+
+  {arMural && (
+    <ARExperience onClose={() => setArMural(null)} mural={arMural} />
+  )}
+</div>
   );
 }
