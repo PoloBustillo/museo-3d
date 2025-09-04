@@ -32,7 +32,7 @@ export default function SearchBar (){
 
     return (
         <div className="relative w-full mx-auto">
-            <div className= {` flex items-center justify-around bg-white h-16 pl-2  w-full ${openDropSearch ? 'rounded-tr-3xl rounded-tl-4xl':'rounded-4xl '}`}>
+            <div className= {` flex items-center justify-around bg-zinc-100 dark:bg-white h-16 pl-2  w-full ${openDropSearch ? 'rounded-tr-3xl rounded-tl-4xl':'rounded-4xl '}`}>
                 {
                     stateFilter.isFilter &&
                     <span onClick={handleGetBackAtArrow} className="rounded-4xl p-2 border-1 border-stone-950"> 
