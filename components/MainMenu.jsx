@@ -9,79 +9,42 @@ import { useUser } from "../providers/UserProvider";
 import { useSessionData } from "../providers/SessionProvider";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { usePathname, useSearchParams } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 import {
   NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-  NavigationMenuTrigger,
+  NavigationMenuItem,
 } from "./ui/navigation-menu";
 
 import useIsMobile from "../app/hooks/useIsMobile";
 import TypewriterText from "./shared/TypewriterText";
 
 export default function MainMenu({ onSubirArchivo }) {
-  // Estado para controlar la animación del dot
-  const [dotAnimating, setDotAnimating] = useState(false);
-  const dotIntervalRef = useRef();
   const { openModal } = useModal();
-  const { 
+  const {
     user,
     userProfile,
     status,
     isAuthenticated,
     isAdmin,
     isModerator,
-    isLoading,
   } = useUser();
   const {
     session,
     sessionDuration,
-    sessionTimeRemaining,
     isSessionExpiringSoon,
     isSessionExpired,
   } = useSessionData();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const urlCallback = searchParams?.get?.("callbackUrl") || null;
+  const callbackUrl = searchParams.get("callbackUrl") || pathname;
   const isMobile = useIsMobile();
-  const [isScrolled, setIsScrolled] = useState(false);
 
-  // Efecto para iniciar/detener la animación del dot
-  useEffect(() => {
-    // Iniciar animación del dot al montar el componente
-    setDotAnimating(true);
-    
-    // Configurar intervalo para animación cíclica del dot
-    dotIntervalRef.current = setInterval(() => {
-      setDotAnimating(prev => !prev);
-    }, 4400);
-    
-    return () => {
-      if (dotIntervalRef.current) {
-        clearInterval(dotIntervalRef.current);
-      }
-    };
-  }, []);
-
-  // Efecto para detectar scroll y cambiar apariencia de la navbar
-  useEffect(() => {
-    const handleScroll = () => {
-      const isScrolledNow = window.scrollY > 10;
-      if (isScrolledNow !== isScrolled) {
-        setIsScrolled(isScrolledNow);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [isScrolled]);
-
-  // Cerrar menú móvil al hacer clic fuera
+  // Close mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -106,18 +69,16 @@ export default function MainMenu({ onSubirArchivo }) {
     };
   }, [mobileMenuOpen]);
 
-  // Cerrar menú móvil automáticamente al cambiar de página
+  // Close mobile menu on route change
   useEffect(() => {
     if (mobileMenuOpen) {
       setMobileMenuOpen(false);
     }
-  }, [pathname, mobileMenuOpen]);
+  }, [pathname]);
 
   const handleAuthClick = (mode) => {
-    // Si hay callbackUrl en la URL actual (ej. desde /?callbackUrl=/perfil), respétalo
-    const redirectTo = urlCallback || pathname;
     openModal(mode === "register" ? "auth-register" : "auth-login", {
-      redirectTo,
+      redirectTo: callbackUrl,
     });
   };
 
@@ -130,16 +91,14 @@ export default function MainMenu({ onSubirArchivo }) {
 
   return (
     <>
-      {/* Navigation Menu fija sin auto-hide */}
+      {/* Navigation Menu with fixed positioning */}
       <nav
-        className={`fixed top-0 z-50 w-full navbar-main ${
-          isScrolled
-            ? "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200/50 dark:border-gray-700/50 shadow-lg"
-            : "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-200 dark:border-gray-700"
-        } text-gray-900 dark:text-white transition-all duration-300`}
+        className="fixed top-0 z-50 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-md 
+        border-b border-gray-200/50 dark:border-gray-700/50 shadow-lg
+        text-gray-900 dark:text-white transition-all duration-300"
       >
         <div className="max-w-screen-xl mx-auto flex items-center justify-between px-4 py-2 md:py-4">
-          {/* Logo a la izquierda siempre */}
+          {/* Logo on the left */}
           <div className="flex items-center flex-shrink-0">
             <Link
               href="/"
@@ -177,148 +136,33 @@ export default function MainMenu({ onSubirArchivo }) {
               </div>
             </Link>
           </div>
-          
-          {/* Links centrados en md+ */}
-          <div className="flex-1 justify-center items-center hidden md:flex">
+
+          {/* Centered links for desktop */}
+          <div className="flex-1 justify-center items-center md:flex hidden md:block">
             <NavigationMenu className="align-middle">
               <NavigationMenuList className="text-sm font-medium relative items-center flex h-full">
                 {menuLinks.map((link) => {
-                  const isActive = link.href === "/" 
-                    ? pathname === "/" 
-                    : pathname.startsWith(link.href);
-                  
+                  const isActive =
+                    link.href === "/"
+                      ? pathname === "/"
+                      : pathname.startsWith(link.href);
                   return (
                     <NavigationMenuItem key={link.href} className="relative">
                       <NavigationMenuLink asChild>
                         <Link
                           href={link.href}
-                          className={`navbar-link hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring transition-all px-3 py-2 rounded-lg flex flex-col items-center ${isActive ? "text-primary font-bold" : ""}`}
-                          style={{ position: "relative", zIndex: 1 }}
-                          aria-current={isActive ? "page" : undefined}
+                          className={`navbar-link hover:text-primary transition-all px-3 py-2 rounded-lg flex flex-col items-center ${
+                            isActive ? "text-primary font-bold" : ""
+                          }`}
                         >
                           <span className="h-3 mb-1 w-full flex items-center justify-center">
-                            <motion.span
-                              layoutId="menu-dot-global"
-                              className={
-                                isActive
-                                  ? `inline-block ${dotAnimating ? "w-1.5 h-1.5" : "w-2 h-2"} rounded-full shadow`
-                                  : "inline-block w-1.5 h-1.5 rounded-full bg-gray-400/60"
-                              }
-                              animate={
-                                isActive && dotAnimating
-                                  ? {
-                                      scale: [1, 1.18, 1],
-                                      opacity: [0.85, 0.6, 0.85],
-                                      boxShadow: [
-                                        "0 0 0px 0px #6366f1",
-                                        "0 0 3px 0.5px #6366f1aa",
-                                        "0 0 0px 0px #6366f1",
-                                      ],
-                                      x: [0, 2, 3, 2, 0, -2, -3, -2, 0],
-                                      y: [0, 2, 0, -2, -3, -2, 0, 2, 0],
-                                      background: [
-                                        "#6366f1",
-                                        "#a5b4fc",
-                                        "#fef08a",
-                                        "#f472b6",
-                                        "#38bdf8",
-                                        "#6366f1",
-                                      ],
-                                    }
-                                  : {
-                                      scale: 1,
-                                      opacity: 0.85,
-                                      x: 0,
-                                      y: 0,
-                                      background: isActive
-                                        ? "linear-gradient(135deg, #6366f1 0%, #a5b4fc 40%, #fef08a 70%, #f472b6 90%, #38bdf8 100%)"
-                                        : "#a1a1aa",
-                                    }
-                              }
-                              transition={
-                                isActive && dotAnimating
-                                  ? {
-                                      duration: 1.1,
-                                      repeat: Infinity,
-                                      repeatType: "loop",
-                                      ease: "easeInOut",
-                                    }
-                                  : {
-                                      type: "spring",
-                                      stiffness: 120,
-                                      damping: 18,
-                                      mass: 0.7,
-                                      duration: 0.45,
-                                    }
-                              }
-                              style={{
-                                display: "inline-block",
-                                background:
-                                  !dotAnimating && isActive
-                                    ? "linear-gradient(135deg, #6366f1 0%, #a5b4fc 40%, #fef08a 70%, #f472b6 90%, #38bdf8 100%)"
-                                    : undefined,
-                                backgroundSize:
-                                  !dotAnimating && isActive
-                                    ? "200% 200%"
-                                    : undefined,
-                                backgroundPosition:
-                                  !dotAnimating && isActive
-                                    ? "50% 50%"
-                                    : undefined,
-                                boxShadow: isActive
-                                  ? "0 0 2px 0.5px #818cf822"
-                                  : undefined,
-                              }}
-                            />
-                          </span>
-                          <span className="relative z-10">
-                            {isActive && (
-                              <motion.span
-                                animate={{
-                                  backgroundPosition: [
-                                    "40% 50%",
-                                    "60% 50%",
-                                    "50% 50%",
-                                  ],
-                                  opacity: [0.7, 1, 0.7],
-                                }}
-                                transition={{
-                                  duration: 1.2,
-                                  repeat: Infinity,
-                                  repeatType: "loop",
-                                  ease: "easeInOut",
-                                }}
-                                style={{
-                                  position: "absolute",
-                                  left: 0,
-                                  top: 0,
-                                  width: "100%",
-                                  height: "100%",
-                                  background:
-                                    "linear-gradient(90deg, transparent 0%, #818cf8 45%, #fbbf24 50%, #818cf8 55%, transparent 100%)",
-                                  backgroundClip: "text",
-                                  WebkitBackgroundClip: "text",
-                                  color: "transparent",
-                                  WebkitTextFillColor: "transparent",
-                                  pointerEvents: "none",
-                                  zIndex: 2,
-                                  filter: "blur(0.5px)",
-                                }}
-                                aria-hidden="true"
-                              >
-                                {link.label}
-                              </motion.span>
-                            )}
                             <span
-                              style={{
-                                opacity: 1,
-                                position: "relative",
-                                zIndex: 1,
-                              }}
-                            >
-                              {link.label}
-                            </span>
+                              className={`inline-block w-1.5 h-1.5 rounded-full ${
+                                isActive ? "bg-primary" : "bg-gray-400/60"
+                              }`}
+                            ></span>
                           </span>
+                          <span>{link.label}</span>
                         </Link>
                       </NavigationMenuLink>
                     </NavigationMenuItem>
@@ -327,16 +171,13 @@ export default function MainMenu({ onSubirArchivo }) {
               </NavigationMenuList>
             </NavigationMenu>
           </div>
-          
-          {/* ThemeSwitch y botón hamburguesa a la derecha */}
+
+          {/* ThemeSwitch and hamburger button on the right */}
           <div className="flex items-center flex-shrink-0 ml-auto gap-3">
-            {/* Botón hamburguesa solo en mobile */}
             {isMobile && (
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className={`md:hidden p-3 rounded-lg transition-all duration-300 relative overflow-hidden hamburger-button ${
-                  mobileMenuOpen ? "hamburger-special-open" : ""
-                } ${isAuthenticated ? "max-[1100px]:order-2" : ""}`}
+                className="md:hidden p-3 rounded-lg transition-all duration-300 relative overflow-hidden hamburger-button"
                 aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
               >
                 <div className="w-6 h-6 relative flex flex-col justify-center items-center">
@@ -348,18 +189,9 @@ export default function MainMenu({ onSubirArchivo }) {
                     }`}
                   />
                   <div
-                    className={`hamburger-line-middle absolute h-px bg-current ${
+                    className={`hamburger-line-middle absolute h-px bg-current transition-all duration-300 ease-out ${
                       mobileMenuOpen ? "w-0 opacity-0" : "w-6 opacity-100"
                     }`}
-                    style={{
-                      transformOrigin: "left center",
-                      transition: mobileMenuOpen
-                        ? "transform 0.5s cubic-bezier(0.4, 0, 0.2, 1), width 0.4s ease-out 0.1s, opacity 0.3s ease-out 0.2s"
-                        : "transform 0.3s ease-out, width 0.3s ease-out, opacity 0.2s ease-out",
-                      transform: mobileMenuOpen
-                        ? "translateX(12px) scaleX(0.2)"
-                        : "translateX(0) scaleX(1)",
-                    }}
                   />
                   <div
                     className={`hamburger-line-bottom absolute w-6 h-px bg-current transition-all duration-500 ease-out ${
@@ -369,32 +201,8 @@ export default function MainMenu({ onSubirArchivo }) {
                     }`}
                   />
                 </div>
-
-                <svg
-                  className="absolute inset-0 w-full h-full pointer-events-none"
-                  viewBox="0 0 48 48"
-                >
-                  <rect
-                    x="2"
-                    y="2"
-                    width="44"
-                    height="44"
-                    rx="8"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    className="transition-all duration-1000 ease-out"
-                    style={{
-                      strokeDasharray: "176",
-                      strokeDashoffset: mobileMenuOpen ? "0" : "176",
-                      opacity: mobileMenuOpen ? "0.7" : "0",
-                      transitionDelay: mobileMenuOpen ? "0.4s" : "0s",
-                    }}
-                  />
-                </svg>
               </button>
             )}
-            
             <UserMenu
               isMobile={isMobile}
               status={status}
@@ -416,7 +224,7 @@ export default function MainMenu({ onSubirArchivo }) {
         </div>
       </nav>
 
-      {/* Menú móvil con backdrop tipo modal */}
+      {/* Mobile menu with modal backdrop */}
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
@@ -426,9 +234,7 @@ export default function MainMenu({ onSubirArchivo }) {
             transition={{ duration: 0.2 }}
             className="fixed inset-0 z-40 flex items-center justify-center min-h-screen md:hidden bg-black/50 backdrop-blur-sm px-4"
             aria-hidden="true"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setMobileMenuOpen(false);
-            }}
+            onClick={() => setMobileMenuOpen(false)}
           >
             <motion.div
               initial={{ opacity: 0, y: -20 }}
@@ -439,8 +245,8 @@ export default function MainMenu({ onSubirArchivo }) {
               data-mobile-menu
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Logo centrado arriba en el menú móvil */}
-              <div className="flex flex-col items-center justify-center mt-2 mb-2">
+              {/* Logo centered at the top of the mobile menu */}
+              <div className="flex flex-col items-center justify-center mt-2 mb-4">
                 <img
                   src="/assets/nav/logo.svg"
                   alt="Logo"
@@ -452,34 +258,39 @@ export default function MainMenu({ onSubirArchivo }) {
                   className="h-10 w-auto flex-shrink-0 hidden dark:block"
                 />
               </div>
-              {/* ThemeSwitch debajo del logo */}
-              <div className="flex justify-center mb-4">
-                <ThemeSwitch />
-              </div>
+
+              {/* Mobile menu links */}
               <div className="px-1 py-1 space-y-1 overflow-y-auto max-h-[60vh]">
                 <Link
                   href="/"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="navbar-link block py-1 text-sm font-medium hover:text-primary transition-colors"
+                  className="navbar-link block py-2 text-sm font-medium hover:text-primary transition-colors"
                 >
                   Inicio
                 </Link>
                 <Link
                   href="/galeria"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="navbar-link block py-1 text-sm font-medium hover:text-primary transition-colors"
+                  className="navbar-link block py-2 text-sm font-medium hover:text-primary transition-colors"
                 >
                   Galería
                 </Link>
                 <Link
                   href="/acerca-de"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="navbar-link block py-1 text-sm font-medium hover:text-primary transition-colors"
+                  className="navbar-link block py-2 text-sm font-medium hover:text-primary transition-colors"
                 >
                   Acerca de
                 </Link>
+                <Link
+                  href="/museo"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="navbar-link block py-2 text-sm font-medium hover:text-primary transition-colors"
+                >
+                  Museo Virtual
+                </Link>
 
-                {/* Si el usuario NO está autenticado, mostrar botones de autenticación */}
+                {/* Authentication buttons if not authenticated */}
                 {!isAuthenticated && (
                   <>
                     <div className="px-3 py-1 border-t border-border mt-2">
@@ -508,10 +319,10 @@ export default function MainMenu({ onSubirArchivo }) {
                   </>
                 )}
 
-                {/* Si el usuario está autenticado, mostrar opciones de perfil */}
+                {/* Profile options if authenticated */}
                 {isAuthenticated && (
                   <>
-                    <div className="px-3 py-1 border-t border-border">
+                    <div className="px-3 py-1 border-t border-border mt-2">
                       <p className="text-xs text-muted-foreground font-medium">
                         Mi Cuenta
                       </p>
@@ -540,10 +351,10 @@ export default function MainMenu({ onSubirArchivo }) {
                   </>
                 )}
 
-                {/* Si el usuario es moderador o administrador, mostrar opciones de gestión */}
+                {/* Management options for moderator/admin */}
                 {(isModerator || isAdmin) && (
                   <>
-                    <div className="px-3 py-1 border-t border-border">
+                    <div className="px-3 py-1 border-t border-border mt-2">
                       <p className="text-xs text-muted-foreground font-medium">
                         Panel de Gestión
                       </p>
@@ -576,26 +387,22 @@ export default function MainMenu({ onSubirArchivo }) {
                   </>
                 )}
 
-                {/* Botón de cierre de sesión solo si está autenticado */}
+                {/* Logout button */}
                 {isAuthenticated && (
                   <button
                     onClick={() => signOut()}
-                    className="block w-full text-left px-3 py-2 rounded-md transition-all text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/30 focus:outline-none focus:ring-2 focus:ring-red-500/20"
+                    className="block w-full text-left px-3 py-2 rounded-md transition-all text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/30"
                   >
                     Cerrar sesión
                   </button>
                 )}
               </div>
-              
-              {/* Avatar y nombre de usuario al final del menú móvil */}
+
+              {/* User avatar and name at the end of the mobile menu */}
               {isAuthenticated && (
                 <div className="flex flex-col items-center mt-6 mb-2 border-t border-border pt-4">
                   <img
-                    src={
-                      userProfile?.image ||
-                      user?.image ||
-                      "/assets/default-avatar.svg"
-                    }
+                    src={userProfile?.image || user?.image || "/assets/default-avatar.svg"}
                     alt={userProfile?.name || user?.name || "Usuario"}
                     className="w-14 h-14 rounded-full object-cover border-2 border-primary/20 mb-2"
                     onError={(e) => {
