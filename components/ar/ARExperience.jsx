@@ -138,8 +138,8 @@ export default function ARExperience({
       borderRadius: 30,
       padding: 40,
     });
-    // Posicionar el botón frente a la cámara
-    sprite.position.set(0, -0.2, -0.7); // Frente y un poco abajo
+    // Posicionar el botón frente a la cámara (elevado)
+    sprite.position.set(0, 0.3, -0.7); // Frente y elevado
     arButtonSpriteRef.current = sprite;
     sceneRef.current.add(sprite);
   }
@@ -710,7 +710,7 @@ export default function ARExperience({
     const geometry = new THREE.PlaneGeometry(0.25, 0.1); // 25cm x 10cm
     const material = new THREE.MeshBasicMaterial({ color: 0xff3300 });
     const plane = new THREE.Mesh(geometry, material);
-    plane.position.set(0, -0.2, -1); // Frente a la cámara
+    plane.position.set(0, 0.3, -1); // Frente a la cámara (elevado)
     plane.name = "ARButtonPlane";
     arButtonPlaneRef.current = plane;
     sceneRef.current.add(plane);
