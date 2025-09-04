@@ -41,6 +41,7 @@ export default function SearchBar (){
     };
 
     const handleDisplayIA = () =>{
+        console.log(stateFilter.aiActive);
         setOpenDropSearch(false);
         console.log('dispatch IA');
         dispatchFilter({ type: "SET_IA"});
@@ -95,7 +96,13 @@ export default function SearchBar (){
                     }
                     {   
                         !openDropSearch &&
-                        <span onClick={handleDisplayIA} className="border-stone-950 border-b-2 border-r-2 rounded-4xl p-1">                 
+                        <span onClick={handleDisplayIA} 
+  className={`border-b-2 border-r-2 rounded-full p-1 px-3 text-sm font-medium transition-all duration-300 ease-in-out shadow-md
+    ${stateFilter.aiActive 
+      ? "bg-gradient-to-r from-purple-500 via-pink-500/50 to-red-500 text-white  scale-105" 
+      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+    }`}
+>                 
                             <StarsIcon className={'size-7 text-stone-950'}/>
                         </span>
 
