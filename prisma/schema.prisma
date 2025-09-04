@@ -75,6 +75,9 @@ model Mural {
     id                  Int                 @id @default(autoincrement())
     titulo              String
     descripcion         String?
+    polaridad           String?
+    probNegativa        Float?
+    probPositiva         Float?
     anio                Int?
     tecnica             String?
     dimensiones         String?
