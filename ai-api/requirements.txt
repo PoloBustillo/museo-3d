@@ -7,3 +7,7 @@ uvicorn
 googletrans==4.0.0rc1
 diffusers
 accelerate
+opencv-python
+numpy
+scikit-learn
+matplotlib

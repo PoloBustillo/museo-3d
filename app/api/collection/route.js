@@ -28,14 +28,49 @@ import { SentryLogger } from "../../../lib/sentryLogger";
 export async function GET(req) {
   const session = await getServerSession(authOptions);
 
-  if (!session || !session.user || !session.user.id) {
+  if (!session || !session.user || (!session.user.id && !session.user.email)) {
     return new Response(JSON.stringify({ error: "No autorizado" }), {
       status: 401,
     });
   }
 
   try {
-    const userId = session.user.id;
+    let userId = session.user.id;
+    
+    // Si no hay ID en la sesión, buscar el usuario por email
+    if (!userId && session.user.email) {
+      let user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true }
+      });
+      
+      if (!user) {
+        // Crear el usuario si no existe
+        console.log("🆕 Creando usuario para GET, email:", session.user.email);
+        try {
+          user = await prisma.user.create({
+            data: {
+              email: session.user.email,
+              name: session.user.name || "Usuario",
+              image: session.user.image || null,
+              emailVerified: new Date(),
+              role: "USER"
+            },
+            select: { id: true }
+          });
+          console.log("✅ Usuario creado exitosamente para GET:", session.user.email, "ID:", user.id);
+        } catch (createError) {
+          console.error("🚨 Error creando usuario en GET:", createError);
+          return new Response(JSON.stringify({ error: "Error creando usuario" }), {
+            status: 500,
+          });
+        }
+      }
+      
+      userId = user.id;
+      console.log("✅ Usuario encontrado/creado por email para GET:", session.user.email, "ID:", userId);
+    }
+    
     const userFavorites = await prisma.userMuralFavorite.findMany({
       where: { userId },
       include: {
@@ -92,14 +127,49 @@ export async function GET(req) {
 export async function POST(req) {
   const session = await getServerSession(authOptions);
 
-  if (!session || !session.user || !session.user.id) {
+  if (!session || !session.user || (!session.user.id && !session.user.email)) {
     return new Response(JSON.stringify({ error: "No autorizado" }), {
       status: 401,
     });
   }
 
   try {
-    const userId = session.user.id;
+    let userId = session.user.id;
+    
+    // Si no hay ID en la sesión, buscar el usuario por email
+    if (!userId && session.user.email) {
+      let user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true }
+      });
+      
+      if (!user) {
+        // Crear el usuario si no existe
+        console.log("🆕 Creando usuario para email:", session.user.email);
+        try {
+          user = await prisma.user.create({
+            data: {
+              email: session.user.email,
+              name: session.user.name || "Usuario",
+              image: session.user.image || null,
+              emailVerified: new Date(),
+              role: "USER"
+            },
+            select: { id: true }
+          });
+          console.log("✅ Usuario creado exitosamente:", session.user.email, "ID:", user.id);
+        } catch (createError) {
+          console.error("🚨 Error creando usuario:", createError);
+          return new Response(JSON.stringify({ error: "Error creando usuario" }), {
+            status: 500,
+          });
+        }
+      }
+      
+      userId = user.id;
+      console.log("✅ Usuario encontrado/creado por email:", session.user.email, "ID:", userId);
+    }
+    
     const { muralId } = await req.json();
 
     if (!muralId) {
@@ -108,6 +178,21 @@ export async function POST(req) {
         { status: 400 }
       );
     }
+
+    // Verificación adicional: asegurar que el usuario existe en la BD
+    const userExists = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true }
+    });
+    
+    if (!userExists) {
+      console.error("🚨 CRITICAL: Usuario no existe en BD después de creación/búsqueda. userId:", userId);
+      return new Response(JSON.stringify({ error: "Error crítico: usuario no válido" }), {
+        status: 500,
+      });
+    }
+    
+    console.log("✅ Verificación: Usuario existe en BD:", userExists.email, "ID:", userExists.id);
 
     // Verificar si ya existe la relación
     const existingFavorite = await prisma.userMuralFavorite.findUnique({
@@ -124,6 +209,17 @@ export async function POST(req) {
         JSON.stringify({ message: "El mural ya está en la colección" }),
         { status: 200 }
       );
+    }
+
+    // Log para debug antes de crear favorito
+    console.log("🔍 DEBUG - userId antes de crear favorito:", userId, "tipo:", typeof userId);
+    console.log("🔍 DEBUG - muralId:", muralId, "tipo:", typeof muralId);
+    
+    if (!userId) {
+      console.error("🚨 CRITICAL: userId es null/undefined al momento de crear favorito");
+      return new Response(JSON.stringify({ error: "Error interno: usuario no válido" }), {
+        status: 500,
+      });
     }
 
     // Crear la relación
@@ -194,7 +290,7 @@ export async function POST(req) {
 export async function DELETE(req) {
   const session = await getServerSession(authOptions);
 
-  if (!session || !session.user || !session.user.id) {
+  if (!session || !session.user || (!session.user.id && !session.user.email)) {
     return new Response(JSON.stringify({ error: "No autorizado" }), {
       status: 401,
     });
@@ -218,18 +314,39 @@ export async function DELETE(req) {
   }
 
   try {
+    let userId = session.user.id;
+    
+    // Si no hay ID en la sesión, buscar el usuario por email
+    if (!userId && session.user.email) {
+      let user = await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { id: true }
+      });
+      
+      if (!user) {
+        // Para DELETE, no crear usuario si no existe
+        console.error("🚨 Usuario no encontrado en DB para DELETE, email:", session.user.email);
+        return new Response(JSON.stringify({ error: "Usuario no encontrado" }), {
+          status: 404,
+        });
+      }
+      
+      userId = user.id;
+      console.log("✅ Usuario encontrado por email para DELETE:", session.user.email, "ID:", userId);
+    }
+    
     // Eliminar la relación
     await prisma.userMuralFavorite.delete({
       where: {
         userId_muralId: {
-          userId: session.user.id,
+          userId: userId,
           muralId,
         },
       },
     });
 
     // Log del evento en Sentry
-    SentryLogger.collectionRemove(session.user.id, muralId);
+    SentryLogger.collectionRemove(userId, muralId);
 
     return new Response(
       JSON.stringify({ message: "Mural eliminado de la colección" }),
