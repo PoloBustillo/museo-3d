@@ -38,11 +38,11 @@ import { Icon } from "leaflet";
 import { Brush } from "lucide-react";
 import ReactSelect from "react-select";
 import { SimpleModal } from "@/components/ui/SimpleModal";
-// BYPASS: Import Fast version for performance
+// Import the real GLB generator instead of the Fast bypass
 import {
   generateMuralGLB,
   generateMuralGLBFallback,
-} from "../../../utils/generateMuralGLBFast";
+} from "../../../utils/generateMuralGLB";
 import { uploadModelToCloudinary } from "../../../utils/uploadToCloudinary";
 import { validateGLB, diagnoseModel } from "../../../utils/validateGLB";
 
