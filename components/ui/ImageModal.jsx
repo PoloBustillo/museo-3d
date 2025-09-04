@@ -11,6 +11,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import { useSound } from "../../providers/SoundProvider";
+import { useTheme } from "../../providers/ThemeProvider";
 
 export default function ImageModal({
   isOpen,
@@ -29,6 +30,7 @@ export default function ImageModal({
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [imageLoaded, setImageLoaded] = useState(false);
   const { playSound, muted, toggleMute } = useSound();
+  const { theme } = useTheme();
 
   // Manejar teclas
   useEffect(() => {
@@ -168,7 +170,7 @@ export default function ImageModal({
   return (
     <div
       ref={modalRef}
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-md image-modal-overlay"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/95 dark:bg-black/95 backdrop-blur-md image-modal-overlay"
       onClick={handleBackdropClick}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -180,7 +182,7 @@ export default function ImageModal({
           playSound("modal-close");
           onClose();
         }}
-        className="absolute top-6 right-6 z-10 p-3 text-white hover:text-gray-300 transition-all duration-200 hover:bg-white/10 rounded-full backdrop-blur-sm"
+        className="absolute top-6 right-6 z-10 p-3 text-gray-800 dark:text-white hover:text-gray-600 dark:hover:text-gray-300 transition-all duration-200 hover:bg-black/10 dark:hover:bg-white/10 rounded-full backdrop-blur-sm"
         aria-label="Cerrar modal"
       >
         <X size={24} />
@@ -194,7 +196,7 @@ export default function ImageModal({
               playSound("click");
               onNavigate("prev");
             }}
-            className="absolute left-6 top-1/2 -translate-y-1/2 z-10 p-3 text-white hover:text-gray-300 transition-all duration-200 hover:bg-white/10 rounded-full backdrop-blur-sm"
+            className="absolute left-6 top-1/2 -translate-y-1/2 z-10 p-3 text-gray-800 dark:text-white hover:text-gray-600 dark:hover:text-gray-300 transition-all duration-200 hover:bg-black/10 dark:hover:bg-white/10 rounded-full backdrop-blur-sm"
             aria-label="Imagen anterior"
           >
             <ChevronLeft size={32} />
@@ -204,7 +206,7 @@ export default function ImageModal({
               playSound("click");
               onNavigate("next");
             }}
-            className="absolute right-6 top-1/2 -translate-y-1/2 z-10 p-3 text-white hover:text-gray-300 transition-all duration-200 hover:bg-white/10 rounded-full backdrop-blur-sm"
+            className="absolute right-6 top-1/2 -translate-y-1/2 z-10 p-3 text-gray-800 dark:text-white hover:text-gray-600 dark:hover:text-gray-300 transition-all duration-200 hover:bg-black/10 dark:hover:bg-white/10 rounded-full backdrop-blur-sm"
             aria-label="Siguiente imagen"
           >
             <ChevronRight size={32} />
@@ -216,35 +218,35 @@ export default function ImageModal({
       <div className="absolute top-6 left-6 z-10 flex gap-2">
         <button
           onClick={() => handleZoom("in")}
-          className="p-3 text-white hover:text-gray-300 transition-all duration-200 hover:bg-white/10 rounded-full backdrop-blur-sm"
+          className="p-3 text-gray-800 dark:text-white hover:text-gray-600 dark:hover:text-gray-300 transition-all duration-200 hover:bg-black/10 dark:hover:bg-white/10 rounded-full backdrop-blur-sm"
           aria-label="Zoom in"
         >
           <ZoomIn size={20} />
         </button>
         <button
           onClick={() => handleZoom("out")}
-          className="p-3 text-white hover:text-gray-300 transition-all duration-200 hover:bg-white/10 rounded-full backdrop-blur-sm"
+          className="p-3 text-gray-800 dark:text-white hover:text-gray-600 dark:hover:text-gray-300 transition-all duration-200 hover:bg-black/10 dark:hover:bg-white/10 rounded-full backdrop-blur-sm"
           aria-label="Zoom out"
         >
           <ZoomOut size={20} />
         </button>
         <button
           onClick={handleRotate}
-          className="p-3 text-white hover:text-gray-300 transition-all duration-200 hover:bg-white/10 rounded-full backdrop-blur-sm"
+          className="p-3 text-gray-800 dark:text-white hover:text-gray-600 dark:hover:text-gray-300 transition-all duration-200 hover:bg-black/10 dark:hover:bg-white/10 rounded-full backdrop-blur-sm"
           aria-label="Rotar"
         >
           <RotateCcw size={20} />
         </button>
         <button
           onClick={handleReset}
-          className="px-4 py-3 text-white hover:text-gray-300 transition-all duration-200 hover:bg-white/10 rounded-full backdrop-blur-sm text-sm font-medium"
+          className="px-4 py-3 text-gray-800 dark:text-white hover:text-gray-600 dark:hover:text-gray-300 transition-all duration-200 hover:bg-black/10 dark:hover:bg-white/10 rounded-full backdrop-blur-sm text-sm font-medium"
           aria-label="Resetear"
         >
           Reset
         </button>
         <button
           onClick={toggleMute}
-          className="p-3 text-white hover:text-gray-300 transition-all duration-200 hover:bg-white/10 rounded-full backdrop-blur-sm"
+          className="p-3 text-gray-800 dark:text-white hover:text-gray-600 dark:hover:text-gray-300 transition-all duration-200 hover:bg-black/10 dark:hover:bg-white/10 rounded-full backdrop-blur-sm"
           aria-label={muted ? "Activar sonido" : "Desactivar sonido"}
         >
           {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
@@ -253,7 +255,7 @@ export default function ImageModal({
 
       {/* Contador de imágenes */}
       {totalImages > 1 && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 text-white text-sm bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full">
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 text-gray-800 dark:text-white text-sm bg-white/80 dark:bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full border border-gray-300 dark:border-white/20">
           {currentIndex + 1} / {totalImages}
         </div>
       )}
@@ -262,7 +264,7 @@ export default function ImageModal({
       <div className="relative max-w-[90vw] max-h-[90vh] overflow-hidden flex items-center justify-center p-8">
         {!imageLoaded && (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-800 dark:border-white"></div>
           </div>
         )}
         <img
@@ -284,35 +286,35 @@ export default function ImageModal({
       </div>
 
       {/* Información de la obra */}
-      <div className="absolute bottom-6 left-6 right-6 z-10 text-white">
-        <div className="bg-black/60 backdrop-blur-md rounded-2xl p-6 border border-white/20">
-          <h3 className="text-xl font-semibold mb-3">
+      <div className="absolute bottom-6 left-6 right-6 z-10 text-gray-800 dark:text-white">
+        <div className="bg-white/90 dark:bg-black/60 backdrop-blur-md rounded-2xl p-6 border border-gray-300 dark:border-white/20 shadow-lg">
+          <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-white">
             {artwork.titulo || artwork.nombre}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
             {artwork.artista && (
               <div>
-                <span className="font-medium text-gray-300">Artista:</span>
-                <p className="text-white">{artwork.artista}</p>
+                <span className="font-medium text-gray-600 dark:text-gray-300">Artista:</span>
+                <p className="text-gray-900 dark:text-white">{artwork.artista}</p>
               </div>
             )}
             {artwork.tecnica && (
               <div>
-                <span className="font-medium text-gray-300">Técnica:</span>
-                <p className="text-white">{artwork.tecnica}</p>
+                <span className="font-medium text-gray-600 dark:text-gray-300">Técnica:</span>
+                <p className="text-gray-900 dark:text-white">{artwork.tecnica}</p>
               </div>
             )}
             {artwork.año && (
               <div>
-                <span className="font-medium text-gray-300">Año:</span>
-                <p className="text-white">{artwork.año}</p>
+                <span className="font-medium text-gray-600 dark:text-gray-300">Año:</span>
+                <p className="text-gray-900 dark:text-white">{artwork.año}</p>
               </div>
             )}
           </div>
           {artwork.descripcion && (
-            <div className="mt-4 pt-4 border-t border-white/20">
-              <span className="font-medium text-gray-300">Descripción:</span>
-              <p className="text-white mt-1 text-sm leading-relaxed">
+            <div className="mt-4 pt-4 border-t border-gray-300 dark:border-white/20">
+              <span className="font-medium text-gray-600 dark:text-gray-300">Descripción:</span>
+              <p className="text-gray-900 dark:text-white mt-1 text-sm leading-relaxed">
                 {artwork.descripcion}
               </p>
             </div>
@@ -321,7 +323,7 @@ export default function ImageModal({
       </div>
 
       {/* Instrucciones */}
-      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 text-white/70 text-xs text-center bg-black/40 backdrop-blur-sm px-4 py-2 rounded-full">
+      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-10 text-gray-600 dark:text-white/70 text-xs text-center bg-white/80 dark:bg-black/40 backdrop-blur-sm px-4 py-2 rounded-full border border-gray-300 dark:border-white/20">
         <p>
           Flechas: navegar • +/-: zoom • R: rotar • 0: reset • M: sonido • ESC:
           cerrar
