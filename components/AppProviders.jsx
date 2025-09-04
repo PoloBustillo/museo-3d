@@ -13,6 +13,7 @@ import { ModalWrapper } from "./ui/Modal";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useNotification } from "../providers/NotificationProvider";
 import { useCollection } from "../providers/CollectionProvider";
+import { useTheme } from "../providers/ThemeProvider";
 
 export default function AppProviders({ children }) {
   return (
@@ -257,6 +258,9 @@ export default function AppProviders({ children }) {
 }
 
 function ArtworkModalContent({ artwork }) {
+  // Hook de tema
+  const { theme } = useTheme();
+  
   // Estado de imagen
   const [loaded, setLoaded] = useState(false);
   const imgRef = useRef(null);
@@ -340,7 +344,11 @@ function ArtworkModalContent({ artwork }) {
   return (
     <div className="flex flex-col gap-4 max-h-[80vh]">
       <div className="flex flex-col lg:flex-row gap-6 flex-1 overflow-hidden">
-        <div className="relative flex-1 rounded-xl border border-neutral-700/50 shadow-inner bg-neutral-900/80 backdrop-blur-sm h-[60vh]">
+        <div className={`relative flex-1 rounded-xl border shadow-inner backdrop-blur-sm h-[60vh] ${
+          theme === 'dark' 
+            ? 'border-neutral-700/50 bg-neutral-900/80' 
+            : 'border-gray-300/50 bg-gray-50/80'
+        }`}>
           <div
             ref={containerRef}
             className="w-full h-full relative overflow-hidden rounded-lg cursor-grab active:cursor-grabbing select-none"
@@ -352,8 +360,12 @@ function ArtworkModalContent({ artwork }) {
             role="region"
           >
             {!loaded && (
-              <div className="absolute inset-0 flex items-center justify-center bg-neutral-800 animate-pulse">
-                <div className="w-24 h-24 rounded-full bg-neutral-700/60 blur-sm" />
+              <div className={`absolute inset-0 flex items-center justify-center animate-pulse ${
+                theme === 'dark' ? 'bg-neutral-800' : 'bg-gray-200'
+              }`}>
+                <div className={`w-24 h-24 rounded-full blur-sm ${
+                  theme === 'dark' ? 'bg-neutral-700/60' : 'bg-gray-400/60'
+                }`} />
               </div>
             )}
             <img
@@ -366,28 +378,56 @@ function ArtworkModalContent({ artwork }) {
               className="max-w-none max-h-none top-1/2 left-1/2 absolute -translate-x-1/2 -translate-y-1/2 shadow-2xl rounded-md"
             />
             {zoom <= fitZoom && loaded && (
-              <div className="absolute inset-x-0 bottom-3 text-center text-[11px] text-neutral-400 pointer-events-none">
+              <div className={`absolute inset-x-0 bottom-3 text-center text-[11px] pointer-events-none ${
+                theme === 'dark' ? 'text-neutral-400' : 'text-gray-600'
+              }`}>
                 Doble clic para ampliar. Zoom con rueda. Arrastra con click derecho.
               </div>
             )}
           </div>
           {/* Controles flotantes (sin fullscreen) */}
           <div className="absolute top-3 right-3 flex flex-col gap-2" aria-label="Controles de zoom">
-            <IconButton label="Acercar" onClick={zoomIn}>+</IconButton>
-            <IconButton label="Alejar" onClick={zoomOut}>−</IconButton>
-            <IconButton label="Ajustar" onClick={resetView}>Fit</IconButton>
+            <IconButton label="Acercar" onClick={zoomIn} theme={theme}>+</IconButton>
+            <IconButton label="Alejar" onClick={zoomOut} theme={theme}>−</IconButton>
+            <IconButton label="Ajustar" onClick={resetView} theme={theme}>Fit</IconButton>
           </div>
           <div className="absolute top-3 left-3 flex gap-2 items-center">
-            <span className="px-3 py-1 rounded-full bg-neutral-800/70 text-neutral-200 text-xs font-medium backdrop-blur border border-neutral-700/50">
+            <span className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur border ${
+              theme === 'dark' 
+                ? 'bg-neutral-800/70 text-neutral-200 border-neutral-700/50' 
+                : 'bg-white/70 text-gray-800 border-gray-300/50'
+            }`}>
               {artwork.tecnica || artwork.technique || 'Técnica'}
             </span>
-            {(artwork.anio || artwork.year) && <span className="px-2 py-1 rounded bg-neutral-800/70 text-neutral-300 text-[11px] border border-neutral-700/40">{artwork.anio || artwork.year}</span>}
-            {artwork.type && <span className="px-2 py-1 rounded bg-blue-900/40 text-blue-200 text-[11px] border border-blue-700/40">{artwork.type}</span>}
+            {(artwork.anio || artwork.year) && (
+              <span className={`px-2 py-1 rounded text-[11px] border ${
+                theme === 'dark' 
+                  ? 'bg-neutral-800/70 text-neutral-300 border-neutral-700/40' 
+                  : 'bg-white/70 text-gray-700 border-gray-300/40'
+              }`}>
+                {artwork.anio || artwork.year}
+              </span>
+            )}
+            {artwork.type && (
+              <span className={`px-2 py-1 rounded text-[11px] border ${
+                theme === 'dark' 
+                  ? 'bg-blue-900/40 text-blue-200 border-blue-700/40' 
+                  : 'bg-blue-100/80 text-blue-800 border-blue-300/40'
+              }`}>
+                {artwork.type}
+              </span>
+            )}
           </div>
           <button
             onClick={toggleFavorite}
             aria-pressed={favorite}
-            className={`absolute bottom-3 left-3 w-11 h-11 rounded-full flex items-center justify-center border transition-colors shadow ${favorite ? 'bg-pink-600 hover:bg-pink-500 border-pink-400' : 'bg-neutral-800/80 hover:bg-neutral-700 border-neutral-600/40'}`}
+            className={`absolute bottom-3 left-3 w-11 h-11 rounded-full flex items-center justify-center border transition-colors shadow ${
+              favorite 
+                ? 'bg-pink-600 hover:bg-pink-500 border-pink-400' 
+                : theme === 'dark'
+                  ? 'bg-neutral-800/80 hover:bg-neutral-700 border-neutral-600/40'
+                  : 'bg-white/80 hover:bg-gray-100 border-gray-300/40'
+            }`}
             title={favorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}
           >
             {favorite ? '❤' : '♡'}
@@ -396,33 +436,91 @@ function ArtworkModalContent({ artwork }) {
         {/* Panel lateral */}
         <aside className="w-full lg:w-96 flex flex-col overflow-y-auto pr-2" aria-label="Detalles de la obra">
           <header className="mb-2">
-            <h2 className="text-3xl font-bold tracking-tight text-neutral-100 leading-snug">{artwork.titulo || artwork.title}</h2>
-            <p className="text-lg font-medium text-neutral-300">{artwork.autor || artwork.artist || 'Autor desconocido'}</p>
+            <h2 className={`text-3xl font-bold tracking-tight leading-snug ${
+              theme === 'dark' ? 'text-neutral-100' : 'text-gray-900'
+            }`}>
+              {artwork.titulo || artwork.title}
+            </h2>
+            <p className={`text-lg font-medium ${
+              theme === 'dark' ? 'text-neutral-300' : 'text-gray-600'
+            }`}>
+              {artwork.autor || artwork.artist || 'Autor desconocido'}
+            </p>
           </header>
           {artwork.descripcion && (
-            <Section title="Descripción" open={sectionOpen.desc} onToggle={() => setSectionOpen(s => ({...s, desc: !s.desc}))}>
-              <p className="text-sm leading-relaxed text-neutral-300 whitespace-pre-wrap">{artwork.descripcion}</p>
+            <Section title="Descripción" open={sectionOpen.desc} onToggle={() => setSectionOpen(s => ({...s, desc: !s.desc}))} theme={theme}>
+              <p className={`text-sm leading-relaxed whitespace-pre-wrap ${
+                theme === 'dark' ? 'text-neutral-300' : 'text-gray-700'
+              }`}>
+                {artwork.descripcion}
+              </p>
             </Section>
           )}
-          <Section title="Metadatos" open={sectionOpen.meta} onToggle={() => setSectionOpen(s => ({...s, meta: !s.meta}))}>
+          <Section title="Metadatos" open={sectionOpen.meta} onToggle={() => setSectionOpen(s => ({...s, meta: !s.meta}))} theme={theme}>
             <div className="grid grid-cols-2 gap-3 text-xs">
-              {artwork.type && <InfoBlock label="Tipo" value={artwork.type} />}
-              <InfoBlock label="Dimensiones" value={`${artwork.width || '—'} × ${artwork.height || '—'} u.`} />
-              {artwork.frameStyle && <InfoBlock label="Marco" value={artwork.frameStyle} />}
-              {artwork.frameMaterial && <InfoBlock label="Material" value={artwork.frameMaterial} />}
-              {artwork.material && <InfoBlock label="Soporte" value={artwork.material} />}
-              {artwork.category && <InfoBlock label="Categoría" value={artwork.category} />}
+              {artwork.type && <InfoBlock label="Tipo" value={artwork.type} theme={theme} />}
+              <InfoBlock label="Dimensiones" value={`${artwork.width || '—'} × ${artwork.height || '—'} u.`} theme={theme} />
+              {artwork.frameStyle && <InfoBlock label="Marco" value={artwork.frameStyle} theme={theme} />}
+              {artwork.frameMaterial && <InfoBlock label="Material" value={artwork.frameMaterial} theme={theme} />}
+              {artwork.material && <InfoBlock label="Soporte" value={artwork.material} theme={theme} />}
+              {artwork.category && <InfoBlock label="Categoría" value={artwork.category} theme={theme} />}
             </div>
           </Section>
           {artwork.tags && Array.isArray(artwork.tags) && artwork.tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-2" aria-label="Etiquetas">
-              {artwork.tags.map((t, i) => (<span key={i} className="px-2 py-1 rounded-full bg-neutral-800/60 text-[11px] text-neutral-300 border border-neutral-700/50">#{t}</span>))}
+              {artwork.tags.map((t, i) => (
+                <span key={i} className={`px-2 py-1 rounded-full text-[11px] border ${
+                  theme === 'dark' 
+                    ? 'bg-neutral-800/60 text-neutral-300 border-neutral-700/50' 
+                    : 'bg-gray-100/80 text-gray-700 border-gray-300/50'
+                }`}>
+                  #{t}
+                </span>
+              ))}
             </div>
           )}
-          <div className="mt-auto pt-4 flex flex-wrap gap-3 border-t border-neutral-800/70">
-            <button type="button" onClick={toggleFavorite} className={`px-4 py-2 rounded-md text-sm font-medium shadow focus:outline-none focus:ring-2 focus:ring-pink-400/40 transition-colors ${favorite ? 'bg-pink-600 hover:bg-pink-500 text-white' : 'bg-neutral-700 hover:bg-neutral-600 text-neutral-100'}`}>{favorite ? 'En favoritos' : 'Favorito'}</button>
-            <button type="button" onClick={() => { navigator?.clipboard?.writeText(window.location.href).then(() => notify('Enlace copiado','success')).catch(()=>{}); }} className="px-4 py-2 rounded-md bg-neutral-700 hover:bg-neutral-600 text-neutral-100 text-sm font-medium shadow focus:outline-none focus:ring-2 focus:ring-neutral-400/40">Compartir</button>
-            <button type="button" onClick={resetView} className="px-4 py-2 rounded-md bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-sm font-medium shadow focus:outline-none focus:ring-2 focus:ring-neutral-500/40">Ajustar</button>
+          <div className={`mt-auto pt-4 flex flex-wrap gap-3 border-t ${
+            theme === 'dark' ? 'border-neutral-800/70' : 'border-gray-200/70'
+          }`}>
+            <button 
+              type="button" 
+              onClick={toggleFavorite} 
+              className={`px-4 py-2 rounded-md text-sm font-medium shadow focus:outline-none focus:ring-2 focus:ring-pink-400/40 transition-colors ${
+                favorite 
+                  ? 'bg-pink-600 hover:bg-pink-500 text-white' 
+                  : theme === 'dark'
+                    ? 'bg-neutral-700 hover:bg-neutral-600 text-neutral-100'
+                    : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+              }`}
+            >
+              {favorite ? 'En favoritos' : 'Favorito'}
+            </button>
+            <button 
+              type="button" 
+              onClick={() => { 
+                navigator?.clipboard?.writeText(window.location.href)
+                  .then(() => notify('Enlace copiado','success'))
+                  .catch(()=>{}); 
+              }} 
+              className={`px-4 py-2 rounded-md text-sm font-medium shadow focus:outline-none focus:ring-2 transition-colors ${
+                theme === 'dark'
+                  ? 'bg-neutral-700 hover:bg-neutral-600 text-neutral-100 focus:ring-neutral-400/40'
+                  : 'bg-gray-200 hover:bg-gray-300 text-gray-800 focus:ring-gray-400/40'
+              }`}
+            >
+              Compartir
+            </button>
+            <button 
+              type="button" 
+              onClick={resetView} 
+              className={`px-4 py-2 rounded-md text-sm font-medium shadow focus:outline-none focus:ring-2 transition-colors ${
+                theme === 'dark'
+                  ? 'bg-neutral-800 hover:bg-neutral-700 text-neutral-200 focus:ring-neutral-500/40'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700 focus:ring-gray-400/40'
+              }`}
+            >
+              Ajustar
+            </button>
           </div>
         </aside>
       </div>
@@ -430,37 +528,59 @@ function ArtworkModalContent({ artwork }) {
   );
 }
 
-function InfoBlock({ label, value }) {
+function InfoBlock({ label, value, theme }) {
   return (
-    <div className="bg-neutral-800/60 border border-neutral-700/60 rounded-md px-3 py-2">
-      <p className="text-neutral-400 uppercase tracking-wide font-semibold">
+    <div className={`border rounded-md px-3 py-2 ${
+      theme === 'dark' 
+        ? 'bg-neutral-800/60 border-neutral-700/60' 
+        : 'bg-gray-100/60 border-gray-300/60'
+    }`}>
+      <p className={`uppercase tracking-wide font-semibold ${
+        theme === 'dark' ? 'text-neutral-400' : 'text-gray-600'
+      }`}>
         {label}
       </p>
-      <p className="text-neutral-200 mt-0.5 leading-snug">{value}</p>
+      <p className={`mt-0.5 leading-snug ${
+        theme === 'dark' ? 'text-neutral-200' : 'text-gray-800'
+      }`}>
+        {value}
+      </p>
     </div>
   );
 }
 
-function IconButton({ children, onClick, label }) {
+function IconButton({ children, onClick, label, theme }) {
   return (
     <button
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="w-10 h-10 rounded-md bg-neutral-800/80 hover:bg-neutral-700 text-neutral-100 text-xs font-semibold shadow border border-neutral-600/40 focus:outline-none focus:ring-2 focus:ring-neutral-400/40"
+      className={`w-10 h-10 rounded-md text-xs font-semibold shadow border focus:outline-none focus:ring-2 transition-colors ${
+        theme === 'dark' 
+          ? 'bg-neutral-800/80 hover:bg-neutral-700 text-neutral-100 border-neutral-600/40 focus:ring-neutral-400/40' 
+          : 'bg-white/80 hover:bg-gray-100 text-gray-800 border-gray-300/40 focus:ring-gray-400/40'
+      }`}
     >
       {children}
     </button>
   );
 }
 
-function Section({ title, children, open, onToggle }) {
+function Section({ title, children, open, onToggle, theme }) {
   return (
-    <div className="border border-neutral-800/60 rounded-md bg-neutral-900/60 mb-2">
+    <div className={`border rounded-md mb-2 ${
+      theme === 'dark' 
+        ? 'border-neutral-800/60 bg-neutral-900/60' 
+        : 'border-gray-300/60 bg-gray-50/60'
+    }`}>
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-neutral-300 hover:text-white"
+        className={`w-full flex items-center justify-between px-3 py-2 text-sm font-medium transition-colors ${
+          theme === 'dark' 
+            ? 'text-neutral-300 hover:text-white' 
+            : 'text-gray-700 hover:text-gray-900'
+        }`}
         aria-expanded={open}
       >
         <span>{title}</span>
