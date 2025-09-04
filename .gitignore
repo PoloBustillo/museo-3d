@@ -31,7 +31,13 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# Keep example files
+!.env.example
 
 # vercel
 .vercel
@@ -42,3 +48,68 @@ next-env.d.ts
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Python AI API
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/venv/
+**/env/
+**/.Python
+**/pip-log.txt
+**/pip-delete-this-directory.txt
+**/.coverage
+**/.pytest_cache/
+**/htmlcov/
+
+# Hugging Face cache and models
+**/.cache/
+**/models/
+**/.transformers_cache/
+**/.huggingface/
+
+# AI model files and weights (large files)
+*.bin
+*.safetensors
+*.h5
+*.onnx
+*.pt
+*.pth
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Prisma
+prisma/dev.db
+prisma/dev.db-journal
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+*.temp
+
+# Log files
+*.log
+logs/
+
+# macOS specific
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
+
+# Test data and uploads
+test-uploads/
+uploads/temp/
