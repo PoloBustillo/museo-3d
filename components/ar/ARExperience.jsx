@@ -335,29 +335,69 @@ export default function ARExperience({
           });
         }
 
-        // Configurar materiales para AR - preservar back panel y eliminar transparencias
+        // Configurar materiales para AR - asegurar que la imagen esté al frente
         model.traverse((child) => {
           if (child.isMesh) {
             child.frustumCulled = false; // NO desaparecer por culling
             if (child.material) {
               child.material.side = THREE.DoubleSide; // Visible desde ambos lados
 
-              // Configuración uniforme para TODOS los materiales - eliminando diferencias problemáticas
-              child.material.depthTest = true;
-              child.material.depthWrite = true;
-              child.material.transparent = false;
-              child.material.opacity = 1.0;
-              child.material.needsUpdate = true;
+              // Identificar el tipo de material/cara
+              const isFrontFace = child.material.map && child.material.map.image;
+              const isBackPanel = child.name && child.name.toLowerCase().includes("back");
+
+              if (isFrontFace) {
+                // Para la imagen frontal: máxima prioridad
+                child.material.depthTest = true;
+                child.material.depthWrite = true;
+                child.material.transparent = false;
+                child.material.opacity = 1.0;
+                child.renderOrder = 1; // Renderizar después (más cerca)
+                child.material.needsUpdate = true;
+              } else if (isBackPanel) {
+                // Para el back panel: menor prioridad
+                child.material.depthTest = true;
+                child.material.depthWrite = false; // No escribir depth
+                child.material.transparent = false;
+                child.material.opacity = 1.0;
+                child.renderOrder = 0; // Renderizar primero (más lejos)
+                child.material.needsUpdate = true;
+              } else {
+                // Para el marco y otros elementos
+                child.material.depthTest = true;
+                child.material.depthWrite = false;
+                child.material.transparent = false;
+                child.material.opacity = 1.0;
+                child.renderOrder = 0;
+                child.material.needsUpdate = true;
+              }
               
               // Si es un array de materiales (como nuestro canvas con múltiples caras)
               if (Array.isArray(child.material)) {
-                child.material.forEach(mat => {
+                child.material.forEach((mat, index) => {
                   mat.side = THREE.DoubleSide;
-                  mat.depthTest = true;
-                  mat.depthWrite = true;
                   mat.transparent = false;
                   mat.opacity = 1.0;
                   mat.needsUpdate = true;
+                  
+                  // Para boxGeometry: [+X, -X, +Y, -Y, +Z, -Z]
+                  // +Z (índice 4) es el frente con la imagen
+                  if (index === 4 && mat.map && mat.map.image) {
+                    // Cara frontal con imagen
+                    mat.depthTest = true;
+                    mat.depthWrite = true;
+                    child.renderOrder = 1;
+                  } else if (index === 5) {
+                    // Cara trasera (-Z)
+                    mat.depthTest = true;
+                    mat.depthWrite = false;
+                    child.renderOrder = 0;
+                  } else {
+                    // Caras laterales
+                    mat.depthTest = true;
+                    mat.depthWrite = false;
+                    child.renderOrder = 0;
+                  }
                 });
               }
               
@@ -365,7 +405,9 @@ export default function ARExperience({
                 name: child.name || 'unnamed',
                 side: child.material.side,
                 transparent: child.material.transparent,
-                isArray: Array.isArray(child.material)
+                isArray: Array.isArray(child.material),
+                renderOrder: child.renderOrder,
+                hasFrontImage: isFrontFace
               });
             }
           }
@@ -427,12 +469,34 @@ export default function ARExperience({
             if (child.material) {
               child.material.side = THREE.DoubleSide;
 
-              // Preservar depth testing para el back panel y asegurar opacidad completa
-              if (child.name && child.name.toLowerCase().includes("back")) {
+              // Identificar si es la cara frontal con la imagen vs. el back panel
+              const isFrontFace = child.material.map && child.material.map.image;
+              const isBackPanel = child.name && child.name.toLowerCase().includes("back");
+
+              if (isFrontFace) {
+                // Para la imagen frontal: máxima prioridad de renderizado
                 child.material.depthTest = true;
                 child.material.depthWrite = true;
                 child.material.transparent = false;
                 child.material.opacity = 1.0;
+                child.renderOrder = 1; // Renderizar después (más cerca)
+                child.material.needsUpdate = true;
+                console.log(
+                  "[AR] Configurando imagen frontal en sesión AR:",
+                  "depthTest:",
+                  true,
+                  "depthWrite:",
+                  true,
+                  "renderOrder:",
+                  1
+                );
+              } else if (isBackPanel) {
+                // Para el back panel: menor prioridad
+                child.material.depthTest = true;
+                child.material.depthWrite = false; // No escribir depth para no interferir
+                child.material.transparent = false;
+                child.material.opacity = 1.0;
+                child.renderOrder = 0; // Renderizar primero (más lejos)
                 child.material.needsUpdate = true;
                 console.log(
                   "[AR] Configurando back panel en sesión AR:",
@@ -440,13 +504,17 @@ export default function ARExperience({
                   "depthTest:",
                   true,
                   "depthWrite:",
-                  true
+                  false,
+                  "renderOrder:",
+                  0
                 );
               } else {
-                child.material.depthTest = false;
+                // Para el marco y otros elementos
+                child.material.depthTest = true;
                 child.material.depthWrite = false;
                 child.material.transparent = false;
                 child.material.opacity = 1.0;
+                child.renderOrder = 0;
                 child.material.needsUpdate = true;
               }
             }
