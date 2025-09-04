@@ -21,9 +21,9 @@ export async function generateMuralGLB(imageUrl) {
       pointLight.position.set(-1, 1, 2);
       scene.add(pointLight);
 
-      // Tamaño base (lado mayor) y se ajusta al aspect ratio de la imagen una vez cargada
-      let width = 0.8;
-      let height = 0.6; // placeholder hasta conocer aspect ratio real
+      // Hacer el modelo más pequeño para AR
+      const width = 0.8;
+      const height = 0.6;
 
       // Cargar la textura con configuración mejorada
       const loader = new THREE.TextureLoader();
@@ -42,96 +42,45 @@ export async function generateMuralGLB(imageUrl) {
             texture.minFilter = THREE.LinearFilter; // Cambiado para optimizar
             texture.magFilter = THREE.LinearFilter;
 
-            // Recalcular dimensiones según aspect ratio original de la imagen
-            if (texture.image && texture.image.width && texture.image.height) {
-              const imgW = texture.image.width;
-              const imgH = texture.image.height;
-              const aspect = imgW / imgH;
-              const maxSide = 0.9; // Limite tamaño mayor
-              if (aspect >= 1) {
-                // Horizontal / cuadrado
-                width = maxSide;
-                height = maxSide / aspect;
-              } else {
-                // Vertical
-                height = maxSide;
-                width = maxSide * aspect;
-              }
-            }
-
-            // Crear lienzo como BOX SÓLIDO en lugar de plano para eliminar transparencias
-            const canvasThickness = 0.025; // Grosor real del lienzo
-            const boxGeometry = new THREE.BoxGeometry(
-              width,
-              height,
-              canvasThickness
-            );
-
-            // Materiales para cada cara del cubo
-            // Orden correcto en BoxGeometry: [+X, -X, +Y, -Y, +Z, -Z]
-            // +Z es el frente (hacia la cámara), -Z es la parte trasera
-            const canvasEdgeMaterial = new THREE.MeshPhongMaterial({
-              color: 0x1a1a1a,
-              shininess: 10,
-            });
-            const canvasFrontMaterial = new THREE.MeshPhongMaterial({
+            // Crear geometría del cuadro principal con subdivisiones optimizadas
+            const geometry = new THREE.PlaneGeometry(width, height, 8, 8); // Reducido de 16x16
+            const material = new THREE.MeshPhongMaterial({
               map: texture,
+              side: THREE.DoubleSide,
+              transparent: false,
+              opacity: 1.0,
               shininess: 30,
             });
-            const canvasBackMaterial = new THREE.MeshPhongMaterial({
-              color: 0x2a2a2a,
-              shininess: 5,
-            });
 
-            // Array de materiales en orden correcto: [+X, -X, +Y, -Y, +Z, -Z]
-            const canvasMaterials = [
-              canvasEdgeMaterial, // +X (derecha)
-              canvasEdgeMaterial, // -X (izquierda)
-              canvasEdgeMaterial, // +Y (arriba)
-              canvasEdgeMaterial, // -Y (abajo)
-              canvasFrontMaterial, // +Z (frente) - AQUÍ va la imagen
-              canvasBackMaterial, // -Z (atrás)
-            ];
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.position.set(0, 0, 0.06); // Más adelante para estar sobre el marco
 
-            const mesh = new THREE.Mesh(boxGeometry, canvasMaterials);
-            mesh.position.set(0, 0, 0.045); // Ligeramente adelante del marco
-
-            // Asegurar que la cara frontal (+Z) con la imagen esté hacia el frente
-            // Si la imagen aparece en la parte trasera, rotar 180° en Y
-            mesh.rotation.y = 0; // Intentar sin rotación primero
-
-            console.log("Canvas materials order:", {
-              front_Z_positive: "+Z (frente con imagen)",
-              back_Z_negative: "-Z (trasero gris)",
-              sides: "±X, ±Y (bordes negros)",
-              position: mesh.position,
-              rotation: mesh.rotation,
-            }); // Crear marco volumétrico más realista con textura premium
+            // Crear marco volumétrico más realista con textura premium
             const frameGroup = new THREE.Group();
 
-            // Parámetros del marco mejorados
-            const frameDepth = 0.15; // Marco más profundo y prominente
-            const minDim = Math.min(width, height);
-            const frameWidth = Math.max(minDim * 0.15, 0.08); // Marco más ancho, mínimo 8cm
+            // Parámetros del marco - optimizados
+            const frameDepth = 0.12; // Reducido
+            const frameWidth = 0.08; // Reducido
             const outerWidth = width + frameWidth * 2;
             const outerHeight = height + frameWidth * 2;
 
-            // PERFORMANCE FIX: Textura simple en lugar de procedural
+            // Crear textura de madera premium optimizada
             const createOptimizedWoodTexture = () => {
-              // EMERGENCIA: Canvas pequeño, color sólido
               const canvas = document.createElement("canvas");
-              canvas.width = 64; // REDUCIDO 16X (era 1024)
-              canvas.height = 64; // REDUCIDO 16X
+              canvas.width = 1024; // Reducido de 2048
+              canvas.height = 1024; // Reducido de 2048
               const ctx = canvas.getContext("2d");
 
-              // Solo color base - SIN PROCEDURAL
-              ctx.fillStyle = "#8B4513";
-              ctx.fillRect(0, 0, 64, 64);
-
-              return new THREE.CanvasTexture(canvas);
-            };
-
-            const woodTexture = createOptimizedWoodTexture();
+              // Base de madera premium con gradiente complejo
+              const gradient = ctx.createLinearGradient(0, 0, 1024, 1024);
+              gradient.addColorStop(0, "#8B4513");
+              gradient.addColorStop(0.2, "#A0522D");
+              gradient.addColorStop(0.4, "#CD853F");
+              gradient.addColorStop(0.6, "#DEB887");
+              gradient.addColorStop(0.8, "#CD853F");
+              gradient.addColorStop(1, "#8B4513");
+              ctx.fillStyle = gradient;
+              ctx.fillRect(0, 0, 1024, 1024);
 
               // Vetas de madera optimizadas
               for (let i = 0; i < 40; i++) {
@@ -149,7 +98,8 @@ export async function generateMuralGLB(imageUrl) {
                   // Aumentado el paso
                   const offset =
                     Math.sin(x * 0.008 + i * 0.3) * 20 + // Reducido
-                    Math.cos(x * 0.005 + i * 0.2) * 15; // Reducido
+                    Math.sin(x * 0.003 + i * 0.7) * 15 + // Reducido
+                    Math.random() * 10; // Reducido
                   ctx.lineTo(x, y + offset);
                 }
                 ctx.stroke();
@@ -158,31 +108,45 @@ export async function generateMuralGLB(imageUrl) {
               // Nudos de madera optimizados
               for (let i = 0; i < 8; i++) {
                 // Reducido de 15
-                const x = 100 + Math.random() * 824;
-                const y = 100 + Math.random() * 824;
-                const radius = 15 + Math.random() * 25; // Reducido
-
-                // Anillos concéntricos optimizados
-                for (let ring = 0; ring < 4; ring++) {
-                  // Reducido de 8
-                  const ringRadius = radius - ring * 3;
-                  const alpha = 0.4 + Math.random() * 0.6;
-                  ctx.fillStyle = `rgba(101, 67, 33, ${alpha})`;
-                  ctx.beginPath();
-                  ctx.arc(x, y, ringRadius, 0, Math.PI * 2);
-                  ctx.fill();
-                }
-              }
-
-              // Áreas de brillo optimizadas
-              for (let i = 0; i < 20; i++) {
-                // Reducido de 40
                 const x = Math.random() * 1024;
                 const y = Math.random() * 1024;
-                const size = 20 + Math.random() * 60; // Reducido
-                const alpha = 0.1 + Math.random() * 0.3;
-                ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-                ctx.fillRect(x, y, size, size);
+                const radius = 20 + Math.random() * 25; // Reducido
+
+                // Nudo principal
+                ctx.fillStyle = `rgba(101, 67, 33, ${0.7 + Math.random() * 0.3})`;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Anillos múltiples del nudo (reducidos)
+                for (let ring = 1; ring <= 4; ring++) {
+                  // Reducido de 8
+                  const ringRadius = radius + ring * 3;
+                  ctx.strokeStyle = `rgba(139, 69, 19, ${0.9 - ring * 0.1})`;
+                  ctx.lineWidth = 1.5;
+                  ctx.beginPath();
+                  ctx.arc(x, y, ringRadius, 0, Math.PI * 2);
+                  ctx.stroke();
+                }
+
+                // Centro del nudo más oscuro
+                ctx.fillStyle = `rgba(101, 67, 33, ${0.95 + Math.random() * 0.05})`;
+                ctx.beginPath();
+                ctx.arc(x, y, radius * 0.3, 0, Math.PI * 2);
+                ctx.fill();
+              }
+
+              // Brillo premium optimizado
+              for (let i = 0; i < 20; i++) {
+                // Reducido de 40
+                const alpha = 0.03 + Math.random() * 0.12;
+                ctx.fillStyle = `rgba(255, 228, 196, ${alpha})`;
+                ctx.fillRect(
+                  Math.random() * 1024,
+                  Math.random() * 1024,
+                  40 + Math.random() * 100, // Reducido
+                  30 + Math.random() * 80 // Reducido
+                );
               }
 
               // Grano fino de madera optimizado
@@ -208,300 +172,110 @@ export async function generateMuralGLB(imageUrl) {
             woodTexture.wrapT = THREE.RepeatWrapping;
             woodTexture.repeat.set(1, 1);
 
-            // Material del marco principal con textura premium mejorada
+            // Material del marco principal con textura premium
             const frameMaterial = new THREE.MeshPhongMaterial({
               map: woodTexture,
               color: 0x8b4513,
-              shininess: 60,
-              specular: 0x444444,
+              shininess: 80, // Reducido
+              specular: 0x666666, // Reducido
               side: THREE.DoubleSide,
-              transparent: false,
-              opacity: 1.0,
             });
 
-            // Material para ornamentos dorados más brillantes
+            // Material para ornamentos dorados
             const ornamentMaterial = new THREE.MeshPhongMaterial({
               color: 0xdaa520,
-              shininess: 120,
-              specular: 0xaaaaaa,
+              shininess: 100, // Reducido
+              specular: 0x888888, // Reducido
               side: THREE.DoubleSide,
-              transparent: false,
-              opacity: 1.0,
             });
 
-            // PANEL TRASERO SÓLIDO MEJORADO
-            const backPanelGeometry = new THREE.BoxGeometry(
-              outerWidth + 0.03,
-              outerHeight + 0.03,
-              0.18 // Panel mucho más grueso
-            );
-            const backPanelMaterial = new THREE.MeshPhongMaterial({
-              color: 0x4a3c28,
-              shininess: 15,
-              side: THREE.DoubleSide,
-              transparent: false,
-              opacity: 1.0,
-            });
-            const backPanel = new THREE.Mesh(
-              backPanelGeometry,
-              backPanelMaterial
-            );
-            backPanel.name = "backPanel";
-            backPanel.position.set(0, 0, -frameDepth / 2 - 0.08);
-            backPanel.visible = true;
-            frameGroup.add(backPanel);
-
-            // Eliminamos el panel sombra redundante que puede causar conflictos
-
-            // MARCO SÓLIDO ÚNICO - Sin gaps ni uniones problemáticas
-            // En lugar de 4 piezas separadas, creamos una estructura sólida completa
-
-            // Marco superior - extendido para cubrir completamente
+            // Marco principal - superior
             const topFrame = new THREE.BoxGeometry(
-              outerWidth + 0.02, // Ligeramente más ancho para evitar gaps
+              outerWidth,
               frameWidth,
-              frameDepth + 0.02 // Ligeramente más profundo
+              frameDepth
             );
             const topMesh = new THREE.Mesh(topFrame, frameMaterial);
             topMesh.position.set(0, height / 2 + frameWidth / 2, 0);
             frameGroup.add(topMesh);
 
-            // Marco inferior - extendido para cubrir completamente
+            // Marco principal - inferior
             const bottomFrame = new THREE.BoxGeometry(
-              outerWidth + 0.02,
+              outerWidth,
               frameWidth,
-              frameDepth + 0.02
+              frameDepth
             );
             const bottomMesh = new THREE.Mesh(bottomFrame, frameMaterial);
             bottomMesh.position.set(0, -height / 2 - frameWidth / 2, 0);
             frameGroup.add(bottomMesh);
 
-            // Marco izquierdo - SIN solapamiento con superior/inferior para evitar conflictos
+            // Marco principal - izquierdo
             const leftFrame = new THREE.BoxGeometry(
               frameWidth,
-              height, // Solo la altura del interior, sin incluir las esquinas
-              frameDepth + 0.02
+              height,
+              frameDepth
             );
             const leftMesh = new THREE.Mesh(leftFrame, frameMaterial);
             leftMesh.position.set(-width / 2 - frameWidth / 2, 0, 0);
             frameGroup.add(leftMesh);
 
-            // Marco derecho - SIN solapamiento con superior/inferior
+            // Marco principal - derecho
             const rightFrame = new THREE.BoxGeometry(
               frameWidth,
-              height, // Solo la altura del interior
-              frameDepth + 0.02
+              height,
+              frameDepth
             );
             const rightMesh = new THREE.Mesh(rightFrame, frameMaterial);
             rightMesh.position.set(width / 2 + frameWidth / 2, 0, 0);
             frameGroup.add(rightMesh);
 
-            // PANELES DE ESQUINA SÓLIDOS para cerrar gaps
-            const cornerSize = frameWidth;
-            const cornerMaterial = new THREE.MeshPhongMaterial({
-              color: 0x7a3f15,
-              shininess: 50,
-              side: THREE.DoubleSide,
-              transparent: false,
-              opacity: 1.0,
-            });
-
-            // Esquina superior izquierda
-            const topLeftCorner = new THREE.BoxGeometry(
-              cornerSize,
-              cornerSize,
-              frameDepth + 0.02
+            // PANEL TRASERO SÓLIDO - FIX PARA EL HUECO
+            const backPanelGeometry = new THREE.BoxGeometry(
+              outerWidth,
+              outerHeight,
+              0.06 // Reducido
             );
-            const topLeftCornerMesh = new THREE.Mesh(
-              topLeftCorner,
-              cornerMaterial
-            );
-            topLeftCornerMesh.position.set(
-              -width / 2 - frameWidth / 2,
-              height / 2 + frameWidth / 2,
-              0
-            );
-            frameGroup.add(topLeftCornerMesh);
-
-            // Esquina superior derecha
-            const topRightCorner = new THREE.BoxGeometry(
-              cornerSize,
-              cornerSize,
-              frameDepth + 0.02
-            );
-            const topRightCornerMesh = new THREE.Mesh(
-              topRightCorner,
-              cornerMaterial
-            );
-            topRightCornerMesh.position.set(
-              width / 2 + frameWidth / 2,
-              height / 2 + frameWidth / 2,
-              0
-            );
-            frameGroup.add(topRightCornerMesh);
-
-            // Esquina inferior izquierda
-            const bottomLeftCorner = new THREE.BoxGeometry(
-              cornerSize,
-              cornerSize,
-              frameDepth + 0.02
-            );
-            const bottomLeftCornerMesh = new THREE.Mesh(
-              bottomLeftCorner,
-              cornerMaterial
-            );
-            bottomLeftCornerMesh.position.set(
-              -width / 2 - frameWidth / 2,
-              -height / 2 - frameWidth / 2,
-              0
-            );
-            frameGroup.add(bottomLeftCornerMesh);
-
-            // Esquina inferior derecha
-            const bottomRightCorner = new THREE.BoxGeometry(
-              cornerSize,
-              cornerSize,
-              frameDepth + 0.02
-            );
-            const bottomRightCornerMesh = new THREE.Mesh(
-              bottomRightCorner,
-              cornerMaterial
-            );
-            bottomRightCornerMesh.position.set(
-              width / 2 + frameWidth / 2,
-              -height / 2 - frameWidth / 2,
-              0
-            );
-            frameGroup.add(bottomRightCornerMesh);
-
-            // PANELES LATERALES INTERIORES para cerrar completamente el hueco entre marco y lienzo
-            const innerPanelMaterial = new THREE.MeshPhongMaterial({
-              color: 0x3a2f20,
-              shininess: 20,
+            const backPanelMaterial = new THREE.MeshPhongMaterial({
+              color: 0x654321,
+              shininess: 20, // Reducido
               side: THREE.DoubleSide,
             });
+            const backPanel = new THREE.Mesh(
+              backPanelGeometry,
+              backPanelMaterial
+            );
+            backPanel.position.set(0, 0, -frameDepth / 2 - 0.03);
+            frameGroup.add(backPanel);
 
-            const innerPanelThickness = 0.02;
-            const innerDepth = frameDepth * 0.6;
-
-            // Panel lateral superior interior
-            const topInnerPanel = new THREE.BoxGeometry(
-              width,
-              innerPanelThickness,
-              innerDepth
-            );
-            const topInnerPanelMesh = new THREE.Mesh(
-              topInnerPanel,
-              innerPanelMaterial
-            );
-            topInnerPanelMesh.position.set(
-              0,
-              height / 2 - innerPanelThickness / 2,
-              -innerDepth / 4
-            );
-            frameGroup.add(topInnerPanelMesh);
-
-            // Panel lateral inferior interior
-            const bottomInnerPanel = new THREE.BoxGeometry(
-              width,
-              innerPanelThickness,
-              innerDepth
-            );
-            const bottomInnerPanelMesh = new THREE.Mesh(
-              bottomInnerPanel,
-              innerPanelMaterial
-            );
-            bottomInnerPanelMesh.position.set(
-              0,
-              -height / 2 + innerPanelThickness / 2,
-              -innerDepth / 4
-            );
-            frameGroup.add(bottomInnerPanelMesh);
-
-            // Panel lateral izquierdo interior
-            const leftInnerPanel = new THREE.BoxGeometry(
-              innerPanelThickness,
-              height,
-              innerDepth
-            );
-            const leftInnerPanelMesh = new THREE.Mesh(
-              leftInnerPanel,
-              innerPanelMaterial
-            );
-            leftInnerPanelMesh.position.set(
-              -width / 2 + innerPanelThickness / 2,
-              0,
-              -innerDepth / 4
-            );
-            frameGroup.add(leftInnerPanelMesh);
-
-            // Panel lateral derecho interior
-            const rightInnerPanel = new THREE.BoxGeometry(
-              innerPanelThickness,
-              height,
-              innerDepth
-            );
-            const rightInnerPanelMesh = new THREE.Mesh(
-              rightInnerPanel,
-              innerPanelMaterial
-            );
-            rightInnerPanelMesh.position.set(
-              width / 2 - innerPanelThickness / 2,
-              0,
-              -innerDepth / 4
-            );
-            frameGroup.add(rightInnerPanelMesh);
-
-            // BISELES INTERIORES más definidos
+            // BISELES INTERIORES optimizados
             const bevelMaterial = new THREE.MeshPhongMaterial({
               color: 0xa0522d,
-              shininess: 70,
+              shininess: 40, // Reducido
               side: THREE.DoubleSide,
-              transparent: false,
-              opacity: 1.0,
             });
 
-            const bevelSize = 0.012;
-            const bevelDepth = 0.025;
-
             // Bisel superior interior
-            const topBevel = new THREE.BoxGeometry(
-              width + 0.005,
-              bevelSize,
-              bevelDepth
-            );
+            const topBevel = new THREE.BoxGeometry(width, 0.006, 0.015); // Reducido
             const topBevelMesh = new THREE.Mesh(topBevel, bevelMaterial);
-            topBevelMesh.position.set(0, height / 2 - bevelSize / 2, 0.02);
+            topBevelMesh.position.set(0, height / 2 - 0.003, 0.015);
             frameGroup.add(topBevelMesh);
 
             // Bisel inferior interior
-            const bottomBevel = new THREE.BoxGeometry(
-              width + 0.005,
-              bevelSize,
-              bevelDepth
-            );
+            const bottomBevel = new THREE.BoxGeometry(width, 0.006, 0.015); // Reducido
             const bottomBevelMesh = new THREE.Mesh(bottomBevel, bevelMaterial);
-            bottomBevelMesh.position.set(0, -height / 2 + bevelSize / 2, 0.02);
+            bottomBevelMesh.position.set(0, -height / 2 + 0.003, 0.015);
             frameGroup.add(bottomBevelMesh);
 
             // Bisel izquierdo interior
-            const leftBevel = new THREE.BoxGeometry(
-              bevelSize,
-              height + 0.005,
-              bevelDepth
-            );
+            const leftBevel = new THREE.BoxGeometry(0.006, height, 0.015); // Reducido
             const leftBevelMesh = new THREE.Mesh(leftBevel, bevelMaterial);
-            leftBevelMesh.position.set(-width / 2 + bevelSize / 2, 0, 0.02);
+            leftBevelMesh.position.set(-width / 2 + 0.003, 0, 0.015);
             frameGroup.add(leftBevelMesh);
 
             // Bisel derecho interior
-            const rightBevel = new THREE.BoxGeometry(
-              bevelSize,
-              height + 0.005,
-              bevelDepth
-            );
+            const rightBevel = new THREE.BoxGeometry(0.006, height, 0.015); // Reducido
             const rightBevelMesh = new THREE.Mesh(rightBevel, bevelMaterial);
-            rightBevelMesh.position.set(width / 2 - bevelSize / 2, 0, 0.02);
+            rightBevelMesh.position.set(width / 2 - 0.003, 0, 0.015);
             frameGroup.add(rightBevelMesh);
 
             // ORNAMENTOS EN LOS LADOS - optimizados
@@ -648,23 +422,13 @@ export async function generateMuralGLB(imageUrl) {
             );
             frameGroup.add(bottomCenterOrnamentMesh);
 
-            // Asegurar transformaciones válidas y debug de la estructura
+            // Asegurar transformaciones válidas
             mesh.rotation.set(0, 0, 0);
             mesh.scale.set(1, 1, 1);
-            console.log("Canvas mesh creado:", {
-              dimensions: { width, height, thickness: canvasThickness },
-              position: mesh.position,
-              materials: canvasMaterials.length,
-            });
 
             frameGroup.position.set(0, 0, 0);
             frameGroup.rotation.set(0, 0, 0);
             frameGroup.scale.set(1, 1, 1);
-            console.log("Frame group creado:", {
-              frameDepth,
-              frameWidth,
-              children: frameGroup.children.length,
-            });
 
             scene.add(mesh);
             scene.add(frameGroup);
@@ -673,12 +437,11 @@ export async function generateMuralGLB(imageUrl) {
 
             const exportOptions = {
               binary: true,
-              onlyVisible: true, // Cambiado a true para asegurar que solo se exporten elementos visibles
+              onlyVisible: true,
               truncateDrawRange: true,
               embedImages: true,
-              maxTextureSize: 1024,
+              maxTextureSize: 1024, // Reducido de 4096 para optimizar
               includeCustomExtensions: false,
-              forceIndices: true,
             };
 
             exporter.parse(

@@ -340,23 +340,55 @@ export default function ARExperience({
           if (child.isMesh) {
             child.frustumCulled = false; // NO desaparecer por culling
             if (child.material) {
+              // Preservar información original del material antes de modificar
+              const originalMaterial = child.material;
+              
+              // Log información del material original para debugging
+              console.log("[AR] Material original:", {
+                name: child.name || 'unnamed',
+                type: originalMaterial.type,
+                color: originalMaterial.color?.getHex(),
+                map: !!originalMaterial.map,
+                transparent: originalMaterial.transparent,
+                opacity: originalMaterial.opacity
+              });
+              
               child.material.side = THREE.DoubleSide; // Visible desde ambos lados
 
-              // Configuración uniforme para TODOS los materiales - eliminando diferencias problemáticas
+              // Solo modificar propiedades críticas para AR, preservando color/texturas
               child.material.depthTest = true;
               child.material.depthWrite = true;
-              child.material.transparent = false;
-              child.material.opacity = 1.0;
+              // NO forzar transparent = false si el material tiene transparencia válida
+              if (child.material.transparent && child.material.opacity < 1.0) {
+                // Mantener transparencia pero asegurar que no sea completamente transparente
+                child.material.opacity = Math.max(child.material.opacity, 0.8);
+              } else {
+                child.material.transparent = false;
+                child.material.opacity = 1.0;
+              }
               child.material.needsUpdate = true;
               
               // Si es un array de materiales (como nuestro canvas con múltiples caras)
               if (Array.isArray(child.material)) {
-                child.material.forEach(mat => {
+                child.material.forEach((mat, index) => {
+                  console.log(`[AR] Material array [${index}]:`, {
+                    type: mat.type,
+                    color: mat.color?.getHex(),
+                    map: !!mat.map,
+                    transparent: mat.transparent,
+                    opacity: mat.opacity
+                  });
+                  
                   mat.side = THREE.DoubleSide;
                   mat.depthTest = true;
                   mat.depthWrite = true;
-                  mat.transparent = false;
-                  mat.opacity = 1.0;
+                  // Preservar transparencia válida
+                  if (mat.transparent && mat.opacity < 1.0) {
+                    mat.opacity = Math.max(mat.opacity, 0.8);
+                  } else {
+                    mat.transparent = false;
+                    mat.opacity = 1.0;
+                  }
                   mat.needsUpdate = true;
                 });
               }
@@ -365,6 +397,7 @@ export default function ARExperience({
                 name: child.name || 'unnamed',
                 side: child.material.side,
                 transparent: child.material.transparent,
+                opacity: child.material.opacity,
                 isArray: Array.isArray(child.material)
               });
             }
