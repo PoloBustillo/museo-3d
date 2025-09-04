@@ -17,13 +17,14 @@ export default function SearchBar (){
         const newKeyword = e.target.search.value.trim();
         console.log('Current world: ',newKeyword);
         console.log('OG world:',stateFilter.filters.keyWord);
-        if (stateFilter.isFilter && !stateFilter.aiActive){
+        console.log(stateFilter.aiActive, stateFilter.isFilter);
+        if (!stateFilter.aiActive){
             if (newKeyword != stateFilter.filters.keyWord && newKeyword!= "") {
                 console.log('dispatch Set KeyWord');
                 dispatchFilter({ type: "SET_KEYWORD", keyWord: newKeyword });
                       console.log(stateFilter);
             }
-        }else{
+        }else if(!stateFilter.isFilter && stateFilter.aiActive){
             if (newKeyword != stateFilter.filters.keyWord && newKeyword!= "") {
                 console.log('dispatch Set ia KeyWord');
                 dispatchFilter({ type: "SET_IA_KEYWORD", keyWord: newKeyword });

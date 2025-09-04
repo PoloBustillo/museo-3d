@@ -145,7 +145,7 @@ export const GalleryProvider = ({ children }) => {
   );
 //useReduce para el renderizado y busqueda mediante filtros
 const filterInitialState = {
-  isFilter: false,
+  isFilter: true,
   aiActive: false,
   status: "NO-ACTION",
   setOfFilters: [], 
@@ -292,14 +292,13 @@ const fetchPageMurales = async(page=1)=>{
       }
     }
 
-if (stateFilter.aiActive) {
+if (stateFilter.aiActive === true && stateFilter.isFilter ===false) {
+  console.log("entre");
   if (stateFilter.filters.keyWord) {
     const [polaridad, probNegativa, probPositiva] = await sentimentalAnalysis(stateFilter.filters.keyWord);
     request += `&polaridad=${polaridad}`;
   }
 }
-
-    
     console.log(request);
     const response = await fetch(request);
     const data = await response.json();
