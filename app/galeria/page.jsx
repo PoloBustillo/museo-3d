@@ -66,6 +66,7 @@ export default function GaleriaPage() {
     if (!uniqueLoadRef.current) {
       uniqueLoadRef.current = true;
       fetchRoomsNames(); // Solo en la primera carga
+
     }
   },[]);
 

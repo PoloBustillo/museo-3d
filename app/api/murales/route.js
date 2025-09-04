@@ -3,6 +3,7 @@ import { prisma } from "../../../lib/prisma";
 import cloudinary from "../../../utils/cloudinary";
 import { sendEmail } from "@/lib/sendEmail";
 import { sendPushNotification } from "@/utils/sendPushNotification";
+import { error } from "console";
 
 // GET - Obtener todos los murales
 export async function GET(req) {
@@ -250,6 +251,37 @@ export async function POST(req) {
       );
     }
 
+    //Tratar la descripcion haciendo uso del modelo de IA para clasificar sentimientos
+    if (!data.descripcion.trim()){
+      return new Response(
+        JSON.stringify({error:"La descripcion en la obra es obligatoria."}),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    async function sentimentalAnalysis() {
+      try {
+        const response = await fetch("https://kenaisan-sentiana.hf.space/predict", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: data.descripcion })
+        });
+        if (!response.ok) throw new Error("Error en la API de Hugging Face");
+
+        const responseData = await response.json();
+        const probNegativa = parseFloat(responseData.probabilidades[0][0].toFixed(7));
+        const probPositiva = parseFloat(responseData.probabilidades[0][1].toFixed(7));
+
+        return [responseData.polaridad, probNegativa, probPositiva];
+
+      } catch (err) {
+        console.error("Error analizando sentimiento:", err);
+        return ["NEGATIVO", 0.6666, 0.5555]; // valores por defecto
+      }
+    }
+
+    const [polaridad, probNegativa, probPositiva] = await sentimentalAnalysis();
+
     // Validar que el título esté presente y sea string
     if (!data.titulo || typeof data.titulo !== "string") {
       return new Response(
@@ -299,7 +331,10 @@ export async function POST(req) {
     const mural = await prisma.mural.create({
       data: {
         titulo: data.titulo,
-        descripcion: data.descripcion || "",
+        descripcion: data.descripcion,
+        polaridad: polaridad,
+        probNegativa:probNegativa,
+        probPositiva:probPositiva,
         autor: data.autor || data.artista || "Artista desconocido",
         tecnica: data.tecnica || "Técnica no especificada",
         ubicacion: data.ubicacion || "",
