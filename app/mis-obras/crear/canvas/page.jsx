@@ -62,15 +62,7 @@ export default function CanvasPage() {
 
   const handleCanvasSave = (imageDataUrl) => {
     setCanvasImage(imageDataUrl);
-    
-    // Guardar inmediatamente en localStorage para persistencia
-    try {
-      localStorage.setItem("canvasImage", imageDataUrl);
-      toast.success("Dibujo guardado correctamente");
-    } catch (error) {
-      console.error("Error guardando en localStorage:", error);
-      toast.error("Error al guardar el dibujo");
-    }
+    toast.success("Dibujo guardado correctamente");
   };
 
   const handleContinue = (e) => {
