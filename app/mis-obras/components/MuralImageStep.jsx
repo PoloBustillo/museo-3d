@@ -3,14 +3,16 @@
 import { useState, useRef, useEffect } from "react";
 import { Box, Typography, Button } from "@mui/material";
 import { useDropzone } from "react-dropzone";
-import { Upload, X, Edit, ImageIcon } from "lucide-react";
+import { Upload, X, Edit, ImageIcon, Smartphone, Monitor } from "lucide-react";
 import Image from "next/image";
 import CanvasEditor from "./CanvasEditor";
 import { useFileUpload } from "../hooks/useFileUpload";
 import { useRouter } from "next/navigation";
+import useIsMobile from "../../hooks/useIsMobile";
 
 export default function MuralImageStep({ value, onChange, muralData = {}, editMode = false, obraId = null }) {
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [tab, setTab] = useState(0);
   const [localImage, setLocalImage] = useState(null); // base64 o File
   const [canvasImage, setCanvasImage] = useState(null);
@@ -316,34 +318,62 @@ export default function MuralImageStep({ value, onChange, muralData = {}, editMo
                   </span>
                 </div>
                 <h3 className="text-xl font-semibold mb-2 text-gray-700 dark:text-gray-100">
-                  Editor de dibujo profesional
+                  {isMobile ? "Editor de dibujo (Solo PC)" : "Editor de dibujo profesional"}
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 mb-6 max-w-md leading-relaxed">
-                  {previewUrl 
-                    ? "Modifica la imagen actual, dibuja encima o crea una completamente nueva con herramientas profesionales."
-                    : "Accede a un editor de dibujo completo con pinceles, capas, y herramientas avanzadas para crear tu obra maestra."
-                  }
+                  {isMobile ? (
+                    "El editor de dibujo requiere un ordenador de escritorio o laptop para la mejor experiencia. No está optimizado para dispositivos táctiles."
+                  ) : previewUrl ? (
+                    "Modifica la imagen actual, dibuja encima o crea una completamente nueva con herramientas profesionales."
+                  ) : (
+                    "Accede a un editor de dibujo completo con pinceles, capas, y herramientas avanzadas para crear tu obra maestra."
+                  )}
                 </p>
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4 max-w-md">
-                  <div className="flex items-start gap-2 text-amber-700 dark:text-amber-300 text-sm">
-                    <span className="text-amber-500 mt-0.5">ℹ️</span>
-                    <div>
-                      <strong>Se abrirá en una nueva pantalla.</strong><br />
-                      Tus datos del formulario se guardarán automáticamente y podrás continuar aquí cuando termines de dibujar.
+                
+                {isMobile ? (
+                  // Mensaje informativo para móviles
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-4 max-w-md">
+                    <div className="flex items-start gap-3 text-amber-700 dark:text-amber-300 text-sm">
+                      <div className="flex-shrink-0 mt-0.5">
+                        <Smartphone className="h-5 w-5 text-amber-500" />
+                      </div>
+                      <div>
+                        <div className="font-semibold mb-1">No disponible en móvil</div>
+                        <div className="text-xs text-amber-600 dark:text-amber-400">
+                          Para usar el editor de dibujo, accede desde un ordenador o laptop. 
+                          Puedes completar el resto de tu obra desde aquí y agregar el dibujo después.
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                ) : (
+                  // Información normal para desktop
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mb-4 max-w-md">
+                    <div className="flex items-start gap-2 text-amber-700 dark:text-amber-300 text-sm">
+                      <span className="text-amber-500 mt-0.5">ℹ️</span>
+                      <div>
+                        <strong>Se abrirá en una nueva pantalla.</strong><br />
+                        Tus datos del formulario se guardarán automáticamente y podrás continuar aquí cuando termines de dibujar.
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <button
                   onClick={() => {
-                    // Guardar TODOS los datos actuales en localStorage antes de navegar
+                    if (isMobile) {
+                      // En móvil, mostrar mensaje en lugar de navegar
+                      alert("El editor de dibujo no está disponible en dispositivos móviles. Por favor, usa un ordenador de escritorio o laptop para acceder a esta función.");
+                      return;
+                    }
+                    
+                    // Lógica normal para desktop
                     const currentData = {
-                      ...muralData, // Preservar todos los datos existentes
-                      // Solo sobrescribir campos específicos si están vacíos
+                      ...muralData,
                       titulo: muralData.titulo || "",
                       tecnica: muralData.tecnica || "",
                       year: muralData.anio || muralData.year || undefined,
                       descripcion: muralData.descripcion || "",
-                      // Preservar otros campos importantes
                       dimensiones: muralData.dimensiones || "",
                       ubicacion: muralData.ubicacion || "",
                       latitud: muralData.latitud || "",
@@ -365,23 +395,34 @@ export default function MuralImageStep({ value, onChange, muralData = {}, editMo
                       JSON.stringify(currentData)
                     );
                     
-                    // Guardar también que venimos del stepper
                     localStorage.setItem("fromStepper", "true");
-                    localStorage.setItem("stepperReturnStep", "1"); // Regresar al paso de imágenes
+                    localStorage.setItem("stepperReturnStep", "1");
 
-                    // Navegar a la página del canvas según el modo
                     if (editMode && obraId) {
                       router.push(`/mis-obras/editar/${obraId}/canvas`);
                     } else {
                       router.push("/mis-obras/crear/canvas");
                     }
                   }}
-                  className="flex items-center gap-3 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 shadow-lg"
-                  style={{ cursor: "pointer" }}
+                  disabled={isMobile}
+                  className={`flex items-center gap-3 px-6 py-3 font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-lg ${
+                    isMobile 
+                      ? "bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 cursor-not-allowed" 
+                      : "bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500 cursor-pointer"
+                  }`}
                 >
-                  <ImageIcon size={20} />
-                  {previewUrl ? "🎨 Editar en canvas" : "🎨 Abrir editor de dibujo"}
-                  <span className="text-xs opacity-75 ml-1">↗</span>
+                  {isMobile ? (
+                    <>
+                      <Smartphone size={20} />
+                      <span>No disponible en móvil</span>
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon size={20} />
+                      {previewUrl ? "🎨 Editar en canvas" : "🎨 Abrir editor de dibujo"}
+                      <span className="text-xs opacity-75 ml-1">↗</span>
+                    </>
+                  )}
                 </button>
             </div>
           </div>
