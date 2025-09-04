@@ -1,6 +1,5 @@
 import { useGallery } from "../../providers/GalleryProvider";
 
-
 function CategoryBubble({id,name,imgSrc}){
     const {
         stateFilter,
@@ -41,6 +40,7 @@ export default function DropDownSearchBar() {
             {
                 roomsToShow.length > 0 && hasLoadedRoomsRef.current 
                 && (
+                    
                     roomsToShow.map(room =>(
                         <CategoryBubble 
                             key={room.id}
