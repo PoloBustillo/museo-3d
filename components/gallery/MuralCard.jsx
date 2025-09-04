@@ -123,7 +123,10 @@ const MuralCard = forwardRef(function MuralCard({
       const res = await fetch(`/api/murales/${mural.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modelo3dUrl }),
+        body: JSON.stringify({ 
+          modelo3dUrl,
+          descripcion: mural.descripcion || "Modelo 3D generado automáticamente"
+        }),
       });
       if (!res.ok) throw new Error("No se pudo guardar la URL del modelo 3D");
       setLocalMuralData((prev) => ({ ...prev, modelo3dUrl }));
