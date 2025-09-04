@@ -7,8 +7,8 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { PlusCircle, UploadCloud } from "lucide-react";
 import ReactDOM from "react-dom";
-// BYPASS: Import Fast version for performance
-import { generateMuralGLBFast } from "../../utils/generateMuralGLBFast";
+// Import correct GLB generator
+import { generateMuralGLB } from "../../utils/generateMuralGLB";
 import { uploadModelToCloudinary } from "../../utils/uploadToCloudinary";
 
 const MuralCard = forwardRef(function MuralCard({
@@ -110,7 +110,7 @@ const MuralCard = forwardRef(function MuralCard({
     });
     try {
       // 1. Generar modelo 3D en el frontend
-      const glbBlob = await generateMuralGLBFast(mural.url_imagen);
+      const glbBlob = await generateMuralGLB(mural.url_imagen);
       if (!glbBlob) throw new Error("No se pudo generar el modelo 3D");
       // 2. Subir a Cloudinary
       toast.loading("Subiendo modelo 3D a la nube...", {

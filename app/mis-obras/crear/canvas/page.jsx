@@ -61,7 +61,13 @@ export default function CanvasPage() {
   }, [muralData]);
 
   const handleCanvasSave = (imageDataUrl) => {
+    console.log("🎨 Canvas saved:", imageDataUrl ? "✅ Image data received" : "❌ No image data");
     setCanvasImage(imageDataUrl);
+    
+    // CRÍTICO: Guardar inmediatamente en localStorage
+    localStorage.setItem("canvasImage", imageDataUrl);
+    console.log("💾 Saved to localStorage:", localStorage.getItem("canvasImage") ? "✅ Confirmed" : "❌ Failed");
+    
     toast.success("Dibujo guardado correctamente");
   };
 

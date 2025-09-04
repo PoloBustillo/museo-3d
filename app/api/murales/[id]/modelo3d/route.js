@@ -2,8 +2,8 @@ import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../../../../lib/auth";
 import cloudinary from "../../../../../utils/cloudinary";
-// BYPASS: Import Fast version for performance
-import { generateMuralGLB } from "../../../../../utils/generateMuralGLBFast";
+// Import correct GLB generator
+import { generateMuralGLB } from "../../../../../utils/generateMuralGLB";
 
 const prisma = new PrismaClient();
 

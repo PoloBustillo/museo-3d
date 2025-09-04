@@ -38,11 +38,11 @@ import { Icon } from "leaflet";
 import { Brush } from "lucide-react";
 import ReactSelect from "react-select";
 import { SimpleModal } from "@/components/ui/SimpleModal";
-// BYPASS: Import Fast version for performance
+// Import correct GLB generator
 import {
   generateMuralGLB,
   generateMuralGLBFallback,
-} from "../../../utils/generateMuralGLBFast";
+} from "../../../utils/generateMuralGLB";
 import { uploadModelToCloudinary } from "../../../utils/uploadToCloudinary";
 import { validateGLB, diagnoseModel } from "../../../utils/validateGLB";
 
@@ -642,8 +642,10 @@ export default function CrearMuralStepper({
   // Verificar si hay imagen del canvas al cargar el componente
   useEffect(() => {
     const savedCanvasImage = localStorage.getItem("canvasImage");
+    console.log("🔍 Checking for canvas image:", savedCanvasImage ? "✅ Found" : "❌ Not found");
 
     if (savedCanvasImage && !canvasImageLoaded.current) {
+      console.log("🎨 Loading canvas image into stepper...");
       // Verificar si ya tenemos datos del mural antes de cargar la imagen
       const currentMuralData = localStorage.getItem("muralDraftData");
       let existingData = {};
@@ -658,6 +660,7 @@ export default function CrearMuralStepper({
       // Comprimir la imagen si es muy grande
       compressImage(savedCanvasImage)
         .then((compressedImage) => {
+          console.log("✅ Canvas image compressed and ready to apply");
           setMural((currentMural) => {
             // Usar datos actuales del mural como base principal y completar con localStorage
             const updatedMural = {
@@ -697,6 +700,8 @@ export default function CrearMuralStepper({
                   ? existingData.orden 
                   : 0,
             };
+
+            console.log("🎨 Canvas image applied to mural:", updatedMural.url_imagen ? "✅ Success" : "❌ Failed");
 
             // Forzar un guardado inmediato para preservar los datos
             setTimeout(() => {
@@ -1540,119 +1545,115 @@ export default function CrearMuralStepper({
         {step === 2 && <LocationPicker mural={mural} setMural={setMural} />}
         {/* Step 4: Estado y visibilidad */}
         {step === 3 && (
-          <div className="flex flex-col gap-8 mb-8">
-            {/* Encabezado explicativo */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <Info className="text-blue-500 h-5 w-5 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="text-blue-800 dark:text-blue-200 font-semibold text-sm mb-1">
-                    Configuración de visibilidad y orden
-                  </h3>
-                  <p className="text-blue-700 dark:text-blue-300 text-sm">
-                    Define cómo y cuándo será visible tu obra en el museo virtual. Estos ajustes afectan la experiencia de los visitantes.
-                  </p>
-                </div>
-              </div>
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="text-center space-y-2">
+              <RefreshCw className="h-12 w-12 text-blue-500 mx-auto" />
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Estado y Visibilidad
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                Configure cómo será visible tu obra en el museo virtual
+              </p>
             </div>
 
             {/* Estado de la obra */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-3">
-                <RefreshCw className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="h-5 w-5" />
                   Estado de la obra
-                </h3>
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {[
-                  {
-                    value: "Activo",
-                    label: "Activo",
-                    description: "La obra está disponible y visible",
-                    icon: <Eye className="h-4 w-4" />,
-                    color: "green"
-                  },
-                  {
-                    value: "En restauración",
-                    label: "En restauración",
-                    description: "Obra en proceso de restauración",
-                    icon: <RefreshCw className="h-4 w-4" />,
-                    color: "yellow"
-                  },
-                  {
-                    value: "Oculto",
-                    label: "Oculto",
-                    description: "No visible para el público",
-                    icon: <EyeOff className="h-4 w-4" />,
-                    color: "gray"
-                  },
-                  {
-                    value: "Archivado",
-                    label: "Archivado",
-                    description: "Obra archivada permanentemente",
-                    icon: <Archive className="h-4 w-4" />,
-                    color: "red"
-                  }
-                ].map((estado) => (
-                  <div
-                    key={estado.value}
-                    className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                      mural.estado === estado.value
-                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                    }`}
-                    onClick={() => handleEstadoChange(estado.value)}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg ${
-                        estado.color === 'green' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
-                        estado.color === 'yellow' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                        estado.color === 'gray' ? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' :
-                        'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
-                      }`}>
-                        {estado.icon}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {[
+                    {
+                      value: "Activo",
+                      label: "Activo",
+                      description: "La obra está disponible y visible",
+                      icon: <Eye className="h-4 w-4" />,
+                      color: "green"
+                    },
+                    {
+                      value: "En restauración",
+                      label: "En restauración",
+                      description: "Obra en proceso de restauración",
+                      icon: <RefreshCw className="h-4 w-4" />,
+                      color: "yellow"
+                    },
+                    {
+                      value: "Oculto",
+                      label: "Oculto",
+                      description: "No visible para el público",
+                      icon: <EyeOff className="h-4 w-4" />,
+                      color: "gray"
+                    },
+                    {
+                      value: "Archivado",
+                      label: "Archivado",
+                      description: "Obra archivada permanentemente",
+                      icon: <Archive className="h-4 w-4" />,
+                      color: "red"
+                    }
+                  ].map((estado) => (
+                    <div
+                      key={estado.value}
+                      className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                        mural.estado === estado.value
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                      onClick={() => handleEstadoChange(estado.value)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`p-2 rounded-lg ${
+                          estado.color === 'green' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
+                          estado.color === 'yellow' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                          estado.color === 'gray' ? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' :
+                          'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                        }`}>
+                          {estado.icon}
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900 dark:text-white">
+                            {estado.label}
+                          </h4>
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            {estado.description}
+                          </p>
+                        </div>
+                        {mural.estado === estado.value && (
+                          <CheckCircle className="h-5 w-5 text-blue-500 flex-shrink-0" />
+                        )}
                       </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900 dark:text-white">
-                          {estado.label}
-                        </h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {estado.description}
-                        </p>
-                      </div>
-                      {mural.estado === estado.value && (
-                        <CheckCircle className="h-5 w-5 text-indigo-500 flex-shrink-0" />
-                      )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Opciones de visibilidad */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Globe className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
                   Opciones de visibilidad
-                </h3>
-              </div>
-
-              {/* Pública */}
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3 flex-1">
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {/* Pública */}
+                <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                  <div className="flex items-center gap-3">
                     <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
                       <Globe className="h-4 w-4" />
                     </div>
-                    <div className="flex-1">
+                    <div>
                       <h4 className="font-medium text-gray-900 dark:text-white">
                         Obra pública
                       </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        Los visitantes pueden ver esta obra en el museo virtual y en búsquedas públicas
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Los visitantes pueden ver esta obra en el museo virtual
                       </p>
                     </div>
                   </div>
@@ -1666,21 +1667,19 @@ export default function CrearMuralStepper({
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
                   </label>
                 </div>
-              </div>
 
-              {/* Destacada */}
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3 flex-1">
+                {/* Destacada */}
+                <div className="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                  <div className="flex items-center gap-3">
                     <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded-lg">
                       <Star className="h-4 w-4" />
                     </div>
-                    <div className="flex-1">
+                    <div>
                       <h4 className="font-medium text-gray-900 dark:text-white">
                         Obra destacada
                       </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        Esta obra aparecerá en la sección de obras destacadas y tendrá mayor visibilidad
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Aparecerá en la sección de obras destacadas
                       </p>
                     </div>
                   </div>
@@ -1694,104 +1693,93 @@ export default function CrearMuralStepper({
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 dark:peer-focus:ring-yellow-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-yellow-500"></div>
                   </label>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
             {/* Orden de aparición */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-3">
-                <ArrowUp className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ArrowUp className="h-5 w-5" />
                   Orden de aparición
-                </h3>
-              </div>
-
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
-                    <ArrowUp className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1">
-                    <label
-                      htmlFor="orden"
-                      className="block font-medium text-gray-900 dark:text-white mb-2"
-                    >
-                      Prioridad de visualización
-                    </label>
-                    <div className="flex items-center gap-4">
-                      <input
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="orden">Prioridad de visualización</Label>
+                    <div className="flex items-center gap-2 mt-2">
+                      <Input
                         id="orden"
-                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-800 dark:text-white"
                         type="number"
                         value={mural.orden}
                         onChange={(e) => handleOrdenChange(e.target.value)}
                         placeholder="0"
                         min={0}
                         max={999}
+                        className="flex-1"
                       />
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                          onClick={handleOrdenDecrement}
-                        >
-                          <ArrowDown className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                          onClick={handleOrdenIncrement}
-                        >
-                          <ArrowUp className="h-4 w-4" />
-                        </button>
-                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleOrdenDecrement}
+                      >
+                        <ArrowDown className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleOrdenIncrement}
+                      >
+                        <ArrowUp className="h-4 w-4" />
+                      </Button>
                     </div>
-                    <div className="flex items-start gap-2 mt-2">
-                      <HelpCircle className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Las obras con números menores aparecen primero. Usa 0 para máxima prioridad, 
-                        números mayores para menor prioridad.
-                      </p>
-                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+                      Las obras con números menores aparecen primero
+                    </p>
                   </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
-            {/* Resumen de configuración */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-              <h4 className="font-medium text-gray-900 dark:text-white mb-3">
-                Resumen de configuración:
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    mural.estado === 'Activo' ? 'bg-green-500' :
-                    mural.estado === 'En restauración' ? 'bg-yellow-500' :
-                    mural.estado === 'Oculto' ? 'bg-gray-500' :
-                    mural.estado === 'Archivado' ? 'bg-red-500' : 'bg-gray-300'
-                  }`}></div>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {mural.estado || 'Sin estado definido'}
-                  </span>
+            {/* Resumen */}
+            <Card className="bg-gray-50 dark:bg-gray-800/50">
+              <CardContent className="pt-6">
+                <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+                  Resumen de configuración:
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${
+                      mural.estado === 'Activo' ? 'bg-green-500' :
+                      mural.estado === 'En restauración' ? 'bg-yellow-500' :
+                      mural.estado === 'Oculto' ? 'bg-gray-500' :
+                      mural.estado === 'Archivado' ? 'bg-red-500' : 'bg-gray-300'
+                    }`}></div>
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {mural.estado || 'Sin estado'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${mural.publica ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {mural.publica ? 'Pública' : 'Privada'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-3 h-3 rounded-full ${mural.destacada ? 'bg-yellow-500' : 'bg-gray-300'}`}></div>
+                    <span className="text-gray-700 dark:text-gray-300">
+                      {mural.destacada ? 'Destacada' : 'Normal'}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${mural.publica ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {mural.publica ? 'Pública' : 'Privada'}
-                  </span>
+                <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                  Orden: {mural.orden || 0}
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${mural.destacada ? 'bg-yellow-500' : 'bg-gray-300'}`}></div>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {mural.destacada ? 'Destacada' : 'Normal'}
-                  </span>
-                </div>
-              </div>
-              <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                Orden de prioridad: {mural.orden || 0}
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         )}
         {/* Step 5: Autores y colaboradores */}
@@ -1804,117 +1792,223 @@ export default function CrearMuralStepper({
         )}
         {/* Step 6: Confirmación */}
         {step === 5 && (
-          <div className="flex flex-col gap-10 mb-8">
+          <div className="space-y-6">
             {successMessage ? (
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <CheckCircle className="text-green-500 h-6 w-6" />
-                  <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">¡Éxito!</h3>
-                </div>
-                <p className="text-green-700 dark:text-green-300 mb-4">{successMessage}</p>
-                <p className="text-sm text-green-600 dark:text-green-400 mb-4">Redirigiendo a tus obras...</p>
-                <div className="bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-3">
-                  <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
-                    <div className="w-2 h-2 bg-green-500 rounded-full" />
-                    <span className="text-sm">Modelo 3D generado y listo para AR</span>
+              <Card className="border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <CheckCircle className="text-green-500 h-8 w-8" />
+                    <h3 className="text-xl font-semibold text-green-800 dark:text-green-200">
+                      ¡Obra creada exitosamente!
+                    </h3>
                   </div>
-                </div>
-              </div>
+                  <p className="text-green-700 dark:text-green-300 mb-4">{successMessage}</p>
+                  <div className="bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-3">
+                    <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                      <div className="w-3 h-3 bg-green-500 rounded-full" />
+                      <span className="text-sm">Modelo 3D generado y listo para AR</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             ) : apiError ? (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <AlertCircle className="text-red-500 h-6 w-6" />
-                  <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">Error al crear la obra</h3>
-                </div>
-                <p className="text-red-700 dark:text-red-300 mb-4">{apiError.message}</p>
-                {apiError.details && <p className="text-sm text-red-600 dark:text-red-400 mb-4">Detalles: {apiError.details}</p>}
-                <div className="flex gap-3 flex-wrap">
-                  <Button onClick={() => { setApiError(null); handleCreateMural(); }} className="bg-red-600 hover:bg-red-700 text-white">Reintentar</Button>
-                  <Button onClick={() => setApiError(null)} variant="outline">Cancelar</Button>
-                </div>
-              </div>
+              <Card className="border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <AlertCircle className="text-red-500 h-8 w-8" />
+                    <h3 className="text-xl font-semibold text-red-800 dark:text-red-200">
+                      Error al crear la obra
+                    </h3>
+                  </div>
+                  <p className="text-red-700 dark:text-red-300 mb-4">{apiError.message}</p>
+                  {apiError.details && (
+                    <p className="text-sm text-red-600 dark:text-red-400 mb-4">
+                      Detalles: {apiError.details}
+                    </p>
+                  )}
+                  <div className="flex gap-3">
+                    <Button 
+                      onClick={() => { setApiError(null); handleCreateMural(); }}
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      Reintentar
+                    </Button>
+                    <Button onClick={() => setApiError(null)} variant="outline">
+                      Cancelar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             ) : (
               <>
-                <div className="grid grid-cols-1 xl:grid-cols-5 gap-8 items-start">
-                  {/* Imagen */}
-                  <div className="xl:col-span-2 flex flex-col gap-4">
-                    <div className="rounded-2xl border border-indigo-200 dark:border-indigo-800 bg-white/80 dark:bg-neutral-800/60 p-4 shadow-md">
-                      <h3 className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-2 tracking-wide uppercase">Vista previa</h3>
-                      <div className="aspect-square w-full flex items-center justify-center overflow-hidden rounded-xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700">
+                {/* Header */}
+                <div className="text-center space-y-2">
+                  <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
+                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                    Confirmar Creación
+                  </h2>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    Revisa todos los datos antes de crear tu obra
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Vista previa de imagen */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <ImageIcon className="h-5 w-5" />
+                        Vista previa
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="aspect-square w-full flex items-center justify-center overflow-hidden rounded-lg bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
                         {mural.url_imagen ? (
-                          <img src={mural.url_imagen} alt="preview" className="object-contain w-full h-full" />
+                          <img 
+                            src={mural.url_imagen} 
+                            alt="preview" 
+                            className="object-contain w-full h-full" 
+                          />
                         ) : (
-                          <span className="text-gray-400 text-sm">Sin imagen</span>
+                          <div className="text-center text-gray-400">
+                            <ImageIcon className="h-12 w-12 mx-auto mb-2" />
+                            <span className="text-sm">Sin imagen</span>
+                          </div>
                         )}
                       </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <button type="button" onClick={() => setStep(1)} className="text-xs px-2 py-1 rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900 transition">Cambiar imagen</button>
+                      <div className="mt-3 flex justify-center">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setStep(1)}
+                        >
+                          Cambiar imagen
+                        </Button>
                       </div>
-                    </div>
-                    <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/70 dark:bg-blue-900/20 p-4 text-xs leading-relaxed text-blue-700 dark:text-blue-300">
-                      Se generará automáticamente un modelo 3D optimizado. Puedes editarlo luego.
-                    </div>
-                  </div>
-                  {/* Resumen */}
-                  <div className="xl:col-span-3 flex flex-col gap-6">
-                    {/* Básico */}
-                    <div className="rounded-2xl border border-gray-200 dark:border-neutral-700 bg-white/90 dark:bg-neutral-900/70 p-5 shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2"><User className="w-4 h-4" />Datos básicos</h4>
-                        <button type="button" onClick={() => setStep(0)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Editar</button>
+                      <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                        <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
+                          Se generará automáticamente un modelo 3D optimizado para AR
+                        </p>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                        <SummaryRow label="Título" value={mural.titulo} full />
-                        <SummaryRow label="Técnica" value={mural.tecnica} full />
-                        <SummaryRow label="Año" value={mural.anio || '-'} full />
-                        <SummaryRow label="Dimensiones" value={mural.dimensiones || '—'} full />
-                        <SummaryRow label="Tags" value={mural.tags?.length ? mural.tags.join(', ') : '—'} full />
-                        {mural.descripcion && <SummaryRow label="Descripción" value={mural.descripcion} full multiline />}
-                      </div>
-                    </div>
-                    {/* Ubicación / Sala */}
-                    <div className="rounded-2xl border border-gray-200 dark:border-neutral-700 bg-white/90 dark:bg-neutral-900/70 p-5 shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Navigation className="w-4 h-4" />Ubicación</h4>
-                        <button type="button" onClick={() => setStep(2)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Editar</button>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                        <SummaryRow label="Dirección" value={mural.ubicacion || '—'} full />
-                        <SummaryRow label="Latitud" value={mural.latitud || '—'} full />
-                        <SummaryRow label="Longitud" value={mural.longitud || '—'} full />
-                        <SummaryRow label="Sala" value={mural.salaId ? (salas.find(s => s.id === mural.salaId)?.nombre || mural.salaId) : '—'} full />
-                      </div>
-                    </div>
-                    {/* Estado / Visibilidad */}
-                    <div className="rounded-2xl border border-gray-200 dark:border-neutral-700 bg-white/90 dark:bg-neutral-900/70 p-5 shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Eye className="w-4 h-4" />Estado y visibilidad</h4>
-                        <button type="button" onClick={() => setStep(3)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Editar</button>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                        <SummaryRow label="Estado" value={mural.estado || '—'} full />
+                    </CardContent>
+                  </Card>
+
+                  {/* Resumen de datos */}
+                  <div className="space-y-4">
+                    {/* Datos básicos */}
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <User className="h-4 w-4" />
+                          Datos básicos
+                        </CardTitle>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setStep(0)}
+                        >
+                          Editar
+                        </Button>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <SummaryRow label="Título" value={mural.titulo} />
+                        <SummaryRow label="Técnica" value={mural.tecnica} />
+                        <SummaryRow label="Año" value={mural.anio || '-'} />
+                        {mural.dimensiones && (
+                          <SummaryRow label="Dimensiones" value={mural.dimensiones} />
+                        )}
+                        {mural.tags?.length > 0 && (
+                          <SummaryRow label="Tags" value={mural.tags.join(', ')} />
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    {/* Ubicación */}
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Navigation className="h-4 w-4" />
+                          Ubicación
+                        </CardTitle>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setStep(2)}
+                        >
+                          Editar
+                        </Button>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <SummaryRow label="Dirección" value={mural.ubicacion || '—'} />
+                        {mural.latitud && <SummaryRow label="Latitud" value={mural.latitud} />}
+                        {mural.longitud && <SummaryRow label="Longitud" value={mural.longitud} />}
+                        <SummaryRow 
+                          label="Sala" 
+                          value={mural.salaId ? (salas.find(s => s.id === mural.salaId)?.nombre || mural.salaId) : '—'} 
+                        />
+                      </CardContent>
+                    </Card>
+
+                    {/* Estado y visibilidad */}
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Eye className="h-4 w-4" />
+                          Estado y visibilidad
+                        </CardTitle>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setStep(3)}
+                        >
+                          Editar
+                        </Button>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <SummaryRow label="Estado" value={mural.estado || '—'} />
                         <SummaryRow label="Pública" value={mural.publica ? 'Sí' : 'No'} />
                         <SummaryRow label="Destacada" value={mural.destacada ? 'Sí' : 'No'} />
                         <SummaryRow label="Orden" value={String(mural.orden || 0)} />
-                      </div>
-                    </div>
+                      </CardContent>
+                    </Card>
+
                     {/* Autoría */}
-                    <div className="rounded-2xl border border-gray-200 dark:border-neutral-700 bg-white/90 dark:bg-neutral-900/70 p-5 shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Users className="w-4 h-4" />Autoría</h4>
-                        <button type="button" onClick={() => setStep(4)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Editar</button>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                        <SummaryRow label="Autor libre" value={mural.autor || '—'} full />
-                        <SummaryRow label="Artista ID" value={mural.artistId || '—'} />
-                        <SummaryRow label="Colaboradores" value={mural.colaboradores?.length ? mural.colaboradores.length + ' seleccionado(s)' : '—'} full />
-                      </div>
-                    </div>
+                    <Card>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Autoría
+                        </CardTitle>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => setStep(4)}
+                        >
+                          Editar
+                        </Button>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {mural.autor && <SummaryRow label="Autor" value={mural.autor} />}
+                        {mural.artistId && <SummaryRow label="Artista ID" value={mural.artistId} />}
+                        <SummaryRow 
+                          label="Colaboradores" 
+                          value={mural.colaboradores?.length ? `${mural.colaboradores.length} seleccionado(s)` : '—'} 
+                        />
+                      </CardContent>
+                    </Card>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-4 justify-end mt-4">
-                  <Button variant="secondary" onClick={() => setStep(4)}>Volver</Button>
-                  <Button className="min-w-[180px]" onClick={handleCreateMural} disabled={isCreating || generatingModel}>
+
+                {/* Botones de acción */}
+                <div className="flex flex-col sm:flex-row gap-4 justify-end pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <Button variant="outline" onClick={() => setStep(4)}>
+                    Volver
+                  </Button>
+                  <Button 
+                    className="min-w-[180px]" 
+                    onClick={handleCreateMural} 
+                    disabled={isCreating || generatingModel}
+                  >
                     {isCreating ? (
                       generatingModel ? (
                         <div className="flex items-center gap-2">
@@ -2465,45 +2559,146 @@ function AutoresColaboradoresStep({ mural, setMural, artistList }) {
   };
 
   return (
-    <div className="flex flex-col gap-6 mb-8">
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">Autor / Artista</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-md">Elige si quieres escribir un autor libre o asociar un artista registrado. Son excluyentes.</p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="text-center space-y-2">
+        <User className="h-12 w-12 text-blue-500 mx-auto" />
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          Autores y Colaboradores
+        </h2>
+        <p className="text-gray-600 dark:text-gray-400">
+          Define la autoría y las colaboraciones de tu obra
+        </p>
+      </div>
+
+      {/* Autor/Artista Principal */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <User className="h-5 w-5" />
+            Autor Principal
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Selector de modo */}
+          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Tipo de autor
+            </p>
+            <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600">
+              <Button
+                type="button"
+                variant={mode === 'autor' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => switchMode('autor')}
+                className="rounded-r-none"
+              >
+                Autor libre
+              </Button>
+              <Button
+                type="button"
+                variant={mode === 'artist' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => switchMode('artist')}
+                className="rounded-l-none border-l-0"
+              >
+                Artista registrado
+              </Button>
+            </div>
           </div>
-          <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 w-fit">
-            <button type="button" onClick={() => switchMode('autor')}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${mode==='autor' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>Autor libre</button>
-            <button type="button" onClick={() => switchMode('artist')}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors border-l border-gray-300 dark:border-gray-600 ${mode==='artist' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>Artista registrado</button>
-          </div>
-        </div>
-        {mode === 'autor' && (
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Nombre del autor</label>
-            <input
-              type="text"
-              placeholder="Ej: Diego Rivera"
-              value={mural.autor || ''}
-              onChange={(e) => setMural(m => ({ ...m, autor: e.target.value }))}
-              className="input-stepper"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400">Escribe cualquier nombre. Si necesitas enlazar a un artista del sistema cambia al modo "Artista registrado".</p>
-          </div>
-        )}
-        {mode === 'artist' && (
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Seleccionar artista</label>
+
+          {mode === 'autor' && (
+            <div className="space-y-3">
+              <Label htmlFor="autor-libre">Nombre del autor</Label>
+              <Input
+                id="autor-libre"
+                type="text"
+                placeholder="Ej: Diego Rivera"
+                value={mural.autor || ''}
+                onChange={(e) => setMural(m => ({ ...m, autor: e.target.value }))}
+              />
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Escribe cualquier nombre. Si necesitas enlazar a un artista del sistema usa "Artista registrado".
+              </p>
+            </div>
+          )}
+
+          {mode === 'artist' && (
+            <div className="space-y-3">
+              <Label htmlFor="artistId">Seleccionar artista</Label>
+              <ReactSelect
+                inputId="artistId"
+                classNamePrefix="react-select"
+                options={artistOptions}
+                value={artistaOption}
+                onChange={handleArtistChange}
+                placeholder="Buscar artista..."
+                isClearable
+                menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
+                menuPosition="fixed"
+                styles={
+                  isDarkMode()
+                    ? {
+                        menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                        control: (base, state) => ({
+                          ...base,
+                          backgroundColor: '#18181b',
+                          borderColor: state.isFocused ? '#6366f1' : '#27272a',
+                          color: '#fff',
+                          boxShadow: state.isFocused ? '0 0 0 1.5px #6366f1' : undefined,
+                        }),
+                        menu: (base) => ({ ...base, backgroundColor: '#222', color: '#fff' }),
+                        option: (base, state) => ({
+                          ...base,
+                          backgroundColor: state.isSelected
+                            ? '#6366f1'
+                            : state.isFocused
+                              ? '#3730a3'
+                              : '#222',
+                          color: '#fff',
+                        }),
+                        placeholder: (base) => ({ ...base, color: '#a1a1aa' }),
+                        singleValue: (base) => ({ ...base, color: '#fff' }),
+                        input: (base) => ({ ...base, color: '#fff' }),
+                      }
+                    : { menuPortal: (base) => ({ ...base, zIndex: 9999 }) }
+                }
+              />
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Lista de artistas vinculados a usuarios. Si no aparece, usa "Autor libre".
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Colaboradores */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Colaboradores
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <Label htmlFor="colaboradores">Seleccionar colaboradores</Label>
             <ReactSelect
-              inputId="artistId"
+              inputId="colaboradores"
               classNamePrefix="react-select"
-              options={artistOptions}
-              value={artistaOption}
-              onChange={handleArtistChange}
-              placeholder="Buscar artista..."
-              isClearable
-              menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
+              options={userOptions}
+              value={colaboradoresOptions}
+              onChange={(opts) =>
+                setMural((m) => ({
+                  ...m,
+                  colaboradores: opts ? opts.map((o) => o.value) : [],
+                }))
+              }
+              isMulti
+              placeholder="Selecciona uno o varios usuarios"
+              menuPortalTarget={
+                typeof window !== "undefined" ? document.body : null
+              }
               menuPosition="fixed"
               styles={
                 isDarkMode()
@@ -2511,103 +2706,97 @@ function AutoresColaboradoresStep({ mural, setMural, artistList }) {
                       menuPortal: (base) => ({ ...base, zIndex: 9999 }),
                       control: (base, state) => ({
                         ...base,
-                        backgroundColor: '#18181b',
-                        borderColor: state.isFocused ? '#6366f1' : '#27272a',
-                        color: '#fff',
-                        boxShadow: state.isFocused ? '0 0 0 1.5px #6366f1' : undefined,
+                        backgroundColor: "#18181b",
+                        borderColor: state.isFocused ? "#6366f1" : "#27272a",
+                        color: "#fff",
+                        boxShadow: state.isFocused
+                          ? "0 0 0 1.5px #6366f1"
+                          : undefined,
                       }),
-                      menu: (base) => ({ ...base, backgroundColor: '#222', color: '#fff' }),
+                      menu: (base) => ({
+                        ...base,
+                        backgroundColor: "#222",
+                        color: "#fff",
+                      }),
                       option: (base, state) => ({
                         ...base,
                         backgroundColor: state.isSelected
-                          ? '#6366f1'
+                          ? "#6366f1"
                           : state.isFocused
-                            ? '#3730a3'
-                            : '#222',
-                        color: '#fff',
+                            ? "#3730a3"
+                            : "#222",
+                        color: state.isSelected ? "#fff" : "#fff",
                       }),
-                      placeholder: (base) => ({ ...base, color: '#a1a1aa' }),
-                      singleValue: (base) => ({ ...base, color: '#fff' }),
-                      input: (base) => ({ ...base, color: '#fff' }),
+                      multiValue: (base) => ({
+                        ...base,
+                        backgroundColor: "#6366f1",
+                        color: "#fff",
+                      }),
+                      multiValueLabel: (base) => ({ ...base, color: "#fff" }),
+                      multiValueRemove: (base) => ({
+                        ...base,
+                        color: "#fff",
+                        ":hover": { backgroundColor: "#3730a3", color: "#fff" },
+                      }),
+                      placeholder: (base) => ({ ...base, color: "#a1a1aa" }),
+                      singleValue: (base) => ({ ...base, color: "#fff" }),
+                      input: (base) => ({ ...base, color: "#fff" }),
                     }
                   : { menuPortal: (base) => ({ ...base, zIndex: 9999 }) }
               }
             />
-            <p className="text-xs text-gray-500 dark:text-gray-400">Lista de artistas vinculados a usuarios. Si no aparece, usa el modo "Autor libre".</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Opcional: Añade otros usuarios que hayan participado en la creación de la obra.
+            </p>
           </div>
-        )}
-      </div>
+        </CardContent>
+      </Card>
 
-      <div>
-        <label
-          htmlFor="colaboradores"
-          className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200"
-        >
-          Colaboradores
-        </label>
-        <ReactSelect
-          inputId="colaboradores"
-          classNamePrefix="react-select"
-          options={userOptions}
-          value={colaboradoresOptions}
-          onChange={(opts) =>
-            setMural((m) => ({
-              ...m,
-              colaboradores: opts ? opts.map((o) => o.value) : [],
-            }))
-          }
-          isMulti
-          placeholder="Selecciona uno o varios usuarios"
-          menuPortalTarget={
-            typeof window !== "undefined" ? document.body : null
-          }
-          menuPosition="fixed"
-          styles={
-            isDarkMode()
-              ? {
-                  menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-                  control: (base, state) => ({
-                    ...base,
-                    backgroundColor: "#18181b",
-                    borderColor: state.isFocused ? "#6366f1" : "#27272a",
-                    color: "#fff",
-                    boxShadow: state.isFocused
-                      ? "0 0 0 1.5px #6366f1"
-                      : undefined,
-                  }),
-                  menu: (base) => ({
-                    ...base,
-                    backgroundColor: "#222",
-                    color: "#fff",
-                  }),
-                  option: (base, state) => ({
-                    ...base,
-                    backgroundColor: state.isSelected
-                      ? "#6366f1"
-                      : state.isFocused
-                        ? "#3730a3"
-                        : "#222",
-                    color: state.isSelected ? "#fff" : "#fff",
-                  }),
-                  multiValue: (base) => ({
-                    ...base,
-                    backgroundColor: "#6366f1",
-                    color: "#fff",
-                  }),
-                  multiValueLabel: (base) => ({ ...base, color: "#fff" }),
-                  multiValueRemove: (base) => ({
-                    ...base,
-                    color: "#fff",
-                    ":hover": { backgroundColor: "#3730a3", color: "#fff" },
-                  }),
-                  placeholder: (base) => ({ ...base, color: "#a1a1aa" }),
-                  singleValue: (base) => ({ ...base, color: "#fff" }),
-                  input: (base) => ({ ...base, color: "#fff" }),
-                }
-              : { menuPortal: (base) => ({ ...base, zIndex: 9999 }) }
-          }
-        />
-      </div>
+      {/* Resumen */}
+      {(mural.autor || mural.artistId || (mural.colaboradores && mural.colaboradores.length > 0)) && (
+        <Card className="bg-gray-50 dark:bg-gray-800/50">
+          <CardContent className="pt-6">
+            <h4 className="font-medium text-gray-900 dark:text-white mb-3">
+              Resumen de autoría:
+            </h4>
+            <div className="space-y-2 text-sm">
+              {mural.autor && (
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-blue-500" />
+                  <span className="text-gray-700 dark:text-gray-300">
+                    Autor: {mural.autor}
+                  </span>
+                </div>
+              )}
+              {mural.artistId && artistaOption && (
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-green-500" />
+                  <span className="text-gray-700 dark:text-gray-300">
+                    Artista: {artistaOption.label}
+                  </span>
+                </div>
+              )}
+              {mural.colaboradores && mural.colaboradores.length > 0 && (
+                <div className="flex items-start gap-2">
+                  <Users className="h-4 w-4 text-purple-500 mt-0.5" />
+                  <div>
+                    <span className="text-gray-700 dark:text-gray-300">
+                      Colaboradores: 
+                    </span>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {colaboradoresOptions.map((collab, idx) => (
+                        <Badge key={idx} variant="secondary" className="text-xs">
+                          {collab.label}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
