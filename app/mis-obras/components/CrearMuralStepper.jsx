@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Stepper from "@/components/ui/Stepper";
 import {
@@ -8,19 +8,11 @@ import {
   AlertCircle,
   Info,
   User,
-  Navigation,
+  MapPin,
   Eye,
   Users,
   Image as ImageIcon,
   Trash2,
-  Globe,
-  EyeOff,
-  Star,
-  Archive,
-  RefreshCw,
-  ArrowUp,
-  ArrowDown,
-  HelpCircle,
 } from "lucide-react";
 import MuralImageStep from "./MuralImageStep";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -30,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectItem } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
+import React from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -38,7 +31,6 @@ import { Icon } from "leaflet";
 import { Brush } from "lucide-react";
 import ReactSelect from "react-select";
 import { SimpleModal } from "@/components/ui/SimpleModal";
-// Import the real GLB generator instead of the Fast bypass
 import {
   generateMuralGLB,
   generateMuralGLBFallback,
@@ -46,94 +38,11 @@ import {
 import { uploadModelToCloudinary } from "../../../utils/uploadToCloudinary";
 import { validateGLB, diagnoseModel } from "../../../utils/validateGLB";
 
-// Estilos CSS para el mapa
-const mapStyles = `
-  .leaflet-location-icon {
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-    transition: all 0.2s ease;
-  }
-  
-  .leaflet-location-icon:hover {
-    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
-    transform: scale(1.1);
-  }
-  
-  .leaflet-container {
-    font-family: inherit;
-  }
-  
-  .leaflet-control-zoom {
-    border: none !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-  }
-  
-  .leaflet-control-zoom a {
-    border: none !important;
-    background: white !important;
-    color: #374151 !important;
-    font-weight: 600 !important;
-    transition: all 0.2s ease !important;
-  }
-  
-  .leaflet-control-zoom a:hover {
-    background: #f3f4f6 !important;
-    color: #1f2937 !important;
-    transform: scale(1.05);
-  }
-  
-  .leaflet-popup-content-wrapper {
-    border-radius: 8px !important;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
-  }
-  
-  .dark .leaflet-control-zoom a {
-    background: #374151 !important;
-    color: #f9fafb !important;
-  }
-  
-  .dark .leaflet-control-zoom a:hover {
-    background: #4b5563 !important;
-    color: white !important;
-  }
-  
-  /* Prevenir scroll automático durante actualizaciones de estado */
-  .form-updating {
-    scroll-behavior: auto !important;
-    overflow-anchor: none !important;
-  }
-  
-  .form-updating * {
-    scroll-behavior: auto !important;
-    overflow-anchor: none !important;
-  }
-  
-  /* Estabilizar el contenedor del formulario */
-  .form-container {
-    scroll-behavior: smooth;
-    overflow-anchor: auto;
-  }
-  
-  .form-container.updating {
-    scroll-behavior: auto !important;
-    overflow-anchor: none !important;
-  }
-`;
-
-// Inyectar estilos
-if (typeof window !== 'undefined') {
-  const styleElement = document.createElement('style');
-  styleElement.textContent = mapStyles;
-  document.head.appendChild(styleElement);
-}
-
 export default function CrearMuralStepper({
   initialData = null,
   editMode = false,
   onSuccess,
-  scrollParentRef = null,
 }) {
-  const searchParams = useSearchParams();
-  const debugScroll = !!(searchParams?.get('debugScroll'));
   const router = useRouter();
   const { data: session } = useSession();
   const [step, setStep] = useState(0);
@@ -155,9 +64,9 @@ export default function CrearMuralStepper({
     {
       label: "Ubicación y sala",
       subtitle: "Dónde está el mural",
-      icon: <Navigation />,
+      icon: <MapPin />,
     },
-    { label: "Estado", subtitle: "Visibilidad y configuración", icon: <Eye /> },
+    { label: "Estado", subtitle: "Visibilidad y orden", icon: <Eye /> },
     { label: "Autores", subtitle: "Artistas y colaboradores", icon: <Users /> },
     {
       label: "Confirmar",
@@ -166,17 +75,6 @@ export default function CrearMuralStepper({
     },
   ];
   const canvasImageLoaded = useRef(false);
-  const localStorageLoaded = useRef(false);
-  const formContainerRef = useRef(null);
-  const headerBlockRef = useRef(null);
-  const headerFixedHeightRef = useRef(null);
-  const lastFieldRef = useRef("");
-  const lastUpdateTsRef = useRef(0);
-  const lastScrollYRef = useRef(0);
-  const jumpEventsRef = useRef([]);
-  const scrollAnchorRef = useRef(null);
-  const preUpdateAnchorTopRef = useRef(null);
-  const pendingCompensationRef = useRef(false);
 
   // Función para comprimir imagen si es muy grande
   const compressImage = (dataUrl, maxSize = 800) => {
@@ -302,50 +200,8 @@ export default function CrearMuralStepper({
   const [modelGenerationStep, setModelGenerationStep] = useState("");
   const [showCanvasReturnMessage, setShowCanvasReturnMessage] = useState(false);
 
-  const safeScrollParentRef = scrollParentRef && typeof scrollParentRef === 'object' ? scrollParentRef : { current: null };
-  const updateMural = useCallback((updater) => {
-    const scroller = safeScrollParentRef.current || (typeof window !== 'undefined' ? window : null);
-    const getScrollY = () => scroller === window ? window.scrollY : (scroller?.scrollTop || 0);
-    const setScrollY = (y) => {
-      if (!scroller) return;
-      if (scroller === window) window.scrollTo({ top: y, behavior: 'auto' }); else scroller.scrollTop = y;
-    };
-    const prevY = getScrollY();
-    if (scrollAnchorRef.current) {
-      preUpdateAnchorTopRef.current = scrollAnchorRef.current.getBoundingClientRect().top;
-    } else {
-      preUpdateAnchorTopRef.current = null;
-    }
-    setMural(prev => (typeof updater === 'function' ? updater(prev) : { ...prev, ...updater }));
-    pendingCompensationRef.current = { getScrollY, setScrollY, prevY };
-    if (debugScroll) {
-      // eslint-disable-next-line no-console
-      console.log('[updateMural] scheduled', { prevY });
-    }
-  }, [debugScroll, safeScrollParentRef]);
-
-  // Compensar desplazamiento después de cada render que siguió a un updateMural
-  React.useLayoutEffect(() => {
-    const context = pendingCompensationRef.current;
-    if (!context || !context.getScrollY) return;
-    pendingCompensationRef.current = false;
-    if (preUpdateAnchorTopRef.current == null || !scrollAnchorRef.current) return;
-    const newTop = scrollAnchorRef.current.getBoundingClientRect().top;
-    const delta = newTop - preUpdateAnchorTopRef.current;
-    if (Math.abs(delta) > 1) {
-      const currentY = context.getScrollY();
-      context.setScrollY(currentY - delta);
-      if (debugScroll) {
-        // eslint-disable-next-line no-console
-        console.log('[scrollCompensation]', { pre: preUpdateAnchorTopRef.current, post: newTop, delta, adjustedTo: context.getScrollY() });
-      }
-    }
-    preUpdateAnchorTopRef.current = null;
-  });
-
   React.useEffect(() => {
-    // Asegurar año por defecto si no está definido
-    if (mural.anio === undefined || mural.anio === null || mural.anio === "") {
+    if (mural.anio === undefined) {
       setMural((prev) => ({ ...prev, anio: new Date().getFullYear() }));
     }
   }, [mural.anio]);
@@ -353,7 +209,9 @@ export default function CrearMuralStepper({
   // useEffect para cargar datos iniciales en modo edición
   React.useEffect(() => {
     if (editMode && initialData) {
-  setMural({
+      console.log("🎨 Cargando datos para edición en stepper:", initialData);
+
+      setMural({
         titulo: initialData.titulo || "",
         descripcion: initialData.descripcion || "",
         tecnica: initialData.tecnica || "",
@@ -418,6 +276,12 @@ export default function CrearMuralStepper({
           ...mural,
           url_imagen: null, // No guardar la imagen en localStorage
         };
+        
+        console.log("➡️ Guardando datos antes de avanzar:", {
+          step: step + 1,
+          titulo: mural.titulo,
+          tecnica: mural.tecnica,
+        });
 
         safeLSSet("muralDraftData", muralWithoutImage);
         safeLSSet("muralStep", (step + 1).toString());
@@ -429,79 +293,23 @@ export default function CrearMuralStepper({
 
   // Cargar datos del mural desde localStorage al montar el componente
   useEffect(() => {
-    // Solo ejecutar si no estamos en modo edición y no hemos cargado ya
-    if ((editMode && initialData) || localStorageLoaded.current) {
-      return;
-    }
-
-    // Si es una nueva creación (no hay initialData), limpiar localStorage primero
-    if (!editMode && !initialData) {
-      // Verificar si venimos de una creación exitosa reciente
-      const lastCreationTime = localStorage.getItem('lastMuralCreationTime');
-      const now = Date.now();
-      
-      // Si fue hace menos de 10 segundos, limpiar todo para nueva creación
-      if (!lastCreationTime || (now - parseInt(lastCreationTime)) < 10000) {
-        console.log('🧹 Limpiando localStorage para nueva creación');
-        localStorage.removeItem("muralDraftData");
-        localStorage.removeItem("muralStep");
-        localStorage.removeItem("canvasImage");
-        localStorage.removeItem('lastMuralCreationTime');
-        
-        // Reiniciar estado a valores por defecto
-        setMural({
-          titulo: "",
-          descripcion: "",
-          tecnica: "",
-          anio: new Date().getFullYear(),
-          dimensiones: "",
-          tags: [],
-          url_imagen: null,
-          imagenesSecundarias: [],
-          imagenUrlWebp: "",
-          videoUrl: "",
-          audioUrl: "",
-          modelo3dUrl: "",
-          ubicacion: "",
-          latitud: "",
-          longitud: "",
-          salaId: "",
-          exposiciones: [],
-          estado: "",
-          publica: true,
-          destacada: false,
-          orden: 0,
-          autor: "",
-          artistId: "",
-          colaboradores: [],
-          tagsInput: "",
-          userId: session?.user?.id || "",
-        });
-        setStep(0); // Comenzar desde el step 0 (primer step)
-        localStorageLoaded.current = true;
-        return;
-      }
-    }
-
     const savedData = localStorage.getItem("muralDraftData");
     const savedStep = localStorage.getItem("muralStep");
 
-    if (savedData && session?.user?.id) {
+    console.log("📂 Cargando datos guardados:", {
+      hasSavedData: !!savedData,
+      hasSavedStep: !!savedStep,
+      sessionUserId: session?.user?.id,
+    });
+
+    if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
+        console.log("📋 Datos parseados desde localStorage:", parsed);
 
         setMural((prev) => {
-          // Solo actualizar si los datos guardados son diferentes o más completos
-          const hasExistingData = prev.titulo || prev.tecnica || prev.descripcion;
-          
-          if (hasExistingData) {
-            return {
-              ...prev,
-              // Solo actualizar userId si no está establecido
-              userId: prev.userId || session.user.id,
-            };
-          }
-          
+          console.log("📝 Estado previo del mural:", prev);
+
           // Combinar datos de localStorage con estado actual, dando prioridad a localStorage
           const newMural = {
             // Base por defecto
@@ -539,29 +347,32 @@ export default function CrearMuralStepper({
             userId: session?.user?.id || parsed.userId || prev.userId,
           };
 
+          console.log("✅ Nuevo estado del mural desde localStorage:", {
+            titulo: newMural.titulo,
+            tecnica: newMural.tecnica,
+            anio: newMural.anio,
+            userId: newMural.userId,
+          });
+
           return newMural;
         });
-        
-        // Marcar como cargado
-        localStorageLoaded.current = true;
       } catch (error) {
         console.error("❌ Error parsing saved mural data:", error);
       }
     }
 
-    if (savedStep && session?.user?.id) {
+    if (savedStep) {
       const stepNumber = parseInt(savedStep);
       setStep(stepNumber);
     }
-  }, [session?.user?.id, editMode, initialData]); // Añadir editMode e initialData como dependencias
+  }, [session?.user?.id]);
 
   // Establecer userId cuando la sesión esté disponible (solo si no está ya establecido)
   useEffect(() => {
     if (session?.user?.id && !mural.userId) {
-      // Usar updateMural para evitar scroll automático
-      updateMural(prev => ({ ...prev, userId: session.user.id }));
+      setMural((prev) => ({ ...prev, userId: session.user.id }));
     }
-  }, [session?.user?.id, mural.userId, updateMural]);
+  }, [session, mural.userId]);
 
   // Detectar si el usuario regresa del canvas y mostrar mensaje
   useEffect(() => {
@@ -573,7 +384,7 @@ export default function CrearMuralStepper({
       setShowCanvasReturnMessage(true);
       setStep(parseInt(stepperReturnStep));
       
-      // Limpiar los indicadores inmediatamente para evitar interferencias
+      // Limpiar los indicadores
       localStorage.removeItem("fromStepper");
       localStorage.removeItem("stepperReturnStep");
       
@@ -582,12 +393,10 @@ export default function CrearMuralStepper({
         setShowCanvasReturnMessage(false);
       }, 5000);
     }
-  }, []); // Solo ejecutar una vez al montar el componente
+  }, []);
 
   // Auto-guardar los datos del mural cada vez que cambien (excepto si estamos cargando)
   useEffect(() => {
-  // (scroll guard removed)
-
     // Solo guardar si tenemos datos significativos y la sesión está lista
     const hasSignificantData =
       mural.titulo ||
@@ -596,33 +405,28 @@ export default function CrearMuralStepper({
       (mural.anio && mural.anio !== new Date().getFullYear());
 
     if (hasSignificantData && session?.user?.id) {
-      // Usar un timeout para debounce y evitar guardados excesivos
-      const saveTimeout = setTimeout(() => {
-        // Crear una copia del mural sin las imágenes pesadas para localStorage
-        const muralToSave = {
-          ...mural,
-          // Excluir campos que pueden ser muy grandes
-          url_imagen:
-            mural.url_imagen && mural.url_imagen.startsWith("data:")
-              ? null
-              : mural.url_imagen,
-          imagenesSecundarias:
-            mural.imagenesSecundarias?.filter(
-              (img) => !img.startsWith("data:")
-            ) || [],
-          imagenUrlWebp:
-            mural.imagenUrlWebp && mural.imagenUrlWebp.startsWith("data:")
-              ? null
-              : mural.imagenUrlWebp,
-        };
+      // Crear una copia del mural sin las imágenes pesadas para localStorage
+      const muralToSave = {
+        ...mural,
+        // Excluir campos que pueden ser muy grandes
+        url_imagen:
+          mural.url_imagen && mural.url_imagen.startsWith("data:")
+            ? null
+            : mural.url_imagen,
+        imagenesSecundarias:
+          mural.imagenesSecundarias?.filter(
+            (img) => !img.startsWith("data:")
+          ) || [],
+        imagenUrlWebp:
+          mural.imagenUrlWebp && mural.imagenUrlWebp.startsWith("data:")
+            ? null
+            : mural.imagenUrlWebp,
+      };
 
-        // Usar la función segura para guardar
-        if (safeLSSet("muralDraftData", muralToSave)) {
-          safeLSSet("muralStep", step.toString());
-        }
-      }, 500); // Debounce de 500ms
-
-      return () => clearTimeout(saveTimeout);
+      // Usar la función segura para guardar
+      if (safeLSSet("muralDraftData", muralToSave)) {
+        safeLSSet("muralStep", step.toString());
+      }
     }
   }, [mural, step, session?.user?.id]);
 
@@ -642,14 +446,26 @@ export default function CrearMuralStepper({
   // Verificar si hay imagen del canvas al cargar el componente
   useEffect(() => {
     const savedCanvasImage = localStorage.getItem("canvasImage");
+    console.log("🔍 Verificando imagen del canvas:", {
+      hasImage: !!savedCanvasImage,
+      canvasImageLoaded: canvasImageLoaded.current,
+      currentStep: step,
+      hasMuralData: !!mural.titulo, // Verificar si ya hay datos del mural
+    });
 
     if (savedCanvasImage && !canvasImageLoaded.current) {
+      console.log("📸 Cargando imagen del canvas...");
+
       // Verificar si ya tenemos datos del mural antes de cargar la imagen
       const currentMuralData = localStorage.getItem("muralDraftData");
       let existingData = {};
       if (currentMuralData) {
         try {
           existingData = JSON.parse(currentMuralData);
+          console.log("📋 Datos existentes antes de cargar imagen:", {
+            titulo: existingData.titulo,
+            tecnica: existingData.tecnica,
+          });
         } catch (error) {
           console.error("❌ Error parsing existing data:", error);
         }
@@ -658,6 +474,7 @@ export default function CrearMuralStepper({
       // Comprimir la imagen si es muy grande
       compressImage(savedCanvasImage)
         .then((compressedImage) => {
+          console.log("✅ Imagen comprimida, actualizando estado");
           setMural((currentMural) => {
             // Usar datos actuales del mural como base principal y completar con localStorage
             const updatedMural = {
@@ -697,6 +514,14 @@ export default function CrearMuralStepper({
                   ? existingData.orden 
                   : 0,
             };
+            
+            console.log("🎨 Mural actualizado con imagen:", {
+              titulo: updatedMural.titulo,
+              tecnica: updatedMural.tecnica,
+              anio: updatedMural.anio,
+              hasImage: !!updatedMural.url_imagen,
+              userId: updatedMural.userId,
+            });
 
             // Forzar un guardado inmediato para preservar los datos
             setTimeout(() => {
@@ -707,12 +532,18 @@ export default function CrearMuralStepper({
               if (safeLSSet("muralDraftData", muralWithoutImage)) {
                 safeLSSet("muralStep", step.toString());
               }
+              console.log("💾 Guardado inmediato después de cargar imagen:", {
+                titulo: muralWithoutImage.titulo,
+                tecnica: muralWithoutImage.tecnica,
+                anio: muralWithoutImage.anio,
+              });
             }, 100);
 
             return updatedMural;
           });
           // Solo cambiar al paso 1 si no estamos ya en un paso más avanzado
           if (step < 1) {
+            console.log("🔄 Cambiando al paso 1");
             setStep(1);
           }
         })
@@ -754,6 +585,14 @@ export default function CrearMuralStepper({
           url_imagen: null, // No guardar la imagen en localStorage para evitar exceder límites
         };
 
+        console.log("💾 Guardando estado en localStorage:", {
+          hasSignificantData,
+          step,
+          titulo: mural.titulo,
+          tecnica: mural.tecnica,
+          anio: mural.anio,
+        });
+
         // Usar la función segura para guardar
         if (safeLSSet("muralDraftData", muralWithoutImage)) {
           safeLSSet("muralStep", step.toString());
@@ -783,11 +622,10 @@ export default function CrearMuralStepper({
     session?.user?.id,
   ]);
 
-  // Eliminado el bloqueo agresivo de scroll: ya no necesario
-
   // Función para generar modelo 3D con fallbacks
   const generateAndValidateModel = async (imageUrl, title = "mural") => {
     setGeneratingModel(true);
+    console.log("🚀 Iniciando generación de modelo 3D para:", title);
 
     let glbBlob = null;
     let generationMethod = "";
@@ -795,6 +633,7 @@ export default function CrearMuralStepper({
     try {
       // Intentar primero con la imagen real
       setModelGenerationStep("Generando modelo 3D con imagen...");
+      console.log("📸 Intentando generar modelo con imagen:", imageUrl);
       glbBlob = await generateMuralGLB(imageUrl);
       generationMethod = "imagen_real";
 
@@ -804,13 +643,24 @@ export default function CrearMuralStepper({
       if (!validation.isValid) {
         throw new Error(`Modelo inválido: ${validation.error}`);
       }
+
+      console.log("✅ Modelo generado exitosamente con imagen real");
     } catch (error) {
+      console.warn(
+        "⚠️ Error con imagen real, intentando fallback:",
+        error.message
+      );
+
       try {
         // Fallback: generar con textura programática
         setModelGenerationStep("Generando modelo alternativo...");
         const fallbackColor = "#4A90E2"; // Azul atractivo
         const fallbackText = title.substring(0, 10).toUpperCase() || "OBRA";
 
+        console.log("🎨 Generando modelo fallback con:", {
+          color: fallbackColor,
+          text: fallbackText,
+        });
         glbBlob = await generateMuralGLBFallback(fallbackColor, fallbackText);
         generationMethod = "fallback";
 
@@ -820,7 +670,14 @@ export default function CrearMuralStepper({
         if (!validation.isValid) {
           throw new Error(`Modelo fallback inválido: ${validation.error}`);
         }
+
+        console.log("✅ Modelo fallback generado exitosamente");
       } catch (fallbackError) {
+        console.error(
+          "❌ Error en fallback, intentando modelo simple:",
+          fallbackError.message
+        );
+
         // Último recurso: modelo simple
         setModelGenerationStep("Generando modelo básico...");
         const { generateSimpleGLB } = await import(
@@ -834,12 +691,15 @@ export default function CrearMuralStepper({
         if (!validation.isValid) {
           throw new Error(`Modelo simple inválido: ${validation.error}`);
         }
+
+        console.log("✅ Modelo simple generado como último recurso");
       }
     }
 
     // Diagnóstico del modelo final
     setModelGenerationStep("Analizando calidad del modelo...");
     const diagnostic = await diagnoseModel(glbBlob);
+    console.log("📊 Diagnóstico del modelo:", diagnostic);
 
     setGeneratingModel(false);
     setModelGenerationStep("");
@@ -853,6 +713,15 @@ export default function CrearMuralStepper({
 
   // Función para crear el mural
   const handleCreateMural = async () => {
+    console.log("🔍 Validando datos antes de crear mural:", {
+      titulo: mural.titulo,
+      tecnica: mural.tecnica,
+      anio: mural.anio,
+      userId: mural.userId,
+      sessionUserId: session?.user?.id,
+      hasImage: !!mural.url_imagen,
+    });
+
     if (!mural.url_imagen) {
       alert("Debes seleccionar o crear una imagen");
       return;
@@ -893,6 +762,7 @@ export default function CrearMuralStepper({
       ) {
         // Ya es una URL de imagen existente, no subir de nuevo
         url_imagen = mural.url_imagen;
+        console.log("✅ Usando imagen existente:", url_imagen);
       } else if (mural.url_imagen) {
         // Es imagen nueva que necesita ser subida
         let imgFile;
@@ -911,6 +781,7 @@ export default function CrearMuralStepper({
         const formDataImage = new FormData();
         formDataImage.append("imagen", imgFile);
 
+        console.log("📤 Subiendo imagen nueva...");
         const resImg = await fetch("/api/upload", {
           method: "POST",
           body: formDataImage,
@@ -922,9 +793,11 @@ export default function CrearMuralStepper({
 
         const dataImg = await resImg.json();
         url_imagen = dataImg.url;
+        console.log("✅ Imagen nueva subida:", url_imagen);
       } else {
         throw new Error("No hay imagen para procesar");
       }
+      console.log("✅ Imagen subida:", url_imagen);
 
       // Generar y subir modelo 3D
       let modelo3dUrl = null;
@@ -932,6 +805,8 @@ export default function CrearMuralStepper({
 
       if (url_imagen) {
         try {
+          console.log("🏗️ Iniciando proceso de generación de modelo 3D...");
+
           // Usar la función mejorada para generar el modelo
           const modelResult = await generateAndValidateModel(
             url_imagen,
@@ -946,6 +821,7 @@ export default function CrearMuralStepper({
 
           // Subir a Cloudinary
           setModelGenerationStep("Subiendo modelo a la nube...");
+          console.log("☁️ Subiendo modelo a Cloudinary...");
           modelo3dUrl = await uploadModelToCloudinary(
             modelResult.blob,
             safeFileName
@@ -956,6 +832,12 @@ export default function CrearMuralStepper({
             size: Math.round(modelResult.blob.size / 1024), // KB
             diagnostic: modelResult.diagnostic,
           };
+
+          console.log("✅ Modelo 3D procesado exitosamente:", {
+            url: modelo3dUrl,
+            method: modelResult.method,
+            size: `${modelInfo.size} KB`,
+          });
         } catch (err) {
           console.error("❌ Error completo en generación de modelo 3D:", err);
           // Continuar sin modelo 3D
@@ -964,6 +846,8 @@ export default function CrearMuralStepper({
           setGeneratingModel(false);
           setModelGenerationStep("");
         }
+      } else {
+        console.log("ℹ️ No hay imagen, saltando generación de modelo 3D");
       }
 
       // Crear FormData para el mural
@@ -1017,6 +901,35 @@ export default function CrearMuralStepper({
         formData.append("colaboradores", JSON.stringify(mural.colaboradores));
       }
 
+      // Debug: mostrar qué datos se están enviando
+      console.log("📤 Enviando datos a la API:", {
+        titulo: mural.titulo,
+        tecnica: mural.tecnica,
+        anio: mural.anio,
+        descripcion: mural.descripcion,
+        autor: mural.autor,
+        artistId:
+          mural.artistId && mural.artistId.trim() !== ""
+            ? mural.artistId
+            : "No enviado",
+        userId: mural.userId || session?.user?.id,
+        url_imagen: url_imagen,
+        modelo3dUrl: modelo3dUrl || "No generado",
+        dimensiones: mural.dimensiones || "No especificadas",
+        latitud: mural.latitud || "No especificada",
+        longitud: mural.longitud || "No especificada",
+        ubicacion: mural.ubicacion || "No especificada",
+        salaId: mural.salaId || "No especificada",
+        estado: mural.estado || "No especificado",
+        publica: mural.publica,
+        destacada: mural.destacada,
+        orden: mural.orden,
+        tags: mural.tags || [],
+        colaboradores: mural.colaboradores || [],
+        artistListLength: artistList.length,
+        availableArtistIds: artistList.map((a) => a.id),
+      });
+
       // Enviar a la API
       const apiUrl = editMode
         ? `/api/murales/${initialData.id}`
@@ -1030,6 +943,12 @@ export default function CrearMuralStepper({
 
       if (response.ok) {
         const result = await response.json();
+        console.log(
+          editMode
+            ? "✅ Obra actualizada exitosamente:"
+            : "✅ Obra creada exitosamente:",
+          result
+        );
 
         // Mostrar mensaje de éxito
         setSuccessMessage(
@@ -1043,8 +962,6 @@ export default function CrearMuralStepper({
           localStorage.removeItem("muralDraftData");
           localStorage.removeItem("muralStep");
           localStorage.removeItem("canvasImage");
-          // Marcar timestamp de creación exitosa para limpiar en próxima sesión
-          localStorage.setItem('lastMuralCreationTime', Date.now().toString());
         }
 
         // Redirigir después de un breve delay para mostrar el mensaje
@@ -1088,7 +1005,7 @@ export default function CrearMuralStepper({
   };
 
   const handleBack = () => {
-    // Guardar datos antes de retroceder solo si hay datos significativos
+    // Guardar datos antes de retroceder para asegurar que no se pierdan
     const hasSignificantData =
       mural.titulo ||
       mural.descripcion ||
@@ -1103,11 +1020,14 @@ export default function CrearMuralStepper({
         ...mural,
         url_imagen: null, // No guardar la imagen en localStorage
       };
+      
+      console.log("🔙 Guardando datos antes de retroceder:", {
+        step: step - 1,
+        titulo: mural.titulo,
+        tecnica: mural.tecnica,
+      });
 
       safeLSSet("muralDraftData", muralWithoutImage);
-      safeLSSet("muralStep", (step - 1).toString());
-    } else {
-      // Si no hay datos significativos, solo actualizar el step en localStorage
       safeLSSet("muralStep", (step - 1).toString());
     }
 
@@ -1135,6 +1055,8 @@ export default function CrearMuralStepper({
           }
         }
       });
+
+      console.log("🧹 Draft limpiado completamente");
     } catch (error) {
       console.error("❌ Error limpiando draft:", error);
     }
@@ -1172,96 +1094,6 @@ export default function CrearMuralStepper({
     setErrors({});
     setShowClearDraftModal(false);
   };
-
-  const handleEstadoChange = useCallback((estado) => {
-    updateMural(m => ({ ...m, estado }));
-  }, [updateMural]);
-
-  const handlePublicaChange = useCallback((publica) => {
-    updateMural(m => ({ ...m, publica }));
-  }, [updateMural]);
-
-  const handleDestacadaChange = useCallback((destacada) => {
-    updateMural(m => ({ ...m, destacada }));
-  }, [updateMural]);
-
-  const handleOrdenChange = useCallback((orden) => {
-    updateMural(m => ({ ...m, orden: parseInt(orden) || 0 }));
-  }, [updateMural]);
-
-  const handleOrdenIncrement = useCallback(() => {
-    updateMural(m => ({ ...m, orden: (m.orden || 0) + 1 }));
-  }, [updateMural]);
-
-  const handleOrdenDecrement = useCallback(() => {
-    updateMural(m => ({ ...m, orden: Math.max(0, (m.orden || 0) - 1) }));
-  }, [updateMural]);
-
-  // Funciones para campos básicos con prevención de scroll mejorada
-  const handleTituloChange = useCallback((e) => {
-  lastFieldRef.current = 'titulo';
-  lastUpdateTsRef.current = performance.now();
-    updateMural(m => ({ ...m, titulo: e.target.value }));
-  }, [updateMural]);
-
-  const handleTecnicaChange = useCallback((e) => {
-  lastFieldRef.current = 'tecnica';
-  lastUpdateTsRef.current = performance.now();
-    updateMural(m => ({ ...m, tecnica: e.target.value }));
-  }, [updateMural]);
-
-  const handleAnioChange = useCallback((e) => {
-  lastFieldRef.current = 'anio';
-  lastUpdateTsRef.current = performance.now();
-    updateMural(m => ({ ...m, anio: e.target.value }));
-  }, [updateMural]);
-
-  const handleDescripcionChange = useCallback((e) => {
-    e.target.focus({ preventScroll: true });
-    updateMural(m => ({ ...m, descripcion: e.target.value }));
-  }, [updateMural]);
-
-  const handleDimensionesChange = useCallback((e) => {
-    e.target.focus({ preventScroll: true });
-    updateMural(m => ({ ...m, dimensiones: e.target.value }));
-  }, [updateMural]);
-
-  const handleTagsInputChange = useCallback((e) => {
-    e.target.focus({ preventScroll: true });
-    updateMural(m => ({ ...m, tagsInput: e.target.value }));
-  }, [updateMural]);
-
-  const handleRemoveTag = useCallback((indexToRemove) => {
-    updateMural(m => ({
-      ...m,
-      tags: m.tags.filter((_, idx) => idx !== indexToRemove)
-    }));
-  }, [updateMural]);
-
-  const handleTagKeyDown = useCallback((e) => {
-    if (["Enter", ","].includes(e.key)) {
-      e.preventDefault();
-      const val = mural.tagsInput?.trim();
-      if (val && !mural.tags.includes(val)) {
-        updateMural(m => ({
-          ...m,
-          tags: [...m.tags, val],
-          tagsInput: "",
-        }));
-      }
-    } else if (
-      e.key === "Backspace" &&
-      !mural.tagsInput &&
-      mural.tags.length > 0
-    ) {
-      updateMural(m => ({ ...m, tags: m.tags.slice(0, -1) }));
-    }
-  }, [updateMural, mural.tagsInput, mural.tags]);
-
-  // Función optimizada para cambio de imagen
-  const handleImageChange = useCallback((img) => {
-    updateMural(m => ({ ...m, url_imagen: img }));
-  }, [updateMural]);
 
   // Estilos inline para underline moderno
   const underlineInputClass =
@@ -1327,43 +1159,23 @@ export default function CrearMuralStepper({
 
   // Render steps
   return (
-    <div className="w-full max-w-3xl mx-auto bg-white/80 dark:bg-neutral-900/80 rounded-2xl shadow-xl border border-border p-0 md:p-8" ref={headerBlockRef}>
-      {debugScroll && (
-        <div className="fixed bottom-4 right-4 z-[9999] bg-black/70 text-xs text-green-300 font-mono p-3 rounded-lg max-w-xs space-y-1">
-          <div className="font-bold text-white">Scroll Debug</div>
-          <div>Y: {typeof window !== 'undefined' ? window.scrollY : 0}</div>
-          <div>Last Field: {lastFieldRef.current || '-'}</div>
-          <div>Events: {jumpEventsRef.current.length}</div>
-          <button
-            type="button"
-            className="mt-1 px-2 py-1 bg-green-600 hover:bg-green-500 text-white rounded"
-            onClick={() => { /* force log dump */ console.log('Dump jumps', jumpEventsRef.current); }}
-          >Dump</button>
-        </div>
-      )}
-      <div>
-        <Stepper
-          steps={stepStates}
-          activeStep={step}
-          color="indigo"
-          className="mb-8"
-          onStepClick={(i) => {
-            if (i < step) setStep(i);
-          }}
-        />
+    <div className="w-full max-w-3xl mx-auto bg-white/80 dark:bg-neutral-900/80 rounded-2xl shadow-xl border border-border p-0 md:p-8">
+      <Stepper
+        steps={stepStates}
+        activeStep={step}
+        color="indigo"
+        className="mb-8"
+        onStepClick={(i) => {
+          if (i < step) setStep(i);
+        }}
+      />
 
-        {/* Separador visual */}
-        <div className="w-full flex items-center justify-center mb-10">
-          <div className="w-full h-[2px] bg-gradient-to-r from-indigo-200 via-indigo-400 to-indigo-200 dark:from-indigo-900 dark:via-indigo-700 dark:to-indigo-900 rounded-full shadow-md" />
-        </div>
+      {/* Separador visual */}
+      <div className="w-full flex items-center justify-center mb-10">
+        <div className="w-full h-[2px] bg-gradient-to-r from-indigo-200 via-indigo-400 to-indigo-200 dark:from-indigo-900 dark:via-indigo-700 dark:to-indigo-900 rounded-full shadow-md" />
       </div>
       {/* Formulario principal */}
-      <div
-        ref={formContainerRef}
-        className="form-container bg-white/90 dark:bg-neutral-900/90 rounded-xl px-4 md:px-10 py-8 flex flex-col gap-12 shadow-lg border border-indigo-100 dark:border-indigo-900"
-        style={{overflowAnchor:'none'}}
-      >
-  <div ref={scrollAnchorRef} style={{ position:'relative', height:1, marginTop:-1 }} />
+      <div className="bg-white/90 dark:bg-neutral-900/90 rounded-xl px-4 md:px-10 py-8 flex flex-col gap-12 shadow-lg border border-indigo-100 dark:border-indigo-900">
         {/* Título del paso actual */}
         <div className="mb-6 text-center">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -1372,11 +1184,6 @@ export default function CrearMuralStepper({
           {step === 0 && (
             <p className="text-sm text-muted-foreground mt-2">
               Completa los datos básicos de tu obra
-            </p>
-          )}
-          {step === 3 && (
-            <p className="text-sm text-muted-foreground mt-2">
-              Configura cómo será visible tu obra en el museo virtual
             </p>
           )}
         </div>
@@ -1417,12 +1224,12 @@ export default function CrearMuralStepper({
                   id="titulo"
                   className="input-stepper"
                   value={mural.titulo}
-                  onChange={handleTituloChange}
+                  onChange={(e) =>
+                    setMural((m) => ({ ...m, titulo: e.target.value }))
+                  }
                   aria-invalid={!!errors.titulo}
                   placeholder="Ej: Mural de la esperanza"
                   autoComplete="off"
-                  // onFocus scroll override removed
-                  style={{ scrollMargin: 0 }}
                 />
                 {errors.titulo && (
                   <span className={errorClass}>{errors.titulo}</span>
@@ -1436,12 +1243,12 @@ export default function CrearMuralStepper({
                   id="tecnica"
                   className="input-stepper"
                   value={mural.tecnica}
-                  onChange={handleTecnicaChange}
+                  onChange={(e) =>
+                    setMural((m) => ({ ...m, tecnica: e.target.value }))
+                  }
                   aria-invalid={!!errors.tecnica}
                   placeholder="Ej: Acrílico sobre muro"
                   autoComplete="off"
-                  // onFocus scroll override removed
-                  style={{ scrollMargin: 0 }}
                 />
                 {errors.tecnica && (
                   <span className={errorClass}>{errors.tecnica}</span>
@@ -1454,9 +1261,9 @@ export default function CrearMuralStepper({
                 <select
                   className="input-stepper"
                   value={String(mural.anio)}
-                  onChange={handleAnioChange}
-                  // onFocus scroll override removed
-                  style={{ scrollMargin: 0 }}
+                  onChange={(e) =>
+                    setMural((m) => ({ ...m, anio: e.target.value }))
+                  }
                 >
                   <option value="">Selecciona el año</option>
                   {years.map((y) => (
@@ -1477,7 +1284,9 @@ export default function CrearMuralStepper({
                   id="dimensiones"
                   className="input-stepper"
                   value={mural.dimensiones}
-                  onChange={handleDimensionesChange}
+                  onChange={(e) =>
+                    setMural((m) => ({ ...m, dimensiones: e.target.value }))
+                  }
                   placeholder="Ej: 3m x 5m"
                   autoComplete="off"
                 />
@@ -1491,7 +1300,9 @@ export default function CrearMuralStepper({
                 id="descripcion"
                 className="input-stepper min-h-[80px] resize-y mt-1"
                 value={mural.descripcion}
-                onChange={handleDescripcionChange}
+                onChange={(e) =>
+                  setMural((m) => ({ ...m, descripcion: e.target.value }))
+                }
                 placeholder="Describe brevemente el mural, su inspiración, etc."
               />
             </div>
@@ -1503,10 +1314,30 @@ export default function CrearMuralStepper({
                 id="tags"
                 className="input-stepper"
                 value={mural.tagsInput || ""}
-                onChange={handleTagsInputChange}
+                onChange={(e) =>
+                  setMural((m) => ({ ...m, tagsInput: e.target.value }))
+                }
                 placeholder="Escribe un tag y presiona Enter o coma"
                 autoComplete="off"
-                onKeyDown={handleTagKeyDown}
+                onKeyDown={(e) => {
+                  if (["Enter", ","].includes(e.key)) {
+                    e.preventDefault();
+                    const val = mural.tagsInput?.trim();
+                    if (val && !mural.tags.includes(val)) {
+                      setMural((m) => ({
+                        ...m,
+                        tags: [...m.tags, val],
+                        tagsInput: "",
+                      }));
+                    }
+                  } else if (
+                    e.key === "Backspace" &&
+                    !mural.tagsInput &&
+                    mural.tags.length > 0
+                  ) {
+                    setMural((m) => ({ ...m, tags: m.tags.slice(0, -1) }));
+                  }
+                }}
               />
               <div className="flex flex-wrap gap-2 mt-2">
                 {mural.tags.map((tag, i) => (
@@ -1515,7 +1346,12 @@ export default function CrearMuralStepper({
                     <button
                       type="button"
                       className="ml-1 text-blue-700 hover:text-red-500 focus:outline-none"
-                      onClick={() => handleRemoveTag(i)}
+                      onClick={() =>
+                        setMural((m) => ({
+                          ...m,
+                          tags: m.tags.filter((t, idx) => idx !== i),
+                        }))
+                      }
                       aria-label={`Eliminar tag ${tag}`}
                     >
                       <X className="w-3 h-3" />
@@ -1530,7 +1366,7 @@ export default function CrearMuralStepper({
         {step === 1 && (
           <MuralImageStep
             value={mural.url_imagen}
-            onChange={handleImageChange}
+            onChange={(img) => setMural((m) => ({ ...m, url_imagen: img }))}
             muralData={mural}
             editMode={editMode}
             obraId={initialData?.id}
@@ -1540,257 +1376,84 @@ export default function CrearMuralStepper({
         {step === 2 && <LocationPicker mural={mural} setMural={setMural} />}
         {/* Step 4: Estado y visibilidad */}
         {step === 3 && (
-          <div className="flex flex-col gap-8 mb-8">
-            {/* Encabezado explicativo */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <Info className="text-blue-500 h-5 w-5 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="text-blue-800 dark:text-blue-200 font-semibold text-sm mb-1">
-                    Configuración de visibilidad y orden
-                  </h3>
-                  <p className="text-blue-700 dark:text-blue-300 text-sm">
-                    Define cómo y cuándo será visible tu obra en el museo virtual. Estos ajustes afectan la experiencia de los visitantes.
-                  </p>
-                </div>
-              </div>
+          <div className="flex flex-col gap-6 mb-8">
+            <div>
+              <label
+                htmlFor="estado"
+                className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200"
+              >
+                Estado
+              </label>
+              <select
+                id="estado"
+                className="input-stepper"
+                value={mural.estado}
+                onChange={(e) =>
+                  setMural((m) => ({ ...m, estado: e.target.value }))
+                }
+              >
+                <option value="">Selecciona un estado</option>
+                <option value="Activo">Activo</option>
+                <option value="En restauración">En restauración</option>
+                <option value="Oculto">Oculto</option>
+                <option value="Archivado">Archivado</option>
+              </select>
             </div>
-
-            {/* Estado de la obra */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-3">
-                <RefreshCw className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Estado de la obra
-                </h3>
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {[
-                  {
-                    value: "Activo",
-                    label: "Activo",
-                    description: "La obra está disponible y visible",
-                    icon: <Eye className="h-4 w-4" />,
-                    color: "green"
-                  },
-                  {
-                    value: "En restauración",
-                    label: "En restauración",
-                    description: "Obra en proceso de restauración",
-                    icon: <RefreshCw className="h-4 w-4" />,
-                    color: "yellow"
-                  },
-                  {
-                    value: "Oculto",
-                    label: "Oculto",
-                    description: "No visible para el público",
-                    icon: <EyeOff className="h-4 w-4" />,
-                    color: "gray"
-                  },
-                  {
-                    value: "Archivado",
-                    label: "Archivado",
-                    description: "Obra archivada permanentemente",
-                    icon: <Archive className="h-4 w-4" />,
-                    color: "red"
-                  }
-                ].map((estado) => (
-                  <div
-                    key={estado.value}
-                    className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                      mural.estado === estado.value
-                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                    }`}
-                    onClick={() => handleEstadoChange(estado.value)}
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg ${
-                        estado.color === 'green' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
-                        estado.color === 'yellow' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                        estado.color === 'gray' ? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' :
-                        'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
-                      }`}>
-                        {estado.icon}
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900 dark:text-white">
-                          {estado.label}
-                        </h4>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          {estado.description}
-                        </p>
-                      </div>
-                      {mural.estado === estado.value && (
-                        <CheckCircle className="h-5 w-5 text-indigo-500 flex-shrink-0" />
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="flex items-center gap-4">
+              <input
+                id="publica"
+                type="checkbox"
+                checked={mural.publica}
+                onChange={(e) =>
+                  setMural((m) => ({ ...m, publica: e.target.checked }))
+                }
+                className="form-checkbox h-5 w-5 text-indigo-600 transition-all"
+              />
+              <label
+                htmlFor="publica"
+                className="text-base font-semibold text-gray-700 dark:text-gray-200 select-none cursor-pointer"
+              >
+                Pública
+              </label>
             </div>
-
-            {/* Opciones de visibilidad */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Globe className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Opciones de visibilidad
-                </h3>
-              </div>
-
-              {/* Pública */}
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3 flex-1">
-                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
-                      <Globe className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 dark:text-white">
-                        Obra pública
-                      </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        Los visitantes pueden ver esta obra en el museo virtual y en búsquedas públicas
-                      </p>
-                    </div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={mural.publica}
-                      onChange={(e) => handlePublicaChange(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-              </div>
-
-              {/* Destacada */}
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3 flex-1">
-                    <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded-lg">
-                      <Star className="h-4 w-4" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900 dark:text-white">
-                        Obra destacada
-                      </h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        Esta obra aparecerá en la sección de obras destacadas y tendrá mayor visibilidad
-                      </p>
-                    </div>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={mural.destacada}
-                      onChange={(e) => handleDestacadaChange(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-300 dark:peer-focus:ring-yellow-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-yellow-500"></div>
-                  </label>
-                </div>
-              </div>
+            <div className="flex items-center gap-4">
+              <input
+                id="destacada"
+                type="checkbox"
+                checked={mural.destacada}
+                onChange={(e) =>
+                  setMural((m) => ({ ...m, destacada: e.target.checked }))
+                }
+                className="form-checkbox h-5 w-5 text-indigo-600 transition-all"
+              />
+              <label
+                htmlFor="destacada"
+                className="text-base font-semibold text-gray-700 dark:text-gray-200 select-none cursor-pointer"
+              >
+                Destacada
+              </label>
             </div>
-
-            {/* Orden de aparición */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-3">
-                <ArrowUp className="h-5 w-5 text-gray-600 dark:text-gray-400" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Orden de aparición
-                </h3>
-              </div>
-
-              <div className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
-                    <ArrowUp className="h-4 w-4" />
-                  </div>
-                  <div className="flex-1">
-                    <label
-                      htmlFor="orden"
-                      className="block font-medium text-gray-900 dark:text-white mb-2"
-                    >
-                      Prioridad de visualización
-                    </label>
-                    <div className="flex items-center gap-4">
-                      <input
-                        id="orden"
-                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-800 dark:text-white"
-                        type="number"
-                        value={mural.orden}
-                        onChange={(e) => handleOrdenChange(e.target.value)}
-                        placeholder="0"
-                        min={0}
-                        max={999}
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                          onClick={handleOrdenDecrement}
-                        >
-                          <ArrowDown className="h-4 w-4" />
-                        </button>
-                        <button
-                          type="button"
-                          className="p-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                          onClick={handleOrdenIncrement}
-                        >
-                          <ArrowUp className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2 mt-2">
-                      <HelpCircle className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Las obras con números menores aparecen primero. Usa 0 para máxima prioridad, 
-                        números mayores para menor prioridad.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Resumen de configuración */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-              <h4 className="font-medium text-gray-900 dark:text-white mb-3">
-                Resumen de configuración:
-              </h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    mural.estado === 'Activo' ? 'bg-green-500' :
-                    mural.estado === 'En restauración' ? 'bg-yellow-500' :
-                    mural.estado === 'Oculto' ? 'bg-gray-500' :
-                    mural.estado === 'Archivado' ? 'bg-red-500' : 'bg-gray-300'
-                  }`}></div>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {mural.estado || 'Sin estado definido'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${mural.publica ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {mural.publica ? 'Pública' : 'Privada'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${mural.destacada ? 'bg-yellow-500' : 'bg-gray-300'}`}></div>
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {mural.destacada ? 'Destacada' : 'Normal'}
-                  </span>
-                </div>
-              </div>
-              <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                Orden de prioridad: {mural.orden || 0}
-              </div>
+            <div>
+              <label
+                htmlFor="orden"
+                className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200"
+              >
+                Orden
+              </label>
+              <input
+                id="orden"
+                className="input-stepper"
+                type="number"
+                value={mural.orden}
+                onChange={(e) =>
+                  setMural((m) => ({ ...m, orden: e.target.value }))
+                }
+                placeholder="Ejemplo: 1, 2, 3..."
+                min={0}
+              />
+              <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 block">
+                Entre menor sea el número, más arriba aparecerá tu obra.
+              </span>
             </div>
           </div>
         )}
@@ -1809,14 +1472,22 @@ export default function CrearMuralStepper({
               <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <CheckCircle className="text-green-500 h-6 w-6" />
-                  <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">¡Éxito!</h3>
+                  <h3 className="text-lg font-semibold text-green-800 dark:text-green-200">
+                    ¡Éxito!
+                  </h3>
                 </div>
-                <p className="text-green-700 dark:text-green-300 mb-4">{successMessage}</p>
-                <p className="text-sm text-green-600 dark:text-green-400 mb-4">Redirigiendo a tus obras...</p>
+                <p className="text-green-700 dark:text-green-300 mb-4">
+                  {successMessage}
+                </p>
+                <p className="text-sm text-green-600 dark:text-green-400 mb-4">
+                  Redirigiendo a tus obras...
+                </p>
                 <div className="bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-3">
                   <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
-                    <div className="w-2 h-2 bg-green-500 rounded-full" />
-                    <span className="text-sm">Modelo 3D generado y listo para AR</span>
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm">
+                      Modelo 3D generado y listo para AR
+                    </span>
                   </div>
                 </div>
               </div>
@@ -1824,112 +1495,132 @@ export default function CrearMuralStepper({
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <AlertCircle className="text-red-500 h-6 w-6" />
-                  <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">Error al crear la obra</h3>
+                  <h3 className="text-lg font-semibold text-red-800 dark:text-red-200">
+                    Error al crear la obra
+                  </h3>
                 </div>
-                <p className="text-red-700 dark:text-red-300 mb-4">{apiError.message}</p>
-                {apiError.details && <p className="text-sm text-red-600 dark:text-red-400 mb-4">Detalles: {apiError.details}</p>}
-                <div className="flex gap-3 flex-wrap">
-                  <Button onClick={() => { setApiError(null); handleCreateMural(); }} className="bg-red-600 hover:bg-red-700 text-white">Reintentar</Button>
-                  <Button onClick={() => setApiError(null)} variant="outline">Cancelar</Button>
+                <p className="text-red-700 dark:text-red-300 mb-4">
+                  {apiError.message}
+                </p>
+                {apiError.details && (
+                  <p className="text-sm text-red-600 dark:text-red-400 mb-4">
+                    Detalles: {apiError.details}
+                  </p>
+                )}
+                <div className="flex gap-3">
+                  <Button
+                    onClick={() => {
+                      setApiError(null);
+                      handleCreateMural();
+                    }}
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                  >
+                    Reintentar
+                  </Button>
+                  <Button onClick={() => setApiError(null)} variant="outline">
+                    Cancelar
+                  </Button>
                 </div>
               </div>
             ) : (
-              <>
-                <div className="grid grid-cols-1 xl:grid-cols-5 gap-8 items-start">
-                  {/* Imagen */}
-                  <div className="xl:col-span-2 flex flex-col gap-4">
-                    <div className="rounded-2xl border border-indigo-200 dark:border-indigo-800 bg-white/80 dark:bg-neutral-800/60 p-4 shadow-md">
-                      <h3 className="text-sm font-semibold text-indigo-600 dark:text-indigo-400 mb-2 tracking-wide uppercase">Vista previa</h3>
-                      <div className="aspect-square w-full flex items-center justify-center overflow-hidden rounded-xl bg-gray-50 dark:bg-neutral-900 border border-gray-200 dark:border-neutral-700">
-                        {mural.url_imagen ? (
-                          <img src={mural.url_imagen} alt="preview" className="object-contain w-full h-full" />
-                        ) : (
-                          <span className="text-gray-400 text-sm">Sin imagen</span>
+              <div className="flex flex-col gap-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  <div className="flex-shrink-0 flex flex-col items-center">
+                    {mural.url_imagen ? (
+                      <img
+                        src={mural.url_imagen}
+                        alt="preview"
+                        className="w-[320px] h-[320px] object-contain rounded-2xl border-4 border-indigo-400 shadow-lg bg-white"
+                      />
+                    ) : (
+                      <div className="w-[320px] h-[320px] flex items-center justify-center rounded-2xl border-4 border-dashed border-gray-300 bg-gray-50 dark:bg-neutral-800 text-gray-400 text-lg">
+                        Sin imagen
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 max-w-md w-full flex flex-col justify-center items-center h-full">
+                    <div className="w-full max-w-xs mx-auto flex flex-col justify-center">
+                      <h3 className="text-2xl font-bold mb-4 text-foreground text-center">
+                        Datos de la obra
+                      </h3>
+                      <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                          <span className="text-sm font-medium">
+                            Se generará automáticamente un modelo 3D para AR
+                          </span>
+                        </div>
+                      </div>
+                      <div className="space-y-3 text-base w-full">
+                        <div className="flex gap-2 justify-start">
+                          <span className="font-semibold w-28 text-right">
+                            Título:
+                          </span>{" "}
+                          <span className="truncate text-left">
+                            {mural.titulo}
+                          </span>
+                        </div>
+                        <div className="flex gap-2 justify-start">
+                          <span className="font-semibold w-28 text-right">
+                            Técnica:
+                          </span>{" "}
+                          <span className="text-left">{mural.tecnica}</span>
+                        </div>
+                        <div className="flex gap-2 justify-start">
+                          <span className="font-semibold w-28 text-right">
+                            Año:
+                          </span>{" "}
+                          <span className="text-left">{mural.anio}</span>
+                        </div>
+                        <div className="flex gap-2 justify-start">
+                          <span className="font-semibold w-28 text-right">
+                            Ubicación:
+                          </span>{" "}
+                          <span className="text-left">
+                            {mural.ubicacion || (
+                              <span className="italic text-gray-400">
+                                No especificada
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                        {mural.descripcion && (
+                          <div className="flex gap-2 items-start justify-start">
+                            <span className="font-semibold w-28 text-right">
+                              Descripción:
+                            </span>{" "}
+                            <span className="whitespace-pre-line text-left">
+                              {mural.descripcion}
+                            </span>
+                          </div>
                         )}
                       </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <button type="button" onClick={() => setStep(1)} className="text-xs px-2 py-1 rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-900 transition">Cambiar imagen</button>
-                      </div>
-                    </div>
-                    <div className="rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50/70 dark:bg-blue-900/20 p-4 text-xs leading-relaxed text-blue-700 dark:text-blue-300">
-                      Se generará automáticamente un modelo 3D optimizado. Puedes editarlo luego.
-                    </div>
-                  </div>
-                  {/* Resumen */}
-                  <div className="xl:col-span-3 flex flex-col gap-6">
-                    {/* Básico */}
-                    <div className="rounded-2xl border border-gray-200 dark:border-neutral-700 bg-white/90 dark:bg-neutral-900/70 p-5 shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2"><User className="w-4 h-4" />Datos básicos</h4>
-                        <button type="button" onClick={() => setStep(0)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Editar</button>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                        <SummaryRow label="Título" value={mural.titulo} full />
-                        <SummaryRow label="Técnica" value={mural.tecnica} full />
-                        <SummaryRow label="Año" value={mural.anio || '-'} full />
-                        <SummaryRow label="Dimensiones" value={mural.dimensiones || '—'} full />
-                        <SummaryRow label="Tags" value={mural.tags?.length ? mural.tags.join(', ') : '—'} full />
-                        {mural.descripcion && <SummaryRow label="Descripción" value={mural.descripcion} full multiline />}
-                      </div>
-                    </div>
-                    {/* Ubicación / Sala */}
-                    <div className="rounded-2xl border border-gray-200 dark:border-neutral-700 bg-white/90 dark:bg-neutral-900/70 p-5 shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Navigation className="w-4 h-4" />Ubicación</h4>
-                        <button type="button" onClick={() => setStep(2)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Editar</button>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                        <SummaryRow label="Dirección" value={mural.ubicacion || '—'} full />
-                        <SummaryRow label="Latitud" value={mural.latitud || '—'} full />
-                        <SummaryRow label="Longitud" value={mural.longitud || '—'} full />
-                        <SummaryRow label="Sala" value={mural.salaId ? (salas.find(s => s.id === mural.salaId)?.nombre || mural.salaId) : '—'} full />
-                      </div>
-                    </div>
-                    {/* Estado / Visibilidad */}
-                    <div className="rounded-2xl border border-gray-200 dark:border-neutral-700 bg-white/90 dark:bg-neutral-900/70 p-5 shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Eye className="w-4 h-4" />Estado y visibilidad</h4>
-                        <button type="button" onClick={() => setStep(3)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Editar</button>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                        <SummaryRow label="Estado" value={mural.estado || '—'} full />
-                        <SummaryRow label="Pública" value={mural.publica ? 'Sí' : 'No'} />
-                        <SummaryRow label="Destacada" value={mural.destacada ? 'Sí' : 'No'} />
-                        <SummaryRow label="Orden" value={String(mural.orden || 0)} />
-                      </div>
-                    </div>
-                    {/* Autoría */}
-                    <div className="rounded-2xl border border-gray-200 dark:border-neutral-700 bg-white/90 dark:bg-neutral-900/70 p-5 shadow-sm">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2"><Users className="w-4 h-4" />Autoría</h4>
-                        <button type="button" onClick={() => setStep(4)} className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">Editar</button>
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                        <SummaryRow label="Autor libre" value={mural.autor || '—'} full />
-                        <SummaryRow label="Artista ID" value={mural.artistId || '—'} />
-                        <SummaryRow label="Colaboradores" value={mural.colaboradores?.length ? mural.colaboradores.length + ' seleccionado(s)' : '—'} full />
-                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-4 justify-end mt-4">
-                  <Button variant="secondary" onClick={() => setStep(4)}>Volver</Button>
-                  <Button className="min-w-[180px]" onClick={handleCreateMural} disabled={isCreating || generatingModel}>
-                    {isCreating ? (
-                      generatingModel ? (
-                        <div className="flex items-center gap-2">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                          {modelGenerationStep || 'Generando modelo 3D...'}
-                        </div>
-                      ) : editMode ? (
-                        'Actualizando obra...'
-                      ) : (
-                        'Creando obra...'
-                      )
-                    ) : editMode ? 'Actualizar obra' : 'Crear obra'}
-                  </Button>
-                </div>
-              </>
+                <Button
+                  className="mt-4"
+                  onClick={handleCreateMural}
+                  disabled={isCreating || generatingModel}
+                >
+                  {isCreating ? (
+                    generatingModel ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        {modelGenerationStep || "Generando modelo 3D..."}
+                      </div>
+                    ) : editMode ? (
+                      "Actualizando obra..."
+                    ) : (
+                      "Creando obra..."
+                    )
+                  ) : editMode ? (
+                    "Actualizar obra"
+                  ) : (
+                    "Crear obra"
+                  )}
+                </Button>
+              </div>
             )}
           </div>
         )}
@@ -2026,26 +1717,30 @@ function isDarkMode() {
 
 // Componente auxiliar para geolocalización automática y reverse geocoding
 function GeolocateIfNeeded({ mural, setMural }) {
-  // Obtener coords iniciales si faltan
   useEffect(() => {
-    if (!mural.latitud && !mural.longitud && typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const lat = pos.coords.latitude;
-          const lon = pos.coords.longitude;
-          let ubicacion = mural.ubicacion;
-          if (!ubicacion) {
-            ubicacion = await fetchAddressFromLatLon(lat, lon);
-          }
-          setMural((m) => ({ ...m, latitud: lat, longitud: lon, ubicacion }));
-        },
-        () => {},
-        { enableHighAccuracy: true, timeout: 5000 }
-      );
+    // Solo si no hay lat/lon ya seleccionadas
+    if (!mural.latitud && !mural.longitud) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (pos) => {
+            const lat = pos.coords.latitude;
+            const lon = pos.coords.longitude;
+            let ubicacion = mural.ubicacion;
+            if (!ubicacion) {
+              ubicacion = await fetchAddressFromLatLon(lat, lon);
+            }
+            setMural((m) => ({ ...m, latitud: lat, longitud: lon, ubicacion }));
+          },
+          () => {
+            // Si falla, no hacer nada (se usará el default CCU BUAP)
+          },
+          { enableHighAccuracy: true, timeout: 5000 }
+        );
+      }
     }
   }, [mural.latitud, mural.longitud, mural.ubicacion, setMural]);
 
-  // Reverse geocoding si se escogieron coords manualmente sin dirección
+  // Reverse geocoding cuando el usuario selecciona en el mapa
   useEffect(() => {
     if (mural.latitud && mural.longitud && !mural.ubicacion) {
       let ignore = false;
@@ -2054,7 +1749,9 @@ function GeolocateIfNeeded({ mural, setMural }) {
           setMural((m) => ({ ...m, ubicacion: address }));
         }
       });
-      return () => { ignore = true; };
+      return () => {
+        ignore = true;
+      };
     }
   }, [mural.latitud, mural.longitud, mural.ubicacion, setMural]);
   return null;
@@ -2087,27 +1784,13 @@ function useUsuarios() {
 // Componente para seleccionar ubicación con pin draggable y confirmación
 function LocationPicker({ mural, setMural }) {
   const salas = useSalas();
-  
-  // Utilidad para generar SVG string de iconos Lucide mejorados
-  function getLucideSvgUrl(iconName = "map-pin", color = "#DC2626", size = 32) {
+  // Utilidad para generar SVG string de un icono Lucide
+  function getLucideSvgUrl(iconName = "brush", color = "#4F46E5") {
     let svg = "";
-    if (iconName === "map-pin") {
-      svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' fill='${color}' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' class='lucide lucide-map-pin' viewBox='0 0 24 24'>
-        <circle cx='12' cy='12' r='10' fill='${color}' stroke='white' stroke-width='2'/>
-        <path d='M9 11a3 3 0 1 0 6 0a3 3 0 0 0-6 0' fill='white'/>
-        <path d='m21 21-6-6' stroke='white' stroke-width='2'/>
-      </svg>`;
-    } else if (iconName === "navigation") {
-      svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' fill='${color}' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='lucide lucide-navigation' viewBox='0 0 24 24'>
-        <circle cx='12' cy='12' r='10' fill='${color}' stroke='white' stroke-width='2'/>
-        <polygon points='3,11 22,2 13,21 11,13 3,11' fill='white'/>
-      </svg>`;
-    } else if (iconName === "map-marker") {
-      svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' fill='${color}' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'>
-        <circle cx='12' cy='12' r='8' fill='${color}' stroke='white' stroke-width='2'/>
-        <path d='m12 8-3 3 3 3 3-3-3-3' fill='white'/>
-        <circle cx='12' cy='12' r='2' fill='${color}'/>
-      </svg>`;
+    if (iconName === "brush") {
+      svg = `<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' fill='none' stroke='${color}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='lucide lucide-brush' viewBox='0 0 24 24'><path d='M9 7 17 15'/><path d='M12 20h9'/><path d='M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19.5a2.121 2.121 0 1 1-3-3Z'/></svg>`;
+    } else if (iconName === "image") {
+      svg = `<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36' fill='none' stroke='${color}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' class='lucide lucide-image' viewBox='0 0 24 24'><rect width='18' height='18' x='3' y='3' rx='2'/><circle cx='9' cy='9' r='2'/><path d='m21 15-4.586-4.586a2 2 0 0 0-2.828 0L3 21'/></svg>`;
     }
     return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
   }
@@ -2122,15 +1805,14 @@ function LocationPicker({ mural, setMural }) {
   ]);
   const [showConfirm, setShowConfirm] = useLocalState(false);
   const [loading, setLoading] = useLocalState(false);
-  const [mapKey, setMapKey] = useLocalState(0); // Para forzar re-render del mapa
 
-  // Icono personalizado para el marcador
-  const locationIcon = new Icon({
-    iconUrl: getLucideSvgUrl("navigation", "#DC2626", 36),
+  // brushIcon debe estar definido aquí para que esté en scope
+  const brushIcon = new Icon({
+    iconUrl: getLucideSvgUrl("brush", "#4F46E5"),
     iconSize: [36, 36],
     iconAnchor: [18, 36],
     popupAnchor: [0, -36],
-    className: "leaflet-location-icon drop-shadow-lg",
+    className: "leaflet-brush-icon",
   });
 
   function DraggableMarker() {
@@ -2147,23 +1829,11 @@ function LocationPicker({ mural, setMural }) {
     return (
       <Marker
         position={position}
-        icon={locationIcon}
+        icon={brushIcon}
         draggable={true}
         eventHandlers={eventHandlers}
       />
     );
-  }
-
-  // Componente para manejar clics en el mapa
-  function MapClickHandler() {
-    useMapEvents({
-      click(e) {
-        const { lat, lng } = e.latlng;
-        setTempLatLng([lat, lng]);
-        setShowConfirm(true);
-      },
-    });
-    return null;
   }
 
   // Centrar el mapa en la posición temporal
@@ -2179,119 +1849,33 @@ function LocationPicker({ mural, setMural }) {
     setLoading(false);
   };
 
-  // Función para centrar el mapa en una ubicación específica
-  const centerMapOn = (coords, zoomLevel = 16) => {
-    setTempLatLng(coords);
-    setMapKey(prev => prev + 1); // Forzar re-render
-  };
-
-  // Obtener ubicación actual del usuario
-  const getCurrentLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const coords = [position.coords.latitude, position.coords.longitude];
-          centerMapOn(coords, 17);
-        },
-        (error) => {
-          console.error("Error obteniendo ubicación:", error);
-          alert("No se pudo obtener tu ubicación actual");
-        },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-      );
-    } else {
-      alert("Tu navegador no soporta geolocalización");
-    }
-  };
-
   return (
     <div className="flex flex-col gap-6 mb-8">
-      <div className="flex items-center justify-between">
-        <label className="block text-base font-semibold text-gray-700 dark:text-gray-200">
-          Selecciona la ubicación del mural en el mapa
-        </label>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={getCurrentLocation}
-            className="flex items-center gap-2 px-3 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200"
-            title="Usar mi ubicación actual"
-          >
-            <Navigation className="w-4 h-4" />
-            Mi ubicación
-          </button>
-          <button
-            type="button"
-            onClick={() => centerMapOn([19.0432, -98.1987], 15)}
-            className="flex items-center gap-2 px-3 py-2 text-sm bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors duration-200"
-            title="Centrar en BUAP"
-          >
-            <Navigation className="w-4 h-4" />
-            BUAP
-          </button>
-        </div>
-      </div>
-      
-      <div className="relative">
-        <div className="w-full h-80 rounded-xl overflow-hidden border-2 border-gray-300 dark:border-neutral-700 shadow-lg">
-          <MapContainer
-            key={mapKey}
-            center={mapCenter}
-            zoom={15}
-            style={{ width: "100%", height: "100%" }}
-            scrollWheelZoom={true}
-            doubleClickZoom={true}
-            touchZoom={true}
-            dragging={true}
-            zoomControl={true}
-            attributionControl={true}
-            minZoom={3}
-            maxZoom={19}
-          >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <DraggableMarker />
-            <MapClickHandler />
-          </MapContainer>
-        </div>
-        
-        {/* Indicadores de ayuda */}
-        <div className="absolute top-3 left-3 bg-white/90 dark:bg-neutral-800/90 backdrop-blur-sm rounded-lg p-3 shadow-md border border-gray-200 dark:border-neutral-700">
-          <p className="text-xs text-gray-600 dark:text-gray-300 flex items-center gap-2">
-            <Info className="w-3 h-3" />
-            Arrastra el marcador o haz clic en el mapa
-          </p>
-        </div>
-        
-        {/* Coordenadas actuales */}
-        <div className="absolute bottom-3 right-3 bg-white/90 dark:bg-neutral-800/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md border border-gray-200 dark:border-neutral-700">
-          <p className="text-xs text-gray-600 dark:text-gray-300 font-mono">
-            {tempLatLng[0].toFixed(6)}, {tempLatLng[1].toFixed(6)}
-          </p>
-        </div>
+      <label className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200">
+        Selecciona la ubicación del mural en el mapa
+      </label>
+      <div className="w-full h-72 rounded-xl overflow-hidden border border-gray-300 dark:border-neutral-700 mb-2">
+        <MapContainer
+          center={mapCenter}
+          zoom={15}
+          style={{ width: "100%", height: "100%" }}
+          scrollWheelZoom={true}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          <DraggableMarker />
+        </MapContainer>
       </div>
       {showConfirm && (
-        <div className="flex items-center justify-center">
-          <button
-            className="flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-[1.02]"
-            onClick={handleConfirm}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Confirmando ubicación...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="w-4 h-4" />
-                Confirmar ubicación
-              </>
-            )}
-          </button>
-        </div>
+        <button
+          className="px-4 py-2 rounded bg-indigo-600 text-white font-semibold shadow hover:bg-indigo-700 transition w-fit mx-auto"
+          onClick={handleConfirm}
+          disabled={loading}
+        >
+          {loading ? "Confirmando..." : "Confirmar ubicación"}
+        </button>
       )}
       {/* Inputs debajo del mapa */}
       <div>
@@ -2446,95 +2030,99 @@ function AutoresColaboradoresStep({ mural, setMural, artistList }) {
     }));
   };
 
-  // Modo de asignación (mutuamente excluyente) para claridad de UI
-  const [mode, setMode] = React.useState(() => (mural.artistId ? 'artist' : 'autor'));
-  React.useEffect(() => {
-    if (mural.artistId && mode !== 'artist') setMode('artist');
-    else if (!mural.artistId && mural.autor && mode !== 'autor') setMode('autor');
-  }, [mural.artistId, mural.autor, mode]);
-
-  const switchMode = (next) => {
-    setMode(next);
-    if (next === 'artist') {
-      // Limpiar autor libre cuando se elige artista
-      setMural(m => ({ ...m, autor: '' }));
-    } else {
-      // Limpiar artista cuando se elige autor libre
-      setMural(m => ({ ...m, artistId: '' }));
-    }
-  };
-
   return (
     <div className="flex flex-col gap-6 mb-8">
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h3 className="text-base font-semibold text-gray-800 dark:text-gray-100">Autor / Artista</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-md">Elige si quieres escribir un autor libre o asociar un artista registrado. Son excluyentes.</p>
-          </div>
-          <div className="flex rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 w-fit">
-            <button type="button" onClick={() => switchMode('autor')}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${mode==='autor' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>Autor libre</button>
-            <button type="button" onClick={() => switchMode('artist')}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors border-l border-gray-300 dark:border-gray-600 ${mode==='artist' ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'}`}>Artista registrado</button>
-          </div>
-        </div>
-        {mode === 'autor' && (
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Nombre del autor</label>
-            <input
-              type="text"
-              placeholder="Ej: Diego Rivera"
-              value={mural.autor || ''}
-              onChange={(e) => setMural(m => ({ ...m, autor: e.target.value }))}
-              className="input-stepper"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400">Escribe cualquier nombre. Si necesitas enlazar a un artista del sistema cambia al modo "Artista registrado".</p>
-          </div>
+      <div>
+        <label className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200">
+          Autor principal (texto libre)
+        </label>
+        <input
+          type="text"
+          placeholder="Escribe el nombre del autor"
+          value={mural.autor || ""}
+          onChange={(e) => {
+            setMural((m) => ({
+              ...m,
+              autor: e.target.value,
+              artistId: "", // Limpiar artista si se escribe autor
+            }));
+          }}
+          className="input-stepper"
+          disabled={!!mural.artistId}
+        />
+        {mural.artistId && (
+          <p className="text-sm text-orange-600 mt-1">
+            ⚠️ Desactiva el artista para poder escribir el autor
+          </p>
         )}
-        {mode === 'artist' && (
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Seleccionar artista</label>
-            <ReactSelect
-              inputId="artistId"
-              classNamePrefix="react-select"
-              options={artistOptions}
-              value={artistaOption}
-              onChange={handleArtistChange}
-              placeholder="Buscar artista..."
-              isClearable
-              menuPortalTarget={typeof window !== 'undefined' ? document.body : null}
-              menuPosition="fixed"
-              styles={
-                isDarkMode()
-                  ? {
-                      menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-                      control: (base, state) => ({
-                        ...base,
-                        backgroundColor: '#18181b',
-                        borderColor: state.isFocused ? '#6366f1' : '#27272a',
-                        color: '#fff',
-                        boxShadow: state.isFocused ? '0 0 0 1.5px #6366f1' : undefined,
-                      }),
-                      menu: (base) => ({ ...base, backgroundColor: '#222', color: '#fff' }),
-                      option: (base, state) => ({
-                        ...base,
-                        backgroundColor: state.isSelected
-                          ? '#6366f1'
-                          : state.isFocused
-                            ? '#3730a3'
-                            : '#222',
-                        color: '#fff',
-                      }),
-                      placeholder: (base) => ({ ...base, color: '#a1a1aa' }),
-                      singleValue: (base) => ({ ...base, color: '#fff' }),
-                      input: (base) => ({ ...base, color: '#fff' }),
-                    }
-                  : { menuPortal: (base) => ({ ...base, zIndex: 9999 }) }
-              }
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400">Lista de artistas vinculados a usuarios. Si no aparece, usa el modo "Autor libre".</p>
-          </div>
+      </div>
+
+      <div>
+        <label className="block mb-2 text-base font-semibold text-gray-700 dark:text-gray-200">
+          Artista (opcional - excluye autor)
+        </label>
+        <ReactSelect
+          inputId="artistId"
+          classNamePrefix="react-select"
+          options={artistOptions}
+          value={artistaOption}
+          onChange={handleArtistChange}
+          placeholder="Selecciona un artista (excluye autor)"
+          isClearable
+          isDisabled={!!mural.autor}
+          menuPortalTarget={
+            typeof window !== "undefined" ? document.body : null
+          }
+          menuPosition="fixed"
+          styles={
+            isDarkMode()
+              ? {
+                  menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                  control: (base, state) => ({
+                    ...base,
+                    backgroundColor: "#18181b",
+                    borderColor: state.isFocused ? "#6366f1" : "#27272a",
+                    color: "#fff",
+                    boxShadow: state.isFocused
+                      ? "0 0 0 1.5px #6366f1"
+                      : undefined,
+                  }),
+                  menu: (base) => ({
+                    ...base,
+                    backgroundColor: "#222",
+                    color: "#fff",
+                  }),
+                  option: (base, state) => ({
+                    ...base,
+                    backgroundColor: state.isSelected
+                      ? "#6366f1"
+                      : state.isFocused
+                        ? "#3730a3"
+                        : "#222",
+                    color: state.isSelected ? "#fff" : "#fff",
+                  }),
+                  multiValue: (base) => ({
+                    ...base,
+                    backgroundColor: "#6366f1",
+                    color: "#fff",
+                  }),
+                  multiValueLabel: (base) => ({ ...base, color: "#fff" }),
+                  multiValueRemove: (base) => ({
+                    ...base,
+                    color: "#fff",
+                    ":hover": { backgroundColor: "#3730a3", color: "#fff" },
+                  }),
+                  placeholder: (base) => ({ ...base, color: "#a1a1aa" }),
+                  singleValue: (base) => ({ ...base, color: "#fff" }),
+                  input: (base) => ({ ...base, color: "#fff" }),
+                }
+              : { menuPortal: (base) => ({ ...base, zIndex: 9999 }) }
+          }
+        />
+        {mural.autor && (
+          <p className="text-sm text-orange-600 mt-1">
+            ⚠️ Desactiva el autor para poder seleccionar un artista
+          </p>
         )}
       </div>
 
@@ -2608,16 +2196,6 @@ function AutoresColaboradoresStep({ mural, setMural, artistList }) {
           }
         />
       </div>
-    </div>
-  );
-}
-
-// Helper component for summary rows (after AutoresColaboradoresStep definition)
-function SummaryRow({ label, value, full=false, multiline=false }) {
-  return (
-    <div className={`flex ${full ? 'sm:col-span-2' : 'col-span-1'} ${multiline ? 'items-start' : 'items-center'} gap-2`}>
-      <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400 w-28 shrink-0">{label}</span>
-      <span className={`text-sm text-gray-800 dark:text-gray-100 ${multiline ? 'whitespace-pre-line leading-relaxed' : full ? 'break-words' : 'truncate'}`}>{value || '—'}</span>
     </div>
   );
 }
