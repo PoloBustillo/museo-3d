@@ -11,3 +11,10 @@ opencv-python
 numpy
 scikit-learn
 matplotlib
+python-multipart
+
+# Modelos especializados en arte
+# CLIP para análisis de estilos artísticos
+# BLIP para descripción detallada de arte
+# safetensors para carga segura de modelos
+safetensors
