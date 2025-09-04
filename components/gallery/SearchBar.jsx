@@ -16,17 +16,30 @@ export default function SearchBar (){
         const newKeyword = e.target.search.value.trim();
         console.log('Current world: ',newKeyword);
         console.log('OG world:',stateFilter.filters.keyWord);
-        if (newKeyword != stateFilter.filters.keyWord && newKeyword!= "") {
-            console.log('dispatch Set KeyWord');
-            dispatchFilter({ type: "SET_KEYWORD", keyWord: newKeyword });
+        if (stateFilter.isFilter && !stateFilter.aiActive){
+            if (newKeyword != stateFilter.filters.keyWord && newKeyword!= "") {
+                console.log('dispatch Set KeyWord');
+                dispatchFilter({ type: "SET_KEYWORD", keyWord: newKeyword });
+            }
+        }else{
+            if (newKeyword != stateFilter.filters.keyWord && newKeyword!= "") {
+                console.log('dispatch Set KeyWord');
+                dispatchFilter({ type: "SET_IA_KEYWORD", keyWord: newKeyword });
+            }
         }
+
     };
 
-    const handleGetBackAtArrow = (e) => {
-        e.preventDefault();
+    const handleGetBackAtArrow = () => {
         setOpenDropSearch(false);
         console.log('dispatch Get Back');
         dispatchFilter({ type: "GET_BACK"});
+    };
+
+    const handleDisplayIA = () =>{
+        setOpenDropSearch(false);
+        console.log('dispatch IA');
+        dispatchFilter({ type: "SET_IA"});
     };
 
 
@@ -34,12 +47,12 @@ export default function SearchBar (){
         <div className="relative w-full mx-auto">
             <div className= {` flex items-center justify-around bg-zinc-100 dark:bg-white h-16 pl-2  w-full ${openDropSearch ? 'rounded-tr-3xl rounded-tl-4xl':'rounded-4xl '}`}>
                 {
-                    stateFilter.isFilter &&
+                    (stateFilter.isFilter || stateFilter.iaActive) && (
                     <span onClick={handleGetBackAtArrow} className="rounded-4xl p-2 border-1 border-stone-950"> 
                         <ArrowLeftIcon
                             className={'size-5 text-stone-950'}
                         />
-                    </span>
+                    </span>)
                 }
 
                 <div 
@@ -75,7 +88,7 @@ export default function SearchBar (){
                     }
                     {   
                         !openDropSearch &&
-                        <span className="border-stone-950 border-b-2 border-r-2 rounded-4xl p-1">                 
+                        <span onClick={handleDisplayIA} className="border-stone-950 border-b-2 border-r-2 rounded-4xl p-1">                 
                             <StarsIcon className={'size-7 text-stone-950'}/>
                         </span>
 

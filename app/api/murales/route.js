@@ -17,6 +17,7 @@ export async function GET(req) {
     const userId = searchParams.get("userId");
     const page = parseInt(searchParams.get("page"),10);
     const keyword = searchParams.get("keyword");
+    const polaridad = searchParams.get("polaridad");
 
     // Construir filtros dinámicamente
     const where = {};
@@ -25,6 +26,7 @@ export async function GET(req) {
     if (anio) where.anio = Number(anio);
     if (deleted === "1") where.deletedAt = { not: null };
     if (userId) where.userId = userId;
+    if (polaridad) where.polaridad = { contains: polaridad };
 
     // Si se especifica salaId, buscar murales que pertenezcan a esa sala
     if (salaId) {

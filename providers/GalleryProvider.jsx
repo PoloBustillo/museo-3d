@@ -146,6 +146,7 @@ export const GalleryProvider = ({ children }) => {
 //useReduce para el renderizado y busqueda mediante filtros
 const filterInitialState = {
   isFilter: false,
+  aiActive: false,
   status: "NO-ACTION",
   setOfFilters: [], 
   filters: {
@@ -163,6 +164,7 @@ const pageTotalRef = useRef(0);
 
 const filterPaginatedReducer = (state, action) => {
   let filterStatus;
+  let iaStatus;
   switch (action.type) {
     case "SET_KEYWORD":
       filterStatus = state.isFilter === false ? true : state.isFilter;
@@ -173,18 +175,40 @@ const filterPaginatedReducer = (state, action) => {
         filters: {
           ...state.filters, 
           keyWord: action.keyWord
-        }
-        
+        } 
       };
+    case "SET_IA":
+      iaStatus = state.aiActive === false ? true : state.aiActive;
+      return{
+        ...state,
+        aiActive: iaStatus,
+        status:"SET_IA_ACTION",
+        filters: {
+          ...state.filters, 
+        } 
+      };
+    case "SET_IA_KEYWORD":
+        iaStatus = state.aiActive === false ? true : state.aiActive;
+      return{
+        ...state,
+        aiActive: iaStatus,
+        status:"SEARCH_IA_ACTION",
+        filters: {
+          ...state.filters, 
+          keyWord: action.keyWord,
+        } 
+      };
+
     case "GET_BACK":
+      iaStatus = state.aiActive === true ? false : state.aiActive;
       filterStatus = state.isFilter === true ? false : state.isFilter;
       return {
         ...state,
+        aiActive: iaStatus,
         isFilter: filterStatus,
         status:"BACK_ACTION",
         filters: {
           ...state.filters, 
-          keyWord: "",
         }
         
       };
@@ -204,8 +228,10 @@ const filterPaginatedReducer = (state, action) => {
       
     case "RESET":
       filterStatus = state.isFilter === true ? false : state.isFilter;
+      iaStatus = state.aiActive === true ? false : state.aiActive;
       return {
         ...state,
+        aiActive: iaStatus,
         isFilter: filterStatus,
         status:"NO_ACTION",
         filters: {
@@ -219,12 +245,34 @@ const filterPaginatedReducer = (state, action) => {
       throw new Error(`Unhandled action type: ${action.type}`);
   }
 };
+//Funcion asincrona categorizar busqueda
+async function sentimentalAnalysis(description) {
+  try {
+    const response = await fetch("https://kenaisan-sentiana.hf.space/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: description })
+    });
+
+    if (!response.ok) throw new Error("Error en la API de Hugging Face");
+
+    const responseData = await response.json();
+    const probNegativa = parseFloat(responseData.probabilidades[0][0].toFixed(7));
+    const probPositiva = parseFloat(responseData.probabilidades[0][1].toFixed(7));
+
+    return [responseData.polaridad, probNegativa, probPositiva];
+
+  } catch (err) {
+    console.error("⚠️ Error analizando sentimiento:", err);
+    // Si falla la IA, asignamos valores por defecto
+    return ["POSITIVO", 0.6666, 0.77777];
+  }
+}
 
 const [stateFilter, dispatchFilter] = useReducer (filterPaginatedReducer,filterInitialState);
 const [muralesForScroll, setMuralesForScroll] = useState([]);
 
 //Cargar lo murales mediante la paginacion de los mismos
-  
 const fetchPageMurales = async(page=1)=>{
   if (pageRef.current === page ) return;
   setLoadingPageMurales(true);
@@ -232,16 +280,23 @@ const fetchPageMurales = async(page=1)=>{
   try{
     pageRef.current = page;
     let request = `/api/murales/?page=${page}`;
-    if(stateFilter.isFilter){
+
+    if(stateFilter.isFilter && !stateFilter.aiActive){
       if(stateFilter.filters.keyWord){
         request += `&keyword=${stateFilter.filters.keyWord}`;
       }
-
       if(stateFilter.filters.room){
         request += `&salaId=${stateFilter.filters.room}`;
       }
-
     }
+
+    if(!stateFilter.isFilter && stateFilter.aiActive){
+      if(stateFilter.filters.keyWord){
+        const [polaridad, probNegativa, probPositiva] = await sentimentalAnalysis(stateFilter.filters.keyWord);
+        request += `&polaridad=${polaridad}`;
+      }
+    }
+    console.log(request);
     const response = await fetch(request);
     const data = await response.json();
     pageTotalRef.current = data.filtros.paginationInfo.totalPages;

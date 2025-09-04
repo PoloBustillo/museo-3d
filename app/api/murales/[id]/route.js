@@ -187,7 +187,7 @@ export async function PUT(req, context) {
       } catch (err) {
         console.error("⚠️ Error analizando sentimiento:", err);
         // Si falla la IA, asignamos valores por defecto
-        return ["NEUTRO", 0.0, 0.0];
+         return ["POSITIVO", 0.6666, 0.77777];
       }
     }
 
