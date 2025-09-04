@@ -179,9 +179,11 @@ const filterPaginatedReducer = (state, action) => {
       };
     case "SET_IA":
       iaStatus = state.aiActive === false ? true : state.aiActive;
+      filterStatus = state.isFilter === true ? false : state.isFilter;
       return{
         ...state,
         aiActive: iaStatus,
+        isFilter: filterStatus,
         status:"SET_IA_ACTION",
         filters: {
           ...state.filters, 
@@ -199,19 +201,19 @@ const filterPaginatedReducer = (state, action) => {
         } 
       };
 
-    case "GET_BACK":
-      iaStatus = state.aiActive === true ? false : state.aiActive;
-      filterStatus = state.isFilter === true ? false : state.isFilter;
-      return {
-        ...state,
-        aiActive: iaStatus,
-        isFilter: filterStatus,
-        status:"BACK_ACTION",
-        filters: {
-          ...state.filters, 
-        }
-        
-      };
+case "GET_BACK":
+  return {
+    ...state,
+    aiActive: false,    // 👈 Desactiva IA siempre
+    isFilter: false,    // 👈 Limpia filtro siempre
+    status: "BACK_ACTION",
+    filters: {
+      ...state.filters,
+      keyWord: "",
+      room: "",
+    },
+  };
+
     case "SET_SALA":
       filterStatus = state.isFilter === false ? true : state.isFilter;
       return {
@@ -290,12 +292,14 @@ const fetchPageMurales = async(page=1)=>{
       }
     }
 
-    if(!stateFilter.isFilter && stateFilter.aiActive){
-      if(stateFilter.filters.keyWord){
-        const [polaridad, probNegativa, probPositiva] = await sentimentalAnalysis(stateFilter.filters.keyWord);
-        request += `&polaridad=${polaridad}`;
-      }
-    }
+if (stateFilter.aiActive) {
+  if (stateFilter.filters.keyWord) {
+    const [polaridad, probNegativa, probPositiva] = await sentimentalAnalysis(stateFilter.filters.keyWord);
+    request += `&polaridad=${polaridad}`;
+  }
+}
+
+    
     console.log(request);
     const response = await fetch(request);
     const data = await response.json();
@@ -320,28 +324,31 @@ const fetchPageMurales = async(page=1)=>{
     if(hasLoadedRoomsRef.current && !force) return;
     hasLoadedRoomsRef.current = true;
 
-    try{
-      setLoadingRooms(true);
-      const request = await fetch(`/api/salas`);
-      const response = await request.json();
-      const salas = response.salas
-      .filter((sala)=>sala.publica)
-      .map((sala)=>({
-        id: sala.id,
-        name:sala.nombre,
-        img: sala.murales[0].mural.url_imagen,
+try { 
+  setLoadingRooms(true);
+  const request = await fetch(`/api/salas`);
+  const response = await request.json();
+  console.log(response);
 
-      }));
-      setRoomsToShow(salas);
-    }
-    catch(err){
-      console.error(`Error fetching Roooms: `, err);
-      hasLoadedRoomsRef.current = false;
+  const salas = response.salas
+    // ✅ Filtrar solo las públicas y que tengan al menos un mural con imagen
+    .filter(
+      (sala) => sala.publica && sala.murales.length > 0 && sala.murales[0]?.mural?.url_imagen
+    )
+    // ✅ Crear el objeto de salida limpio
+    .map((sala) => ({
+      id: sala.id,
+      name: sala.nombre,
+      img: sala.murales[0].mural.url_imagen, // Ahora es seguro
+    }));
 
+  setRoomsToShow(salas);
+} catch (error) {
+  console.error("Error fetching Rooms:", error);
+} finally {
+  setLoadingRooms(false);
+}
 
-    } finally {
-      setLoadingRooms(false);
-    }
   },[]);
 
   const getGalleryStats = useCallback(() => {

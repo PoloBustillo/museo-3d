@@ -82,7 +82,7 @@ export default function GaleriaPage() {
       case "NO-ACTION":
         break;
       case "SET_IA_ACTION":
-          dispatchFilter({ type: "RESET"});
+        
         break;
 
         case "SEARCH_IA_ACTION":

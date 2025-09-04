@@ -13,6 +13,7 @@ export default function SearchBar (){
     const handleSubmitAtSearchBar = (e) => {
         e.preventDefault();
         setOpenDropSearch(false);
+        console.log(stateFilter);
         const newKeyword = e.target.search.value.trim();
         console.log('Current world: ',newKeyword);
         console.log('OG world:',stateFilter.filters.keyWord);
@@ -20,11 +21,13 @@ export default function SearchBar (){
             if (newKeyword != stateFilter.filters.keyWord && newKeyword!= "") {
                 console.log('dispatch Set KeyWord');
                 dispatchFilter({ type: "SET_KEYWORD", keyWord: newKeyword });
+                      console.log(stateFilter);
             }
         }else{
             if (newKeyword != stateFilter.filters.keyWord && newKeyword!= "") {
-                console.log('dispatch Set KeyWord');
+                console.log('dispatch Set ia KeyWord');
                 dispatchFilter({ type: "SET_IA_KEYWORD", keyWord: newKeyword });
+                      console.log(stateFilter);
             }
         }
 
@@ -46,14 +49,17 @@ export default function SearchBar (){
     return (
         <div className="relative w-full mx-auto">
             <div className= {` flex items-center justify-around bg-zinc-100 dark:bg-white h-16 pl-2  w-full ${openDropSearch ? 'rounded-tr-3xl rounded-tl-4xl':'rounded-4xl '}`}>
-                {
-                    (stateFilter.isFilter || stateFilter.iaActive) && (
-                    <span onClick={handleGetBackAtArrow} className="rounded-4xl p-2 border-1 border-stone-950"> 
-                        <ArrowLeftIcon
-                            className={'size-5 text-stone-950'}
-                        />
-                    </span>)
-                }
+{
+  stateFilter.status !== "NO_ACTION" && (
+    <span
+      onClick={handleGetBackAtArrow}
+      className="rounded-4xl p-2 border-1 border-stone-950 cursor-pointer"
+    >
+      <ArrowLeftIcon className="size-5 text-stone-950" />
+    </span>
+  )
+}
+
 
                 <div 
                     className={`pl-2 pr-4 flex items-center gap-2 h-16  w-full`}    
