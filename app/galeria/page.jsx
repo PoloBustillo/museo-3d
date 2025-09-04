@@ -81,6 +81,17 @@ export default function GaleriaPage() {
         break;
       case "NO-ACTION":
         break;
+      case "SET_IA_ACTION":
+          dispatchFilter({ type: "RESET"});
+        break;
+
+        case "SEARCH_IA_ACTION":
+          setMuralesForScroll([]);
+          setCurrentPage(1); // Esto dispara el primer useEffect automáticamente
+          pageRef.current = 0;
+          fetchPageMurales(1);
+        break;
+
       case "BACK_ACTION":
           setMuralesForScroll([]);
           setCurrentPage(1); // Esto dispara el primer useEffect automáticamente
