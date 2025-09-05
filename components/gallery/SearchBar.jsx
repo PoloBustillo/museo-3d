@@ -68,7 +68,7 @@ export default function SearchBar (){
                 >
                         
                     {
-                        (!openDropSearch && !stateFilter.isFilter) && (
+                        (!openDropSearch && !stateFilter.isFilter && !stateFilter.aiActive ) && (
                             <span>
                             <SearchIcon className={'size-5 text-stone-950'} />
                             </span>
